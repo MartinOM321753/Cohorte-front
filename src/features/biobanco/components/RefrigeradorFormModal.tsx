@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useCreateRefrigerador, useUpdateRefrigerador } from '../hooks/useBiobanco'
+import { useCreateRefrigerador, useUpdateRefrigerador, useGetRefrigeradorById } from '../hooks/useBiobanco'
 import { Refrigerador } from '@/types/api'
 
 const refrigeradorSchema = z.object({
@@ -51,14 +51,16 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
 
   const createRefrigeradorMutation = useCreateRefrigerador()
   const updateRefrigeradorMutation = useUpdateRefrigerador()
+  const { data: freshRefrigerador } = useGetRefrigeradorById(open && isEditing ? refrigerador!.id : 0)
 
   useEffect(() => {
-    if (refrigerador) {
+    const source = freshRefrigerador ?? refrigerador
+    if (source) {
       reset({
-        codigo: refrigerador.codigo,
-        nombre: refrigerador.nombre,
-        marca: refrigerador.marca || '',
-        modelo: refrigerador.modelo || '',
+        codigo: source.codigo,
+        nombre: source.nombre,
+        marca: source.marca || '',
+        modelo: source.modelo || '',
       })
     } else {
       reset({
@@ -68,7 +70,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
         modelo: '',
       })
     }
-  }, [refrigerador, reset])
+  }, [freshRefrigerador, refrigerador, reset])
 
   const onSubmit = async (data: RefrigeradorFormData) => {
     try {

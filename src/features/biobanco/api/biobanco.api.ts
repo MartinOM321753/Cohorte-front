@@ -7,6 +7,7 @@ import {
   Caja,
   CajaRequestDTO,
   Muestra,
+  MuestraDetalleDTO,
   MuestraRequestDTO,
   PosicionCaja
 } from '@/types/api'
@@ -129,12 +130,12 @@ export async function getPosicionesLibresByCaja(idCaja: number) {
 // ============================================
 
 export async function getMuestras(params?: { pacienteUUID?: string }) {
-  const response = await api.get<ApiResponse<Muestra[]>>('/almacenamiento/muestras', { params })
+  const response = await api.get<ApiResponse<MuestraDetalleDTO[]>>('/almacenamiento/muestras', { params })
   return response.data.data
 }
 
 export async function getMuestraById(id: number) {
-  const response = await api.get<ApiResponse<Muestra>>(`/almacenamiento/muestras/${id}`)
+  const response = await api.get<ApiResponse<MuestraDetalleDTO>>(`/almacenamiento/muestras/${id}`)
   return response.data.data
 }
 

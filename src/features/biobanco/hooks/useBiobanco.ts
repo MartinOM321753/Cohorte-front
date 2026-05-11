@@ -28,6 +28,7 @@ import {
   PisosDTO,
   CajaRequestDTO,
   MuestraRequestDTO,
+  MuestraDetalleDTO,
 } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -35,10 +36,11 @@ import { toast } from 'sonner'
 // HOOKS PARA REFRIGERADORES
 // ============================================
 
-export function useGetRefrigeradores() {
+export function useGetRefrigeradores(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['refrigeradores'],
     queryFn: () => getRefrigeradores(),
+    enabled: options?.enabled ?? true,
   })
 }
 
@@ -243,14 +245,14 @@ export function useGetPosicionesLibresByCaja(idCaja: number) {
 // ============================================
 
 export function useGetMuestras(params?: { pacienteUUID?: string }) {
-  return useQuery({
+  return useQuery<MuestraDetalleDTO[]>({
     queryKey: ['muestras', params],
     queryFn: () => getMuestras(params),
   })
 }
 
 export function useGetMuestraById(id: number) {
-  return useQuery({
+  return useQuery<MuestraDetalleDTO>({
     queryKey: ['muestras', id],
     queryFn: () => getMuestraById(id),
     enabled: !!id,

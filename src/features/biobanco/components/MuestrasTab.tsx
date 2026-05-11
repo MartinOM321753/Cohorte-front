@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { Plus, Edit, Trash2, Search, TestTube, AlertCircle } from 'lucide-react'
 import { useGetMuestras, useDeleteMuestra } from '../hooks/useBiobanco'
-import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
 import { MuestraFormModal } from './MuestraFormModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
@@ -20,40 +19,30 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { formatDate } from '@/lib/utils'
-import { Muestra, Paciente, Persona } from '@/types/api'
+import { MuestraDetalleDTO } from '@/types/api'
 
 export function MuestrasTab() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isMuestraModalOpen, setIsMuestraModalOpen] = useState(false)
-  const [editingMuestra, setEditingMuestra] = useState<Muestra | null>(null)
+  const [editingMuestra, setEditingMuestra] = useState<MuestraDetalleDTO | null>(null)
 
   const { data: muestras, isLoading } = useGetMuestras()
-  const { data: pacientesRaw } = useGetPacientes({ activos: true })
   const deleteMuestraMutation = useDeleteMuestra()
-
-  const pacientes = Array.isArray(pacientesRaw) ? pacientesRaw : []
-
-  const getPacienteLabel = (uuids: string) => {
-    const p = pacientes.find((p : Paciente) => p.UUID === uuids)
-    if (!p) return uuids.slice(0, 8) + '…'
-    return `${p.folio} — ${p.persona.nombre} ${p.persona.apellidoPaterno}${p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}`
-  }
 
   const filteredMuestras = muestras?.filter((muestra) => {
     const term = searchTerm.toLowerCase()
     if (!term) return true
-    const p = pacientes.find((p) => p.UUID === muestra.pacienteUUID)
-    const pacienteStr = p
-      ? `${p.folio} ${p.persona.nombre} ${p.persona.apellidoPaterno} ${p.persona.apellidoMaterno ?? ''}`
-      : muestra.pacienteUUID
+    const pacienteStr = muestra.paciente
+      ? `${muestra.paciente.folio} ${muestra.paciente.nombreCompleto}`
+      : ''
     return (
       muestra.etiqueta.toLowerCase().includes(term) ||
-      pacienteStr.toLowerCase().includes(term) ||
-      muestra.unidad.toLowerCase().includes(term)
+      muestra.unidad.toLowerCase().includes(term) ||
+      pacienteStr.toLowerCase().includes(term)
     )
   }) ?? []
 
-  const handleEdit = (muestra: Muestra) => {
+  const handleEdit = (muestra: MuestraDetalleDTO) => {
     setEditingMuestra(muestra)
     setIsMuestraModalOpen(true)
   }
@@ -134,12 +123,7 @@ export function MuestrasTab() {
           {filteredMuestras.map((muestra) => (
             <Card key={muestra.id} className="relative">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-mono">{muestra.etiqueta}</CardTitle>
-                  <Badge variant={muestra.activo ? 'default' : 'secondary'}>
-                    {muestra.activo ? 'Activa' : 'Inactiva'}
-                  </Badge>
-                </div>
+                <CardTitle className="text-lg font-mono">{muestra.etiqueta}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -155,8 +139,19 @@ export function MuestrasTab() {
 
                 <div className="text-sm">
                   <span className="font-medium">Paciente:</span>
-                  <p className="text-muted-foreground truncate">{getPacienteLabel(muestra.pacienteUUID)}</p>
+                  <p className="text-muted-foreground truncate">
+                    {muestra.paciente ? `${muestra.paciente.folio} — ${muestra.paciente.nombreCompleto}` : '—'}
+                  </p>
                 </div>
+
+                {muestra.ubicacion && (
+                  <div className="text-sm">
+                    <span className="font-medium">Ubicación:</span>
+                    <p className="text-muted-foreground text-xs">
+                      {muestra.ubicacion.codigoCaja} — F{muestra.ubicacion.fila} C{muestra.ubicacion.columna} (Piso {muestra.ubicacion.numeroPiso}, {muestra.ubicacion.codigoRefrigerador})
+                    </p>
+                  </div>
+                )}
 
                 {muestra.observaciones && (
                   <div className="text-sm">

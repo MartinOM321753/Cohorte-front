@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio } from '../api/pacientes.api'
 
-export function useGetPacientes(params?: { buscar?: string; activos?: boolean }) {
+export function useGetPacientes(
+  params?: { buscar?: string; activos?: boolean },
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ['pacientes', params],
     queryFn: async () => {
@@ -12,6 +15,7 @@ export function useGetPacientes(params?: { buscar?: string; activos?: boolean })
         buscar: params?.buscar,
       })
     },
+    enabled: options?.enabled ?? true,
   })
 }
 

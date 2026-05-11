@@ -365,6 +365,38 @@ export interface MuestraRequestDTO {
   idPosicionCaja: number
 }
 
+export interface MuestraDetalleDTO {
+  id: number
+  uuid: string
+  etiqueta: string
+  valor: number
+  unidad: string
+  fechaRecoleccion: string
+  observaciones?: string | null
+  activo: boolean
+  paciente: {
+    id: number
+    folio: string
+    nombreCompleto: string
+    sexo: string
+    uuid: string
+  }
+  usuarioRecolecta: {
+    id: number
+    username: string
+    nombreCompleto: string
+    uuid: string
+  }
+  ubicacion: {
+    idPosicionCaja: number
+    fila: string
+    columna: string
+    codigoCaja: string
+    numeroPiso: string
+    codigoRefrigerador: string
+  }
+}
+
 // ============================================
 // BIOBANCO - REFRIGERADORES
 // ============================================

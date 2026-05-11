@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useCreateCaja, useUpdateCaja, useGetRefrigeradores, useGetPisosByRefrigerador } from '../hooks/useBiobanco'
+import { useCreateCaja, useUpdateCaja, useGetRefrigeradores, useGetPisosByRefrigerador, useGetCajaById } from '../hooks/useBiobanco'
 import { Caja, PosicionPiso } from '@/types/api'
 import { PosicionPisoSelectorModal } from './PosicionPisoSelectorModal'
 import { MapPin, X } from 'lucide-react'
@@ -69,19 +69,21 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
 
   const createCajaMutation = useCreateCaja()
   const updateCajaMutation = useUpdateCaja()
-  const { data: refrigeradores } = useGetRefrigeradores()
+  const { data: refrigeradores } = useGetRefrigeradores({ enabled: open && !isEditing })
   const { data: pisos } = useGetPisosByRefrigerador(selectedRefrigerador ? parseInt(selectedRefrigerador) : 0)
+  const { data: freshCaja } = useGetCajaById(open && isEditing ? caja!.id : 0)
 
   useEffect(() => {
-    if (caja) {
+    const source = freshCaja ?? caja
+    if (source) {
       reset({
-        codigoCaja: caja.codigoCaja,
-        filas: caja.filas,
-        columnas: caja.columnas,
-        tipoCaja: caja.tipoCaja,
-        color: caja.color || '',
-        observaciones: caja.observaciones || '',
-        idPosicionPiso: caja.idPosicionPiso,
+        codigoCaja: source.codigoCaja,
+        filas: source.filas,
+        columnas: source.columnas,
+        tipoCaja: source.tipoCaja,
+        color: source.color || '',
+        observaciones: source.observaciones || '',
+        idPosicionPiso: source.idPosicionPiso,
       })
     } else {
       reset({
@@ -94,7 +96,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
         idPosicionPiso: undefined,
       })
     }
-  }, [caja, reset])
+  }, [freshCaja, caja, reset])
 
 
   const onSubmit = async (data: CajaFormData) => {

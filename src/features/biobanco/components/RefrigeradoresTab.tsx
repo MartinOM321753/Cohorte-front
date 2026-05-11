@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, Edit, Trash2, Layers } from 'lucide-react'
-import { useGetRefrigeradores, useDeleteRefrigerador, useGetPisosByRefrigerador } from '../hooks/useBiobanco'
+import { useGetRefrigeradores, useDeleteRefrigerador } from '../hooks/useBiobanco'
 import { RefrigeradorFormModal } from './RefrigeradorFormModal'
 import { PisosFormModal } from './PisosFormModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,12 +28,6 @@ export function RefrigeradoresTab() {
 
   const { data: refrigeradores, isLoading } = useGetRefrigeradores()
   const deleteRefrigeradorMutation = useDeleteRefrigerador()
-
-  // Componente para mostrar el conteo de pisos de un refrigerador
-  const PisoCount = ({ refrigeradorId }: { refrigeradorId: number }) => {
-    const { data: pisos } = useGetPisosByRefrigerador(refrigeradorId)
-    return <span>{pisos?.length || 0}</span>
-  }
 
   const handleEdit = (refrigerador: any) => {
     setEditingRefrigerador(refrigerador)
@@ -128,7 +122,7 @@ export function RefrigeradoresTab() {
                 <div className="flex items-center gap-2 text-sm">
                   <Layers className="h-4 w-4" />
                   <span className="font-medium">Pisos:</span>
-                  <PisoCount refrigeradorId={refrigerador.id} />
+                  <span>{refrigerador.pisos?.length ?? 0}</span>
                 </div>
 
                 <div className="flex gap-2 pt-2">

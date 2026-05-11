@@ -25,10 +25,10 @@ import {
 } from '@/components/ui/command'
 import { Check, ChevronsUpDown, MapPin, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useCreateMuestra, useUpdateMuestra } from '../hooks/useBiobanco'
+import { useCreateMuestra, useUpdateMuestra, useGetMuestraById } from '../hooks/useBiobanco'
 import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
 import { useAuthStore } from '@/stores/authStore'
-import { Muestra, Paciente, PacienteRequestDTO, PacienteResumenDTO } from '@/types/api'
+import { MuestraDetalleDTO, Paciente } from '@/types/api'
 import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 
 const UNIDADES = [
@@ -53,7 +53,7 @@ type MuestraFormData = z.infer<typeof muestraSchema>
 interface MuestraFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  muestra?: Muestra | null
+  muestra?: MuestraDetalleDTO | null
 }
 
 const toLocalDateTimeInput = (date: Date): string => {
@@ -94,14 +94,15 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   const createMuestraMutation = useCreateMuestra()
   const updateMuestraMutation = useUpdateMuestra()
 
-  const { data: pacientesRaw } = useGetPacientes({ activos: true })
+  const { data: pacientesRaw } = useGetPacientes({ activos: true }, { enabled: open })
   const pacientes = Array.isArray(pacientesRaw)
     ? pacientesRaw
     : (pacientesRaw as any)?.data ?? []
 
+  const { data: freshMuestra } = useGetMuestraById(open && isEditing ? muestra!.id : 0)
+
   const getPacienteUUID = (p: Paciente): string =>
     p.UUID || (p as unknown as { uuid?: string }).uuid || ''
-
 
   useEffect(() => {
     if (open && user?.uuid) {
@@ -110,18 +111,32 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   }, [open, user, setValue])
 
   useEffect(() => {
-    if (muestra) {
+    if (freshMuestra) {
+      const u = freshMuestra.ubicacion
+      reset({
+        etiqueta: freshMuestra.etiqueta,
+        valor: freshMuestra.valor,
+        unidad: freshMuestra.unidad,
+        fechaRecoleccion: toLocalDateTimeInput(new Date(freshMuestra.fechaRecoleccion)),
+        observaciones: freshMuestra.observaciones || '',
+        pacienteUUID: freshMuestra.paciente.uuid,
+        usuarioRecolectaUUID: freshMuestra.usuarioRecolecta.uuid,
+        idPosicionCaja: u.idPosicionCaja,
+      })
+      setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
+    } else if (muestra) {
+      const u = muestra.ubicacion
       reset({
         etiqueta: muestra.etiqueta,
         valor: muestra.valor,
         unidad: muestra.unidad,
         fechaRecoleccion: toLocalDateTimeInput(new Date(muestra.fechaRecoleccion)),
         observaciones: muestra.observaciones || '',
-        pacienteUUID: muestra.pacienteUUID,
-        usuarioRecolectaUUID: muestra.usuarioRecolectaUUID,
-        idPosicionCaja: muestra.idPosicionCaja,
+        pacienteUUID: muestra.paciente.uuid,
+        usuarioRecolectaUUID: muestra.usuarioRecolecta.uuid,
+        idPosicionCaja: u.idPosicionCaja,
       })
-      setPosicionLabel(`Posición #${muestra.idPosicionCaja}`)
+      setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
     } else {
       reset({
         etiqueta: '',
@@ -135,7 +150,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
       })
       setPosicionLabel('')
     }
-  }, [muestra, reset, user])
+  }, [freshMuestra, muestra, reset, user])
 
   const onSubmit = async (data: MuestraFormData) => {
     try {
