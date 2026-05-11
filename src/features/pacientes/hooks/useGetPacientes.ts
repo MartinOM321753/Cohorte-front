@@ -12,7 +12,6 @@ export function useGetPacientes(params?: { buscar?: string; activos?: boolean })
         buscar: params?.buscar,
       })
     },
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -21,7 +20,6 @@ export function useGetPacienteById(id: number) {
     queryKey: ['pacientes', id],
     queryFn: () => getPacienteById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -30,7 +28,6 @@ export function useGetPacienteByUUID(uuid: string) {
     queryKey: ['pacientes', uuid],
     queryFn: () => getPacienteByUUID(uuid),
     enabled: !!uuid,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -39,6 +36,5 @@ export function useGetPacienteByFolio(folio: string) {
     queryKey: ['pacientes', folio],
     queryFn: () => getPacienteByFolio(folio),
     enabled: !!folio,
-    staleTime: 5 * 60 * 1000,
   })
 }

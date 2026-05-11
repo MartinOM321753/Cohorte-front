@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { Plus, Edit, Trash2, Search, TestTube } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, TestTube, AlertCircle } from 'lucide-react'
 import { useGetMuestras, useDeleteMuestra } from '../hooks/useBiobanco'
+import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
 import { MuestraFormModal } from './MuestraFormModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertCircle } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,22 +20,40 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { formatDate } from '@/lib/utils'
+import { Muestra, Paciente, Persona } from '@/types/api'
 
 export function MuestrasTab() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isMuestraModalOpen, setIsMuestraModalOpen] = useState(false)
-  const [editingMuestra, setEditingMuestra] = useState<any>(null)
+  const [editingMuestra, setEditingMuestra] = useState<Muestra | null>(null)
 
   const { data: muestras, isLoading } = useGetMuestras()
+  const { data: pacientesRaw } = useGetPacientes({ activos: true })
   const deleteMuestraMutation = useDeleteMuestra()
 
-  const filteredMuestras = muestras?.filter((muestra) =>
-    muestra.etiqueta.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    muestra.pacienteUUID.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    muestra.usuarioRecolectaUUID.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
+  const pacientes = Array.isArray(pacientesRaw) ? pacientesRaw : []
 
-  const handleEdit = (muestra: any) => {
+  const getPacienteLabel = (uuids: string) => {
+    const p = pacientes.find((p : Paciente) => p.UUID === uuids)
+    if (!p) return uuids.slice(0, 8) + '…'
+    return `${p.folio} — ${p.persona.nombre} ${p.persona.apellidoPaterno}${p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}`
+  }
+
+  const filteredMuestras = muestras?.filter((muestra) => {
+    const term = searchTerm.toLowerCase()
+    if (!term) return true
+    const p = pacientes.find((p) => p.UUID === muestra.pacienteUUID)
+    const pacienteStr = p
+      ? `${p.folio} ${p.persona.nombre} ${p.persona.apellidoPaterno} ${p.persona.apellidoMaterno ?? ''}`
+      : muestra.pacienteUUID
+    return (
+      muestra.etiqueta.toLowerCase().includes(term) ||
+      pacienteStr.toLowerCase().includes(term) ||
+      muestra.unidad.toLowerCase().includes(term)
+    )
+  }) ?? []
+
+  const handleEdit = (muestra: Muestra) => {
     setEditingMuestra(muestra)
     setIsMuestraModalOpen(true)
   }
@@ -52,7 +70,7 @@ export function MuestrasTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     )
   }
@@ -82,7 +100,7 @@ export function MuestrasTab() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por etiqueta, paciente o recolector..."
+            placeholder="Buscar por etiqueta, paciente o unidad..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -137,12 +155,7 @@ export function MuestrasTab() {
 
                 <div className="text-sm">
                   <span className="font-medium">Paciente:</span>
-                  <p className="text-muted-foreground font-mono">{muestra.pacienteUUID}</p>
-                </div>
-
-                <div className="text-sm">
-                  <span className="font-medium">Recolector:</span>
-                  <p className="text-muted-foreground font-mono">{muestra.usuarioRecolectaUUID}</p>
+                  <p className="text-muted-foreground truncate">{getPacienteLabel(muestra.pacienteUUID)}</p>
                 </div>
 
                 {muestra.observaciones && (

@@ -67,7 +67,6 @@ export function useDashboardStats() {
         throw error
       }
     },
-    staleTime: Infinity, // No refrescar automáticamente, solo cuando se invalide
   })
 }
 
@@ -90,6 +89,5 @@ export function useProximasCitas(limit: number = 5) {
 
       return citasOrdenadas
     },
-    staleTime: Infinity, // No refrescar automáticamente, solo cuando se invalide
   })
 }

@@ -16,7 +16,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreateCaja, useUpdateCaja, useGetRefrigeradores, useGetPisosByRefrigerador } from '../hooks/useBiobanco'
-import { Caja } from '@/types/api'
+import { Caja, PosicionPiso } from '@/types/api'
+import { PosicionPisoSelectorModal } from './PosicionPisoSelectorModal'
+import { MapPin, X } from 'lucide-react'
+import { Controller } from 'react-hook-form'  // ← agregar
+
 
 const cajaSchema = z.object({
   codigoCaja: z.string().min(1, 'El código es obligatorio').max(50, 'Máximo 50 caracteres'),
@@ -40,11 +44,14 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
   const isEditing = !!caja
   const [selectedRefrigerador, setSelectedRefrigerador] = useState<string>('')
   const [selectedPiso, setSelectedPiso] = useState<string>('')
+  const [selectedPosicionPiso, setSelectedPosicionPiso] = useState<PosicionPiso | null>(null)
+  const [showPosicionSelector, setShowPosicionSelector] = useState(false)
 
   const {
     register,
     handleSubmit,
     setValue,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CajaFormData>({
@@ -54,7 +61,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
       filas: 1,
       columnas: 1,
       tipoCaja: '',
-      color: '',
+      color: '#3b82f6',
       observaciones: '',
       idPosicionPiso: undefined,
     },
@@ -82,29 +89,31 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
         filas: 1,
         columnas: 1,
         tipoCaja: '',
-        color: '',
+        color: '#3b82f6',
         observaciones: '',
         idPosicionPiso: undefined,
       })
     }
   }, [caja, reset])
 
+
   const onSubmit = async (data: CajaFormData) => {
     try {
-      // Filtrar campos undefined para evitar enviarlos al backend
-      const filteredData = Object.fromEntries(
-        Object.entries(data).filter(([_, value]) => value !== undefined)
-      )
+      const { idPosicionPiso, ...rest } = data
+      const payload = {
+        ...rest,
+        color: rest.color ?? '',
+        observaciones: rest.observaciones ?? '',
+        ...(idPosicionPiso !== undefined && { idPosicionPiso }),
+      }
 
       if (isEditing && caja) {
-        await updateCajaMutation.mutateAsync({ id: caja.id, data: filteredData })
+        await updateCajaMutation.mutateAsync({ id: caja.id, data: payload })
       } else {
-        await createCajaMutation.mutateAsync(filteredData)
+        await createCajaMutation.mutateAsync(payload)
       }
       onOpenChange(false)
-    } catch (error) {
-      // Error handling is done in the mutation
-    }
+    } catch (error) { }
   }
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -112,6 +121,8 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
       reset()
       setSelectedRefrigerador('')
       setSelectedPiso('')
+      setSelectedPosicionPiso(null)
+      setShowPosicionSelector(false)
     }
     onOpenChange(newOpen)
   }
@@ -187,15 +198,51 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="color">Color</Label>
-              <Input
-                id="color"
-                {...register('color')}
-                placeholder="Azul"
+              <Label>Color</Label>
+              <Controller
+                name="color"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={field.value}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      className="
+            w-8 h-8 
+            rounded-full 
+            border border-input 
+            cursor-pointer  
+            p-0 
+            overflow-hidden 
+            bg-transparent
+          "
+                    />
+
+                    <span className="text-sm font-mono text-muted-foreground">
+                      {field.value || '—'}
+                    </span>
+
+                    {field.value && (
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('')}
+                        className="
+                          w-4 h-4
+                          flex items-center justify-center
+                          rounded-full
+                          text-muted-foreground
+                          hover:text-destructive
+                          hover:bg-muted
+                          transition-colors
+                        "
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
               />
-              {errors.color && (
-                <p className="text-sm text-destructive">{errors.color.message}</p>
-              )}
             </div>
           </div>
 
@@ -206,7 +253,8 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                 <Select value={selectedRefrigerador} onValueChange={(value) => {
                   setSelectedRefrigerador(value)
                   setSelectedPiso('')
-                  setValue('idPosicionPiso', 0)
+                  setSelectedPosicionPiso(null)
+                  setValue('idPosicionPiso', undefined)
                 }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona un refrigerador" />
@@ -226,6 +274,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                   <Label>Seleccionar Piso (Opcional)</Label>
                   <Select value={selectedPiso} onValueChange={(value) => {
                     setSelectedPiso(value)
+                    setSelectedPosicionPiso(null)
                     setValue('idPosicionPiso', undefined)
                   }}>
                     <SelectTrigger>
@@ -243,11 +292,49 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
               )}
 
               {selectedPiso && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-800">
-                    <strong>Nota:</strong> Las posiciones disponibles no se pueden cargar actualmente desde el backend.
-                    La caja se creará sin posición asignada. Podrá asignar una posición posteriormente.
-                  </p>
+                <div className="space-y-2">
+                  <Label>Posición en el Piso (Opcional)</Label>
+                  {selectedPosicionPiso ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-200 rounded-md">
+                        <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
+                        <p className="text-sm text-blue-800">
+                          Fila <strong>{selectedPosicionPiso.fila}</strong>, Columna{' '}
+                          <strong>{selectedPosicionPiso.columna}</strong>, Altura{' '}
+                          <strong>{selectedPosicionPiso.altura}</strong>
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowPosicionSelector(true)}
+                      >
+                        Cambiar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPosicionPiso(null)
+                          setValue('idPosicionPiso', undefined)
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowPosicionSelector(true)}
+                    >
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Seleccionar Posición
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -255,11 +342,17 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
 
           <div className="space-y-2">
             <Label htmlFor="observaciones">Observaciones</Label>
-            <Textarea
-              id="observaciones"
-              {...register('observaciones')}
-              placeholder="Observaciones adicionales..."
-              rows={3}
+            <Controller
+              name="observaciones"
+              control={control}
+              render={({ field }) => (
+                <Textarea
+                  id="observaciones"
+                  {...field}
+                  placeholder="Observaciones adicionales..."
+                  rows={3}
+                />
+              )}
             />
             {errors.observaciones && (
               <p className="text-sm text-destructive">{errors.observaciones.message}</p>
@@ -284,6 +377,19 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {selectedPiso && (
+        <PosicionPisoSelectorModal
+          open={showPosicionSelector}
+          onOpenChange={setShowPosicionSelector}
+          idPiso={parseInt(selectedPiso)}
+          pisoLabel={`Piso ${pisos?.find((p: any) => p.id.toString() === selectedPiso)?.numeroPiso ?? ''}`}
+          onSelect={(posicion) => {
+            setSelectedPosicionPiso(posicion)
+            setValue('idPosicionPiso', posicion.id)
+          }}
+        />
+      )}
     </Dialog>
   )
 }

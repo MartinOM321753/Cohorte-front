@@ -67,12 +67,12 @@ export async function createPisos(data: PisosDTO) {
 // ============================================
 
 export async function getPosicionesByPiso(idPiso: number) {
-  const response = await api.get<ApiResponse<any[]>>(`/almacenamiento/pisos/${idPiso}/posiciones`)
+  const response = await api.get<ApiResponse<any[]>>(`/almacenamiento/refrigeradores/pisos/${idPiso}/posiciones`)
   return response.data.data
 }
 
 export async function getPosicionesLibresByPiso(idPiso: number) {
-  const response = await api.get<ApiResponse<any[]>>(`/almacenamiento/pisos/${idPiso}/posiciones/libres`)
+  const response = await api.get<ApiResponse<any[]>>(`/almacenamiento/refrigeradores/pisos/${idPiso}/posiciones/libres`)
   return response.data.data
 }
 
@@ -97,6 +97,11 @@ export async function createCaja(data: CajaRequestDTO) {
 
 export async function updateCaja(id: number, data: Partial<CajaRequestDTO>) {
   const response = await api.put<ApiResponse<Caja>>(`/almacenamiento/cajas/${id}`, data)
+  return response.data.data
+}
+
+export async function asignarCajaAPosicion(idCaja: number, idPosicionPiso: number) {
+  const response = await api.put<ApiResponse<Caja>>(`/almacenamiento/cajas/${idCaja}`, { idPosicionPiso })
   return response.data.data
 }
 

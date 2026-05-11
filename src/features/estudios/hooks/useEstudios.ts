@@ -17,7 +17,6 @@ export function useGetEstudios() {
   return useQuery({
     queryKey: ['estudios'],
     queryFn: getEstudios,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -28,7 +27,6 @@ export function useGetTiposEstudio() {
   return useQuery({
     queryKey: ['tiposEstudio'],
     queryFn: getTiposEstudio,
-    staleTime: 10 * 60 * 1000, // Longer cache for reference data
   })
 }
 

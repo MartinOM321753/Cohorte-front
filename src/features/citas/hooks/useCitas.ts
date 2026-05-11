@@ -7,7 +7,6 @@ export function useGetCitas(params?: { pacienteUUID?: string }) {
   return useQuery({
     queryKey: ['citas', params],
     queryFn: () => getCitas(params),
-    staleTime: 5 * 60 * 1000,
   })
 }
 

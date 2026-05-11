@@ -39,7 +39,6 @@ export function useGetRefrigeradores() {
   return useQuery({
     queryKey: ['refrigeradores'],
     queryFn: () => getRefrigeradores(),
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -48,7 +47,6 @@ export function useGetRefrigeradorById(id: number) {
     queryKey: ['refrigeradores', id],
     queryFn: () => getRefrigeradorById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -110,7 +108,6 @@ export function useGetPisosByRefrigerador(idRefrigerador: number) {
     queryKey: ['pisos', idRefrigerador],
     queryFn: () => getPisosByRefrigerador(idRefrigerador),
     enabled: !!idRefrigerador,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -140,7 +137,6 @@ export function useGetPosicionesByPiso(idPiso: number) {
     queryKey: ['posiciones-piso', idPiso],
     queryFn: () => getPosicionesByPiso(idPiso),
     enabled: !!idPiso,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -149,7 +145,6 @@ export function useGetPosicionesLibresByPiso(idPiso: number) {
     queryKey: ['posiciones-piso-libres', idPiso],
     queryFn: () => getPosicionesLibresByPiso(idPiso),
     enabled: !!idPiso,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -161,7 +156,6 @@ export function useGetCajas() {
   return useQuery({
     queryKey: ['cajas'],
     queryFn: () => getCajas(),
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -170,7 +164,6 @@ export function useGetCajaById(id: number) {
     queryKey: ['cajas', id],
     queryFn: () => getCajaById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -234,7 +227,6 @@ export function useGetPosicionesByCaja(idCaja: number) {
     queryKey: ['posiciones', idCaja],
     queryFn: () => getPosicionesByCaja(idCaja),
     enabled: !!idCaja,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -243,7 +235,6 @@ export function useGetPosicionesLibresByCaja(idCaja: number) {
     queryKey: ['posiciones-libres', idCaja],
     queryFn: () => getPosicionesLibresByCaja(idCaja),
     enabled: !!idCaja,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -255,7 +246,6 @@ export function useGetMuestras(params?: { pacienteUUID?: string }) {
   return useQuery({
     queryKey: ['muestras', params],
     queryFn: () => getMuestras(params),
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -264,7 +254,6 @@ export function useGetMuestraById(id: number) {
     queryKey: ['muestras', id],
     queryFn: () => getMuestraById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -273,7 +262,6 @@ export function useGetMuestrasByPaciente(uuid: string) {
     queryKey: ['muestras-paciente', uuid],
     queryFn: () => getMuestrasByPaciente(uuid),
     enabled: !!uuid,
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -331,3 +319,4 @@ export function useDeleteMuestra() {
     },
   })
 }
+

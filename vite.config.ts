@@ -8,6 +8,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // Never cache API calls — always go to the network
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [],
+      },
       manifest: {
         name: 'IMSS Cohorte Sistema',
         short_name: 'IMSS Cohorte',
