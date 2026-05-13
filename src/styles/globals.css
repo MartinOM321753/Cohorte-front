@@ -9,7 +9,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.488 0.243 264.376);
+  --primary: oklch(0.36 0.05 156); /* IMSS green #1e4e3a */
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -21,8 +21,18 @@
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.488 0.243 264.376);
+  --ring: oklch(0.36 0.05 156);
   --radius: 0.5rem;
+
+  /* New brand tokens (use however you like) */
+  --imss-green-900: #0e2a20;
+  --imss-green-700: #1a4332;
+  --imss-green-500: #1e4e3a;
+  --imss-green-100: #d9e4dd;
+  --imss-ochre-700: #735318;
+  --imss-ochre-500: #a87b2c;
+  --imss-ochre-300: #d4a866;
+  --imss-paper: #f6f3eb;
 }
 
 .dark {
