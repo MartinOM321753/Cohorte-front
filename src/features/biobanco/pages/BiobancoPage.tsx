@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { RoleGuard } from '@/components/routes/RoleGuard'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { RoleGuard } from '@/components/routes/RoleGuard'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertCircle } from 'lucide-react'
 import { RefrigeradoresTab } from '../components/RefrigeradoresTab'
 import { CajasTab } from '../components/CajasTab'
@@ -11,26 +12,24 @@ export default function BiobancoPage() {
   const [activeTab, setActiveTab] = useState('refrigeradores')
 
   return (
-    <div className="page-wrapper space-y-6">
-      <div className="section-header">
-        <h1 className="section-title">Biobanco</h1>
-        <p className="section-subtitle">
-          Gestiona muestras biológicas, refrigeradores, cajas criogénicas y sus posiciones
-        </p>
-      </div>
+    <RoleGuard allowedRoles={['LABORATORISTA', 'ADMINISTRADOR']}>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Biobanco"
+          subtitle="Refrigeradores criogénicos · pisos · cajas · posiciones."
+        />
 
-      <RoleGuard allowedRoles={['LABORATORISTA', 'ADMINISTRADOR']}>
         <Alert>
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
           <AlertDescription>
-            Sistema de almacenamiento criogénico jerárquico: Refrigerador → Piso → Caja → Muestra
+            Sistema de almacenamiento criogénico jerárquico: Refrigerador → Piso → Caja → Muestra.
           </AlertDescription>
         </Alert>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="refrigeradores">Refrigeradores</TabsTrigger>
-            <TabsTrigger value="cajas">Cajas Criogénicas</TabsTrigger>
+            <TabsTrigger value="cajas">Cajas criogénicas</TabsTrigger>
             <TabsTrigger value="muestras">Muestras</TabsTrigger>
           </TabsList>
 
@@ -46,7 +45,8 @@ export default function BiobancoPage() {
             <MuestrasTab />
           </TabsContent>
         </Tabs>
-      </RoleGuard>
-    </div>
+      </div>
+    </RoleGuard>
   )
 }
+

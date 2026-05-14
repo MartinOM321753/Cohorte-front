@@ -31,7 +31,7 @@ export default function ConfiguracionPage() {
               <div><strong>Aplicación:</strong> IMSS Cohorte</div>
               <div><strong>Versión:</strong> 1.0.0</div>
               <div><strong>Ambiente:</strong> Desarrollo</div>
-              <div><strong>Rama:</strong> {process.env.NODE_ENV}</div>
+              <div><strong>Ambiente:</strong> {import.meta.env.MODE}</div>
             </CardContent>
           </Card>
 

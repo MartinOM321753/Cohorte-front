@@ -1,175 +1,129 @@
-import { useAuthStore } from '@/stores/authStore'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Calendar, Beaker, TestTube } from 'lucide-react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { RoleGuard } from '@/components/routes/RoleGuard'
 import { useDashboardStats } from '../hooks/useDashboard'
-import { Skeleton } from '@/components/ui/skeleton'
+import { CalendarDays, Stethoscope, TestTube2, UserRound } from 'lucide-react'
+import type { ReactNode } from 'react'
+
+function StatCard({
+  label,
+  value,
+  isLoading,
+  icon,
+  highlight,
+  helper,
+}: {
+  label: string
+  value: number
+  isLoading: boolean
+  icon: ReactNode
+  highlight?: boolean
+  helper: string
+}) {
+  return (
+    <Card className="border border-border shadow-none">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
+              {label}
+            </div>
+            <div className="mt-2">
+              {isLoading ? (
+                <Skeleton className="h-9 w-24" />
+              ) : highlight ? (
+                <div
+                  className="text-[42px] leading-none text-foreground"
+                  style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic', fontWeight: 500 }}
+                >
+                  {value}
+                </div>
+              ) : (
+                <div className="tabular-nums text-[32px] font-semibold leading-none text-foreground">{value}</div>
+              )}
+            </div>
+            <div className="mt-2 text-[13px] text-muted-foreground">{helper}</div>
+          </div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--imss-green-50)] text-[var(--primary)]">
+            {icon}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function DashboardPage() {
-  const { user } = useAuthStore()
   const { data: stats, isLoading } = useDashboardStats()
 
   return (
-    <div className="page-wrapper space-y-8">
-      {/* Welcome Header */}
-      <div className="section-header">
-        <h1 className="section-title">
-          Bienvenido, {user?.persona?.nombre || user?.username}
-        </h1>
-        <p className="section-subtitle">
-          Sistema de Gestión de Investigación Clínica - IMSS Cohorte v1.0
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Dashboard"
+        subtitle="Resumen operativo del sistema."
+      />
 
-      {/* Quick Stats */}
-      <div className="card-grid">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pacientes Activos</CardTitle>
-            <Users className="h-5 w-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-16 mb-1" />
-            ) : (
-              <div className="text-2xl font-bold">{stats?.pacientesActivos || 0}</div>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              Pacientes en seguimiento activo
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Citas Programadas</CardTitle>
-            <Calendar className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-16 mb-1" />
-            ) : (
-              <div className="text-2xl font-bold">{stats?.citasProgramadas || 0}</div>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              Para el mes actual
-            </p>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Pacientes activos"
+          value={stats?.pacientesActivos || 0}
+          isLoading={isLoading}
+          highlight
+          helper="Pacientes en seguimiento activo."
+          icon={<UserRound className="h-4 w-4" strokeWidth={1.75} />}
+        />
+        <StatCard
+          label="Citas programadas"
+          value={stats?.citasProgramadas || 0}
+          isLoading={isLoading}
+          helper="Programadas para el periodo actual."
+          icon={<CalendarDays className="h-4 w-4" strokeWidth={1.75} />}
+        />
         <RoleGuard allowedRoles={['MEDICO', 'ADMINISTRADOR']}>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Estudios Pendientes</CardTitle>
-              <Beaker className="h-5 w-5 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16 mb-1" />
-              ) : (
-                <div className="text-2xl font-bold">{stats?.estudiosPendientes || 0}</div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Datos de evaluación
-              </p>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="Estudios pendientes"
+            value={stats?.estudiosPendientes || 0}
+            isLoading={isLoading}
+            helper="Pendientes de captura o validación."
+            icon={<Stethoscope className="h-4 w-4" strokeWidth={1.75} />}
+          />
         </RoleGuard>
-
         <RoleGuard allowedRoles={['LABORATORISTA', 'ADMINISTRADOR']}>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Muestras en Biobanco</CardTitle>
-              <TestTube className="h-5 w-5 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16 mb-1" />
-              ) : (
-                <div className="text-2xl font-bold">{stats?.muestrasBiobanco || 0}</div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Almacenadas correctamente
-              </p>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="Muestras en biobanco"
+            value={stats?.muestrasBiobanco || 0}
+            isLoading={isLoading}
+            helper="Registradas en almacenamiento."
+            icon={<TestTube2 className="h-4 w-4" strokeWidth={1.75} />}
+          />
         </RoleGuard>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
+        <Card className="border border-border shadow-none">
+          <CardHeader className="px-6 pt-6">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
+              Agenda de hoy
+            </div>
+            <div className="mt-1 text-[14px] font-medium text-foreground">Citas clínicas</div>
+          </CardHeader>
+          <CardContent className="px-6 pb-6 text-sm text-muted-foreground">
+            No hay información disponible en este momento.
+          </CardContent>
+        </Card>
 
-
-      {/* Role-based Content */}
-      <div className="space-y-6">
-        <RoleGuard allowedRoles={['ADMINISTRADOR']}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Panel Administrativo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Como administrador, tienes acceso a todas las funciones del sistema.
-                Puedes gestionar usuarios, configurar parámetros del sistema y acceder
-                a reportes completos.
-              </p>
-            </CardContent>
-          </Card>
-        </RoleGuard>
-
-        <RoleGuard allowedRoles={['MEDICO']}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Funciones de Médico/Investigador</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Puedes registrar estudios médicos, agendar citas con pacientes,
-                consultar resultados de exámenes y gestionar información clínica.
-              </p>
-            </CardContent>
-          </Card>
-        </RoleGuard>
-
-        <RoleGuard allowedRoles={['LABORATORISTA']}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Funciones de Laboratorista</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Puedes gestionar exámenes de laboratorio, registrar muestras biológicas
-                y administrar el biobanco (refrigeradores y cajas criogénicas).
-              </p>
-            </CardContent>
-          </Card>
-        </RoleGuard>
-
-        <RoleGuard allowedRoles={['RECEPCIONISTA']}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Funciones de Recepcionista</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Puedes registrar nuevos pacientes, agendar citas y consultar
-                información básica del sistema.
-              </p>
-            </CardContent>
-          </Card>
-        </RoleGuard>
-
-        <RoleGuard allowedRoles={['PACIENTE']}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Mi Información</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Bienvenido. Puedes consultar tus citas programadas y resultados
-                de exámenes e estudios realizados.
-              </p>
-            </CardContent>
-          </Card>
-        </RoleGuard>
+        <Card className="border border-border shadow-none">
+          <CardHeader className="px-6 pt-6">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
+              Alertas del sistema
+            </div>
+            <div className="mt-1 text-[14px] font-medium text-foreground">Notificaciones</div>
+          </CardHeader>
+          <CardContent className="px-6 pb-6 text-sm text-muted-foreground">
+            No hay alertas registradas.
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createCita, getCitas } from '../api/citas.api'
-import { CitaRequestDTO, Cita } from '@/types/api'
+import { CitaRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
 
 export function useGetCitas(params?: { pacienteUUID?: string }) {
@@ -19,7 +19,7 @@ export function useCreateCita() {
       queryClient.invalidateQueries({ queryKey: ['citas'] })
       queryClient.invalidateQueries({ queryKey: ['proximas-citas'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success('Cita programada exitosamente')
+      toast.success('Cita programada.')
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error al programar la cita'

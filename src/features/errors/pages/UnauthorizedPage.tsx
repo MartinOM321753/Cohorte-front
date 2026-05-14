@@ -1,28 +1,33 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle } from 'lucide-react'
 
 export default function UnauthorizedPage() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="max-w-md text-center">
-        <AlertTriangle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Acceso Denegado</h1>
-        <p className="text-slate-600 mb-6">
-          No tienes permisos para acceder a esta sección del sistema.
-          Por favor, contacta al administrador si crees que esto es un error.
+    <div className="flex min-h-screen items-center justify-center bg-white px-6">
+      <div className="w-full max-w-[480px] text-center">
+        <div
+          style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}
+          className="text-[88px] leading-none text-[var(--imss-ochre-500)]"
+        >
+          403
+        </div>
+        <h1 className="mt-4 text-[24px] font-semibold tracking-[-0.01em] text-foreground">Acceso no autorizado</h1>
+        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+          No cuenta con permisos para acceder a esta sección. Si considera que se trata de un error, contacte al
+          administrador del sistema.
         </p>
-        <div className="flex gap-3 justify-center">
-          <Button variant="outline" onClick={() => navigate('/dashboard')}>
-            Volver al Dashboard
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Button variant="secondary" onClick={() => navigate('/dashboard')}>
+            Volver al dashboard
           </Button>
-          <Button onClick={() => navigate('/login')}>
-            Cambiar Sesión
+          <Button variant="outline" onClick={() => navigate('/login')}>
+            Cambiar sesión
           </Button>
         </div>
       </div>
     </div>
   )
 }
+

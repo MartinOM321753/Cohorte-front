@@ -3,36 +3,56 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* shadcn semantic — primary cambia a verde IMSS */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.36 0.05 156); /* IMSS green #1e4e3a */
+  --primary: oklch(0.36 0.05 156);              /* #1e4e3a IMSS green */
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --secondary: oklch(0.97 0.005 156);
+  --secondary-foreground: oklch(0.22 0.04 156);
+  --muted: oklch(0.97 0.005 156);
+  --muted-foreground: oklch(0.45 0.01 156);
+  --accent: oklch(0.97 0.005 156);
+  --accent-foreground: oklch(0.22 0.04 156);
+  --destructive: oklch(0.52 0.21 27);            /* #b3261e */
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.92 0.005 156);               /* #dbe1de */
+  --input: oklch(0.92 0.005 156);
   --ring: oklch(0.36 0.05 156);
-  --radius: 0.5rem;
+  --radius: 0.375rem;                            /* 6 px base */
 
-  /* New brand tokens (use however you like) */
+  /* Tokens de marca IMSS — úsalos en lugar de inventar colores */
   --imss-green-900: #0e2a20;
-  --imss-green-700: #1a4332;
-  --imss-green-500: #1e4e3a;
+  --imss-green-800: #143a2c;
+  --imss-green-700: #1a4332;                     /* hover de primary */
+  --imss-green-500: #1e4e3a;                     /* primary canónico */
   --imss-green-100: #d9e4dd;
+  --imss-green-50:  #ecf2ee;                     /* selected-row, tinted bg */
+
   --imss-ochre-700: #735318;
-  --imss-ochre-500: #a87b2c;
+  --imss-ochre-500: #a87b2c;                     /* accent / investigación */
   --imss-ochre-300: #d4a866;
-  --imss-paper: #f6f3eb;
+  --imss-ochre-50:  #f9f2e2;
+
+  --imss-paper:  #f6f3eb;                        /* off-white cálido */
+  --imss-bone:   #efebdf;
+
+  --imss-ink-900: #0d1411;
+  --imss-ink-500: #4a5651;
+  --imss-ink-300: #7d8782;
+  --imss-ink-100: #dbe1de;
+
+  /* Estados clínicos / semánticos */
+  --status-success-bg: #e7f4ec;  --status-success-fg: #145c39;
+  --status-warning-bg: #fbf3e3;  --status-warning-fg: #8a560e;
+  --status-danger-bg:  #fbeae9;  --status-danger-fg:  #8a1a14;
+  --status-info-bg:    #e3f2f6;  --status-info-fg:    #0a566c;
+  --status-neutral-bg: #eaeeec;  --status-neutral-fg: #4a5651;
+  --status-investiga-bg: #f9f2e2; --status-investiga-fg: #735318;
 }
 
 .dark {

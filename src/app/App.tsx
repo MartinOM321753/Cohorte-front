@@ -9,10 +9,17 @@ function App() {
       <AppRouter />
       <Toaster
         position="top-right"
-        richColors
-        expand
         closeButton
         duration={4000}
+        toastOptions={{
+          style: {
+            background: 'white',
+            border: '1px solid var(--imss-ink-100)',
+            borderRadius: '6px',
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '14px',
+          },
+        }}
       />
     </QueryClientProvider>
   )

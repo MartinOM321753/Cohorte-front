@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { CalendarDays, Plus, Search } from 'lucide-react'
 import { useGetPacientes } from '../hooks/useGetPacientes'
 import { PacientesTable } from '../components/PacientesTable'
 import { PacienteFormModal } from '../components/PacienteFormModal'
 import { CitaFormModal } from '@/features/citas/components/CitaFormModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { getFullName } from '@/lib/utils'
 import { Paciente } from '@/types/api'
+import { PageHeader } from '@/components/layout/PageHeader'
 
 export default function PacientesPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -26,52 +27,41 @@ export default function PacientesPage() {
   )
 
   return (
-    <div className="page-wrapper space-y-6">
-      {/* Header */}
-      <div className="section-header">
-        <h1 className="section-title">Pacientes</h1>
-        <p className="section-subtitle">
-          Gestiona el registro y seguimiento de todos los pacientes del sistema
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Pacientes"
+        subtitle="Registro de pacientes incluidos en la cohorte."
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setIsCitaModalOpen(true)}>
+              <CalendarDays className="h-4 w-4" strokeWidth={1.75} />
+              Agendar cita
+            </Button>
+            <Button onClick={() => setIsFormOpen(true)}>
+              <Plus className="h-4 w-4" strokeWidth={1.75} />
+              Registrar paciente
+            </Button>
+          </>
+        }
+      />
 
-      {/* Search and Add */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex-1 max-w-sm">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Buscar por nombre o folio..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                variant="outline"
-                onClick={() => setIsCitaModalOpen(true)}
-              >
-                Agendar cita
-              </Button>
-              <Button
-                onClick={() => setIsFormOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Nuevo Paciente
-              </Button>
-            </div>
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-center gap-3 border-b p-4">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.75} />
+            <Input
+              placeholder="Buscar por folio o nombre…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9 pl-10"
+            />
           </div>
-        </CardHeader>
-      </Card>
+          <span className="ml-auto text-xs font-mono text-muted-foreground">
+            {filteredPacientes.length} de {pacientesArray.length}
+          </span>
+        </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="pt-6">
+        <div className="p-0">
           <PacientesTable
             pacientes={filteredPacientes}
             isLoading={isLoading}
@@ -80,7 +70,7 @@ export default function PacientesPage() {
               setIsCitaModalOpen(true)
             }}
           />
-        </CardContent>
+        </div>
       </Card>
 
       {/* Form Modals */}
