@@ -1,25 +1,30 @@
+import type { ReactNode } from 'react'
+import { Trash2 } from 'lucide-react'
+
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 
 interface ConfirmDialogProps {
   open: boolean
   title: string
-  description: string
+  description: ReactNode
   actionLabel?: string
   cancelLabel?: string
   destructive?: boolean
   onConfirm: () => void
   onCancel: () => void
   isLoading?: boolean
+
+  pacienteFolio?: string
+  pacienteNombre?: string
 }
 
 export function ConfirmDialog({
@@ -32,28 +37,53 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   isLoading = false,
+  pacienteFolio,
+  pacienteNombre,
 }: ConfirmDialogProps) {
+  const usesPacienteCopy = Boolean(destructive && pacienteFolio && pacienteNombre)
+
   return (
-    <AlertDialog open={open} onOpenChange={(open) => !open && onCancel()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel} disabled={isLoading}>
-            {cancelLabel}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            disabled={isLoading}
-            className={destructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
-          >
-            {isLoading ? <Spinner className="h-4 w-4 mr-2" /> : null}
-            {actionLabel}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
+      <DialogContent className="max-w-md p-0">
+        <div className="p-6">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription asChild>
+              <div className="text-sm text-muted-foreground">
+                {usesPacienteCopy ? (
+                  <>
+                    ¿Eliminar al paciente{' '}
+                    <span className="font-mono">{pacienteFolio}</span>
+                    {' · '}
+                    <span className="font-medium">{pacienteNombre}</span>? Esta
+                    acción no se puede deshacer y cancelará sus citas y estudios
+                    pendientes.
+                  </>
+                ) : (
+                  description
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+
+        <div className="border-t border-border bg-[--imss-paper] px-6 py-3">
+          <DialogFooter>
+            <Button variant="ghost" onClick={onCancel} disabled={isLoading}>
+              {cancelLabel}
+            </Button>
+            <Button
+              variant={destructive ? 'destructive' : 'default'}
+              onClick={onConfirm}
+              disabled={isLoading}
+            >
+              {destructive ? <Trash2 className="mr-2 size-4" /> : null}
+              {isLoading ? <Spinner className="mr-2 h-4 w-4" /> : null}
+              {actionLabel}
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

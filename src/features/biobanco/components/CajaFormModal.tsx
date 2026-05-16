@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCreateCaja, useUpdateCaja, useGetRefrigeradores, useGetPisosByRefrigerador, useGetCajaById } from '../hooks/useBiobanco'
 import { Caja, PosicionPiso } from '@/types/api'
 import { PosicionPisoSelectorModal } from './PosicionPisoSelectorModal'
-import { MapPin, X } from 'lucide-react'
+import { AlertCircle, MapPin, X } from 'lucide-react'
 import { Controller } from 'react-hook-form'  // ← agregar
 
 
@@ -40,6 +40,16 @@ interface CajaFormModalProps {
   caja?: Caja | null
 }
 
+const DEFAULT_VALUES: CajaFormData = {
+  codigoCaja: '',
+  filas: 1,
+  columnas: 1,
+  tipoCaja: '',
+  color: '#3b82f6',
+  observaciones: '',
+  idPosicionPiso: undefined,
+}
+
 export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) {
   const isEditing = !!caja
   const [selectedRefrigerador, setSelectedRefrigerador] = useState<string>('')
@@ -56,15 +66,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
     formState: { errors, isSubmitting },
   } = useForm<CajaFormData>({
     resolver: zodResolver(cajaSchema),
-    defaultValues: {
-      codigoCaja: '',
-      filas: 1,
-      columnas: 1,
-      tipoCaja: '',
-      color: '#3b82f6',
-      observaciones: '',
-      idPosicionPiso: undefined,
-    },
+    defaultValues: DEFAULT_VALUES,
   })
 
   const createCajaMutation = useCreateCaja()
@@ -74,29 +76,30 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
   const { data: freshCaja } = useGetCajaById(open && isEditing ? caja!.id : 0)
 
   useEffect(() => {
-    const source = freshCaja ?? caja
-    if (source) {
-      reset({
-        codigoCaja: source.codigoCaja,
-        filas: source.filas,
-        columnas: source.columnas,
-        tipoCaja: source.tipoCaja,
-        color: source.color || '',
-        observaciones: source.observaciones || '',
-        idPosicionPiso: source.idPosicionPiso,
-      })
-    } else {
-      reset({
-        codigoCaja: '',
-        filas: 1,
-        columnas: 1,
-        tipoCaja: '',
-        color: '#3b82f6',
-        observaciones: '',
-        idPosicionPiso: undefined,
-      })
+    if (open) {
+      const source = freshCaja ?? caja
+      if (source) {
+        reset({
+          codigoCaja: source.codigoCaja,
+          filas: source.filas,
+          columnas: source.columnas,
+          tipoCaja: source.tipoCaja,
+          color: source.color || '',
+          observaciones: source.observaciones || '',
+          idPosicionPiso: source.idPosicionPiso,
+        })
+      } else {
+        reset(DEFAULT_VALUES)
+      }
+      return
     }
-  }, [freshCaja, caja, reset])
+
+    const timer = setTimeout(() => {
+      reset(DEFAULT_VALUES)
+    }, 150)
+
+    return () => clearTimeout(timer)
+  }, [open, freshCaja, caja, reset])
 
 
   const onSubmit = async (data: CajaFormData) => {
@@ -120,7 +123,6 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      reset()
       setSelectedRefrigerador('')
       setSelectedPiso('')
       setSelectedPosicionPiso(null)
@@ -155,7 +157,10 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                 disabled={isEditing}
               />
               {errors.codigoCaja && (
-                <p className="text-sm text-destructive">{errors.codigoCaja.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.codigoCaja.message}
+                </p>
               )}
             </div>
 
@@ -167,7 +172,10 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                 placeholder="Gradilla 81 pozos"
               />
               {errors.tipoCaja && (
-                <p className="text-sm text-destructive">{errors.tipoCaja.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.tipoCaja.message}
+                </p>
               )}
             </div>
           </div>
@@ -182,7 +190,10 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                 {...register('filas', { valueAsNumber: true })}
               />
               {errors.filas && (
-                <p className="text-sm text-destructive">{errors.filas.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.filas.message}
+                </p>
               )}
             </div>
 
@@ -195,7 +206,10 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                 {...register('columnas', { valueAsNumber: true })}
               />
               {errors.columnas && (
-                <p className="text-sm text-destructive">{errors.columnas.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.columnas.message}
+                </p>
               )}
             </div>
 
@@ -357,7 +371,10 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
               )}
             />
             {errors.observaciones && (
-              <p className="text-sm text-destructive">{errors.observaciones.message}</p>
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                {errors.observaciones.message}
+              </p>
             )}
           </div>
 

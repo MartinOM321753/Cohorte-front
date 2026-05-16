@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Trash2, Layers } from 'lucide-react'
+import { AlertCircle, Plus, Trash2, Layers } from 'lucide-react'
 import { useCreatePisos, useGetPisosByRefrigerador } from '../hooks/useBiobanco'
 import { Refrigerador } from '@/types/api'
 import { 
@@ -45,6 +45,10 @@ interface PisosFormModalProps {
   refrigerador: Refrigerador | null
 }
 
+const DEFAULT_VALUES: PisosFormData = {
+  pisos: [{ numeroPiso: '', filas: 1, columnas: 1, altura: '1' }],
+}
+
 export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormModalProps) {
   const [existingPisos, setExistingPisos] = useState<any[]>([])
 
@@ -55,9 +59,7 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
     formState: { errors, isSubmitting },
   } = useForm<PisosFormData>({
     resolver: zodResolver(pisosFormSchema),
-    defaultValues: {
-      pisos: [{ numeroPiso: '', filas: 1, columnas: 1, altura: '1' }],
-    },
+    defaultValues: DEFAULT_VALUES,
   })
 
   const { fields, append, remove } = useFieldArray({
@@ -76,9 +78,13 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
 
   useEffect(() => {
     if (!open) {
-      reset()
-      setExistingPisos([])
+      const timer = setTimeout(() => {
+        reset(DEFAULT_VALUES)
+        setExistingPisos([])
+      }, 150)
+      return () => clearTimeout(timer)
     }
+    return
   }, [open, reset])
 
   const onSubmit = async (data: PisosFormData) => {
@@ -223,7 +229,8 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                         placeholder="P1"
                       />
                       {errors.pisos?.[index]?.numeroPiso && (
-                        <p className="text-sm text-destructive">
+                        <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
                           {errors.pisos[index]?.numeroPiso?.message}
                         </p>
                       )}
@@ -237,7 +244,8 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                         {...control.register(`pisos.${index}.filas`, { valueAsNumber: true })}
                       />
                       {errors.pisos?.[index]?.filas && (
-                        <p className="text-sm text-destructive">
+                        <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
                           {errors.pisos[index]?.filas?.message}
                         </p>
                       )}
@@ -251,7 +259,8 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                         {...control.register(`pisos.${index}.columnas`, { valueAsNumber: true })}
                       />
                       {errors.pisos?.[index]?.columnas && (
-                        <p className="text-sm text-destructive">
+                        <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
                           {errors.pisos[index]?.columnas?.message}
                         </p>
                       )}
@@ -265,7 +274,8 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                         {...control.register(`pisos.${index}.altura`)}
                       />
                       {errors.pisos?.[index]?.altura && (
-                        <p className="text-sm text-destructive">
+                        <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
                           {errors.pisos[index]?.altura?.message}
                         </p>
                       )}
@@ -290,7 +300,10 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
           </div>
 
           {errors.pisos && (
-            <p className="text-sm text-destructive">{errors.pisos.message}</p>
+            <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+              <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+              {errors.pisos.message}
+            </p>
           )}
 
           <DialogFooter>

@@ -5,9 +5,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { Badge } from '@/components/ui/badge'
+import type { ReactNode } from 'react'
 import { Paciente } from '@/types/api'
 import { formatDate, getFullName } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 
 interface PacienteDetailDrawerProps {
   paciente: Paciente
@@ -22,68 +23,121 @@ export function PacienteDetailDrawer({
 }: PacienteDetailDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:w-[500px]">
-        <SheetHeader>
-          <SheetTitle>Detalle del Paciente</SheetTitle>
-          <SheetDescription>
-            Información completa y historial del paciente
-          </SheetDescription>
+      <SheetContent side="right" className="w-[480px] max-w-none sm:w-[480px] sm:max-w-none">
+        <SheetHeader className="border-b border-border">
+          <SheetTitle>Detalle del paciente</SheetTitle>
+          <SheetDescription>Información completa del paciente.</SheetDescription>
         </SheetHeader>
 
-        <div className="mt-8 space-y-6">
-          {/* Status */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-2">Estado</h3>
-            <Badge className={paciente.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+        <div className="flex-1 overflow-y-auto p-4">
+          <Section title="Estado">
+            <Badge
+              className={[
+                'rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.04em]',
+                paciente.activo
+                  ? 'bg-[--status-success-bg] text-[--status-success-fg]'
+                  : 'bg-[--status-danger-bg] text-[--status-danger-fg]',
+              ].join(' ')}
+            >
               {paciente.activo ? 'Activo' : 'Inactivo'}
             </Badge>
-          </div>
+          </Section>
 
-          {/* Información Personal */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-4">Información Personal</h3>
-            <div className="space-y-3">
-              <DetailRow label="Folio" value={paciente.folio} />
-              <DetailRow label="Nombre Completo" value={getFullName(paciente.persona)} />
-              <DetailRow label="Email" value={paciente.persona.email || '-'} />
-              <DetailRow label="Teléfono" value={paciente.persona.telefono || '-'} />
-              <DetailRow
-                label="Fecha de Nacimiento"
-                value={paciente.persona.fechaNacimiento ? formatDate(paciente.persona.fechaNacimiento) : '-'}
-              />
-              <DetailRow
-                label="Sexo"
-                value={paciente.persona.sexo === 'M' ? 'Masculino' : paciente.persona.sexo === 'F' ? 'Femenino' : 'Otro'}
+          <Section title="Datos demográficos" withDivider>
+            <div className="grid grid-cols-2 gap-3">
+              <DetailItem label="Folio" value={paciente.folio} valueClassName="font-mono" />
+              <DetailItem label="Sexo" value={formatSexo(paciente.persona.sexo)} />
+              <DetailItem label="Nombre completo" value={getFullName(paciente.persona)} className="col-span-2" />
+              <DetailItem label="Correo electrónico" value={paciente.persona.email || '-'} className="col-span-2" />
+              <DetailItem label="Teléfono" value={paciente.persona.telefono || '-'} className="col-span-2" />
+              <DetailItem
+                label="Fecha de nacimiento"
+                value={
+                  paciente.persona.fechaNacimiento
+                    ? formatDate(paciente.persona.fechaNacimiento)
+                    : '-'
+                }
+                className="col-span-2"
               />
             </div>
-          </div>
+          </Section>
 
-          {/* Historial */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">Historial del Sistema</h3>
-            <div className="space-y-2 text-sm text-slate-600">
-              <DetailRow
+          <Section title="Historial del sistema" withDivider>
+            <div className="grid grid-cols-2 gap-3">
+              <DetailItem
                 label="Registro"
-                value={paciente.fechaRegistro ? formatDate(paciente.fechaRegistro, 'dd/MM/yyyy HH:mm') : '-'}
+                value={
+                  paciente.fechaRegistro
+                    ? formatDate(paciente.fechaRegistro, 'dd/MM/yyyy HH:mm')
+                    : '-'
+                }
+                className="col-span-2"
               />
-              <DetailRow
-                label="Última Actualización"
-                value={paciente.fechaActualizacion ? formatDate(paciente.fechaActualizacion, 'dd/MM/yyyy HH:mm') : '-'}
+              <DetailItem
+                label="Última actualización"
+                value={
+                  paciente.fechaActualizacion
+                    ? formatDate(paciente.fechaActualizacion, 'dd/MM/yyyy HH:mm')
+                    : '-'
+                }
+                className="col-span-2"
               />
-              <DetailRow label="UUID" value={paciente.UUID} />
+              <div className="col-span-2">
+                <div className="text-xs text-muted-foreground">UUID</div>
+                <div className="mt-1 font-mono text-xs text-muted-foreground">
+                  {paciente.UUID || '-'}
+                </div>
+              </div>
             </div>
-          </div>
+          </Section>
         </div>
       </SheetContent>
     </Sheet>
   )
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function Section({
+  title,
+  withDivider,
+  children,
+}: {
+  title: string
+  withDivider?: boolean
+  children: ReactNode
+}) {
   return (
-    <div className="flex justify-between items-start gap-2">
-      <span className="text-slate-600 text-sm">{label}:</span>
-      <span className="font-medium text-slate-900 text-sm">{value}</span>
+    <section className={withDivider ? 'mt-5 border-t border-border pt-4' : ''}>
+      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        {title}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function DetailItem({
+  label,
+  value,
+  className,
+  valueClassName,
+}: {
+  label: string
+  value: string
+  className?: string
+  valueClassName?: string
+}) {
+  return (
+    <div className={className}>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={['mt-1 text-[13px] font-medium text-foreground', valueClassName].filter(Boolean).join(' ')}>
+        {value}
+      </div>
     </div>
   )
+}
+
+function formatSexo(sexo: string | null | undefined) {
+  if (sexo === 'M') return 'Masculino'
+  if (sexo === 'F') return 'Femenino'
+  return 'No especificado'
 }

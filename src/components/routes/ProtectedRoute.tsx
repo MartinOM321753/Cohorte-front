@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const { isAuthenticated, user, isLoading, hasRole } = useAuthStore();
 
   if (isLoading) {
     return (
@@ -23,7 +23,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (requiredRoles && requiredRoles.length > 0) {
-    const hasRequiredRole = requiredRoles.some(role => user.roles.includes(role))
+    const hasRequiredRole = hasRole(requiredRoles as UserRole[])
     if (!hasRequiredRole) {
       return <Navigate to="/unauthorized" replace />;
     }

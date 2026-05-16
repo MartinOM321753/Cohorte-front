@@ -3,9 +3,12 @@ import { LoginRequest, LoginResponse } from '@/types/api'
 import { UserData } from '@/stores/authStore'
 
 interface JWTPayload {
-  id: number
-  uuid: string
+  // `sub` ahora es el UUID (subject)
   sub: string
+
+  // claims custom del backend
+  name?: string
+  role?: string
   activo: boolean
   iat: number
   exp: number
@@ -16,18 +19,13 @@ function decodeJWT(token: string): JWTPayload {
     const payload = token.split('.')[1]
     const decoded = JSON.parse(atob(payload))
     return decoded
-  } catch (error) {
+  } catch {
     throw new Error('Token inválido')
   }
 }
 
-/**
- * Login with username and password
- */
 export async function loginUser(credentials: LoginRequest): Promise<{ token: string; user: UserData }> {
   const response = await axiosInstance.post<LoginResponse>('/auth/login', credentials)
-
-  // response.data es el objeto { data: "jwt_token", message: "...", status: "...", error: false }
   const jwtToken = response.data.data
 
   if (!jwtToken || typeof jwtToken !== 'string') {
@@ -36,42 +34,35 @@ export async function loginUser(credentials: LoginRequest): Promise<{ token: str
 
   const payload = decodeJWT(jwtToken)
 
+  // Fetch real user data — pass token manually porque el store aún no lo tiene
+  let dto: any | null = null
+  try {
+    const userResponse = await axiosInstance.get(`/users/uuid/${payload.sub}`, {
+      headers: { Authorization: `Bearer ${jwtToken}` },
+    })
+    dto = userResponse.data?.data ?? null
+  } catch {
+    dto = null
+  }
+
+  const nombreCompleto = dto
+    ? [dto.persona?.nombre, dto.persona?.apellidoPaterno, dto.persona?.apellidoMaterno].filter(Boolean).join(' ').trim()
+    : ''
+
+  // Backend puede mandar `rol` como string o como objeto `{ id, nombre }`
+  const rolNombre =
+    typeof dto?.rol === 'string' ? dto.rol : typeof dto?.rol?.nombre === 'string' ? dto.rol.nombre : ''
+
   const user: UserData = {
-    id: String(payload.id),
-    uuid: payload.uuid,
-    username: payload.sub,
-    email: payload.sub + '@imss.gob.mx',
-    enabled: payload.activo,
-    roles: ['ADMINISTRADOR', 'ROLE_ADMIN'],
-    permissions: ['*'],
-    persona: {
-      nombre: payload.sub.toUpperCase(),
-      apellidoPaterno: 'Admin',
-      apellidoMaterno: 'Sistema',
-      email: payload.sub + '@imss.gob.mx',
-    },
-    rol: {
-      id: 1,
-      nombre: 'ADMINISTRADOR',
-    },
+    uuid: dto?.UUID || payload.sub,
+    username: dto?.username || credentials.username,
+    nombreCompleto: nombreCompleto || payload.name || credentials.username,
+    rol: rolNombre || payload.role || '',
   }
 
-  return {
-    token: jwtToken,
-    user,
-  }
+  return { token: jwtToken, user }
 }
 
-/**
- * Logout (client-side only, no API call needed)
- */
-export function logoutUser(): void {
-  localStorage.removeItem('lastRefresh')
-}
-
-/**
- * Refresh token (placeholder for future implementation)
- */
 export async function refreshToken(token: string): Promise<{ token: string }> {
   const response = await axiosInstance.post<{ token: string }>('/auth/refresh', { token })
   return response as any as { token: string }

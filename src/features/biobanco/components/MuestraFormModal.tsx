@@ -23,7 +23,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { Check, ChevronsUpDown, MapPin, X } from 'lucide-react'
+import { AlertCircle, Check, ChevronsUpDown, MapPin, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCreateMuestra, useUpdateMuestra, useGetMuestraById } from '../hooks/useBiobanco'
 import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
@@ -104,6 +104,17 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   const getPacienteUUID = (p: Paciente): string =>
     p.UUID || (p as unknown as { uuid?: string }).uuid || ''
 
+  const buildDefaultValues = (): MuestraFormData => ({
+    etiqueta: '',
+    valor: 0,
+    unidad: '',
+    fechaRecoleccion: toLocalDateTimeInput(new Date()),
+    observaciones: '',
+    pacienteUUID: '',
+    usuarioRecolectaUUID: user?.uuid || '',
+    idPosicionCaja: 0,
+  })
+
   useEffect(() => {
     if (open && user?.uuid) {
       setValue('usuarioRecolectaUUID', user.uuid)
@@ -111,7 +122,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   }, [open, user, setValue])
 
   useEffect(() => {
-    if (freshMuestra) {
+    if (open && freshMuestra) {
       const u = freshMuestra.ubicacion
       reset({
         etiqueta: freshMuestra.etiqueta,
@@ -124,7 +135,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         idPosicionCaja: u.idPosicionCaja,
       })
       setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
-    } else if (muestra) {
+    } else if (open && muestra) {
       const u = muestra.ubicacion
       reset({
         etiqueta: muestra.etiqueta,
@@ -137,20 +148,17 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         idPosicionCaja: u.idPosicionCaja,
       })
       setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
-    } else {
-      reset({
-        etiqueta: '',
-        valor: 0,
-        unidad: '',
-        fechaRecoleccion: toLocalDateTimeInput(new Date()),
-        observaciones: '',
-        pacienteUUID: '',
-        usuarioRecolectaUUID: user?.uuid || '',
-        idPosicionCaja: 0,
-      })
+    } else if (open) {
+      reset(buildDefaultValues())
       setPosicionLabel('')
+    } else {
+      const timer = setTimeout(() => {
+        reset(buildDefaultValues())
+        setPosicionLabel('')
+      }, 150)
+      return () => clearTimeout(timer)
     }
-  }, [freshMuestra, muestra, reset, user])
+  }, [open, freshMuestra, muestra, reset, user])
 
   const onSubmit = async (data: MuestraFormData) => {
     try {
@@ -165,7 +173,6 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      reset()
       setPosicionLabel('')
       setOpenUnidad(false)
       setOpenPaciente(false)
@@ -204,7 +211,10 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                   disabled={isEditing}
                 />
                 {errors.etiqueta && (
-                  <p className="text-sm text-destructive">{errors.etiqueta.message}</p>
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                    {errors.etiqueta.message}
+                  </p>
                 )}
               </div>
 
@@ -218,7 +228,10 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                   {...register('fechaRecoleccion')}
                 />
                 {errors.fechaRecoleccion && (
-                  <p className="text-sm text-destructive">{errors.fechaRecoleccion.message}</p>
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                    {errors.fechaRecoleccion.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -235,7 +248,10 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                   placeholder="5.5"
                 />
                 {errors.valor && (
-                  <p className="text-sm text-destructive">{errors.valor.message}</p>
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                    {errors.valor.message}
+                  </p>
                 )}
               </div>
 
@@ -285,7 +301,10 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                   </PopoverContent>
                 </Popover>
                 {errors.unidad && (
-                  <p className="text-sm text-destructive">{errors.unidad.message}</p>
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                    {errors.unidad.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -346,7 +365,10 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                 </PopoverContent>
               </Popover>
               {errors.pacienteUUID && (
-                <p className="text-sm text-destructive">{errors.pacienteUUID.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.pacienteUUID.message}
+                </p>
               )}
             </div>
 
@@ -390,7 +412,10 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                 </Button>
               )}
               {errors.idPosicionCaja && (
-                <p className="text-sm text-destructive">{errors.idPosicionCaja.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.idPosicionCaja.message}
+                </p>
               )}
             </div>
 
@@ -403,7 +428,10 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                 rows={3}
               />
               {errors.observaciones && (
-                <p className="text-sm text-destructive">{errors.observaciones.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.observaciones.message}
+                </p>
               )}
             </div>
 

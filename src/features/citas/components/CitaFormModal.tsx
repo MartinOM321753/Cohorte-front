@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { citaFormSchema, type CitaFormData } from "../schemas/cita.schema";
@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getFullName } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { AlertCircle, Plus } from "lucide-react";
 import { PacienteFormModal } from "@/features/pacientes/components/PacienteFormModal";
 import { Paciente } from "@/types/api";
 
@@ -51,6 +51,16 @@ export function CitaFormModal({
   const [showPacienteForm, setShowPacienteForm] = useState(false);
   const dialogContentRef = useRef<HTMLDivElement>(null);
 
+  const defaultValues = useMemo(
+    () => ({
+      pacienteUUID: initialPacienteUUID || "",
+      fechaCita: "",
+      duracionMinutos: 60,
+      observaciones: "",
+    }),
+    [initialPacienteUUID],
+  );
+
   const {
     control,
     register,
@@ -60,12 +70,7 @@ export function CitaFormModal({
     formState: { errors },
   } = useForm<CitaFormData>({
     resolver: zodResolver(citaFormSchema),
-    defaultValues: {
-      pacienteUUID: initialPacienteUUID || "",
-      fechaCita: "",
-      duracionMinutos: 60,
-      observaciones: "",
-    },
+    defaultValues,
   });
 
   const getPacienteUUID = (paciente: Paciente) =>
@@ -73,20 +78,22 @@ export function CitaFormModal({
 
   useEffect(() => {
     if (open) {
-      reset({
-        pacienteUUID: initialPacienteUUID || "",
-        fechaCita: "",
-        duracionMinutos: 60,
-        observaciones: "",
-      });
+      reset(defaultValues);
+      return;
     }
-  }, [open, initialPacienteUUID, reset]);
+
+    const timer = setTimeout(() => {
+      reset(defaultValues);
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [open, reset, defaultValues]);
 
   const onSubmit = (data: CitaFormData) => {
     console.log("Form data recibida:", JSON.stringify(data));
     const requestData: CitaRequestDTO = {
       pacienteUUID: data.pacienteUUID,
-      usuarioAgendaUUID: user?.uuid || user?.id || "",
+      usuarioAgendaUUID: user?.uuid || "",
       fechaCita: data.fechaCita,
       duracionMinutos: data.duracionMinutos,
       observaciones: data.observaciones?.trim() || undefined,
@@ -94,12 +101,7 @@ export function CitaFormModal({
 
     createCita.mutate(requestData, {
       onSuccess: () => {
-        reset({
-          pacienteUUID: initialPacienteUUID || "",
-          fechaCita: "",
-          duracionMinutos: 60,
-          observaciones: "",
-        });
+        reset(defaultValues);
         onOpenChange(false);
       },
     });
@@ -165,7 +167,8 @@ export function CitaFormModal({
                   )}
                 />
                 {errors.pacienteUUID && (
-                  <p className="text-xs text-red-600">
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
                     {errors.pacienteUUID.message}
                   </p>
                 )}
@@ -273,10 +276,15 @@ function FormField({
     <div className="space-y-2">
       <Label>
         {label}
-        {required && <span className="text-red-600 ml-1">*</span>}
+        {required && <span className="text-destructive ml-1">*</span>}
       </Label>
       {children}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+          {error}
+        </p>
+      )}
     </div>
   );
 }

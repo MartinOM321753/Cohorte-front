@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreateRefrigerador, useUpdateRefrigerador, useGetRefrigeradorById } from '../hooks/useBiobanco'
 import { Refrigerador } from '@/types/api'
+import { AlertCircle } from 'lucide-react'
 
 const refrigeradorSchema = z.object({
   codigo: z.string().min(1, 'El código es obligatorio').max(50, 'Máximo 50 caracteres'),
@@ -31,6 +32,13 @@ interface RefrigeradorFormModalProps {
   refrigerador?: Refrigerador | null
 }
 
+const DEFAULT_VALUES: RefrigeradorFormData = {
+  codigo: '',
+  nombre: '',
+  marca: '',
+  modelo: '',
+}
+
 export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: RefrigeradorFormModalProps) {
   const isEditing = !!refrigerador
 
@@ -41,12 +49,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
     formState: { errors, isSubmitting },
   } = useForm<RefrigeradorFormData>({
     resolver: zodResolver(refrigeradorSchema),
-    defaultValues: {
-      codigo: '',
-      nombre: '',
-      marca: '',
-      modelo: '',
-    },
+    defaultValues: DEFAULT_VALUES,
   })
 
   const createRefrigeradorMutation = useCreateRefrigerador()
@@ -54,23 +57,26 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
   const { data: freshRefrigerador } = useGetRefrigeradorById(open && isEditing ? refrigerador!.id : 0)
 
   useEffect(() => {
-    const source = freshRefrigerador ?? refrigerador
-    if (source) {
-      reset({
-        codigo: source.codigo,
-        nombre: source.nombre,
-        marca: source.marca || '',
-        modelo: source.modelo || '',
-      })
-    } else {
-      reset({
-        codigo: '',
-        nombre: '',
-        marca: '',
-        modelo: '',
-      })
+    if (open) {
+      const source = freshRefrigerador ?? refrigerador
+      if (source) {
+        reset({
+          codigo: source.codigo,
+          nombre: source.nombre,
+          marca: source.marca || '',
+          modelo: source.modelo || '',
+        })
+      } else {
+        reset(DEFAULT_VALUES)
+      }
+      return
     }
-  }, [freshRefrigerador, refrigerador, reset])
+
+    const timer = setTimeout(() => {
+      reset(DEFAULT_VALUES)
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [open, freshRefrigerador, refrigerador, reset])
 
   const onSubmit = async (data: RefrigeradorFormData) => {
     try {
@@ -91,9 +97,6 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
   }
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      reset()
-    }
     onOpenChange(newOpen)
   }
 
@@ -123,7 +126,10 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
                 disabled={isEditing} // No permitir cambiar código en edición
               />
               {errors.codigo && (
-                <p className="text-sm text-destructive">{errors.codigo.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.codigo.message}
+                </p>
               )}
             </div>
 
@@ -135,7 +141,10 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
                 placeholder="Refrigerador Principal"
               />
               {errors.nombre && (
-                <p className="text-sm text-destructive">{errors.nombre.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.nombre.message}
+                </p>
               )}
             </div>
           </div>
@@ -149,7 +158,10 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
                 placeholder="Thermo Scientific"
               />
               {errors.marca && (
-                <p className="text-sm text-destructive">{errors.marca.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.marca.message}
+                </p>
               )}
             </div>
 
@@ -161,7 +173,10 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
                 placeholder="TSX600"
               />
               {errors.modelo && (
-                <p className="text-sm text-destructive">{errors.modelo.message}</p>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.modelo.message}
+                </p>
               )}
             </div>
           </div>

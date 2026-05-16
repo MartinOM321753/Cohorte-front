@@ -78,6 +78,9 @@ export function Sidebar() {
   const location = useLocation()
   const { user, logout, hasRole } = useAuthStore()
 
+  const userRoleLabel =
+    typeof user?.rol === 'string' ? user.rol : typeof (user?.rol as any)?.nombre === 'string' ? (user?.rol as any).nombre : ''
+
   const filteredNavItems = useMemo(() => {
     return navItems.filter((item) => {
       if (!item.roles) return true
@@ -97,7 +100,11 @@ export function Sidebar() {
   }, [filteredNavItems])
 
   const initials = user
-    ? `${(user.persona?.nombre || user.username).charAt(0)}${(user.persona?.apellidoPaterno || '').charAt(0)}`
+    ? (user.nombreCompleto || user.username)
+        .split(' ')
+        .slice(0, 2)
+        .map((n) => n.charAt(0))
+        .join('')
     : ''
 
   return (
@@ -181,9 +188,9 @@ export function Sidebar() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-medium text-white">
-                {user.persona?.nombre || user.username} {user.persona?.apellidoPaterno || ''}
+                {user.nombreCompleto || user.username}
               </div>
-              <div className="truncate text-[11px] text-white/60">{user.rol?.nombre || user.roles?.[0] || ''}</div>
+              <div className="truncate text-[11px] text-white/60">{userRoleLabel}</div>
             </div>
             <Button
               variant="ghost"

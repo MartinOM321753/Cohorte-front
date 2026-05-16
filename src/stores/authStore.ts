@@ -1,31 +1,22 @@
 import { create } from 'zustand'
 import { persist, subscribeWithSelector } from 'zustand/middleware'
 
-export type UserRole = 'ADMINISTRADOR' | 'MEDICO' | 'LABORATORISTA' | 'RECEPCIONISTA' | 'PACIENTE' | 'ROLE_ADMIN' | 'ROLE_USER'
+export type UserRole =
+  | 'ADMINISTRADOR'
+  | 'MEDICO'
+  | 'LABORATORISTA'
+  | 'RECEPCIONISTA'
+  | 'PACIENTE'
+  | 'ROLE_ADMIN'
+  | 'ROLE_USER'
+
+type RolLike = string | { nombre?: string } | null | undefined
 
 export interface UserData {
-  id: string
-  uuid?: string
+  uuid: string
   username: string
-  email: string
-  enabled?: boolean
-  roles: string[]
-  permissions?: string[]
-  // For compatibility with backend response
-  persona?: {
-    id?: number
-    nombre: string
-    apellidoPaterno: string
-    apellidoMaterno: string
-    fechaNacimiento?: string
-    sexo?: 'M' | 'F' | 'O'
-    telefono?: string
-    email: string
-  }
-  rol?: {
-    id: number
-    nombre: string
-  }
+  nombreCompleto: string
+  rol: RolLike
 }
 
 export interface AuthState {
@@ -33,19 +24,10 @@ export interface AuthState {
   user: UserData | null
   isAuthenticated: boolean
   isLoading: boolean
-  error: string | null
-  
-  // Actions
-  setToken: (token: string) => void
-  setUser: (user: UserData) => void
+
   login: (credentials: { token: string; user: UserData }) => void
   logout: () => void
-  setLoading: (loading: boolean) => void
-  setError: (error: string | null) => void
-  
-  // Role checking
   hasRole: (role: UserRole | UserRole[]) => boolean
-  hasPermission: (permission: string) => boolean
 }
 
 const initialState = {
@@ -53,7 +35,13 @@ const initialState = {
   user: null,
   isAuthenticated: false,
   isLoading: false,
-  error: null,
+}
+
+function normalizeRoleName(rol: RolLike): string {
+  if (!rol) return ''
+  if (typeof rol === 'string') return rol.trim()
+  if (typeof rol === 'object' && typeof rol.nombre === 'string') return rol.nombre.trim()
+  return ''
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -61,20 +49,11 @@ export const useAuthStore = create<AuthState>()(
     subscribeWithSelector((set, get) => ({
       ...initialState,
 
-      setToken: (token: string) => {
-        set({ token, isAuthenticated: !!token })
-      },
-
-      setUser: (user: UserData) => {
-        set({ user })
-      },
-
       login: (credentials: { token: string; user: UserData }) => {
         set({
           token: credentials.token,
           user: credentials.user,
           isAuthenticated: true,
-          error: null,
         })
       },
 
@@ -82,50 +61,17 @@ export const useAuthStore = create<AuthState>()(
         set(initialState)
       },
 
-      setLoading: (loading: boolean) => {
-        set({ isLoading: loading })
-      },
-
-      setError: (error: string | null) => {
-        set({ error })
-      },
-
       hasRole: (role: UserRole | UserRole[]) => {
         const { user } = get()
         if (!user) return false
-
         const rolesToCheck = Array.isArray(role) ? role : [role]
-        return rolesToCheck.some(r => user.roles.includes(r))
-      },
-
-      hasPermission: (permission: string) => {
-        const { user } = get()
-        if (!user) return false
-
-        if (user.permissions) {
-          return user.permissions.includes('*') || user.permissions.includes(permission)
-        }
-
-        const rolePermissions: Record<UserRole, string[]> = {
-          ROLE_ADMIN: ['all'],
-          ROLE_USER: ['read'],
-          ADMINISTRADOR: ['all'],
-          MEDICO: ['estudios:read', 'estudios:create', 'estudios:update', 'citas:read', 'citas:create', 'pacientes:read'],
-          LABORATORISTA: ['examenes:read', 'examenes:create', 'muestras:read', 'muestras:create', 'biobanco:read', 'biobanco:update'],
-          RECEPCIONISTA: ['pacientes:read', 'pacientes:create', 'pacientes:update', 'citas:read', 'citas:create'],
-          PACIENTE: ['citas:read', 'resultados:read'],
-        }
-
-        const permissions: string[] = []
-        user.roles.forEach(role => {
-          permissions.push(...(rolePermissions[role as UserRole] || []))
-        })
-
-        return permissions.includes('all') || permissions.includes(permission)
+        const userRoleName = normalizeRoleName(user.rol) as UserRole
+        return rolesToCheck.includes(userRoleName)
       },
     })),
     {
       name: 'auth-store',
+      version: 2,
       partialize: (state) => ({
         token: state.token,
         user: state.user,
