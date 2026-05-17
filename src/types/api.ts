@@ -238,8 +238,8 @@ export interface EstudioMedicoRequestDTO {
   idTipoEstudio: number
   fechaEstudio: string
   observaciones?: string
-  resultados: ResultadoEstudioRequestDTO[]
-  adjuntos: EstudioAdjuntoRequestDTO[]
+  resultados?: ResultadoEstudioRequestDTO[]
+  adjuntos?: EstudioAdjuntoRequestDTO[]
 }
 
 // ============================================

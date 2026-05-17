@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { DatePicker } from "@/components/ui/date-time-picker";
 import {
   Select,
   SelectContent,
@@ -65,6 +66,7 @@ export function PacienteFormModal({
   });
   const createMutation = useCreatePaciente();
   const sexo = watch("sexo");
+  const fechaNacimiento = watch("fechaNacimiento");
 
   const usesTwoColumnGrid = true;
 
@@ -180,7 +182,11 @@ export function PacienteFormModal({
                 required
                 error={errors.fechaNacimiento?.message}
               >
-                <Input type="date" {...register("fechaNacimiento")} />
+                <input type="hidden" {...register("fechaNacimiento")} />
+                <DatePicker
+                  value={fechaNacimiento}
+                  onChange={(v) => setValue("fechaNacimiento", v)}
+                />
               </FormField>
               <FormField label="Teléfono" error={errors.telefono?.message}>
                 <Input placeholder="10 dígitos" {...register("telefono")} />

@@ -1,0 +1,299 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import type { ReactNode } from 'react'
+import { AlertCircle, Check, ChevronsUpDown } from 'lucide-react'
+
+import { useAuthStore } from '@/stores/authStore'
+import { EstudioMedicoRequestDTO, Paciente } from '@/types/api'
+import { estudioMedicoSchema, type EstudioMedicoFormData } from '../schemas/estudio.schema'
+import { useCreateEstudio, useGetEstudios, useGetTiposEstudio } from '../hooks/useEstudios'
+import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { DatePicker } from '@/components/ui/date-time-picker'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Spinner } from '@/components/ui/spinner'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+
+const DEFAULT_VALUES: EstudioMedicoFormData = {
+  pacienteUUID: '',
+  usuarioRealizaUUID: '',
+  idTipoEstudio: 0,
+  fechaEstudio: new Date().toISOString().slice(0, 10),
+  observaciones: '',
+}
+
+export function EstudiosTab() {
+  const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+  const [openPaciente, setOpenPaciente] = useState(false)
+
+  const { data: estudios, isLoading: isLoadingEstudios, isError: isErrorEstudios } = useGetEstudios()
+  const { data: tiposEstudio, isLoading: isLoadingTipos } = useGetTiposEstudio()
+  const { data: pacientesRaw, isLoading: isLoadingPacientes } = useGetPacientes({ activos: true })
+  const createMutation = useCreateEstudio()
+
+  const tiposActivos = useMemo(() => (tiposEstudio || []).filter((t) => t.activo), [tiposEstudio])
+
+  const pacientes = useMemo(() => {
+    const arr = Array.isArray(pacientesRaw) ? pacientesRaw : ((pacientesRaw as any)?.data ?? [])
+    return Array.isArray(arr) ? (arr as Paciente[]) : []
+  }, [pacientesRaw])
+
+  const getPacienteUUID = (p: Paciente): string =>
+    p.UUID || (p as unknown as { uuid?: string }).uuid || ''
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<EstudioMedicoFormData>({
+    resolver: zodResolver(estudioMedicoSchema),
+    defaultValues: { ...DEFAULT_VALUES, usuarioRealizaUUID: userUuid },
+  })
+
+  useEffect(() => {
+    if (userUuid) {
+      setValue('usuarioRealizaUUID', userUuid)
+    }
+  }, [userUuid, setValue])
+
+  const idTipoEstudio = watch('idTipoEstudio')
+  const watchedPacienteUUID = watch('pacienteUUID')
+  const watchedFechaEstudio = watch('fechaEstudio')
+
+  const onSubmit = (data: EstudioMedicoFormData) => {
+    const payload: EstudioMedicoRequestDTO = {
+      pacienteUUID: data.pacienteUUID.trim(),
+      usuarioRealizaUUID: userUuid.trim(),
+      idTipoEstudio: Number(data.idTipoEstudio),
+      fechaEstudio: data.fechaEstudio,
+      observaciones: data.observaciones?.trim() || undefined,
+      resultados: [],
+      adjuntos: [],
+    }
+
+    createMutation.mutate(payload, {
+      onSuccess: () => {
+        reset({ ...DEFAULT_VALUES, usuarioRealizaUUID: userUuid })
+      },
+    })
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      <Card className="lg:col-span-3">
+        <div className="flex items-center justify-between gap-3 border-b p-4">
+          <div className="space-y-0.5">
+            <div className="text-sm font-medium">Estudios registrados</div>
+            <div className="text-xs text-muted-foreground">Listado de estudios médicos en el sistema.</div>
+          </div>
+          <Badge variant="secondary" className="font-mono">
+            {(estudios || []).length}
+          </Badge>
+        </div>
+
+        <div className="p-4">
+          {isLoadingEstudios ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Spinner />
+              Cargando estudios…
+            </div>
+          ) : isErrorEstudios ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
+              <AlertDescription>No se pudieron cargar los estudios.</AlertDescription>
+            </Alert>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Paciente</TableHead>
+                  <TableHead className="text-right">UUID</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(estudios || []).map((e) => (
+                  <TableRow key={e.uuid}>
+                    <TableCell className="font-mono">{String(e.fechaEstudio || '').slice(0, 10)}</TableCell>
+                    <TableCell>{e.tipoEstudio?.nombre || `#${e.idTipoEstudio}`}</TableCell>
+                    <TableCell className="font-mono">{String(e.pacienteUUID || '').slice(0, 8)}…</TableCell>
+                    <TableCell className="text-right font-mono">{String(e.uuid || '').slice(0, 8)}…</TableCell>
+                  </TableRow>
+                ))}
+                {(estudios || []).length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
+                      Sin estudios registrados
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </Card>
+
+      <Card className="lg:col-span-2">
+        <div className="border-b p-4">
+          <div className="text-sm font-medium">Registrar estudio</div>
+          <div className="text-xs text-muted-foreground">Captura los datos básicos; resultados/adjuntos se agregan luego.</div>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 p-4">
+          <input type="hidden" {...register('pacienteUUID')} />
+          <input type="hidden" {...register('usuarioRealizaUUID')} />
+
+          <FormField label="Paciente" required error={errors.pacienteUUID?.message}>
+            <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openPaciente}
+                  className="w-full justify-between"
+                  disabled={isLoadingPacientes}
+                >
+                  {watchedPacienteUUID
+                    ? (() => {
+                        const selected = pacientes.find((p) => getPacienteUUID(p) === watchedPacienteUUID)
+                        return selected
+                          ? `${selected.folio} — ${selected.persona.nombre} ${selected.persona.apellidoPaterno}${selected.persona.apellidoMaterno ? ' ' + selected.persona.apellidoMaterno : ''}`
+                          : 'Paciente seleccionado'
+                      })()
+                    : isLoadingPacientes
+                      ? 'Cargando…'
+                      : 'Buscar paciente…'}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar por folio o nombre…" />
+                  <CommandList>
+                    <CommandEmpty>No se encontró el paciente.</CommandEmpty>
+                    <CommandGroup>
+                      {pacientes.map((p) => (
+                        <CommandItem
+                          key={getPacienteUUID(p)}
+                          value={`${p.folio} ${p.persona.nombre} ${p.persona.apellidoPaterno} ${p.persona.apellidoMaterno ?? ''}`}
+                          onSelect={() => {
+                            setValue('pacienteUUID', getPacienteUUID(p))
+                            setOpenPaciente(false)
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              'mr-2 h-4 w-4 shrink-0',
+                              watchedPacienteUUID === getPacienteUUID(p) ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          {p.folio} — {p.persona.nombre} {p.persona.apellidoPaterno}
+                          {p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </FormField>
+
+          <FormField label="Tipo de estudio" required error={errors.idTipoEstudio?.message}>
+            <Select
+              value={idTipoEstudio ? String(idTipoEstudio) : ''}
+              onValueChange={(v) => setValue('idTipoEstudio', Number(v))}
+              disabled={isLoadingTipos}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={isLoadingTipos ? 'Cargando…' : 'Seleccione un tipo'} />
+              </SelectTrigger>
+              <SelectContent>
+                {tiposActivos.map((t) => (
+                  <SelectItem key={t.id} value={String(t.id)}>
+                    {t.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField label="Fecha del estudio" required error={errors.fechaEstudio?.message}>
+            <input type="hidden" {...register('fechaEstudio')} />
+            <DatePicker
+              value={watchedFechaEstudio}
+              onChange={(v) => setValue('fechaEstudio', v)}
+            />
+          </FormField>
+
+          <FormField label="Observaciones" error={errors.observaciones?.message}>
+            <Textarea placeholder="Notas clínicas relevantes…" {...register('observaciones')} />
+          </FormField>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => reset({ ...DEFAULT_VALUES, usuarioRealizaUUID: userUuid })}
+              disabled={createMutation.isPending}
+            >
+              Limpiar
+            </Button>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Registrando…
+                </>
+              ) : (
+                'Registrar'
+              )}
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </div>
+  )
+}
+
+function FormField({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string
+  required?: boolean
+  error?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm">
+        {label}
+        {required && <span className="ml-1 text-destructive">*</span>}
+      </Label>
+      {children}
+      {error && (
+        <p className="flex items-start gap-1.5 text-xs text-destructive">
+          <AlertCircle className="mt-[1px] size-3.5 shrink-0" />
+          <span>{error}</span>
+        </p>
+      )}
+    </div>
+  )
+}

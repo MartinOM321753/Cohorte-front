@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Select,
   SelectContent,
@@ -190,7 +191,13 @@ export function CitaFormModal({
                 required
                 error={errors.fechaCita?.message}
               >
-                <Input type="datetime-local" {...register("fechaCita")} />
+                <Controller
+                  name="fechaCita"
+                  control={control}
+                  render={({ field }) => (
+                    <DateTimePicker value={field.value} onChange={field.onChange} />
+                  )}
+                />
               </FormField>
               <FormField
                 label="Duración (min)"

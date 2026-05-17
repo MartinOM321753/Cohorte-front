@@ -1,10 +1,15 @@
+import { useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { RoleGuard } from '@/components/routes/RoleGuard'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertCircle } from 'lucide-react'
+import { EstudiosTab } from '../components/EstudiosTab'
+import { TiposEstudioTab } from '../components/TiposEstudioTab'
 
 export default function EstudiosPage() {
+  const [activeTab, setActiveTab] = useState('estudios')
+
   return (
     <RoleGuard allowedRoles={['MEDICO', 'ADMINISTRADOR']}>
       <div className="flex flex-col gap-6">
@@ -16,26 +21,24 @@ export default function EstudiosPage() {
         <Alert>
           <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
           <AlertDescription>
-            Este módulo requiere un backend activo. El sistema incluye un Form Engine que genera formularios a partir de
-            los parámetros definidos para cada tipo de estudio.
+            Este módulo requiere un backend activo. Esta sección evita modales grandes: el registro y catálogos se gestionan en página.
           </AlertDescription>
         </Alert>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Alcance</CardTitle>
-            <CardDescription>Componentes disponibles en el frontend</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-              <li>API tipada para endpoints de estudios.</li>
-              <li>Gestión de tipos de estudio.</li>
-              <li>Parámetros por tipo y agrupación por secciones.</li>
-              <li>Adjuntos (PDF, imágenes, video) según configuración.</li>
-              <li>Validación con Zod e integración con React Query.</li>
-            </ul>
-          </CardContent>
-        </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="estudios">Estudios</TabsTrigger>
+            <TabsTrigger value="catalogos">Catálogos</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="estudios" className="space-y-4">
+            <EstudiosTab />
+          </TabsContent>
+
+          <TabsContent value="catalogos" className="space-y-4">
+            <TiposEstudioTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </RoleGuard>
   )

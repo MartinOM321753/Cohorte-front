@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import {
   Command,
   CommandEmpty,
@@ -183,6 +184,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
   const watchedUnidad = watch('unidad')
   const watchedPacienteUUID = watch('pacienteUUID')
+  const watchedFechaRecoleccion = watch('fechaRecoleccion')
 
   return (
     <>
@@ -220,12 +222,11 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
               <div className="space-y-2">
                 <Label htmlFor="fechaRecoleccion">Fecha de Recolección *</Label>
-                <Input
-                  id="fechaRecoleccion"
-                  type="datetime-local"
-                  step={60}
-                  max={toLocalDateTimeInput(new Date())}
-                  {...register('fechaRecoleccion')}
+                <input id="fechaRecoleccion" type="hidden" {...register('fechaRecoleccion')} />
+                <DateTimePicker
+                  value={watchedFechaRecoleccion}
+                  onChange={(v) => setValue('fechaRecoleccion', v)}
+                  maxDateTime={new Date()}
                 />
                 {errors.fechaRecoleccion && (
                   <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">

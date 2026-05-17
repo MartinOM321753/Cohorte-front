@@ -1,10 +1,14 @@
 import axiosInstance from '@/lib/axiosInstance'
-import { LoginRequest, LoginResponse } from '@/types/api'
+import { ApiResponse, LoginRequest, LoginResponse, Usuario } from '@/types/api'
 import { UserData } from '@/stores/authStore'
 
 interface JWTPayload {
-  // `sub` ahora es el UUID (subject)
+  // `sub` idealmente es el UUID (subject)
   sub: string
+
+  // Algunos backends envían el UUID en un claim dedicado (recomendado)
+  uuid?: string
+  userUUID?: string
 
   // claims custom del backend
   name?: string
@@ -34,15 +38,38 @@ export async function loginUser(credentials: LoginRequest): Promise<{ token: str
 
   const payload = decodeJWT(jwtToken)
 
+  // Preferir UUID real: claim dedicado > `sub`
+  const subjectUuid =
+    (typeof payload.uuid === 'string' && payload.uuid.trim()) ||
+    (typeof payload.userUUID === 'string' && payload.userUUID.trim()) ||
+    payload.sub
+
   // Fetch real user data — pass token manually porque el store aún no lo tiene
   let dto: any | null = null
   try {
-    const userResponse = await axiosInstance.get(`/users/uuid/${payload.sub}`, {
+    const userResponse = await axiosInstance.get<ApiResponse<any>>(`/users/uuid/${subjectUuid}`, {
       headers: { Authorization: `Bearer ${jwtToken}` },
     })
     dto = userResponse.data?.data ?? null
   } catch {
     dto = null
+  }
+
+  // Fallback: si el token trae username en `sub`, intentar resolver UUID real listando usuarios
+  if (!dto && typeof payload.sub === 'string' && payload.sub.trim()) {
+    try {
+      const listResponse = await axiosInstance.get<ApiResponse<Usuario[]>>('/users', {
+        headers: { Authorization: `Bearer ${jwtToken}` },
+      })
+      const users = listResponse.data?.data ?? []
+      const match =
+        users.find((u) => u.uuid === payload.sub) ||
+        users.find((u) => u.username === payload.sub) ||
+        users.find((u) => u.username === credentials.username)
+      dto = match ?? null
+    } catch {
+      dto = null
+    }
   }
 
   const nombreCompleto = dto
@@ -54,7 +81,7 @@ export async function loginUser(credentials: LoginRequest): Promise<{ token: str
     typeof dto?.rol === 'string' ? dto.rol : typeof dto?.rol?.nombre === 'string' ? dto.rol.nombre : ''
 
   const user: UserData = {
-    uuid: dto?.UUID || payload.sub,
+    uuid: dto?.uuid || dto?.UUID || subjectUuid,
     username: dto?.username || credentials.username,
     nombreCompleto: nombreCompleto || payload.name || credentials.username,
     rol: rolNombre || payload.role || '',
