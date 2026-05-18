@@ -1,19 +1,39 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import { IlamyCalendar, defaultTranslations, type CalendarEvent, type Translations } from '@ilamy/calendar'
 import { toast } from 'sonner'
+import { CalendarClock } from 'lucide-react'
 
 import type { Cita } from '@/types/api'
 import { useUpdateCita } from '../hooks/useCitas'
 import { CitaIlamyEventForm } from './CitaIlamyEventForm'
 import { getCitaDurationMinutes, getCitaStartDate } from '../lib/citaUtils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 dayjs.locale('es')
 
 type Props = {
   citas: Cita[]
   isLoading?: boolean
+}
+
+interface PendingDrop {
+  citaUuid: string
+  pacienteNombre: string
+  startAtLocal: string
+  durationMinutes: number
+  displayStart: string   // formateado para mostrar al usuario
+  displayEnd: string
 }
 
 function safeTimeZone(): string {
@@ -24,9 +44,14 @@ function safeTimeZone(): string {
   }
 }
 
+function formatDateTime(d: dayjs.Dayjs): string {
+  return d.format('dddd D [de] MMMM [·] HH:mm')
+}
+
 export function CitasIlamyCalendar({ citas, isLoading }: Props) {
   const timezone = useMemo(() => safeTimeZone(), [])
   const updateCita = useUpdateCita()
+  const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null)
 
   const translations = useMemo<Translations>(
     () => ({
@@ -154,16 +179,22 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           if (!cita?.uuid) return
 
           const newStart = event.start
+          const newEnd = event.end
           const now = dayjs()
+
           if (newStart.isBefore(now)) {
             toast.error('No puedes reprogramar una cita a una fecha pasada.')
             return
           }
 
-          const startAtLocal = newStart.format('YYYY-MM-DDTHH:mm')
-          const durationMinutes = Math.max(15, event.end.diff(event.start, 'minute'))
-
-          updateCita.mutate({ uuid: cita.uuid, data: { startAtLocal, timezone, durationMinutes } })
+          setPendingDrop({
+            citaUuid: cita.uuid,
+            pacienteNombre: cita.paciente?.nombreCompleto ?? 'Paciente',
+            startAtLocal: newStart.format('YYYY-MM-DDTHH:mm'),
+            durationMinutes: Math.max(15, newEnd.diff(newStart, 'minute')),
+            displayStart: formatDateTime(newStart),
+            displayEnd: formatDateTime(newEnd),
+          })
         }}
       />
 
@@ -172,6 +203,89 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           Cargando citas…
         </div>
       ) : null}
+
+      {/* ── Confirmación de drag & drop ── */}
+      <AlertDialog open={!!pendingDrop} onOpenChange={(v) => { if (!v) setPendingDrop(null) }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2 mb-1">
+              <CalendarClock className="h-5 w-5 text-[var(--imss-green-600)]" strokeWidth={1.75} />
+              <AlertDialogTitle className="text-[15px]">
+                ¿Reprogramar cita?
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-[13px]">
+                <p className="text-[var(--imss-ink-500)]">
+                  La cita de{' '}
+                  <span className="font-semibold text-[var(--imss-ink-900)]">
+                    {pendingDrop?.pacienteNombre}
+                  </span>{' '}
+                  se moverá a los siguientes horarios:
+                </p>
+                <div className="rounded-md border border-[var(--imss-ink-100)] divide-y divide-[var(--imss-ink-100)] text-[12px]">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="font-medium uppercase tracking-widest text-[11px] text-[var(--imss-ink-300)]">
+                      Inicio
+                    </span>
+                    <span className="font-medium text-[var(--imss-ink-900)] capitalize">
+                      {pendingDrop?.displayStart}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="font-medium uppercase tracking-widest text-[11px] text-[var(--imss-ink-300)]">
+                      Fin
+                    </span>
+                    <span className="font-medium text-[var(--imss-ink-900)] capitalize">
+                      {pendingDrop?.displayEnd}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[var(--imss-ink-400)]">
+                  Esta acción actualizará la fecha y hora de la cita en el sistema.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel
+              className="text-[13px]"
+              onClick={() => setPendingDrop(null)}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
+              disabled={updateCita.isPending}
+              onClick={() => {
+                if (!pendingDrop) return
+                updateCita.mutate(
+                  {
+                    uuid: pendingDrop.citaUuid,
+                    data: {
+                      startAtLocal: pendingDrop.startAtLocal,
+                      timezone,
+                      durationMinutes: pendingDrop.durationMinutes,
+                    },
+                  },
+                  {
+                    onSuccess: () => {
+                      toast.success('Cita reprogramada correctamente.')
+                      setPendingDrop(null)
+                    },
+                    onError: () => {
+                      toast.error('No se pudo reprogramar la cita.')
+                      setPendingDrop(null)
+                    },
+                  },
+                )
+              }}
+            >
+              {updateCita.isPending ? 'Guardando…' : 'Confirmar cambio'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

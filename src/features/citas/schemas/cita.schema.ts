@@ -11,7 +11,6 @@ export type EstadoCita = (typeof ESTADOS_CITA)[number]['value']
 
 export const citaFormSchema = z.object({
   pacienteUUID: z.string().min(1, 'Paciente obligatorio'),
-  usuarioAgendaUUID: z.string().min(1, 'Especialista obligatorio'),
   fechaCita: z
     .string()
     .min(1, 'Fecha y hora de la cita son obligatorias')

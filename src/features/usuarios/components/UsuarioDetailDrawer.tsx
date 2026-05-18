@@ -34,7 +34,7 @@ export function UsuarioDetailDrawer({
 }: UsuarioDetailDrawerProps) {
   if (!usuario) return null
 
-  const rolNombre = usuario.rol?? '—'
+  const rolNombre = usuario.rol?.nombre ?? '—'
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

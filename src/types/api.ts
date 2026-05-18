@@ -133,7 +133,8 @@ export interface Cita {
   timezone?: string
   durationMinutes?: number
   colorHex?: string
-  estadoCita: 'PROGRAMADA' | 'COMPLETADA' | 'CANCELADA' | 'NO_ASISTIO'
+  // La API puede devolver el valor capitalizado ("Programada") o en mayúsculas ("PROGRAMADA")
+  estadoCita: string
   observaciones?: string
   fechaCreacion?: string
   paciente?: PacienteResumenDTO

@@ -5,7 +5,7 @@ import { useDeletePaciente } from '../hooks/useCreatePaciente'
 import { PacientesTable } from '../components/PacientesTable'
 import { PacienteFormModal } from '../components/PacienteFormModal'
 import { PacienteDetailDrawer } from '../components/PacienteDetailDrawer'
-import { CitaFormModal } from '@/features/citas/components/CitaFormModal'
+import { CitaIlamyEventForm } from '@/features/citas/components/CitaIlamyEventForm'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -146,11 +146,11 @@ export default function PacientesPage() {
       />
 
       {/* Modal agendar cita */}
-      <CitaFormModal
+      <CitaIlamyEventForm
         open={isCitaModalOpen}
-        onOpenChange={(open) => {
-          if (!open) setPatientToSchedule(null)
-          setIsCitaModalOpen(open)
+        onClose={() => {
+          setPatientToSchedule(null)
+          setIsCitaModalOpen(false)
         }}
         initialPacienteUUID={
           patientToSchedule?.UUID || (patientToSchedule as any)?.uuid || undefined

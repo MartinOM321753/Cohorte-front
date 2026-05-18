@@ -32,7 +32,7 @@ export function UsuariosTable({ data, isLoading, onView, onEdit }: UsuariosTable
       id: 'rol',
       header: 'Rol',
       cell: ({ row }) => {
-        const nombre = row.original.rol?? '—'
+        const nombre = row.original.rol?.nombre ?? '—'
         return (
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getRolBadgeClass(nombre)}`}

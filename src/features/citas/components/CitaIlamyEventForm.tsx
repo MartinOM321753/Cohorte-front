@@ -1,27 +1,52 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CalendarEvent, EventFormProps } from '@ilamy/calendar'
 
-import type { Cita, Usuario } from '@/types/api'
+import type { Cita } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
-import { useGetUsuarios } from '@/features/users/hooks/useGetUsuarios'
 import { useCreateCita, useUpdateCita } from '../hooks/useCitas'
-import { citaFormSchema, type CitaFormData } from '../schemas/cita.schema'
+import { citaFormSchema, ESTADOS_CITA, type CitaFormData } from '../schemas/cita.schema'
 import { getCitaDurationMinutes, getCitaStartDate } from '../lib/citaUtils'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { cn } from '@/lib/utils'
+
+// ─── Utilidades ────────────────────────────────────────────────────────────────
 
 function safeTimeZone(): string {
   try {
@@ -40,68 +65,78 @@ function getPacienteUUID(p: any): string {
   return p.UUID || p.uuid || ''
 }
 
-function getUsuarioUUID(u: any): string {
-  return u.uuid || u.UUID || ''
+/**
+ * La API devuelve estadoCita como texto capitalizado en español
+ * ("Programada", "Completada", "Cancelada", "No asistió").
+ * Esta función lo normaliza al enum que usa el formulario y el schema Zod.
+ */
+function normalizeEstadoCita(raw: unknown): CitaFormData['estadoCita'] {
+  if (!raw || typeof raw !== 'string') return undefined
+  const s = raw
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // quita acentos: ó→o, etc.
+    .replace(/\s+/g, '_')            // "NO ASISTIO" → "NO_ASISTIO"
+  const valid = ['PROGRAMADA', 'COMPLETADA', 'CANCELADA', 'NO_ASISTIO'] as const
+  return valid.find((v) => v === s)
 }
 
-function getUsuarioNombreCompleto(u: Usuario | any): string {
-  const persona = (u as any)?.persona
-  if (persona?.nombre) {
-    return [persona.nombre, persona.apellidoPaterno, persona.apellidoMaterno].filter(Boolean).join(' ').trim()
-  }
-  return (u as any)?.nombreCompleto || (u as any)?.username || 'Usuario'
+// ─── Props ─────────────────────────────────────────────────────────────────────
+
+interface CitaIlamyEventFormProps extends EventFormProps {
+  /** UUID del paciente pre-seleccionado (p. ej. al agendar desde PacientesPage) */
+  initialPacienteUUID?: string
 }
+
+// ─── buildDefaults ─────────────────────────────────────────────────────────────
 
 function buildDefaults(args: {
   selectedEvent: CalendarEvent | null | undefined
-  currentUserUuid: string
-  currentUserRole: string
+  initialPacienteUUID?: string
 }): CitaFormData {
   const cita = (args.selectedEvent?.data as any)?.cita as Cita | undefined
-  const start =
-    args.selectedEvent?.start?.toDate?.() ? args.selectedEvent.start.toDate() : cita ? getCitaStartDate(cita) : null
-
-  const defaultUsuarioAgendaUUID =
-    cita?.usuarioAgendaUUID || cita?.usuarioAgenda?.uuid || (args.currentUserRole === 'MEDICO' ? args.currentUserUuid : '')
+  const start = args.selectedEvent?.start?.toDate?.()
+    ? args.selectedEvent.start.toDate()
+    : cita
+      ? getCitaStartDate(cita)
+      : null
 
   return {
-    pacienteUUID: cita?.pacienteUUID || cita?.paciente?.uuid || '',
-    usuarioAgendaUUID: defaultUsuarioAgendaUUID,
+    pacienteUUID: cita?.pacienteUUID || cita?.paciente?.uuid || args.initialPacienteUUID || '',
     fechaCita: start ? toLocalDateTimeInput(start) : toLocalDateTimeInput(new Date()),
     duracionMinutos: cita ? getCitaDurationMinutes(cita) : 60,
     colorHex: cita?.colorHex || '#3b82f6',
     observaciones: cita?.observaciones ?? '',
+    estadoCita: normalizeEstadoCita(cita?.estadoCita),
   }
 }
 
-export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormProps) {
-  const { user, hasRole } = useAuthStore()
+// ─── Componente ────────────────────────────────────────────────────────────────
+
+export function CitaIlamyEventForm({
+  open,
+  selectedEvent,
+  onClose,
+  initialPacienteUUID,
+}: CitaIlamyEventFormProps) {
+  const user = useAuthStore((s) => s.user)
   const currentUserUuid = user?.uuid ?? ''
-  const currentUserRole = hasRole('MEDICO') ? 'MEDICO' : ''
   const timezone = useMemo(() => safeTimeZone(), [])
 
   const createCita = useCreateCita()
   const updateCita = useUpdateCita()
 
   const [openPaciente, setOpenPaciente] = useState(false)
-  const [openUsuarioAgenda, setOpenUsuarioAgenda] = useState(false)
 
   const { data: pacientesRaw } = useGetPacientes({ activos: true }, { enabled: open })
-  const pacientes = Array.isArray(pacientesRaw) ? pacientesRaw : (pacientesRaw as any)?.data ?? []
-
-  const { data: usuariosRaw } = useGetUsuarios({ activo: true }, { enabled: open })
-  const usuarios = Array.isArray(usuariosRaw) ? usuariosRaw : (usuariosRaw as any)?.data ?? []
-
-  const medicos = useMemo(() => {
-    return (usuarios as any[]).filter((u) => {
-      const rolNombre = typeof u?.rol === 'string' ? u.rol : typeof u?.rol?.nombre === 'string' ? u.rol.nombre : ''
-      return String(rolNombre).toUpperCase().includes('MEDICO')
-    })
-  }, [usuarios])
+  const pacientes = Array.isArray(pacientesRaw)
+    ? pacientesRaw
+    : (pacientesRaw as any)?.data ?? []
 
   const defaults = useMemo(
-    () => buildDefaults({ selectedEvent, currentUserUuid, currentUserRole }),
-    [selectedEvent, currentUserUuid, currentUserRole],
+    () => buildDefaults({ selectedEvent, initialPacienteUUID }),
+    [selectedEvent, initialPacienteUUID],
   )
 
   const {
@@ -110,6 +145,7 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
     setValue,
     reset,
     watch,
+    control,
     formState: { errors },
   } = useForm<CitaFormData>({
     resolver: zodResolver(citaFormSchema),
@@ -121,7 +157,6 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
   }, [open, reset, defaults])
 
   const watchedPacienteUUID = watch('pacienteUUID')
-  const watchedUsuarioAgendaUUID = watch('usuarioAgendaUUID')
 
   const cita = (selectedEvent?.data as any)?.cita as Cita | undefined
   const isEditing = Boolean(cita?.uuid)
@@ -132,14 +167,11 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
     return !!d && d < new Date()
   }, [isEditing, cita])
 
+  // ─── Submit ──────────────────────────────────────────────────────────────────
+
   const onSubmit = (data: CitaFormData) => {
     if (!currentUserUuid) {
       toast.error('No hay usuario autenticado.')
-      return
-    }
-
-    if (isPast) {
-      toast.error('No se puede modificar una cita pasada.')
       return
     }
 
@@ -152,6 +184,7 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
             timezone,
             durationMinutes: data.duracionMinutos,
             colorHex: data.colorHex,
+            estadoCita: data.estadoCita,
             observaciones: data.observaciones,
           },
         },
@@ -163,7 +196,7 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
     createCita.mutate(
       {
         pacienteUUID: data.pacienteUUID,
-        usuarioAgendaUUID: data.usuarioAgendaUUID,
+        usuarioAgendaUUID: currentUserUuid,   // siempre del usuario logueado
         startAtLocal: data.fechaCita,
         timezone,
         durationMinutes: data.duracionMinutos,
@@ -174,32 +207,66 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
     )
   }
 
+  const isPending = createCita.isPending || updateCita.isPending
+
+  // ─── JSX ─────────────────────────────────────────────────────────────────────
+
   return (
     <Dialog open={open} onOpenChange={(v) => (v ? null : onClose())}>
-      <DialogContent className="w-[min(96vw,760px)] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[min(96vw,640px)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Detalle de cita' : 'Agendar cita'}</DialogTitle>
-          <DialogDescription>
-            {isEditing ? 'Consulta la información de la cita.' : 'Selecciona paciente, especialista, fecha y duración.'}
+          <DialogTitle className="text-[16px] font-semibold text-[var(--imss-ink-900)]">
+            {isEditing ? 'Editar cita' : 'Agendar cita'}
+          </DialogTitle>
+          <DialogDescription className="text-[13px] text-[var(--imss-ink-300)]">
+            {isEditing
+              ? 'Actualiza el estado, fecha u observaciones de la cita.'
+              : 'Selecciona el paciente, la fecha y la duración.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Paciente *</Label>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-1">
+
+          {/* ── PACIENTE (solo en crear, o read-only en editar) ── */}
+          {isEditing ? (
+            <div className="rounded-md border border-[var(--imss-ink-100)] px-3 py-2 space-y-2.5">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--imss-ink-300)]">
+                  Paciente
+                </span>
+                <span className="text-[13px] text-[var(--imss-ink-900)]">
+                  {cita?.paciente?.nombreCompleto || '—'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">
+                Paciente <span className="text-red-500">*</span>
+              </Label>
               <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
                 <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" role="combobox" className="w-full justify-between" disabled={isEditing}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between h-9 text-[13px]"
+                  >
                     <span className="truncate">
                       {watchedPacienteUUID
                         ? (() => {
-                            const found = pacientes.find((p: any) => getPacienteUUID(p) === watchedPacienteUUID)
+                            const found = pacientes.find(
+                              (p: any) => getPacienteUUID(p) === watchedPacienteUUID,
+                            )
                             if (!found) return 'Paciente seleccionado'
                             const nombre = found.persona
-                              ? `${found.persona.nombre} ${found.persona.apellidoPaterno}${
-                                  found.persona.apellidoMaterno ? ' ' + found.persona.apellidoMaterno : ''
-                                }`
+                              ? [
+                                  found.persona.nombre,
+                                  found.persona.apellidoPaterno,
+                                  found.persona.apellidoMaterno,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' ')
                               : found.nombreCompleto ?? 'Paciente'
                             return `${found.folio ?? ''} — ${nombre}`.trim()
                           })()
@@ -208,8 +275,12 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[min(96vw,760px)] p-0" align="start">
-                  <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
+                <PopoverContent className="w-[min(96vw,600px)] p-0" align="start">
+                  <Command
+                    filter={(value, search) =>
+                      value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+                    }
+                  >
                     <CommandInput placeholder="Buscar paciente…" />
                     <CommandList className="max-h-64">
                       <CommandEmpty>No se encontró el paciente.</CommandEmpty>
@@ -217,7 +288,13 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
                         {pacientes.map((p: any) => {
                           const uuid = getPacienteUUID(p)
                           const nombre = p.persona
-                            ? `${p.persona.nombre} ${p.persona.apellidoPaterno}${p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}`
+                            ? [
+                                p.persona.nombre,
+                                p.persona.apellidoPaterno,
+                                p.persona.apellidoMaterno,
+                              ]
+                                .filter(Boolean)
+                                .join(' ')
                             : p.nombreCompleto ?? 'Paciente'
                           return (
                             <CommandItem
@@ -228,57 +305,15 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
                                 setOpenPaciente(false)
                               }}
                             >
-                              <Check className={cn('mr-2 h-4 w-4', watchedPacienteUUID === uuid ? 'opacity-100' : 'opacity-0')} />
-                              <span className="truncate">{`${p.folio ?? ''} — ${nombre}`.trim()}</span>
-                            </CommandItem>
-                          )
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {errors.pacienteUUID ? <p className="text-xs text-destructive">{errors.pacienteUUID.message}</p> : null}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Especialista *</Label>
-              <Popover open={openUsuarioAgenda} onOpenChange={setOpenUsuarioAgenda}>
-                <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" role="combobox" className="w-full justify-between" disabled={isEditing}>
-                    <span className="truncate">
-                      {watchedUsuarioAgendaUUID
-                        ? (() => {
-                            const found = medicos.find((u: any) => getUsuarioUUID(u) === watchedUsuarioAgendaUUID)
-                            return found ? getUsuarioNombreCompleto(found) : 'Especialista seleccionado'
-                          })()
-                        : 'Buscar especialista…'}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[min(96vw,760px)] p-0" align="start">
-                  <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
-                    <CommandInput placeholder="Buscar especialista…" />
-                    <CommandList className="max-h-64">
-                      <CommandEmpty>No se encontró el especialista.</CommandEmpty>
-                      <CommandGroup>
-                        {medicos.map((u: any) => {
-                          const uuid = getUsuarioUUID(u)
-                          const label = `${getUsuarioNombreCompleto(u)} ${u.username ? `(${u.username})` : ''}`.trim()
-                          return (
-                            <CommandItem
-                              key={uuid || u.id}
-                              value={label}
-                              onSelect={() => {
-                                setValue('usuarioAgendaUUID', uuid)
-                                setOpenUsuarioAgenda(false)
-                              }}
-                            >
                               <Check
-                                className={cn('mr-2 h-4 w-4', watchedUsuarioAgendaUUID === uuid ? 'opacity-100' : 'opacity-0')}
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  watchedPacienteUUID === uuid ? 'opacity-100' : 'opacity-0',
+                                )}
                               />
-                              <span className="truncate">{label}</span>
+                              <span className="truncate text-[13px]">
+                                {`${p.folio ?? ''} — ${nombre}`.trim()}
+                              </span>
                             </CommandItem>
                           )
                         })}
@@ -287,63 +322,155 @@ export function CitaIlamyEventForm({ open, selectedEvent, onClose }: EventFormPr
                   </Command>
                 </PopoverContent>
               </Popover>
-              {errors.usuarioAgendaUUID ? <p className="text-xs text-destructive">{errors.usuarioAgendaUUID.message}</p> : null}
+              {errors.pacienteUUID ? (
+                <p className="text-[11px] text-[var(--status-danger-fg)]">
+                  {errors.pacienteUUID.message}
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {/* ── ESTADO DE CITA (solo en editar) ── */}
+          {isEditing && (
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">Estado de la cita</Label>
+              <Controller
+                name="estadoCita"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                    disabled={isPast}
+                  >
+                    <SelectTrigger className="h-9 text-[13px]">
+                      <SelectValue placeholder="Seleccionar estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ESTADOS_CITA.map((e) => (
+                        <SelectItem key={e.value} value={e.value} className="text-[13px]">
+                          {e.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.estadoCita ? (
+                <p className="text-[11px] text-[var(--status-danger-fg)]">
+                  {errors.estadoCita.message}
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {/* ── FECHA Y DURACIÓN ── */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">
+                Fecha y hora <span className="text-red-500">*</span>
+              </Label>
+              <DateTimePicker
+                value={watch('fechaCita')}
+                onChange={(v) => setValue('fechaCita', v)}
+                disabled={isPast}
+              />
+              {errors.fechaCita ? (
+                <p className="text-[11px] text-[var(--status-danger-fg)]">
+                  {errors.fechaCita.message}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">
+                Duración (min) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="number"
+                min={15}
+                max={240}
+                step={15}
+                disabled={isPast}
+                {...register('duracionMinutos')}
+                className="h-9 text-[13px]"
+              />
+              {errors.duracionMinutos ? (
+                <p className="text-[11px] text-[var(--status-danger-fg)]">
+                  {errors.duracionMinutos.message}
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Fecha y hora *</Label>
-              <DateTimePicker value={watch('fechaCita')} onChange={(v) => setValue('fechaCita', v)} disabled={isPast} />
-              {errors.fechaCita ? <p className="text-xs text-destructive">{errors.fechaCita.message}</p> : null}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Duración (min) *</Label>
-              <Input type="number" min={15} max={240} step={15} disabled={isPast} {...register('duracionMinutos')} />
-              {errors.duracionMinutos ? <p className="text-xs text-destructive">{errors.duracionMinutos.message}</p> : null}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Color</Label>
+          {/* ── COLOR ── */}
+          <div className="space-y-1.5">
+            <Label className="text-[13px]">Color</Label>
             <div className="flex items-center gap-3">
               <Input
                 type="color"
-                className="h-10 w-14 p-1"
+                className="h-9 w-14 p-1"
                 disabled={isPast}
                 value={watch('colorHex') || '#3b82f6'}
                 onChange={(e) => setValue('colorHex', e.target.value)}
               />
               <Input
-                className="font-mono"
+                className="h-9 font-mono text-[13px]"
                 disabled={isPast}
                 placeholder="#3b82f6"
                 {...register('colorHex')}
               />
             </div>
-            {errors.colorHex ? <p className="text-xs text-destructive">{errors.colorHex.message}</p> : null}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Observaciones</Label>
-            <Textarea rows={4} disabled={isPast} placeholder="Notas adicionales…" {...register('observaciones')} />
-            {errors.observaciones ? <p className="text-xs text-destructive">{errors.observaciones.message}</p> : null}
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cerrar
-            </Button>
-            {!isEditing ? (
-              <Button type="submit" disabled={createCita.isPending}>
-                Crear cita
-              </Button>
-            ) : !isPast ? (
-              <Button type="submit" disabled={updateCita.isPending}>
-                Guardar cambios
-              </Button>
+            {errors.colorHex ? (
+              <p className="text-[11px] text-[var(--status-danger-fg)]">
+                {errors.colorHex.message}
+              </p>
             ) : null}
+          </div>
+
+          {/* ── OBSERVACIONES ── */}
+          <div className="space-y-1.5">
+            <Label className="text-[13px]">Observaciones</Label>
+            <Textarea
+              rows={3}
+              disabled={isPast}
+              placeholder="Notas adicionales…"
+              className="resize-none text-[13px]"
+              {...register('observaciones')}
+            />
+            {errors.observaciones ? (
+              <p className="text-[11px] text-[var(--status-danger-fg)]">
+                {errors.observaciones.message}
+              </p>
+            ) : null}
+          </div>
+
+          {/* ── ACCIONES ── */}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isPending}
+              className="text-[13px]"
+            >
+              Cancelar
+            </Button>
+            {!isPast && (
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
+              >
+                {isPending
+                  ? isEditing
+                    ? 'Guardando…'
+                    : 'Agendando…'
+                  : isEditing
+                    ? 'Guardar cambios'
+                    : 'Agendar cita'}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>
