@@ -11,29 +11,27 @@ export function useCreatePaciente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success('Paciente creado exitosamente')
+      toast.success('Paciente registrado correctamente')
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Error al crear paciente'
-      toast.error(message)
+      toast.error(error?.response?.data?.message ?? 'Error al registrar el paciente')
     },
   })
 }
 
-export function useUpdatePaciente(id: number) {
+export function useUpdatePaciente() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: PacienteRequestDTO) => updatePaciente(id, data),
+    mutationFn: ({ id, data }: { id: number; data: PacienteRequestDTO }) =>
+      updatePaciente(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] })
-      queryClient.invalidateQueries({ queryKey: ['pacientes', id] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success('Paciente actualizado exitosamente')
+      toast.success('Paciente actualizado correctamente')
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Error al actualizar paciente'
-      toast.error(message)
+      toast.error(error?.response?.data?.message ?? 'Error al actualizar el paciente')
     },
   })
 }
@@ -46,11 +44,10 @@ export function useDeletePaciente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success('Paciente eliminado exitosamente')
+      toast.success('Paciente eliminado correctamente')
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Error al eliminar paciente'
-      toast.error(message)
+      toast.error(error?.response?.data?.message ?? 'Error al eliminar el paciente')
     },
   })
 }

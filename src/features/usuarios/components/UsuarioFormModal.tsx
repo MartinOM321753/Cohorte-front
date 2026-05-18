@@ -18,14 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { pacienteFormSchema, type PacienteFormData } from '../schemas/paciente.schema'
-import { useCreatePaciente, useUpdatePaciente } from '../hooks/useCreatePaciente'
-import type { Paciente, PacienteRequestDTO } from '@/types/api'
+import { usuarioSchema, type UsuarioFormData } from '../schemas/usuario.schema'
+import { type Usuario, ROLES_SISTEMA } from '../types/usuario.types'
+import { useCreateUsuario, useUpdateUsuario } from '../hooks/useMutateUsuario'
 
-interface PacienteFormModalProps {
+interface UsuarioFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  paciente?: Paciente | null
+  usuario?: Usuario | null
 }
 
 const SEXO_OPTIONS = [
@@ -33,21 +33,10 @@ const SEXO_OPTIONS = [
   { value: 'F', label: 'Femenino' },
 ] as const
 
-const DEFAULT_VALUES: PacienteFormData = {
-  folio: '',
-  nombre: '',
-  apellidoPaterno: '',
-  apellidoMaterno: '',
-  email: '',
-  telefono: '',
-  fechaNacimiento: '',
-  sexo: 'M',
-}
-
-export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteFormModalProps) {
-  const isEdit = !!paciente
-  const createMutation = useCreatePaciente()
-  const updateMutation = useUpdatePaciente()
+export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormModalProps) {
+  const isEdit = !!usuario
+  const createMutation = useCreateUsuario()
+  const updateMutation = useUpdateUsuario()
 
   const {
     register,
@@ -55,46 +44,78 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
     control,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<PacienteFormData>({
-    resolver: zodResolver(pacienteFormSchema),
-    defaultValues: DEFAULT_VALUES,
+  } = useForm<UsuarioFormData>({
+    resolver: zodResolver(usuarioSchema),
+    defaultValues: {
+      username: '',
+      password: '',
+      idRol: undefined,
+      persona: {
+        nombre: '',
+        apellidoPaterno: '',
+        apellidoMaterno: '',
+        fechaNacimiento: '',
+        sexo: undefined,
+        telefono: '',
+        email: '',
+      },
+    },
   })
 
   useEffect(() => {
     if (open) {
-      if (paciente) {
+      if (usuario) {
         reset({
-          folio: paciente.folio,
-          nombre: paciente.persona.nombre,
-          apellidoPaterno: paciente.persona.apellidoPaterno,
-          apellidoMaterno: paciente.persona.apellidoMaterno ?? '',
-          email: paciente.persona.email ?? '',
-          telefono: paciente.persona.telefono ?? '',
-          fechaNacimiento: paciente.persona.fechaNacimiento?.slice(0, 10) ?? '',
-          sexo: paciente.persona.sexo ?? 'M',
+          username: usuario.username,
+          password: '',
+          idRol: usuario.rol?.id,
+          persona: {
+            nombre: usuario.persona.nombre,
+            apellidoPaterno: usuario.persona.apellidoPaterno,
+            apellidoMaterno: usuario.persona.apellidoMaterno ?? '',
+            fechaNacimiento: usuario.persona.fechaNacimiento?.slice(0, 10) ?? '',
+            sexo: usuario.persona.sexo,
+            telefono: usuario.persona.telefono ?? '',
+            email: usuario.persona.email ?? '',
+          },
         })
       } else {
-        reset(DEFAULT_VALUES)
+        reset({
+          username: '',
+          password: '',
+          idRol: undefined,
+          persona: {
+            nombre: '',
+            apellidoPaterno: '',
+            apellidoMaterno: '',
+            fechaNacimiento: '',
+            sexo: undefined,
+            telefono: '',
+            email: '',
+          },
+        })
       }
     }
-  }, [open, paciente, reset])
+  }, [open, usuario, reset])
 
-  const onSubmit = async (formData: PacienteFormData) => {
-    const payload: PacienteRequestDTO = {
-      folio: formData.folio,
+  const onSubmit = async (formData: UsuarioFormData) => {
+    const payload = {
+      username: formData.username,
+      password: formData.password,
+      idRol: formData.idRol,
       persona: {
-        nombre: formData.nombre,
-        apellidoPaterno: formData.apellidoPaterno,
-        apellidoMaterno: formData.apellidoMaterno || undefined,
-        email: formData.email || undefined,
-        telefono: formData.telefono || undefined,
-        fechaNacimiento: formData.fechaNacimiento,
-        sexo: formData.sexo,
+        nombre: formData.persona.nombre,
+        apellidoPaterno: formData.persona.apellidoPaterno,
+        apellidoMaterno: formData.persona.apellidoMaterno || undefined,
+        fechaNacimiento: formData.persona.fechaNacimiento,
+        sexo: formData.persona.sexo,
+        telefono: formData.persona.telefono || undefined,
+        email: formData.persona.email || undefined,
       },
     }
 
-    if (isEdit && paciente) {
-      await updateMutation.mutateAsync({ id: paciente.id, data: payload })
+    if (isEdit && usuario) {
+      await updateMutation.mutateAsync({ id: usuario.id, data: payload })
     } else {
       await createMutation.mutateAsync(payload)
     }
@@ -109,35 +130,93 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="text-[16px] font-semibold text-[var(--imss-ink-900)]">
-            {isEdit ? 'Editar paciente' : 'Registrar nuevo paciente'}
+            {isEdit ? 'Editar usuario' : 'Registrar nuevo usuario'}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-1">
-          {/* Sección: Datos del expediente */}
+          {/* Sección: Datos de la cuenta */}
           <div className="space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
-              Datos del expediente
+              Datos de acceso
             </p>
 
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* Username */}
+              <div className="space-y-1.5">
+                <Label htmlFor="username" className="text-[13px]">
+                  Usuario <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="username"
+                  {...register('username')}
+                  placeholder="ej. jperez"
+                  className="h-9 text-[13px]"
+                />
+                {errors.username && (
+                  <p className="text-[11px] text-[var(--status-danger-fg)]">
+                    {errors.username.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Rol */}
+              <div className="space-y-1.5">
+                <Label className="text-[13px]">
+                  Rol <span className="text-red-500">*</span>
+                </Label>
+                <Controller
+                  name="idRol"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ? String(field.value) : ''}
+                      onValueChange={(v) => field.onChange(Number(v))}
+                    >
+                      <SelectTrigger className="h-9 text-[13px]">
+                        <SelectValue placeholder="Seleccione un rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLES_SISTEMA.map((r) => (
+                          <SelectItem key={r.id} value={String(r.id)} className="text-[13px]">
+                            {r.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.idRol && (
+                  <p className="text-[11px] text-[var(--status-danger-fg)]">
+                    {errors.idRol.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Contraseña */}
             <div className="space-y-1.5">
-              <Label htmlFor="folio" className="text-[13px]">
-                Folio <span className="text-red-500">*</span>
+              <Label htmlFor="password" className="text-[13px]">
+                {isEdit ? 'Nueva contraseña' : 'Contraseña'}{' '}
+                <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="folio"
-                {...register('folio')}
-                placeholder="ej. C-00184"
-                className="h-9 font-mono text-[13px]"
+                id="password"
+                type="password"
+                {...register('password')}
+                placeholder={isEdit ? 'Ingrese la nueva contraseña' : 'Mínimo 8 caracteres'}
+                className="h-9 text-[13px]"
+                autoComplete="new-password"
               />
-              {errors.folio && (
+              {errors.password && (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
-                  {errors.folio.message}
+                  {errors.password.message}
                 </p>
               )}
             </div>
           </div>
 
+          {/* Separador visual */}
           <div className="border-t border-[var(--imss-ink-100)]" />
 
           {/* Sección: Datos personales */}
@@ -154,13 +233,13 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 </Label>
                 <Input
                   id="nombre"
-                  {...register('nombre')}
+                  {...register('persona.nombre')}
                   placeholder="ej. Juan Carlos"
                   className="h-9 text-[13px]"
                 />
-                {errors.nombre && (
+                {errors.persona?.nombre && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
-                    {errors.nombre.message}
+                    {errors.persona.nombre.message}
                   </p>
                 )}
               </div>
@@ -172,13 +251,13 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 </Label>
                 <Input
                   id="apellidoPaterno"
-                  {...register('apellidoPaterno')}
+                  {...register('persona.apellidoPaterno')}
                   placeholder="ej. Pérez"
                   className="h-9 text-[13px]"
                 />
-                {errors.apellidoPaterno && (
+                {errors.persona?.apellidoPaterno && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
-                    {errors.apellidoPaterno.message}
+                    {errors.persona.apellidoPaterno.message}
                   </p>
                 )}
               </div>
@@ -190,7 +269,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 </Label>
                 <Input
                   id="apellidoMaterno"
-                  {...register('apellidoMaterno')}
+                  {...register('persona.apellidoMaterno')}
                   placeholder="ej. García"
                   className="h-9 text-[13px]"
                 />
@@ -204,13 +283,13 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 <Input
                   id="fechaNacimiento"
                   type="date"
-                  {...register('fechaNacimiento')}
+                  {...register('persona.fechaNacimiento')}
                   className="h-9 text-[13px]"
                   max={new Date().toISOString().slice(0, 10)}
                 />
-                {errors.fechaNacimiento && (
+                {errors.persona?.fechaNacimiento && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
-                    {errors.fechaNacimiento.message}
+                    {errors.persona.fechaNacimiento.message}
                   </p>
                 )}
               </div>
@@ -221,7 +300,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                   Sexo <span className="text-red-500">*</span>
                 </Label>
                 <Controller
-                  name="sexo"
+                  name="persona.sexo"
                   control={control}
                   render={({ field }) => (
                     <Select value={field.value ?? ''} onValueChange={field.onChange}>
@@ -238,9 +317,9 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                     </Select>
                   )}
                 />
-                {errors.sexo && (
+                {errors.persona?.sexo && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
-                    {errors.sexo.message}
+                    {errors.persona.sexo.message}
                   </p>
                 )}
               </div>
@@ -252,20 +331,20 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 </Label>
                 <Input
                   id="telefono"
-                  {...register('telefono')}
+                  {...register('persona.telefono')}
                   placeholder="10 dígitos"
                   maxLength={10}
                   className="h-9 text-[13px]"
                 />
-                {errors.telefono && (
+                {errors.persona?.telefono && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
-                    {errors.telefono.message}
+                    {errors.persona.telefono.message}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Correo — ancho completo */}
+            {/* Email — ancho completo */}
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-[13px]">
                 Correo electrónico
@@ -273,13 +352,13 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
               <Input
                 id="email"
                 type="email"
-                {...register('email')}
-                placeholder="ej. paciente@correo.com"
+                {...register('persona.email')}
+                placeholder="ej. jperez@imss.gob.mx"
                 className="h-9 text-[13px]"
               />
-              {errors.email && (
+              {errors.persona?.email && (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
-                  {errors.email.message}
+                  {errors.persona.email.message}
                 </p>
               )}
             </div>
@@ -306,7 +385,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                   : 'Registrando...'
                 : isEdit
                   ? 'Guardar cambios'
-                  : 'Registrar paciente'}
+                  : 'Registrar usuario'}
             </Button>
           </DialogFooter>
         </form>

@@ -122,8 +122,17 @@ export interface Cita {
   uuid: string
   pacienteUUID: string
   usuarioAgendaUUID: string
-  fechaCita: string
-  duracionMinutos: number
+  // Legacy fields (pre-calendar refactor)
+  fechaCita?: string
+  duracionMinutos?: number
+
+  // New calendar fields
+  startAtUtc?: string
+  endAtUtc?: string
+  startAtLocal?: string
+  timezone?: string
+  durationMinutes?: number
+  colorHex?: string
   estadoCita: 'PROGRAMADA' | 'COMPLETADA' | 'CANCELADA' | 'NO_ASISTIO'
   observaciones?: string
   fechaCreacion?: string
@@ -132,16 +141,22 @@ export interface Cita {
 }
 
 export interface CitaRequestDTO {
-  pacienteUUID: string
-  usuarioAgendaUUID: string
-  fechaCita: string
-  duracionMinutos: number
+  // Backend contract (Spring Boot DTO)
+  pacienteUUID?: string
+  usuarioAgendaUUID?: string
+  startAtLocal?: string
+  timezone?: string
+  durationMinutes?: number
+  colorHex?: string
   observaciones?: string
 }
 
 export interface CitaUpdateRequestDTO {
-  fechaCita?: string
-  duracionMinutos?: number
+  startAtLocal?: string
+  timezone?: string
+  durationMinutes?: number
+  colorHex?: string
+
   estadoCita?: string
   observaciones?: string
 }

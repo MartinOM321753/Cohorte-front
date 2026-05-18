@@ -13,6 +13,7 @@ const BiobancoPage = lazy(() => import('@/features/biobanco/pages/BiobancoPage')
 const CatalogosPage = lazy(() => import('@/features/catalogos/pages/CatalogosPage'))
 const ConfiguracionPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionPage'))
 const CitasPage = lazy(() => import('@/features/citas/pages/CitasPage'))
+const UsuariosPage = lazy(() => import('@/features/usuarios/pages/UsuariosPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
@@ -103,6 +104,16 @@ export function AppRouter() {
               <Suspense fallback={<LoadingFallback />}>
                 <ConfiguracionPage />
               </Suspense>
+            }
+          />  
+          <Route
+            path="/usuarios"
+            element={
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <UsuariosPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
         </Route>

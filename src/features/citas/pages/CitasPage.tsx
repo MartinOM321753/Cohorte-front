@@ -1,20 +1,19 @@
 import { useState } from 'react'
 import { Filter, Plus, Search } from 'lucide-react'
-import { useGetCitas } from '../hooks/useCitas'
-import { CitaFormModal } from '../components/CitaFormModal'
-import { PacienteFormModal } from '@/features/pacientes/components/PacienteFormModal'
+import { toast } from 'sonner'
+
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RoleGuard } from '@/components/routes/RoleGuard'
-import { DataTable } from '@/components/tables/DataTable'
-import { formatDate } from '@/lib/utils'
-import { Cita } from '@/types/api'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { PacienteFormModal } from '@/features/pacientes/components/PacienteFormModal'
+
+import { CitasIlamyCalendar } from '../components/CitasIlamyCalendar'
+import { useGetCitas } from '../hooks/useCitas'
 
 export default function CitasPage() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [isCitaModalOpen, setIsCitaModalOpen] = useState(false)
   const [isPacienteFormOpen, setIsPacienteFormOpen] = useState(false)
   const { data: citas, isLoading } = useGetCitas()
 
@@ -29,29 +28,6 @@ export default function CitasPage() {
     )
   })
 
-  const columns = [
-    {
-      accessorKey: 'paciente',
-      header: 'Paciente',
-      cell: ({ row }: any) => row.original.paciente?.nombreCompleto || 'Sin paciente',
-    },
-    {
-      accessorKey: 'fechaCita',
-      header: 'Fecha de cita',
-      cell: ({ row }: any) => formatDate(row.original.fechaCita),
-    },
-    {
-      accessorKey: 'duracionMinutos',
-      header: 'Duración',
-      cell: ({ row }: any) => `${row.original.duracionMinutos} min`,
-    },
-    {
-      accessorKey: 'estadoCita',
-      header: 'Estado',
-      cell: ({ row }: any) => row.original.estadoCita,
-    },
-  ]
-
   return (
     <RoleGuard allowedRoles={['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA']}>
       <div className="flex flex-col gap-6">
@@ -63,7 +39,10 @@ export default function CitasPage() {
               <Button variant="secondary" onClick={() => setIsPacienteFormOpen(true)}>
                 Registrar paciente
               </Button>
-              <Button onClick={() => setIsCitaModalOpen(true)}>
+              <Button
+                type="button"
+                onClick={() => toast.message('Para agendar: haz clic en un espacio del calendario (día/semana).')}
+              >
                 <Plus className="h-4 w-4" strokeWidth={1.75} />
                 Nueva cita
               </Button>
@@ -74,7 +53,10 @@ export default function CitasPage() {
         <Card className="overflow-hidden p-0">
           <div className="flex flex-wrap items-center gap-3 border-b p-4">
             <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.75} />
+              <Search
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                strokeWidth={1.75}
+              />
               <Input
                 placeholder="Buscar paciente, usuario o estado…"
                 value={searchTerm}
@@ -90,16 +72,14 @@ export default function CitasPage() {
               {filteredCitas.length} de {citasArray.length}
             </span>
           </div>
-          <div className="p-0">
-            <DataTable columns={columns} data={filteredCitas as Cita[]} isLoading={isLoading} />
+          <div className="p-4">
+            <CitasIlamyCalendar citas={filteredCitas} isLoading={isLoading} />
           </div>
         </Card>
 
-        <CitaFormModal open={isCitaModalOpen} onOpenChange={setIsCitaModalOpen} />
         <PacienteFormModal
           open={isPacienteFormOpen}
           onOpenChange={setIsPacienteFormOpen}
-          onSuccess={() => setIsPacienteFormOpen(false)}
         />
       </div>
     </RoleGuard>

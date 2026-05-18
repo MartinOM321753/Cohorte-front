@@ -2,6 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './app/App'
 import './styles/globals.css'
+import dayjs from 'dayjs'
+import 'dayjs/locale/es'
+
+dayjs.locale('es')
 
 // Si el sitio alguna vez tuvo PWA habilitada, esta limpieza des-registra cualquier
 // Service Worker previo y borra caches para evitar que el SW viejo siga controlando.

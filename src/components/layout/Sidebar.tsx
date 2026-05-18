@@ -15,6 +15,7 @@ import {
   Stethoscope,
   TestTube2,
   UserRound,
+  UsersRound,
 } from 'lucide-react'
 
 interface NavItem {
@@ -42,6 +43,13 @@ const navItems: NavItem[] = [
     icon: TestTube2,
     roles: ['ADMINISTRADOR', 'MEDICO'],
     group: 'Biobanco',
+  },
+  {
+    label: 'Usuarios',
+    href: '/usuarios',
+    icon: UsersRound,
+    roles: ['ADMINISTRADOR'],
+    group: 'Sistema',
   },
   {
     label: 'Catálogos',
@@ -77,9 +85,13 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
   const { user, logout, hasRole } = useAuthStore()
-
-  const userRoleLabel =
-    typeof user?.rol === 'string' ? user.rol : typeof (user?.rol as any)?.nombre === 'string' ? (user?.rol as any).nombre : ''
+  const userRoleLabel = useMemo(() => {
+    if (!user) return ''
+    const knownRoles: UserRole[] = ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE']
+    const normalized = knownRoles.find((r) => hasRole(r))
+    if (normalized) return normalized
+    return typeof user.rol === 'string' ? user.rol : typeof (user.rol as any)?.nombre === 'string' ? (user.rol as any).nombre : ''
+  }, [hasRole, user])
 
   const filteredNavItems = useMemo(() => {
     return navItems.filter((item) => {

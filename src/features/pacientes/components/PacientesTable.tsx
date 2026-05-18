@@ -1,154 +1,132 @@
-import { ColumnDef } from '@tanstack/react-table'
-import { Paciente } from '@/types/api'
+import type { ColumnDef } from '@tanstack/react-table'
+import { CalendarPlus, Eye, Pencil, Trash2 } from 'lucide-react'
 import { DataTable } from '@/components/tables/DataTable'
-import { formatDate, getFullName } from '@/lib/utils'
-import { Eye, Edit2, Trash2, CalendarPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useState } from 'react'
-import { PacienteDetailDrawer } from './PacienteDetailDrawer'
-import { useDeletePaciente } from '../hooks/useCreatePaciente'
-import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
+import { getFullName } from '@/lib/utils'
+import type { Paciente } from '@/types/api'
 
 interface PacientesTableProps {
-  pacientes: Paciente[]
+  data: Paciente[]
   isLoading?: boolean
-  onSchedule?: (paciente: Paciente) => void
+  onView: (paciente: Paciente) => void
+  onEdit: (paciente: Paciente) => void
+  onDelete: (paciente: Paciente) => void
+  onSchedule: (paciente: Paciente) => void
 }
 
-export function PacientesTable({ pacientes, isLoading, onSchedule }: PacientesTableProps) {
-  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null)
-  const [showDetail, setShowDetail] = useState(false)
-  const [deleteId, setDeleteId] = useState<number | null>(null)
-  const deleteMutation = useDeletePaciente()
+function SexoBadge({ sexo }: { sexo: string | null | undefined }) {
+  if (sexo === 'M')
+    return (
+      <span className="inline-flex items-center rounded-full bg-[var(--status-info-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--status-info-fg)]">
+        Masculino
+      </span>
+    )
+  if (sexo === 'F')
+    return (
+      <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-medium text-purple-700">
+        Femenino
+      </span>
+    )
+  return <span className="text-[13px] text-[var(--imss-ink-300)]">—</span>
+}
 
+export function PacientesTable({
+  data,
+  isLoading,
+  onView,
+  onEdit,
+  onDelete,
+  onSchedule,
+}: PacientesTableProps) {
   const columns: ColumnDef<Paciente>[] = [
     {
-      accessorKey: 'folio',
-      header: 'Folio',
-      cell: ({ row }) => <span className="font-medium">{row.original.folio}</span>,
+      id: 'nombre',
+      header: 'Paciente',
+      cell: ({ row }) => {
+        const p = row.original
+        return (
+          <div>
+            <p className="text-[13px] font-medium text-[var(--imss-ink-900)]">
+              {getFullName(p.persona)}
+            </p>
+            <p className="text-[11px] text-[var(--imss-ink-300)]">Folio: {p.folio}</p>
+          </div>
+        )
+      },
     },
     {
-      accessorKey: 'persona.nombre',
-      header: 'Nombre Completo',
-      cell: ({ row }) => getFullName(row.original.persona),
+      id: 'sexo',
+      header: 'Sexo',
+      cell: ({ row }) => <SexoBadge sexo={row.original.persona.sexo} />,
     },
     {
-      accessorKey: 'persona.email',
-      header: 'Email',
+      id: 'email',
+      header: 'Correo',
       cell: ({ row }) => (
-        <a
-          href={`mailto:${row.original.persona.email}`}
-          className="text-blue-600 hover:underline"
-        >
-          {row.original.persona.email}
-        </a>
+        <span className="text-[13px] text-[var(--imss-ink-500)]">
+          {row.original.persona.email || '—'}
+        </span>
       ),
     },
     {
-      accessorKey: 'persona.telefono',
-      header: 'Teléfono',
-      cell: ({ row }) => row.original.persona.telefono || '-',
-    },
-    {
-      accessorKey: 'fechaRegistro',
-      header: 'Fecha Registro',
+      id: 'estado',
+      header: 'Estado',
       cell: ({ row }) =>
-        row.original.fechaRegistro ? formatDate(row.original.fechaRegistro) : '-',
+        row.original.activo ? (
+          <span className="inline-flex items-center rounded-full bg-[var(--status-success-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--status-success-fg)]">
+            Activo
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-[var(--status-danger-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--status-danger-fg)]">
+            Inactivo
+          </span>
+        ),
     },
     {
       id: 'acciones',
-      header: 'Acciones',
+      header: '',
       cell: ({ row }) => (
-        <TooltipProvider>
-          <div className="flex gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setSelectedPaciente(row.original)
-                    setShowDetail(true)
-                  }}
-                >
-                  <Eye className="h-4 w-4 text-blue-600" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Ver detalle</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onSchedule?.(row.original)}
-                >
-                  <CalendarPlus className="h-4 w-4 text-emerald-600" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Agendar cita</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" disabled>
-                  <Edit2 className="h-4 w-4 text-amber-600" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Editar (próximamente)</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDeleteId(row.original.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-red-600" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Eliminar</TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
+            title="Ver detalle"
+            onClick={() => onView(row.original)}
+          >
+            <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
+            title="Editar paciente"
+            onClick={() => onEdit(row.original)}
+          >
+            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-green-700)]"
+            title="Agendar cita"
+            onClick={() => onSchedule(row.original)}
+          >
+            <CalendarPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--status-danger-fg)]"
+            title="Eliminar paciente"
+            onClick={() => onDelete(row.original)}
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Button>
+        </div>
       ),
     },
   ]
 
-  return (
-    <>
-      <DataTable columns={columns} data={pacientes} isLoading={isLoading} />
-
-      {/* Detail Drawer */}
-      {selectedPaciente && (
-        <PacienteDetailDrawer
-          paciente={selectedPaciente}
-          open={showDetail}
-          onOpenChange={setShowDetail}
-        />
-      )}
-
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        open={deleteId !== null}
-        title="Eliminar Paciente"
-        description="¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer."
-        actionLabel="Eliminar"
-        cancelLabel="Cancelar"
-        destructive
-        onConfirm={() => {
-          if (deleteId) {
-            deleteMutation.mutate(deleteId, {
-              onSuccess: () => setDeleteId(null),
-            })
-          }
-        }}
-        onCancel={() => setDeleteId(null)}
-        isLoading={deleteMutation.isPending}
-      />
-    </>
-  )
+  return <DataTable columns={columns} data={data} isLoading={isLoading} />
 }
