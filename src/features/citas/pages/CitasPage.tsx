@@ -72,7 +72,7 @@ export default function CitasPage() {
               {filteredCitas.length} de {citasArray.length}
             </span>
           </div>
-          <div className="p-4">
+          <div className="p-8">
             <CitasIlamyCalendar citas={filteredCitas} isLoading={isLoading} />
           </div>
         </Card>
