@@ -1,8 +1,15 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CalendarPlus, Pencil } from 'lucide-react'
 import { getFullName, formatDate } from '@/lib/utils'
 import type { Paciente } from '@/types/api'
+import { useAuthStore } from '@/stores/authStore'
+import { DocumentoUploader } from '@/features/documentos/components/DocumentoUploader'
+import { DocumentoList } from '@/features/documentos/components/DocumentoList'
+import {
+  useDocumentosPacienteTipo,
+} from '@/features/documentos/hooks/useDocumentos'
 
 interface PacienteDetailDrawerProps {
   open: boolean
@@ -33,6 +40,47 @@ function DetailRow({ label, value, mono }: DetailRowProps) {
   )
 }
 
+// ─── Sub-panel de documentos por tipo ────────────────────────────────────────
+
+function DocumentosPacientePanel({
+  uuid,
+  tipo,
+  usuarioUUID,
+  canDelete,
+}: {
+  uuid: string
+  tipo: 'CONSENTIMIENTO' | 'GENERAL'
+  usuarioUUID: string
+  canDelete: boolean
+}) {
+  const { data: docs = [], isLoading, isError } = useDocumentosPacienteTipo(uuid, tipo, { enabled: !!uuid })
+
+  return (
+    <div className="space-y-3">
+      <DocumentoUploader
+        entidad="paciente"
+        pacienteUUID={uuid}
+        tipoDoc={tipo}
+        usuarioUUID={usuarioUUID}
+        accept="application/pdf,image/*,.doc,.docx"
+        showDescripcion
+      />
+      <DocumentoList
+        documentos={docs}
+        isLoading={isLoading}
+        isError={isError}
+        canDelete={canDelete}
+        emptyMessage={
+          tipo === 'CONSENTIMIENTO'
+            ? 'Sin consentimientos registrados.'
+            : 'Sin documentos generales.'
+        }
+      />
+    </div>
+  )
+}
+
+// ─── Drawer principal ─────────────────────────────────────────────────────────
 
 export function PacienteDetailDrawer({
   open,
@@ -41,17 +89,20 @@ export function PacienteDetailDrawer({
   onEdit,
   onSchedule,
 }: PacienteDetailDrawerProps) {
+  const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+  const isAdmin = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
+
   if (!paciente) return null
 
   const nombreCompleto = getFullName(paciente.persona)
+  const uuid = paciente.UUID || (paciente as any).uuid || ''
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[400px]">
+      <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[440px]">
         {/* Header */}
         <SheetHeader className="border-b border-[var(--imss-ink-100)] px-5 py-4">
           <div className="flex items-center gap-3">
-            {/* Avatar con iniciales */}
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--imss-green-100)] text-[var(--imss-green-700)]">
               <span className="text-[14px] font-semibold">
                 {nombreCompleto
@@ -70,7 +121,6 @@ export function PacienteDetailDrawer({
             </div>
           </div>
 
-          {/* Badges */}
           <div className="flex items-center gap-2 pt-1">
             {paciente.activo ? (
               <span className="inline-flex items-center rounded-full bg-[var(--status-success-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--status-success-fg)]">
@@ -93,69 +143,104 @@ export function PacienteDetailDrawer({
           </div>
         </SheetHeader>
 
-        {/* Contenido */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-          {/* Datos personales */}
-          <section>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
-              Datos personales
-            </p>
-            <div className="rounded-md border border-[var(--imss-ink-100)] px-3">
-              <DetailRow label="Nombre completo" value={nombreCompleto} />
-              <DetailRow
-                label="Fecha de nacimiento"
-                value={
-                  paciente.persona.fechaNacimiento
-                    ? new Date(
-                        paciente.persona.fechaNacimiento + 'T12:00:00'
-                      ).toLocaleDateString('es-MX', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                      })
-                    : null
-                }
-              />
-              <DetailRow label="Correo electrónico" value={paciente.persona.email} />
-              <DetailRow label="Teléfono" value={paciente.persona.telefono} />
-            </div>
-          </section>
+        {/* Contenido con tabs */}
+        <div className="flex-1 overflow-y-auto">
+          <Tabs defaultValue="datos" className="h-full">
+            <TabsList className="w-full rounded-none border-b bg-transparent px-5 justify-start gap-4 h-10">
+              <TabsTrigger
+                value="datos"
+                className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
+              >
+                Datos
+              </TabsTrigger>
+              <TabsTrigger
+                value="consentimientos"
+                className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
+              >
+                Consentimientos
+              </TabsTrigger>
+              <TabsTrigger
+                value="documentos"
+                className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
+              >
+                Documentos
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Datos del sistema */}
-          <section>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
-              Datos del expediente
-            </p>
-            <div className="rounded-md border border-[var(--imss-ink-100)] px-3">
-              <DetailRow label="Folio" value={paciente.folio} mono />
-              <DetailRow
-                label="Fecha de registro"
-                value={
-                  paciente.fechaRegistro
-                    ? formatDate(paciente.fechaRegistro, 'dd/MM/yyyy HH:mm')
-                    : null
-                }
+            {/* ── Tab Datos ── */}
+            <TabsContent value="datos" className="px-5 py-4 space-y-5 mt-0">
+              <section>
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
+                  Datos personales
+                </p>
+                <div className="rounded-md border border-[var(--imss-ink-100)] px-3">
+                  <DetailRow label="Nombre completo" value={nombreCompleto} />
+                  <DetailRow
+                    label="Fecha de nacimiento"
+                    value={
+                      paciente.persona.fechaNacimiento
+                        ? new Date(paciente.persona.fechaNacimiento + 'T12:00:00').toLocaleDateString('es-MX', {
+                            day: '2-digit', month: 'long', year: 'numeric',
+                          })
+                        : null
+                    }
+                  />
+                  <DetailRow label="Correo electrónico" value={paciente.persona.email} />
+                  <DetailRow label="Teléfono" value={paciente.persona.telefono} />
+                </div>
+              </section>
+
+              <section>
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
+                  Datos del expediente
+                </p>
+                <div className="rounded-md border border-[var(--imss-ink-100)] px-3">
+                  <DetailRow label="Folio" value={paciente.folio} mono />
+                  <DetailRow
+                    label="Fecha de registro"
+                    value={paciente.fechaRegistro ? formatDate(paciente.fechaRegistro, 'dd/MM/yyyy HH:mm') : null}
+                  />
+                  <DetailRow
+                    label="Última actualización"
+                    value={paciente.fechaActualizacion ? formatDate(paciente.fechaActualizacion, 'dd/MM/yyyy HH:mm') : null}
+                  />
+                </div>
+              </section>
+            </TabsContent>
+
+            {/* ── Tab Consentimientos ── */}
+            <TabsContent value="consentimientos" className="px-5 py-4 mt-0">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
+                Documentos de consentimiento informado
+              </p>
+              <DocumentosPacientePanel
+                uuid={uuid}
+                tipo="CONSENTIMIENTO"
+                usuarioUUID={userUuid}
+                canDelete={isAdmin}
               />
-              <DetailRow
-                label="Última actualización"
-                value={
-                  paciente.fechaActualizacion
-                    ? formatDate(paciente.fechaActualizacion, 'dd/MM/yyyy HH:mm')
-                    : null
-                }
+            </TabsContent>
+
+            {/* ── Tab Documentos generales ── */}
+            <TabsContent value="documentos" className="px-5 py-4 mt-0">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
+                Otros documentos del expediente
+              </p>
+              <DocumentosPacientePanel
+                uuid={uuid}
+                tipo="GENERAL"
+                usuarioUUID={userUuid}
+                canDelete={isAdmin}
               />
-            </div>
-          </section>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Footer */}
         <div className="flex flex-col gap-2 border-t border-[var(--imss-ink-100)] px-5 py-3">
           <Button
             className="w-full gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
-            onClick={() => {
-              onOpenChange(false)
-              onEdit(paciente)
-            }}
+            onClick={() => { onOpenChange(false); onEdit(paciente) }}
           >
             <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
             Editar paciente
@@ -163,10 +248,7 @@ export function PacienteDetailDrawer({
           <Button
             variant="outline"
             className="w-full gap-2 text-[13px]"
-            onClick={() => {
-              onOpenChange(false)
-              onSchedule(paciente)
-            }}
+            onClick={() => { onOpenChange(false); onSchedule(paciente) }}
           >
             <CalendarPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
             Agendar cita
