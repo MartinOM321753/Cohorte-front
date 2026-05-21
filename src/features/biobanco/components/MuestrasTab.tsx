@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Plus, Edit, Trash2, Search, TestTube, AlertCircle } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, TestTube, AlertCircle, Paperclip } from 'lucide-react'
 import { useGetMuestras, useDeleteMuestra } from '../hooks/useBiobanco'
 import { MuestraFormModal } from './MuestraFormModal'
+import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
+import { useAuthStore } from '@/stores/authStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,9 +24,13 @@ import { formatDate } from '@/lib/utils'
 import { MuestraDetalleDTO } from '@/types/api'
 
 export function MuestrasTab() {
+  const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+  const isAdmin  = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
+  const canUploadMuestra = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'LABORATORISTA']))
   const [searchTerm, setSearchTerm] = useState('')
   const [isMuestraModalOpen, setIsMuestraModalOpen] = useState(false)
   const [editingMuestra, setEditingMuestra] = useState<MuestraDetalleDTO | null>(null)
+  const [docMuestraId, setDocMuestraId] = useState<number | null>(null)
 
   const { data: muestras, isLoading } = useGetMuestras()
   const deleteMuestraMutation = useDeleteMuestra()
@@ -170,6 +176,14 @@ export function MuestrasTab() {
                     <Edit className="mr-1 h-3 w-3" />
                     Editar
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDocMuestraId(muestra.id)}
+                    title="Documentos adjuntos"
+                  >
+                    <Paperclip className="h-3 w-3" />
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="sm">
@@ -205,6 +219,18 @@ export function MuestrasTab() {
         open={isMuestraModalOpen}
         onOpenChange={handleModalClose}
         muestra={editingMuestra}
+      />
+
+      <DocumentosDialog
+        open={docMuestraId !== null}
+        onOpenChange={(open) => !open && setDocMuestraId(null)}
+        entidad="muestra"
+        muestraId={docMuestraId ?? 0}
+        titulo="Documentos de la muestra"
+        descripcion="Sube y consulta los archivos adjuntos a esta muestra biológica."
+        usuarioUUID={userUuid}
+        canDelete={isAdmin}
+        canUpload={canUploadMuestra}
       />
     </div>
   )

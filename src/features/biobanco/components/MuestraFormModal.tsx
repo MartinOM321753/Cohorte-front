@@ -26,17 +26,13 @@ import {
 } from '@/components/ui/command'
 import { AlertCircle, Check, ChevronsUpDown, MapPin, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
 import { useCreateMuestra, useUpdateMuestra, useGetMuestraById } from '../hooks/useBiobanco'
 import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
 import { useAuthStore } from '@/stores/authStore'
 import { MuestraDetalleDTO, Paciente } from '@/types/api'
 import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
-
-const UNIDADES = [
-  'ml', 'L', 'µL', 'g', 'kg', 'mg', 'µg', 'ng', 'mL/kg', 'UI', 'UI/mL',
-  'nmol', 'µmol', 'mmol', 'mol', 'células/mL', 'copias/mL', 'UFC/mL',
-  'pg/mL', 'ng/mL', 'µg/mL', 'mg/dL', 'g/dL', '%',
-]
+import { UnidadSelect } from '@/components/forms/UnidadSelect'
 
 const muestraSchema = z.object({
   etiqueta: z.string().min(1, 'La etiqueta es obligatoria').max(50, 'Máximo 50 caracteres'),
@@ -64,7 +60,6 @@ const toLocalDateTimeInput = (date: Date): string => {
 
 export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormModalProps) {
   const isEditing = !!muestra
-  const [openUnidad, setOpenUnidad] = useState(false)
   const [openPaciente, setOpenPaciente] = useState(false)
   const [showPosicionModal, setShowPosicionModal] = useState(false)
   const [posicionLabel, setPosicionLabel] = useState<string>('')
@@ -175,7 +170,6 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setPosicionLabel('')
-      setOpenUnidad(false)
       setOpenPaciente(false)
       setShowPosicionModal(false)
     }
@@ -258,55 +252,11 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
               <div className="space-y-2">
                 <Label>Unidad *</Label>
-                <Popover open={openUnidad} onOpenChange={setOpenUnidad} modal={true}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openUnidad}
-                      className="w-full justify-between font-normal"
-                    >
-                      {watchedUnidad || 'Selecciona unidad...'}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-50 p-0">
-                    <Command filter={(value, search) =>
-                      value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                    }>
-                      <CommandInput placeholder="Buscar unidad..." />
-                      <CommandList>
-                        <CommandEmpty>No encontrado.</CommandEmpty>
-                        <CommandGroup>
-                          {UNIDADES.map((u) => (
-                            <CommandItem
-                              key={u}
-                              value={u}
-                              onSelect={() => {
-                                setValue('unidad', u)
-                                setOpenUnidad(false)
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  'mr-2 h-4 w-4',
-                                  watchedUnidad === u ? 'opacity-100' : 'opacity-0'
-                                )}
-                              />
-                              {u}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {errors.unidad && (
-                  <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
-                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
-                    {errors.unidad.message}
-                  </p>
-                )}
+                <UnidadSelect
+                  value={watchedUnidad}
+                  onChange={(v) => setValue('unidad', v, { shouldValidate: true })}
+                  error={errors.unidad?.message}
+                />
               </div>
             </div>
 
