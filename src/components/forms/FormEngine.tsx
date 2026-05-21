@@ -3,7 +3,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import type { ParametroEstudio } from '@/types/api'
 
@@ -65,29 +64,6 @@ export function FormEngine({
               )}
             />
             <Label htmlFor={fieldName}>{nombre}</Label>
-          </div>
-        )
-
-      case 'GRUPO':
-        return (
-          <div key={id} className="space-y-2">
-            <Label htmlFor={fieldName}>{nombre}</Label>
-            <Controller
-              name={fieldName}
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="anormal">Anormal</SelectItem>
-                    <SelectItem value="no_aplica">No aplica</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
           </div>
         )
 
