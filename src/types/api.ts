@@ -165,44 +165,35 @@ export interface CitaUpdateRequestDTO {
 // ============================================
 // ESTUDIOS MÉDICOS
 // ============================================
-export interface TipoEstudio {
-  id: number
-  nombre: string
-  descripcion?: string
-  activo: boolean
-  fechaCreacion?: string
-}
-
-export interface TipoEstudioRequestDTO {
-  nombre: string
-  descripcion?: string
-}
+export type TipoParametro = 'NUMERICO' | 'TEXTO' | 'BOOLEANO'
 
 export interface ParametroEstudio {
   id: number
-  idTipoEstudio: number
   nombre: string
   unidad?: string
-  tipo: 'NUMERICO' | 'TEXTO' | 'BOOLEANO' | 'GRUPO'
-  activo: boolean
+  tipo: TipoParametro
+  tipoEstudio?: string
 }
 
 export interface ParametroEstudioRequestDTO {
   idTipoEstudio: number
   nombre: string
   unidad?: string
-  tipo?: string
+  tipo: TipoParametro
 }
 
-export interface ResultadoEstudio {
-  id?: number
-  idParametro: number
-  valorNumerico?: number
-  valorTexto?: string
-  valorBooleano?: boolean
-  grupoCodigo?: string
-  grupoEtiqueta?: string
-  orden?: number
+export interface TipoEstudio {
+  id: number
+  nombre: string
+  descripcion?: string
+  activo: boolean
+  fechaCreacion?: string
+  parametroEstudios?: ParametroEstudio[]
+}
+
+export interface TipoEstudioRequestDTO {
+  nombre: string
+  descripcion?: string
 }
 
 export interface ResultadoEstudioRequestDTO {
@@ -215,13 +206,14 @@ export interface ResultadoEstudioRequestDTO {
   orden?: number
 }
 
-export interface EstudioAdjunto {
-  id?: number
-  tipo: 'PDF' | 'IMAGEN' | 'VIDEO' | 'OTRO'
-  nombreOriginal: string
-  mimeType: string
-  rutaUrl: string
-  descripcion?: string
+export interface ResultadoEstudioResponse {
+  id: number
+  parametro: string
+  valorNumerico?: number
+  valorTexto?: string
+  valorBooleano?: boolean
+  grupoCodigo?: string
+  grupoEtiqueta?: string
   orden?: number
 }
 
@@ -234,18 +226,29 @@ export interface EstudioAdjuntoRequestDTO {
   orden?: number
 }
 
+/** Summary DTO — returned by GET /estudios and GET /estudios/paciente/{uuid} */
+export interface EstudioListDTO {
+  id: number
+  fechaEstudio: string
+  paciente: string
+  pacienteuuid: string
+  usuarioRealiza: string
+  usuarioRealizauuid: string
+  tipoEstudio: string
+  tipoEstudioid: number
+}
+
+/** Full detail DTO — returned by GET /estudios/{id} */
 export interface EstudioMedico {
   id: number
-  uuid: string
-  pacienteUUID: string
-  usuarioRealizaUUID: string
-  idTipoEstudio: number
-  tipoEstudio: TipoEstudio
-  fechaEstudio: string
   observaciones?: string
-  resultados: ResultadoEstudio[]
-  adjuntos: EstudioAdjunto[]
-  fechaCreacion?: string
+  fechaEstudio: string
+  fechaRegistro: string
+  paciente: PacienteResumenDTO
+  usuarioRealiza: UsuarioResumenDTO
+  tipoEstudio: TipoEstudio
+  resultados: ResultadoEstudioResponse[]
+  adjuntos: EstudioAdjuntoRequestDTO[]
 }
 
 export interface EstudioMedicoRequestDTO {
@@ -351,6 +354,36 @@ export interface MedicionRequestDTO {
   parametro: string
   valor: number
   unidad?: string
+}
+
+// ============================================
+// CATÁLOGO — UNIDADES DE MEDIDA
+// ============================================
+export interface UnidadMedida {
+  id: number
+  nombre: string
+  activo: boolean
+}
+
+export interface UnidadMedidaRequestDTO {
+  nombre: string
+}
+
+// ============================================
+// DOCUMENTOS (almacenamiento MinIO)
+// ============================================
+export type TipoDocumentoPaciente = 'CONSENTIMIENTO' | 'GENERAL'
+
+export interface DocumentoResponseDTO {
+  id: number
+  nombreOriginal: string
+  mimeType: string | null
+  tamanioBytes: number | null
+  descripcion: string | null
+  fechaSubida: string
+  subidoPorUUID: string | null
+  /** URL firmada temporal de MinIO para descargar/visualizar el archivo */
+  url: string | null
 }
 
 // ============================================
