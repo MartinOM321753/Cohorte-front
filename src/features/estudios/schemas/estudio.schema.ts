@@ -11,7 +11,7 @@ export const parametroEstudioSchema = z.object({
   idTipoEstudio: z.number().min(1, 'Debe seleccionar un tipo de estudio'),
   nombre: z.string().min(1, 'El nombre es requerido'),
   unidad: z.string().optional(),
-  tipo: z.enum(['NUMERICO', 'TEXTO', 'BOOLEANO', 'GRUPO']),
+  tipo: z.enum(['NUMERICO', 'TEXTO', 'BOOLEANO']),
 })
 
 export type ParametroEstudioFormData = z.infer<typeof parametroEstudioSchema>

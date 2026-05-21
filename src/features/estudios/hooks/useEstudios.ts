@@ -2,7 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getEstudios,
   getEstudioById,
+  getEstudiosByPaciente,
   getTiposEstudio,
+  getTodosLosTipos,
+  getParametrosByTipo,
   createEstudio,
   updateEstudio,
   createTipoEstudio,
@@ -37,12 +40,44 @@ export function useGetEstudioById(id: number | null) {
 }
 
 /**
- * Get all tipos de estudio for dropdown/selection
+ * Get all estudios for a patient by UUID
+ */
+export function useGetEstudiosByPaciente(uuid: string | null) {
+  return useQuery({
+    queryKey: ['estudios', 'paciente', uuid],
+    queryFn: () => getEstudiosByPaciente(uuid as string),
+    enabled: typeof uuid === 'string' && uuid.length > 0,
+  })
+}
+
+/**
+ * Get all parámetros for a tipo de estudio
+ */
+export function useGetParametrosByTipo(tipoEstudioId: number | null) {
+  return useQuery({
+    queryKey: ['parametros', 'tipo', tipoEstudioId],
+    queryFn: () => getParametrosByTipo(tipoEstudioId as number),
+    enabled: typeof tipoEstudioId === 'number' && tipoEstudioId > 0,
+  })
+}
+
+/**
+ * Get active tipos de estudio (for llenado dropdown)
  */
 export function useGetTiposEstudio() {
   return useQuery({
     queryKey: ['tiposEstudio'],
     queryFn: getTiposEstudio,
+  })
+}
+
+/**
+ * Get ALL tipos de estudio including inactive (for catalogos management)
+ */
+export function useGetTodosLosTipos() {
+  return useQuery({
+    queryKey: ['tiposEstudio', 'todos'],
+    queryFn: getTodosLosTipos,
   })
 }
 
@@ -133,7 +168,7 @@ export function useToggleTipoEstudio() {
     mutationFn: (id: number) => toggleTipoEstudio(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tiposEstudio'] })
-      toast.success('Estado del tipo de estudio actualizado')
+      toast.success('Estado de la plantilla actualizado')
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error al actualizar estado del tipo de estudio'

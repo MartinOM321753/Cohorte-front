@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
-import { AlertCircle, Check, ChevronsUpDown } from 'lucide-react'
+import { AlertCircle, Check, ChevronsUpDown, Paperclip } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/authStore'
-import { EstudioMedicoRequestDTO, Paciente } from '@/types/api'
+import { EstudioListDTO, EstudioMedicoRequestDTO, Paciente } from '@/types/api'
+import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
 import { estudioMedicoSchema, type EstudioMedicoFormData } from '../schemas/estudio.schema'
 import { useCreateEstudio, useGetEstudios, useGetTiposEstudio } from '../hooks/useEstudios'
 import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
@@ -34,7 +35,10 @@ const DEFAULT_VALUES: EstudioMedicoFormData = {
 
 export function EstudiosTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+  const isAdmin   = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
+  const canUploadEstudio = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'MEDICO']))
   const [openPaciente, setOpenPaciente] = useState(false)
+  const [docEstudioId, setDocEstudioId] = useState<number | null>(null)
 
   const { data: estudios, isLoading: isLoadingEstudios, isError: isErrorEstudios } = useGetEstudios()
   const { data: tiposEstudio, isLoading: isLoadingTipos } = useGetTiposEstudio()
@@ -81,7 +85,6 @@ export function EstudiosTab() {
       fechaEstudio: data.fechaEstudio,
       observaciones: data.observaciones?.trim() || undefined,
       resultados: [],
-      adjuntos: [],
     }
 
     createMutation.mutate(payload, {
@@ -122,16 +125,26 @@ export function EstudiosTab() {
                   <TableHead>Fecha</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Paciente</TableHead>
-                  <TableHead className="text-right">UUID</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(estudios || []).map((e) => (
-                  <TableRow key={e.uuid}>
+                {(estudios || []).map((e: EstudioListDTO) => (
+                  <TableRow key={e.id}>
                     <TableCell className="font-mono">{String(e.fechaEstudio || '').slice(0, 10)}</TableCell>
-                    <TableCell>{e.tipoEstudio?.nombre || `#${e.idTipoEstudio}`}</TableCell>
-                    <TableCell className="font-mono">{String(e.pacienteUUID || '').slice(0, 8)}…</TableCell>
-                    <TableCell className="text-right font-mono">{String(e.uuid || '').slice(0, 8)}…</TableCell>
+                    <TableCell>{e.tipoEstudio}</TableCell>
+                    <TableCell className="truncate max-w-[160px]">{e.paciente}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Documentos adjuntos"
+                        onClick={() => setDocEstudioId(e.id)}
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {(estudios || []).length === 0 && (
@@ -146,6 +159,19 @@ export function EstudiosTab() {
           )}
         </div>
       </Card>
+
+      {/* ── Dialog documentos ── */}
+      <DocumentosDialog
+        open={docEstudioId !== null}
+        onOpenChange={(open) => !open && setDocEstudioId(null)}
+        entidad="estudio"
+        estudioId={docEstudioId ?? 0}
+        titulo="Documentos del estudio"
+        descripcion="Sube y consulta los archivos adjuntos a este estudio médico."
+        usuarioUUID={userUuid}
+        canDelete={isAdmin}
+        canUpload={canUploadEstudio}
+      />
 
       <Card className="lg:col-span-2">
         <div className="border-b p-4">

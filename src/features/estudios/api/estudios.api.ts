@@ -1,6 +1,7 @@
 import axiosInstance from '@/lib/axiosInstance'
 import {
   ApiResponse,
+  EstudioListDTO,
   EstudioMedico,
   EstudioMedicoRequestDTO,
   TipoEstudio,
@@ -16,16 +17,24 @@ import {
 /**
  * Get all estudios médicos
  */
-export async function getEstudios(): Promise<EstudioMedico[]> {
-  const response = await axiosInstance.get<ApiResponse<EstudioMedico[]>>('/estudios')
+export async function getEstudios(): Promise<EstudioListDTO[]> {
+  const response = await axiosInstance.get<ApiResponse<EstudioListDTO[]>>('/estudios')
   return response.data.data
 }
 
 /**
- * Get estudio médico by ID
+ * Get estudio médico by ID (full detail)
  */
 export async function getEstudioById(id: number): Promise<EstudioMedico> {
   const response = await axiosInstance.get<ApiResponse<EstudioMedico>>(`/estudios/${id}`)
+  return response.data.data
+}
+
+/**
+ * Get all estudios for a patient by UUID
+ */
+export async function getEstudiosByPaciente(uuid: string): Promise<EstudioListDTO[]> {
+  const response = await axiosInstance.get<ApiResponse<EstudioListDTO[]>>(`/estudios/paciente/${uuid}`)
   return response.data.data
 }
 
@@ -62,6 +71,12 @@ export async function getTiposEstudio(): Promise<TipoEstudio[]> {
   return response.data.data
 }
 
+/** Returns ALL tipos (active + inactive) — used by the Catálogos management view */
+export async function getTodosLosTipos(): Promise<TipoEstudio[]> {
+  const response = await axiosInstance.get<ApiResponse<TipoEstudio[]>>('/estudios/tipos/todos')
+  return response.data.data
+}
+
 /**
  * Create a new tipo de estudio
  */
@@ -94,6 +109,16 @@ export async function toggleTipoEstudio(id: number): Promise<TipoEstudio> {
 // ============================================
 // PARÁMETROS DE ESTUDIO
 // ============================================
+
+/**
+ * Get all parámetros for a tipo de estudio
+ */
+export async function getParametrosByTipo(tipoEstudioId: number): Promise<ParametroEstudio[]> {
+  const response = await axiosInstance.get<ApiResponse<ParametroEstudio[]>>(
+    `/estudios/tipos/${tipoEstudioId}/parametros`
+  )
+  return response.data.data
+}
 
 /**
  * Create a new parámetro de estudio
