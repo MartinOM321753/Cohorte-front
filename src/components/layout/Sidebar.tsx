@@ -11,6 +11,7 @@ import {
   Database,
   LayoutDashboard,
   LogOut,
+  Microscope,
   Settings,
   Stethoscope,
   TestTube2,
@@ -30,6 +31,13 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, group: 'Clínico' },
   { label: 'Pacientes', href: '/pacientes', icon: UserRound, group: 'Clínico' },
   { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, group: 'Clínico' },
+  {
+    label: 'Exámenes',
+    href: '/examenes',
+    icon: Microscope,
+    roles: ['ADMINISTRADOR', 'MEDICO', 'LABORATORISTA'],
+    group: 'Clínico',
+  },
   {
     label: 'Citas',
     href: '/citas',

@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner'
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
 const PacientesPage = lazy(() => import('@/features/pacientes/pages/PacientesPage'))
 const EstudiosPage = lazy(() => import('@/features/estudios/pages/EstudiosPage'))
+const ExamenesPage = lazy(() => import('@/features/examenes/pages/ExamenesPage'))
 const BiobancoPage = lazy(() => import('@/features/biobanco/pages/BiobancoPage'))
 const CatalogosPage = lazy(() => import('@/features/catalogos/pages/CatalogosPage'))
 const ConfiguracionPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionPage'))
@@ -27,7 +28,7 @@ function LoadingFallback() {
 
 export function AppRouter() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -71,6 +72,14 @@ export function AppRouter() {
             element={
               <Suspense fallback={<LoadingFallback />}>
                 <EstudiosPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/examenes"
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ExamenesPage />
               </Suspense>
             }
           />
