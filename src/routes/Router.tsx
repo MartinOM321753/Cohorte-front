@@ -19,6 +19,7 @@ const ConfiguracionPage = lazy(() => import('@/features/configuracion/pages/Conf
 const CitasPage = lazy(() => import('@/features/citas/pages/CitasPage'))
 const UsuariosPage = lazy(() => import('@/features/usuarios/pages/UsuariosPage'))
 const PerfilPage   = lazy(() => import('@/features/perfil/pages/PerfilPage'))
+const BitacoraPage = lazy(() => import('@/features/bitacora/pages/BitacoraPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
@@ -147,6 +148,16 @@ export function AppRouter() {
               <Suspense fallback={<LoadingFallback />}>
                 <PerfilPage />
               </Suspense>
+            }
+          />
+          <Route
+            path="/bitacora"
+            element={
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <BitacoraPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
         </Route>

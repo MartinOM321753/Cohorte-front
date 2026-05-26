@@ -28,8 +28,39 @@ function decodeJWT(token: string): JWTPayload {
   }
 }
 
+/** Solicita la geolocalización del navegador con un timeout de 3 s.
+ *  Retorna las coordenadas o null si el usuario deniega / no está disponible. */
+async function getGeolocation(): Promise<{ latitud: number; longitud: number } | null> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null)
+      return
+    }
+    const timer = setTimeout(() => resolve(null), 3000)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer)
+        resolve({ latitud: pos.coords.latitude, longitud: pos.coords.longitude })
+      },
+      () => {
+        clearTimeout(timer)
+        resolve(null)
+      },
+      { timeout: 3000, maximumAge: 60000 }
+    )
+  })
+}
+
 export async function loginUser(credentials: LoginRequest): Promise<{ token: string; user: UserData }> {
-  const response = await axiosInstance.post<LoginResponse>('/auth/login', credentials)
+  // Capturar geolocalización antes del login (silencioso en caso de denegación)
+  const geo = await getGeolocation()
+  const payload: LoginRequest = {
+    ...credentials,
+    latitud: geo?.latitud ?? null,
+    longitud: geo?.longitud ?? null,
+  }
+
+  const response = await axiosInstance.post<LoginResponse>('/auth/login', payload)
   const jwtToken = response.data.data
 
   if (!jwtToken || typeof jwtToken !== 'string') {

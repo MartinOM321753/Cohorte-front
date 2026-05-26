@@ -73,6 +73,8 @@ export interface LoginRequest {
   /** Acepta nombre de usuario o correo electrónico */
   identifier: string
   password: string
+  latitud?: number | null
+  longitud?: number | null
 }
 
 export interface LoginResponse {

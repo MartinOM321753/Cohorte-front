@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, subscribeWithSelector } from 'zustand/middleware'
+import axiosInstance from '@/lib/axiosInstance'
 
 export type UserRole =
   | 'ADMINISTRADOR'
@@ -105,6 +106,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        // Notificar al backend para registrar el LOGOUT en la bitácora (fire-and-forget)
+        axiosInstance.post('/auth/logout').catch(() => {})
         set(initialState)
       },
 
