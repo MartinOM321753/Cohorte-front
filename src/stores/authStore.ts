@@ -22,10 +22,12 @@ export interface AuthState {
   user: UserData | null
   isAuthenticated: boolean
   isLoading: boolean
+  mustChangePassword: boolean
 
   login: (credentials: { token: string; user: UserData }) => void
   logout: () => void
   hasRole: (role: UserRole | UserRole[]) => boolean
+  clearMustChangePassword: () => void
 }
 
 const initialState = {
@@ -33,6 +35,7 @@ const initialState = {
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  mustChangePassword: false,
 }
 
 function normalizeRoleName(rol: RolLike): string {
@@ -91,15 +94,22 @@ export const useAuthStore = create<AuthState>()(
           return
         }
 
+        const mustChangePassword = tokenPayload?.mustChangePassword === true
+
         set({
           token: credentials.token,
           user: { ...credentials.user, rol: normalizedRole },
           isAuthenticated: true,
+          mustChangePassword,
         })
       },
 
       logout: () => {
         set(initialState)
+      },
+
+      clearMustChangePassword: () => {
+        set({ mustChangePassword: false })
       },
 
       hasRole: (role: UserRole | UserRole[]) => {
@@ -131,6 +141,7 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        mustChangePassword: state.mustChangePassword,
       }),
     }
   )
