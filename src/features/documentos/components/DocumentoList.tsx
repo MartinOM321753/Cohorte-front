@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, FileText, Image, FileArchive, Trash2, AlertCircle, Eye } from 'lucide-react'
+import { Download, FileText, Image, FileArchive, Trash2, AlertCircle, Eye, Lock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
@@ -62,8 +62,8 @@ async function handleSecureDownload(doc: DocumentoResponseDTO) {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(objectUrl)
-  } catch {
-    toast.error('No se pudo descargar el archivo')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo descargar el archivo')
   }
 }
 
@@ -73,8 +73,8 @@ async function handleSecureView(doc: DocumentoResponseDTO) {
     window.open(objectUrl, '_blank')
     // Revocar después de un momento (el navegador ya cargó el blob)
     setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000)
-  } catch {
-    toast.error('No se pudo abrir el archivo')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo abrir el archivo')
   }
 }
 
@@ -194,39 +194,51 @@ export function DocumentoList({
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
-                {/* Ver inline (PDFs e imágenes) */}
-                {isViewable(doc.mimeType) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="Ver archivo"
-                    disabled={isBusy}
-                    onClick={() => onView(doc)}
-                  >
-                    {isBusy ? (
-                      <Spinner className="h-3.5 w-3.5" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
+                {doc.puedeDescargar ? (
+                  <>
+                    {/* Ver inline (PDFs e imágenes) */}
+                    {isViewable(doc.mimeType) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Ver archivo"
+                        disabled={isBusy}
+                        onClick={() => onView(doc)}
+                      >
+                        {isBusy ? (
+                          <Spinner className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
                     )}
-                  </Button>
-                )}
 
-                {/* Descargar */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  title="Descargar archivo"
-                  disabled={isBusy}
-                  onClick={() => onDownload(doc)}
-                >
-                  {isBusy && !isViewable(doc.mimeType) ? (
-                    <Spinner className="h-3.5 w-3.5" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                </Button>
+                    {/* Descargar */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="Descargar archivo"
+                      disabled={isBusy}
+                      onClick={() => onDownload(doc)}
+                    >
+                      {isBusy && !isViewable(doc.mimeType) ? (
+                        <Spinner className="h-3.5 w-3.5" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  /* Sin permiso para descargar — muestra candado informativo */
+                  <span
+                    className="flex h-7 w-7 items-center justify-center text-muted-foreground/50"
+                    title="No tienes permiso para descargar este archivo"
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                  </span>
+                )}
 
                 {canDelete && (
                   <Button

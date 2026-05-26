@@ -99,27 +99,55 @@ export async function getDocumentoUrl(id: number): Promise<string> {
 // ─── Descarga autenticada ─────────────────────────────────────────────────────
 
 /**
+ * Cuando Axios usa responseType:'blob', los errores HTTP también llegan con
+ * `response.data` como Blob (no JSON parseado). Esta función lee ese Blob,
+ * extrae el campo `message` del APIResponse del backend y lo re-lanza como Error.
+ */
+async function rethrowBlobError(err: unknown): Promise<never> {
+  try {
+    const data = (err as any)?.response?.data
+    if (data instanceof Blob) {
+      const text = await data.text()
+      const json = JSON.parse(text)
+      const msg: string = json?.message || json?.mensaje || ''
+      if (msg) throw new Error(msg)
+    }
+  } catch (inner) {
+    // Si inner es el Error que acabamos de construir, re-lanzarlo
+    if (inner instanceof Error && inner !== err) throw inner
+  }
+  // Fallback genérico
+  throw new Error('No se pudo acceder al archivo')
+}
+
+/**
  * Descarga el archivo a través del backend (JWT requerido).
  * Devuelve un object URL temporal para el blob; el caller debe revocarlo después de usarlo.
+ * Si el backend responde con un error JSON (p. ej. 503 MinIO no disponible),
+ * extrae el mensaje y lo lanza como Error normal para que el caller lo muestre en el toast.
  */
 export async function downloadDocumentoBlob(
   id: number,
   inline = false,
 ): Promise<{ objectUrl: string; fileName: string; mimeType: string }> {
-  const res = await api.get(`/documentos/${id}/download`, {
-    responseType: 'blob',
-    params: inline ? { inline: 'true' } : undefined,
-  })
+  try {
+    const res = await api.get(`/documentos/${id}/download`, {
+      responseType: 'blob',
+      params: inline ? { inline: 'true' } : undefined,
+    })
 
-  const contentDisposition = String(res.headers['content-disposition'] ?? '')
-  const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
-  const rawName = match ? match[1].replace(/['"]/g, '') : `documento-${id}`
-  const fileName = decodeURIComponent(rawName.replace(/%20/g, ' '))
+    const contentDisposition = String(res.headers['content-disposition'] ?? '')
+    const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+    const rawName = match ? match[1].replace(/['"]/g, '') : `documento-${id}`
+    const fileName = decodeURIComponent(rawName.replace(/%20/g, ' '))
 
-  const mimeType = String(res.headers['content-type'] ?? 'application/octet-stream')
-  const objectUrl = URL.createObjectURL(new Blob([res.data], { type: mimeType }))
+    const mimeType = String(res.headers['content-type'] ?? 'application/octet-stream')
+    const objectUrl = URL.createObjectURL(new Blob([res.data], { type: mimeType }))
 
-  return { objectUrl, fileName, mimeType }
+    return { objectUrl, fileName, mimeType }
+  } catch (err) {
+    return rethrowBlobError(err)
+  }
 }
 
 // ─── Eliminación ──────────────────────────────────────────────────────────────

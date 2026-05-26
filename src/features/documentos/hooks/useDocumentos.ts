@@ -24,12 +24,20 @@ const KEYS = {
 
 // ─── Consultas ────────────────────────────────────────────────────────────────
 
+/** No reintentar en errores de cliente (4xx) — son definitivos */
+function retryPolicy(failureCount: number, error: unknown): boolean {
+  const status = (error as any)?.response?.status
+  if (status && status >= 400 && status < 500) return false
+  return failureCount < 2
+}
+
 export function useDocumentosEstudio(estudioId: number, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: KEYS.estudio(estudioId),
     queryFn: () => getDocumentosByEstudio(estudioId),
     enabled: (options?.enabled ?? true) && estudioId > 0,
     staleTime: 30_000,
+    retry: retryPolicy,
   })
 }
 
@@ -39,6 +47,7 @@ export function useDocumentosPaciente(uuid: string, options?: { enabled?: boolea
     queryFn: () => getDocumentosByPaciente(uuid),
     enabled: (options?.enabled ?? true) && !!uuid,
     staleTime: 30_000,
+    retry: retryPolicy,
   })
 }
 
@@ -52,6 +61,7 @@ export function useDocumentosPacienteTipo(
     queryFn: () => getDocumentosByPacienteTipo(uuid, tipoDoc),
     enabled: (options?.enabled ?? true) && !!uuid,
     staleTime: 30_000,
+    retry: retryPolicy,
   })
 }
 
@@ -61,6 +71,7 @@ export function useDocumentosMuestra(muestraId: number, options?: { enabled?: bo
     queryFn: () => getDocumentosByMuestra(muestraId),
     enabled: (options?.enabled ?? true) && muestraId > 0,
     staleTime: 30_000,
+    retry: retryPolicy,
   })
 }
 
