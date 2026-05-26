@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Eye, Pencil } from 'lucide-react'
+import { Eye, Pencil, PowerOff, Power } from 'lucide-react'
 import { DataTable } from '@/components/tables/DataTable'
 import { Button } from '@/components/ui/button'
 import { type Usuario, getNombreCompleto, getRolBadgeClass } from '../types/usuario.types'
@@ -9,9 +9,10 @@ interface UsuariosTableProps {
   isLoading: boolean
   onView: (usuario: Usuario) => void
   onEdit: (usuario: Usuario) => void
+  onToggleActivo: (usuario: Usuario) => void
 }
 
-export function UsuariosTable({ data, isLoading, onView, onEdit }: UsuariosTableProps) {
+export function UsuariosTable({ data, isLoading, onView, onEdit, onToggleActivo }: UsuariosTableProps) {
   const columns: ColumnDef<Usuario>[] = [
     {
       id: 'nombre',
@@ -68,28 +69,43 @@ export function UsuariosTable({ data, isLoading, onView, onEdit }: UsuariosTable
     {
       id: 'acciones',
       header: '',
-      cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
-            title="Ver detalle"
-            onClick={() => onView(row.original)}
-          >
-            <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
-            title="Editar usuario"
-            onClick={() => onEdit(row.original)}
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const u = row.original
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
+              title="Ver detalle"
+              onClick={() => onView(u)}
+            >
+              <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
+              title="Editar usuario"
+              onClick={() => onEdit(u)}
+            >
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 ${u.activo ? 'text-[var(--status-danger-fg)] hover:text-red-700' : 'text-[var(--status-success-fg)] hover:text-green-700'}`}
+              title={u.activo ? 'Desactivar usuario' : 'Activar usuario'}
+              onClick={() => onToggleActivo(u)}
+            >
+              {u.activo
+                ? <PowerOff className="h-3.5 w-3.5" strokeWidth={1.75} />
+                : <Power className="h-3.5 w-3.5" strokeWidth={1.75} />
+              }
+            </Button>
+          </div>
+        )
+      },
     },
   ]
 

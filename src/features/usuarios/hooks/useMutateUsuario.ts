@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createUsuario, updateUsuario } from '../api/usuarios.api'
+import { createUsuario, updateUsuario, toggleActivoUsuario } from '../api/usuarios.api'
 import { USUARIOS_QUERY_KEY } from './useGetUsuarios'
 import type { UsuarioRequestDTO } from '../types/usuario.types'
 
@@ -29,6 +29,20 @@ export function useUpdateUsuario() {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message ?? 'Error al actualizar el usuario')
+    },
+  })
+}
+
+export function useToggleActivo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => toggleActivoUsuario(id),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: USUARIOS_QUERY_KEY })
+      toast.success(updated.activo ? 'Usuario activado' : 'Usuario desactivado')
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message ?? 'Error al cambiar el estado del usuario')
     },
   })
 }

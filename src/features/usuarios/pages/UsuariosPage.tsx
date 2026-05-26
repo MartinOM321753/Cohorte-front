@@ -3,20 +3,35 @@ import { Search, UserPlus, Users } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useGetUsuarios } from '../hooks/useGetUsuarios'
 import { UsuariosTable } from '../components/UsuariosTable'
 import { UsuarioFormModal } from '../components/UsuarioFormModal'
 import { UsuarioDetailDrawer } from '../components/UsuarioDetailDrawer'
+import { useToggleActivo } from '../hooks/useMutateUsuario'
+import { useAuthStore } from '@/stores/authStore'
 import type { Usuario } from '../types/usuario.types'
 
 export default function UsuariosPage() {
   const { data: usuarios = [], isLoading } = useGetUsuarios()
+  const toggleActivoMutation = useToggleActivo()
+  const { user, logout } = useAuthStore()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null)
   const [usuarioToEdit, setUsuarioToEdit] = useState<Usuario | null>(null)
+  const [usuarioToToggle, setUsuarioToToggle] = useState<Usuario | null>(null)
 
   const filtered = useMemo(() => {
     const q = searchTerm.toLowerCase().trim()
@@ -57,6 +72,29 @@ export default function UsuariosPage() {
   function handleFormClose(open: boolean) {
     setIsFormOpen(open)
     if (!open) setUsuarioToEdit(null)
+  }
+
+  function handleToggleActivo(usuario: Usuario) {
+    setUsuarioToToggle(usuario)
+  }
+
+  function confirmToggle() {
+    if (!usuarioToToggle) return
+
+    // Detectar si el admin se está desactivando a sí mismo
+    const desactivandoSiMismo =
+      usuarioToToggle.activo && usuarioToToggle.uuid === user?.uuid
+
+    toggleActivoMutation.mutate(usuarioToToggle.id, {
+      onSuccess: () => {
+        if (desactivandoSiMismo) {
+          // Nos desactivamos a nosotros mismos → la sesión ya no es válida
+          logout()
+          window.location.replace('/login')
+        }
+      },
+      onSettled: () => setUsuarioToToggle(null),
+    })
   }
 
   return (
@@ -103,6 +141,7 @@ export default function UsuariosPage() {
         isLoading={isLoading}
         onView={handleView}
         onEdit={handleEdit}
+        onToggleActivo={handleToggleActivo}
       />
 
       {/* Modal de creación / edición */}
@@ -119,6 +158,44 @@ export default function UsuariosPage() {
         usuario={selectedUsuario}
         onEdit={handleEdit}
       />
+
+      {/* Confirmación de activar / desactivar */}
+      <AlertDialog
+        open={!!usuarioToToggle}
+        onOpenChange={(open) => { if (!open) setUsuarioToToggle(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {usuarioToToggle?.activo ? 'Desactivar usuario' : 'Activar usuario'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {usuarioToToggle?.activo
+                ? `¿Desactivar a ${usuarioToToggle.persona.nombre} ${usuarioToToggle.persona.apellidoPaterno}? No podrá iniciar sesión ni realizar solicitudes.`
+                : `¿Activar a ${usuarioToToggle?.persona.nombre} ${usuarioToToggle?.persona.apellidoPaterno}? Recuperará acceso al sistema.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={toggleActivoMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmToggle}
+              disabled={toggleActivoMutation.isPending}
+              className={usuarioToToggle?.activo
+                ? 'bg-[var(--status-danger-fg)] hover:bg-red-700 text-white'
+                : 'bg-[var(--imss-green-500)] hover:bg-[var(--imss-green-700)] text-white'
+              }
+            >
+              {toggleActivoMutation.isPending
+                ? 'Procesando…'
+                : usuarioToToggle?.activo ? 'Sí, desactivar' : 'Sí, activar'
+              }
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

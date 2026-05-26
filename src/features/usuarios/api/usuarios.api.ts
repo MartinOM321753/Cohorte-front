@@ -27,3 +27,8 @@ export const updateUsuario = async (id: number, data: UsuarioRequestDTO): Promis
   const res = await axiosInstance.put<ApiResponse<Usuario>>(`/users/${id}`, data)
   return res.data.data
 }
+
+export const toggleActivoUsuario = async (id: number): Promise<Usuario> => {
+  const res = await axiosInstance.patch<ApiResponse<Usuario>>(`/users/${id}/activo`)
+  return res.data.data
+}

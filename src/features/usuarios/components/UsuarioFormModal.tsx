@@ -11,6 +11,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Mail } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -19,8 +21,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { usuarioSchema, type UsuarioFormData } from '../schemas/usuario.schema'
-import { type Usuario, ROLES_SISTEMA } from '../types/usuario.types'
+import { type Usuario, ROL_LABELS } from '../types/usuario.types'
 import { useCreateUsuario, useUpdateUsuario } from '../hooks/useMutateUsuario'
+import { useGetRoles } from '../hooks/useGetRoles'
+import { BirthDatePicker } from '@/components/ui/date-time-picker'
 
 interface UsuarioFormModalProps {
   open: boolean
@@ -37,6 +41,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
   const isEdit = !!usuario
   const createMutation = useCreateUsuario()
   const updateMutation = useUpdateUsuario()
+  const { data: roles = [], isLoading: rolesLoading } = useGetRoles()
 
   const {
     register,
@@ -47,9 +52,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
   } = useForm<UsuarioFormData>({
     resolver: zodResolver(usuarioSchema),
     defaultValues: {
-      username: '',
-      password: '',
-      idRol: undefined,
+      rolUuid: '',
       persona: {
         nombre: '',
         apellidoPaterno: '',
@@ -66,9 +69,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
     if (open) {
       if (usuario) {
         reset({
-          username: usuario.username,
-          password: '',
-          idRol: usuario.rol?.id,
+          rolUuid: usuario.rol?.uuid ?? '',
           persona: {
             nombre: usuario.persona.nombre,
             apellidoPaterno: usuario.persona.apellidoPaterno,
@@ -81,9 +82,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
         })
       } else {
         reset({
-          username: '',
-          password: '',
-          idRol: undefined,
+          rolUuid: '',
           persona: {
             nombre: '',
             apellidoPaterno: '',
@@ -100,9 +99,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
 
   const onSubmit = async (formData: UsuarioFormData) => {
     const payload = {
-      username: formData.username,
-      password: formData.password,
-      idRol: formData.idRol,
+      rolUuid: formData.rolUuid,
       persona: {
         nombre: formData.persona.nombre,
         apellidoPaterno: formData.persona.apellidoPaterno,
@@ -135,85 +132,57 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-1">
-          {/* Sección: Datos de la cuenta */}
+          {/* Sección: Datos de acceso */}
           <div className="space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
               Datos de acceso
             </p>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {/* Username */}
-              <div className="space-y-1.5">
-                <Label htmlFor="username" className="text-[13px]">
-                  Usuario <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="username"
-                  {...register('username')}
-                  placeholder="ej. jperez"
-                  className="h-9 text-[13px]"
-                />
-                {errors.username && (
-                  <p className="text-[11px] text-[var(--status-danger-fg)]">
-                    {errors.username.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Rol */}
-              <div className="space-y-1.5">
-                <Label className="text-[13px]">
-                  Rol <span className="text-red-500">*</span>
-                </Label>
-                <Controller
-                  name="idRol"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value ? String(field.value) : ''}
-                      onValueChange={(v) => field.onChange(Number(v))}
-                    >
-                      <SelectTrigger className="h-9 text-[13px]">
-                        <SelectValue placeholder="Seleccione un rol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROLES_SISTEMA.map((r) => (
-                          <SelectItem key={r.id} value={String(r.id)} className="text-[13px]">
-                            {r.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.idRol && (
-                  <p className="text-[11px] text-[var(--status-danger-fg)]">
-                    {errors.idRol.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Contraseña */}
+            {/* Rol — ancho completo (el username lo genera el backend automáticamente) */}
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-[13px]">
-                {isEdit ? 'Nueva contraseña' : 'Contraseña'}{' '}
-                <span className="text-red-500">*</span>
+              <Label className="text-[13px]">
+                Rol <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="password"
-                type="password"
-                {...register('password')}
-                placeholder={isEdit ? 'Ingrese la nueva contraseña' : 'Mínimo 8 caracteres'}
-                className="h-9 text-[13px]"
-                autoComplete="new-password"
+              <Controller
+                name="rolUuid"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                    disabled={rolesLoading}
+                  >
+                    <SelectTrigger className="h-9 text-[13px]">
+                      <SelectValue placeholder={rolesLoading ? 'Cargando roles…' : 'Seleccione un rol'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((r) => (
+                        <SelectItem key={r.uuid} value={r.uuid} className="text-[13px]">
+                          {ROL_LABELS[r.nombre] ?? r.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               />
-              {errors.password && (
+              {errors.rolUuid && (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
-                  {errors.password.message}
+                  {errors.rolUuid.message}
                 </p>
               )}
             </div>
+
+            {/* Aviso de cuenta automática (solo al crear) */}
+            {!isEdit && (
+              <Alert className="border-[var(--imss-green-200)] bg-[var(--imss-green-50)] py-3">
+                <Mail className="h-4 w-4 text-[var(--imss-green-600)]" />
+                <AlertDescription className="text-[12px] text-[var(--imss-green-700)] ml-1">
+                  El sistema generará el nombre de usuario y una contraseña segura,
+                  y los enviará automáticamente al correo del usuario.
+                  En su primer inicio de sesión deberá cambiar la contraseña.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           {/* Separador visual */}
@@ -234,6 +203,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
                 <Input
                   id="nombre"
                   {...register('persona.nombre')}
+                  sanitize="nombre"
                   placeholder="ej. Juan Carlos"
                   className="h-9 text-[13px]"
                 />
@@ -252,6 +222,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
                 <Input
                   id="apellidoPaterno"
                   {...register('persona.apellidoPaterno')}
+                  sanitize="apellido"
                   placeholder="ej. Pérez"
                   className="h-9 text-[13px]"
                 />
@@ -270,6 +241,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
                 <Input
                   id="apellidoMaterno"
                   {...register('persona.apellidoMaterno')}
+                  sanitize="apellido"
                   placeholder="ej. García"
                   className="h-9 text-[13px]"
                 />
@@ -277,15 +249,20 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
 
               {/* Fecha de nacimiento */}
               <div className="space-y-1.5">
-                <Label htmlFor="fechaNacimiento" className="text-[13px]">
+                <Label className="text-[13px]">
                   Fecha de nacimiento <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="fechaNacimiento"
-                  type="date"
-                  {...register('persona.fechaNacimiento')}
-                  className="h-9 text-[13px]"
-                  max={new Date().toISOString().slice(0, 10)}
+                <Controller
+                  name="persona.fechaNacimiento"
+                  control={control}
+                  render={({ field }) => (
+                    <BirthDatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="DD/MM/AAAA"
+                      className="h-9 text-[13px]"
+                    />
+                  )}
                 />
                 {errors.persona?.fechaNacimiento && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
@@ -332,6 +309,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
                 <Input
                   id="telefono"
                   {...register('persona.telefono')}
+                  sanitize="telefono"
                   placeholder="10 dígitos"
                   maxLength={10}
                   className="h-9 text-[13px]"
@@ -347,7 +325,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
             {/* Email — ancho completo */}
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-[13px]">
-                Correo electrónico
+                Correo electrónico <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="email"

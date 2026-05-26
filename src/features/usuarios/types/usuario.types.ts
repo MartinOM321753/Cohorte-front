@@ -10,7 +10,7 @@ export interface UsuarioPersona {
 }
 
 export interface UsuarioRol {
-  id: number
+  uuid: string
   nombre: string
 }
 
@@ -24,9 +24,8 @@ export interface Usuario {
 }
 
 export interface UsuarioRequestDTO {
-  username: string
-  password: string
-  idRol: number
+  // username ya no se envía: el backend lo genera automáticamente
+  rolUuid: string
   persona: {
     nombre: string
     apellidoPaterno: string
@@ -34,19 +33,24 @@ export interface UsuarioRequestDTO {
     fechaNacimiento: string
     sexo: 'M' | 'F'
     telefono?: string
-    email?: string
+    email: string   // requerido: la contraseña generada se envía aquí
   }
 }
 
-export const ROLES_SISTEMA = [
-  { id: 1, nombre: 'ADMINISTRADOR', label: 'Administrador' },
-  { id: 2, nombre: 'MEDICO', label: 'Médico' },
-  { id: 3, nombre: 'LABORATORISTA', label: 'Laboratorista' },
-  { id: 4, nombre: 'RECEPCIONISTA', label: 'Recepcionista' },
-  { id: 5, nombre: 'PACIENTE', label: 'Paciente' },
-] as const
+/** Rol tal como llega del endpoint GET /api/roles */
+export interface RolOption {
+  uuid: string
+  nombre: string
+}
 
-export type RolNombre = (typeof ROLES_SISTEMA)[number]['nombre']
+/** Etiquetas legibles para mostrar en la UI */
+export const ROL_LABELS: Record<string, string> = {
+  ADMINISTRADOR: 'Administrador',
+  MEDICO: 'Médico',
+  LABORATORISTA: 'Laboratorista',
+  RECEPCIONISTA: 'Recepcionista',
+  PACIENTE: 'Paciente',
+}
 
 export function getNombreCompleto(persona: UsuarioPersona): string {
   return [persona.nombre, persona.apellidoPaterno, persona.apellidoMaterno]
