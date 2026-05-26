@@ -9,6 +9,23 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
+// ── Utilidades de fecha de nacimiento ──────────────────────────────────────────
+// Mayoría de edad: al menos 18 años, con 3 meses de tolerancia.
+// La fecha máxima permitida = hoy - 18 años + 3 meses.
+export function maxFechaNacimiento(): Date {
+  const hoy = new Date()
+  const max = new Date(hoy.getFullYear() - 18, hoy.getMonth() + 3, hoy.getDate())
+  return max
+}
+
+export function esMayorDeEdadConTolerancia(fechaStr: string): boolean {
+  if (!fechaStr) return false
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaStr)
+  if (!m) return false
+  const fecha = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  return fecha <= maxFechaNacimiento()
+}
+
 function pad2(n: number) {
   return String(n).padStart(2, '0')
 }
@@ -94,6 +111,56 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={selected ?? undefined}
+          onSelect={(d) => {
+            if (!d) return
+            onChange(toDateOnlyString(d))
+          }}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+// ── BirthDatePicker ────────────────────────────────────────────────────────────
+// Como DatePicker pero con dropdown de mes/año y fechas futuras bloqueadas
+// más allá de la mayoría de edad (18 años – 3 meses de tolerancia).
+export function BirthDatePicker({
+  value,
+  onChange,
+  placeholder = 'Selecciona fecha de nacimiento',
+  disabled,
+  className,
+}: {
+  value?: string
+  onChange: (value: string) => void
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+}) {
+  const selected = useMemo(() => parseDateOnly(value), [value])
+  const maxDate = useMemo(() => maxFechaNacimiento(), [])
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          className={cn('w-full justify-start text-left font-normal', !selected && 'text-muted-foreground', className)}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {selected ? format(selected, 'dd/MM/yyyy', { locale: es }) : placeholder}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          captionLayout="dropdown"
+          selected={selected ?? undefined}
+          defaultMonth={selected ?? maxDate}
+          disabled={{ after: maxDate }}
           onSelect={(d) => {
             if (!d) return
             onChange(toDateOnlyString(d))

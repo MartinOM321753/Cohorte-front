@@ -21,6 +21,7 @@ import {
 import { pacienteFormSchema, type PacienteFormData } from '../schemas/paciente.schema'
 import { useCreatePaciente, useUpdatePaciente } from '../hooks/useCreatePaciente'
 import type { Paciente, PacienteRequestDTO } from '@/types/api'
+import { BirthDatePicker } from '@/components/ui/date-time-picker'
 
 interface PacienteFormModalProps {
   open: boolean
@@ -127,6 +128,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
               <Input
                 id="folio"
                 {...register('folio')}
+                sanitize="folio"
                 placeholder="ej. C-00184"
                 className="h-9 font-mono text-[13px]"
               />
@@ -155,6 +157,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 <Input
                   id="nombre"
                   {...register('nombre')}
+                  sanitize="nombre"
                   placeholder="ej. Juan Carlos"
                   className="h-9 text-[13px]"
                 />
@@ -173,6 +176,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 <Input
                   id="apellidoPaterno"
                   {...register('apellidoPaterno')}
+                  sanitize="apellido"
                   placeholder="ej. Pérez"
                   className="h-9 text-[13px]"
                 />
@@ -191,6 +195,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 <Input
                   id="apellidoMaterno"
                   {...register('apellidoMaterno')}
+                  sanitize="apellido"
                   placeholder="ej. García"
                   className="h-9 text-[13px]"
                 />
@@ -198,15 +203,20 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
 
               {/* Fecha de nacimiento */}
               <div className="space-y-1.5">
-                <Label htmlFor="fechaNacimiento" className="text-[13px]">
+                <Label className="text-[13px]">
                   Fecha de nacimiento <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="fechaNacimiento"
-                  type="date"
-                  {...register('fechaNacimiento')}
-                  className="h-9 text-[13px]"
-                  max={new Date().toISOString().slice(0, 10)}
+                <Controller
+                  name="fechaNacimiento"
+                  control={control}
+                  render={({ field }) => (
+                    <BirthDatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="DD/MM/AAAA"
+                      className="h-9 text-[13px]"
+                    />
+                  )}
                 />
                 {errors.fechaNacimiento && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
@@ -253,6 +263,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 <Input
                   id="telefono"
                   {...register('telefono')}
+                  sanitize="telefono"
                   placeholder="10 dígitos"
                   maxLength={10}
                   className="h-9 text-[13px]"
