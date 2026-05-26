@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -8,7 +8,8 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user, isLoading, hasRole } = useAuthStore();
+  const { isAuthenticated, user, isLoading, hasRole, mustChangePassword } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -20,6 +21,11 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Si el usuario debe cambiar su contraseña y no está ya en esa página, redirigir
+  if (mustChangePassword && location.pathname !== '/cambiar-contrasena') {
+    return <Navigate to="/cambiar-contrasena" replace />;
   }
 
   if (requiredRoles && requiredRoles.length > 0) {

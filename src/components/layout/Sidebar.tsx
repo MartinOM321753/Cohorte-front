@@ -17,6 +17,7 @@ import {
   TestTube2,
   UserRound,
   UsersRound,
+  CircleUserRound,
 } from 'lucide-react'
 
 interface NavItem {
@@ -71,6 +72,13 @@ const navItems: NavItem[] = [
     href: '/configuracion',
     icon: Settings,
     roles: ['ADMINISTRADOR'],
+    group: 'Sistema',
+  },
+  {
+    label: 'Mi perfil',
+    href: '/perfil',
+    icon: CircleUserRound,
+    // Sin roles: visible para todos los usuarios autenticados
     group: 'Sistema',
   },
 ]

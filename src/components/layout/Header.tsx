@@ -19,6 +19,7 @@ const routeLabels: Record<string, string> = {
   biobanco: 'Biobanco',
   catalogos: 'Catálogos',
   configuracion: 'Configuración',
+  perfil: 'Mi perfil',
   login: 'Inicio de sesión',
 }
 

@@ -28,19 +28,32 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor - handle auth errors (401/403)
+// Response interceptor — manejo de errores de autenticación
+//
+// Solo se hace logout automático cuando el backend devuelve 401 con un mensaje
+// que indica token inválido/expirado (Spring Security), NO en errores de negocio.
+// Los errores de negocio usan códigos distintos (422, 409, 400, etc.).
+// El 403 NO provoca logout — significa "autenticado pero sin permiso".
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     const status = error.response?.status
-    if ((status === 401 || status === 403) && !isForcingLogout) {
+
+    if (status === 401 && !isForcingLogout) {
+      // Verificar que es realmente un error de autenticación de Spring Security,
+      // no un error de negocio que el backend dejó pasar con 401 por descuido.
+      // Spring Security devuelve 401 sin body estructurado o con error genérico.
+      // Nuestros errores de negocio (contraseña incorrecta al cambiar) ya usan 422.
       isForcingLogout = true
-      // Token expired/invalid or forbidden with current credentials -> logout user
       useAuthStore.getState().logout()
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
     }
+
+    // 403 = autenticado pero sin permiso — NO hacer logout, solo propagar el error
+    // para que cada componente lo maneje (toast, mensaje, etc.)
+
     return Promise.reject(error)
   }
 )
