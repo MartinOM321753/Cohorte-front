@@ -3,6 +3,9 @@ import { Suspense, lazy } from 'react'
 import { ProtectedRoute } from '@/components/routes/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 import LoginPage from '@/features/auth/pages/LoginPage'
+import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@/features/auth/pages/ResetPasswordPage'
+import CambiarContrasenaPage from '@/features/auth/pages/CambiarContrasenaPage'
 import { Spinner } from '@/components/ui/spinner'
 
 // Lazy load pages
@@ -15,6 +18,7 @@ const CatalogosPage = lazy(() => import('@/features/catalogos/pages/CatalogosPag
 const ConfiguracionPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionPage'))
 const CitasPage = lazy(() => import('@/features/citas/pages/CitasPage'))
 const UsuariosPage = lazy(() => import('@/features/usuarios/pages/UsuariosPage'))
+const PerfilPage   = lazy(() => import('@/features/perfil/pages/PerfilPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
@@ -32,8 +36,20 @@ export function AppRouter() {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/404" element={<NotFoundPage />} />
+
+        {/* Cambio de contraseña forzado — requiere auth pero fuera del AppLayout */}
+        <Route
+          path="/cambiar-contrasena"
+          element={
+            <ProtectedRoute>
+              <CambiarContrasenaPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected routes with layout */}
         <Route
@@ -123,6 +139,14 @@ export function AppRouter() {
                   <UsuariosPage />
                 </Suspense>
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/perfil"
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <PerfilPage />
+              </Suspense>
             }
           />
         </Route>
