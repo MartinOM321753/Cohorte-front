@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
 export const loginSchema = z.object({
-  username: z.string()
-    .min(3, { message: 'El usuario es requerido y debe tener al menos 3 caracteres' }),
+  identifier: z.string()
+    .min(1, { message: 'Ingresa tu usuario o correo electrónico' }),
   password: z.string()
-    .min(6, { message: 'La contraseña es requerida y debe tener al menos 6 caracteres' }),
+    .min(1, { message: 'La contraseña es requerida' }),
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>

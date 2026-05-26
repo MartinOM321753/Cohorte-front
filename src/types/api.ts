@@ -70,7 +70,8 @@ export interface UserRequestDTO {
 }
 
 export interface LoginRequest {
-  username: string
+  /** Acepta nombre de usuario o correo electrónico */
+  identifier: string
   password: string
 }
 
@@ -382,6 +383,12 @@ export interface DocumentoResponseDTO {
   descripcion: string | null
   fechaSubida: string
   subidoPorUUID: string | null
+  tipoEntidad: string | null
+  /**
+   * El backend indica si el usuario autenticado puede descargar/visualizar
+   * el contenido del archivo. Si es false, los botones de acción se ocultan.
+   */
+  puedeDescargar: boolean
   /** URL firmada temporal de MinIO para descargar/visualizar el archivo */
   url: string | null
 }

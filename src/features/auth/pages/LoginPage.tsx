@@ -104,7 +104,7 @@ export default function LoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: "onChange",
-    defaultValues: { username: "", password: "" },
+    defaultValues: { identifier: "", password: "" },
   });
 
   useEffect(() => {
@@ -372,18 +372,19 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* Username */}
+              {/* Identifier (username o correo) */}
               <Controller
-                name="username"
+                name="identifier"
                 control={control}
                 render={({ field }) => (
                   <LoginField
-                    id="username"
-                    label="Usuario"
-                    placeholder="Correo"
+                    id="identifier"
+                    label="Usuario o correo electrónico"
+                    placeholder="usuario o correo@ejemplo.com"
+                    autoComplete="username"
                     icon={<User size={16} strokeWidth={1.5} />}
                     disabled={isLoading}
-                    error={errors.username?.message}
+                    error={errors.identifier?.message}
                     {...field}
                   />
                 )}
@@ -465,8 +466,8 @@ export default function LoginPage() {
                 Mantener sesión iniciada
               </label>
               <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
+                href="/forgot-password"
+                onClick={(e) => { e.preventDefault(); navigate('/forgot-password') }}
                 style={{
                   fontSize: 13,
                   color: "#1e4e3a",

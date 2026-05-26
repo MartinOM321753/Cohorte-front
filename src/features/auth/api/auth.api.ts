@@ -65,7 +65,7 @@ export async function loginUser(credentials: LoginRequest): Promise<{ token: str
       const match =
         users.find((u) => u.uuid === payload.sub) ||
         users.find((u) => u.username === payload.sub) ||
-        users.find((u) => u.username === credentials.username)
+        users.find((u) => u.username === credentials.identifier)
       dto = match ?? null
     } catch {
       dto = null
@@ -82,7 +82,7 @@ export async function loginUser(credentials: LoginRequest): Promise<{ token: str
 
   const user: UserData = {
     uuid: dto?.uuid || dto?.UUID || subjectUuid,
-    username: dto?.username || credentials.username,
+    username: dto?.username || credentials.identifier,
     nombreCompleto: nombreCompleto || payload.name || credentials.username,
     rol: rolNombre || payload.role || '',
   }
@@ -93,4 +93,50 @@ export async function loginUser(credentials: LoginRequest): Promise<{ token: str
 export async function refreshToken(token: string): Promise<{ token: string }> {
   const response = await axiosInstance.post<{ token: string }>('/auth/refresh', { token })
   return response as any as { token: string }
+}
+
+// ── Recuperación de contraseña ─────────────────────────────────────────────────
+
+export async function forgotPassword(email: string): Promise<string> {
+  const res = await axiosInstance.post<ApiResponse<null>>('/auth/forgot-password', { email })
+  return res.data.message
+}
+
+export async function validateResetToken(token: string): Promise<void> {
+  await axiosInstance.get('/auth/reset-password/validate', { params: { token } })
+}
+
+export async function resetPassword(token: string, nuevaPassword: string): Promise<string> {
+  const res = await axiosInstance.post<ApiResponse<null>>('/auth/reset-password', {
+    token,
+    nuevaPassword,
+  })
+  return res.data.message
+}
+
+// ── Cambio de contraseña (usuario autenticado) ─────────────────────────────────
+
+/**
+ * Cambio forzado en primer login (debeResetear=true).
+ * No requiere contraseña actual porque fue generada por el sistema.
+ */
+export async function changePasswordForced(nuevaPassword: string): Promise<string> {
+  const res = await axiosInstance.put<ApiResponse<null>>('/users/me/password', {
+    nuevaPassword,
+  })
+  return res.data.message
+}
+
+/**
+ * Cambio voluntario desde el perfil. Requiere la contraseña actual.
+ */
+export async function changePasswordVoluntario(
+  passwordActual: string,
+  nuevaPassword: string
+): Promise<string> {
+  const res = await axiosInstance.put<ApiResponse<null>>('/users/me/password', {
+    passwordActual,
+    nuevaPassword,
+  })
+  return res.data.message
 }
