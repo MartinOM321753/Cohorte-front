@@ -226,6 +226,7 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                       <Label>Número de Piso *</Label>
                       <Input
                         {...control.register(`pisos.${index}.numeroPiso`)}
+                        sanitize="folio"
                         placeholder="P1"
                       />
                       {errors.pisos?.[index]?.numeroPiso && (

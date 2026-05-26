@@ -35,11 +35,11 @@ import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
 
 const muestraSchema = z.object({
-  etiqueta: z.string().min(1, 'La etiqueta es obligatoria').max(50, 'Máximo 50 caracteres'),
+  etiqueta: z.string().trim().min(1, 'La etiqueta es obligatoria').max(50, 'Máximo 50 caracteres'),
   valor: z.number().min(0, 'El valor debe ser positivo'),
   unidad: z.string().min(1, 'La unidad es obligatoria'),
   fechaRecoleccion: z.string().min(1, 'La fecha es obligatoria'),
-  observaciones: z.string().max(200, 'Máximo 200 caracteres').optional(),
+  observaciones: z.string().trim().max(200, 'Máximo 200 caracteres').optional(),
   pacienteUUID: z.string().min(1, 'El paciente es obligatorio'),
   usuarioRecolectaUUID: z.string().min(1, 'El recolector es obligatorio'),
   idPosicionCaja: z.number().min(1, 'Debe seleccionar una posición'),
@@ -203,6 +203,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                 <Input
                   id="etiqueta"
                   {...register('etiqueta')}
+                  sanitize="folio"
                   placeholder="M-2024-0001-SANGRE"
                   disabled={isEditing}
                 />
@@ -375,6 +376,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
               <Textarea
                 id="observaciones"
                 {...register('observaciones')}
+                sanitize="descripcion"
                 placeholder="Observaciones adicionales..."
                 rows={3}
               />

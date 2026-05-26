@@ -210,6 +210,7 @@ export function ExamenesTab() {
           <FormField label="Nombre del examen" required error={errors.nombreExamen?.message}>
             <Input
               placeholder="Ej. Glucosa en ayuno"
+              sanitize="alfanumerico"
               {...register('nombreExamen')}
             />
           </FormField>
@@ -219,6 +220,7 @@ export function ExamenesTab() {
               placeholder="Descripción breve del examen…"
               rows={2}
               className="resize-none"
+              sanitize="descripcion"
               {...register('descripcion')}
             />
           </FormField>

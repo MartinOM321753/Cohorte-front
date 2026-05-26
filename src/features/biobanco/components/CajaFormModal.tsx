@@ -153,6 +153,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
               <Input
                 id="codigoCaja"
                 {...register('codigoCaja')}
+                sanitize="codigo"
                 placeholder="CAJA-A001"
                 disabled={isEditing}
               />
@@ -169,6 +170,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
               <Input
                 id="tipoCaja"
                 {...register('tipoCaja')}
+                sanitize="alfanumerico"
                 placeholder="Gradilla 81 pozos"
               />
               {errors.tipoCaja && (
@@ -365,6 +367,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                 <Textarea
                   id="observaciones"
                   {...field}
+                  sanitize="descripcion"
                   placeholder="Observaciones adicionales..."
                   rows={3}
                 />

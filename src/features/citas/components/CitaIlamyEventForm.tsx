@@ -436,6 +436,7 @@ export function CitaIlamyEventForm({
               disabled={isPast}
               placeholder="Notas adicionales…"
               className="resize-none text-[13px]"
+              sanitize="descripcion"
               {...register('observaciones')}
             />
             {errors.observaciones ? (

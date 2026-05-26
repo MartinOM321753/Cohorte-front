@@ -207,10 +207,19 @@ export function TiposEstudioTab() {
 
         <form onSubmit={tipoForm.handleSubmit(onSubmitTipo)} className="space-y-4 p-4">
           <FormField label="Nombre" required error={tipoForm.formState.errors.nombre?.message}>
-            <Input placeholder="Ej. Biometría hemática" {...tipoForm.register('nombre')} />
+            <Input
+              placeholder="Ej. Biometría hemática"
+              sanitize="alfanumerico"
+              {...tipoForm.register('nombre')}
+            />
           </FormField>
           <FormField label="Descripción" error={tipoForm.formState.errors.descripcion?.message}>
-            <Textarea placeholder="Opcional…" rows={2} {...tipoForm.register('descripcion')} />
+            <Textarea
+              placeholder="Opcional…"
+              rows={2}
+              sanitize="descripcion"
+              {...tipoForm.register('descripcion')}
+            />
           </FormField>
 
           <Separator />

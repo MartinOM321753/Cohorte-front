@@ -26,7 +26,7 @@ export const citaFormSchema = z.object({
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/, 'Color inválido (usa formato #RRGGBB)')
     .optional(),
-  observaciones: z.string().max(500, 'Máximo 500 caracteres').optional(),
+  observaciones: z.string().trim().max(500, 'Máximo 500 caracteres').optional(),
   estadoCita: z
     .enum(['PROGRAMADA', 'COMPLETADA', 'CANCELADA', 'NO_ASISTIO'])
     .optional(),
