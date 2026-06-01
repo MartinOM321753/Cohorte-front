@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ReactNode } from 'react'
-import { AlertCircle, Check, ChevronsUpDown, ClipboardList, Paperclip, Pencil } from 'lucide-react'
+import { AlertCircle, Check, ChevronsUpDown, ClipboardList, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/authStore'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
@@ -41,6 +41,21 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
 // ──────────────────────────────────────────────────────────
+// Local types
+// ──────────────────────────────────────────────────────────
+type ModoCaptura = 'NORMAL' | 'GRUPOS'
+
+interface GrupoCaptura {
+  /** Internal code sent to backend, e.g. "GRUPO_1" */
+  grupoCodigo: string
+  /** User-visible label, editable */
+  grupoEtiqueta: string
+  orden: number
+  /** Values keyed by parametro.id */
+  valores: Record<number, string | number | boolean>
+}
+
+// ──────────────────────────────────────────────────────────
 // Dynamic schema builder
 // ──────────────────────────────────────────────────────────
 function buildResultadosSchema(parametros: ParametroEstudio[]) {
@@ -59,7 +74,7 @@ function buildResultadosSchema(parametros: ParametroEstudio[]) {
     } else if (p.tipo === 'TEXTO') {
       fields[`param_${p.id}`] = z.string().min(1, 'Requerido')
     } else {
-      // BOOLEANO: false es un valor válido, no requiere validación especial
+      // BOOLEANO: false is a valid value
       fields[`param_${p.id}`] = z.boolean().default(false)
     }
   }
@@ -82,6 +97,11 @@ export function LlenadoEstudioTab() {
   const [editingEstudioId, setEditingEstudioId] = useState<number | null>(null)
   const [docEstudioId, setDocEstudioId] = useState<number | null>(null)
 
+  // ── Grupo mode state ──────────────────────────────────
+  const [modoCaptura, setModoCaptura] = useState<ModoCaptura>('NORMAL')
+  const [grupos, setGrupos] = useState<GrupoCaptura[]>([])
+  const [gruposError, setGruposError] = useState<string | null>(null)
+
   const { data: pacientesRaw, isLoading: isLoadingPacientes } = useGetPacientes({ activos: true })
   const { data: tipos, isLoading: isLoadingTipos } = useGetTiposEstudio()
   const { data: parametros, isLoading: isLoadingParams } = useGetParametrosByTipo(
@@ -96,7 +116,12 @@ export function LlenadoEstudioTab() {
   const updateMutation = useUpdateEstudio(editingEstudioId ?? 0)
 
   const parametrosList: ParametroEstudio[] = parametros ?? []
-  const schema = useMemo(() => buildResultadosSchema(parametrosList), [parametrosList])
+
+  // In GRUPOS mode we don't use Zod for param fields — skip them in the schema to avoid blocking submit
+  const schema = useMemo(
+    () => buildResultadosSchema(modoCaptura === 'GRUPOS' ? [] : parametrosList),
+    [parametrosList, modoCaptura]
+  )
 
   const {
     register,
@@ -130,7 +155,6 @@ export function LlenadoEstudioTab() {
     if (!editingEstudioId || selectedTipoId === 0) return tiposActivos
     const yaIncluido = tiposActivos.some((t) => t.id === selectedTipoId)
     if (yaIncluido) return tiposActivos
-    // Synthesize entry from the study detail we already have
     const tipoDelEstudio = estudioEditar?.tipoEstudio
     if (tipoDelEstudio) {
       return [...tiposActivos, { ...tipoDelEstudio, activo: false }]
@@ -146,7 +170,7 @@ export function LlenadoEstudioTab() {
     [pacientes, selectedPacienteUUID]
   )
 
-  // When editing, pre-populate form fields
+  // ── Pre-populate base fields when editing ──────────────
   useEffect(() => {
     if (!estudioEditar || !editingEstudioId) return
     setValue('pacienteUUID', estudioEditar.paciente?.uuid ?? '')
@@ -158,30 +182,158 @@ export function LlenadoEstudioTab() {
     setValue('observaciones', estudioEditar.observaciones ?? '')
   }, [estudioEditar, editingEstudioId, setValue])
 
-  // Pre-fill result values when editing and params are loaded
+  // ── Pre-populate result values when editing (normal mode) ──
   useEffect(() => {
-    if (!estudioEditar || !parametrosList.length) return
-    for (const resultado of estudioEditar.resultados ?? []) {
-      const param = parametrosList.find((p) => p.nombre === resultado.parametro)
-      if (!param) continue
-      if (param.tipo === 'NUMERICO') setValue(`param_${param.id}`, resultado.valorNumerico ?? '')
-      else if (param.tipo === 'TEXTO') setValue(`param_${param.id}`, resultado.valorTexto ?? '')
-      else setValue(`param_${param.id}`, resultado.valorBooleano ?? false)
-    }
-  }, [estudioEditar, parametrosList, setValue])
+    if (!estudioEditar || !parametrosList.length || !editingEstudioId) return
 
-  function buildResultados(data: LlenadoForm): ResultadoEstudioRequestDTO[] {
-    return parametrosList.map((p) => {
-      const val = data[`param_${p.id}`]
-      return {
-        idParametro: p.id,
-        valorNumerico: p.tipo === 'NUMERICO' ? (val as number | undefined) : undefined,
-        valorTexto: p.tipo === 'TEXTO' ? (val as string | undefined) : undefined,
-        valorBooleano: p.tipo === 'BOOLEANO' ? ((val as boolean | undefined) ?? false) : undefined,
+    const resultados = estudioEditar.resultados ?? []
+    const conGrupo = resultados.filter((r) => r.grupoCodigo && r.grupoCodigo !== 'ROOT')
+
+    if (conGrupo.length > 0) {
+      // ── Group mode: reconstruct grupos from resultados ──
+      setModoCaptura('GRUPOS')
+      const gruposMap = new Map<string, GrupoCaptura>()
+
+      for (const resultado of conGrupo) {
+        const codigo = resultado.grupoCodigo!
+        if (!gruposMap.has(codigo)) {
+          gruposMap.set(codigo, {
+            grupoCodigo: codigo,
+            grupoEtiqueta: resultado.grupoEtiqueta ?? codigo,
+            orden: resultado.orden ?? gruposMap.size + 1,
+            valores: {},
+          })
+        }
+        const param = parametrosList.find((p) => p.nombre === resultado.parametro)
+        if (!param) continue
+        const grupo = gruposMap.get(codigo)!
+        const val =
+          param.tipo === 'NUMERICO'
+            ? (resultado.valorNumerico ?? '')
+            : param.tipo === 'TEXTO'
+              ? (resultado.valorTexto ?? '')
+              : (resultado.valorBooleano ?? false)
+        grupo.valores[param.id] = val
       }
+
+      setGrupos([...gruposMap.values()].sort((a, b) => a.orden - b.orden))
+    } else {
+      // ── Normal mode: fill react-hook-form fields ──
+      setModoCaptura('NORMAL')
+      for (const resultado of resultados) {
+        const param = parametrosList.find((p) => p.nombre === resultado.parametro)
+        if (!param) continue
+        if (param.tipo === 'NUMERICO') setValue(`param_${param.id}`, resultado.valorNumerico ?? '')
+        else if (param.tipo === 'TEXTO') setValue(`param_${param.id}`, resultado.valorTexto ?? '')
+        else setValue(`param_${param.id}`, resultado.valorBooleano ?? false)
+      }
+    }
+  }, [estudioEditar, parametrosList, editingEstudioId, setValue])
+
+  // ── Grupo management helpers ───────────────────────────
+  function addGrupo() {
+    setGrupos((prev) => {
+      const n = prev.length + 1
+      return [
+        ...prev,
+        { grupoCodigo: `GRUPO_${n}`, grupoEtiqueta: `Grupo ${n}`, orden: n, valores: {} },
+      ]
     })
   }
 
+  function removeGrupo(index: number) {
+    setGrupos((prev) =>
+      prev
+        .filter((_, i) => i !== index)
+        .map((g, i) => ({ ...g, orden: i + 1, grupoCodigo: `GRUPO_${i + 1}` }))
+    )
+  }
+
+  function setGrupoEtiqueta(index: number, etiqueta: string) {
+    setGrupos((prev) => prev.map((g, i) => (i === index ? { ...g, grupoEtiqueta: etiqueta } : g)))
+  }
+
+  function setGrupoValor(grupoIndex: number, parametroId: number, valor: string | number | boolean) {
+    setGrupos((prev) =>
+      prev.map((g, i) =>
+        i === grupoIndex ? { ...g, valores: { ...g.valores, [parametroId]: valor } } : g
+      )
+    )
+  }
+
+  // ── Mode switching ─────────────────────────────────────
+  function handleModoChange(nuevoModo: ModoCaptura) {
+    if (nuevoModo === modoCaptura) return
+
+    const hasData =
+      modoCaptura === 'NORMAL'
+        ? parametrosList.some((p) => {
+            const v = watch(`param_${p.id}`)
+            return v !== undefined && v !== '' && v !== false
+          })
+        : grupos.some((g) =>
+            Object.values(g.valores).some((v) => v !== undefined && v !== '' && v !== false)
+          )
+
+    if (
+      hasData &&
+      !window.confirm('Cambiar de modo limpiará los valores capturados. ¿Desea continuar?')
+    ) {
+      return
+    }
+
+    setModoCaptura(nuevoModo)
+    setGruposError(null)
+
+    if (nuevoModo === 'GRUPOS') {
+      // Clear normal form param fields and start with one empty group
+      parametrosList.forEach((p) =>
+        setValue(`param_${p.id}`, p.tipo === 'BOOLEANO' ? false : '')
+      )
+      setGrupos([{ grupoCodigo: 'GRUPO_1', grupoEtiqueta: 'Grupo 1', orden: 1, valores: {} }])
+    } else {
+      setGrupos([])
+    }
+  }
+
+  // ── Build resultados payload ───────────────────────────
+  function buildResultados(data: LlenadoForm): ResultadoEstudioRequestDTO[] {
+    if (modoCaptura === 'NORMAL') {
+      return parametrosList
+        .map((p) => {
+          const val = data[`param_${p.id}`]
+          if (val === undefined || val === null || val === '') return null
+          return {
+            idParametro: p.id,
+            valorNumerico: p.tipo === 'NUMERICO' ? Number(val) : undefined,
+            valorTexto: p.tipo === 'TEXTO' ? String(val) : undefined,
+            valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
+          }
+        })
+        .filter(Boolean) as ResultadoEstudioRequestDTO[]
+    }
+
+    // GRUPOS
+    return grupos.flatMap((grupo) =>
+      parametrosList
+        .map((p) => {
+          const val = grupo.valores[p.id]
+          if (val === undefined || val === null || val === '') return null
+          return {
+            idParametro: p.id,
+            valorNumerico: p.tipo === 'NUMERICO' ? Number(val) : undefined,
+            valorTexto: p.tipo === 'TEXTO' ? String(val) : undefined,
+            valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
+            grupoCodigo: grupo.grupoCodigo,
+            grupoEtiqueta: grupo.grupoEtiqueta,
+            orden: grupo.orden,
+          }
+        })
+        .filter(Boolean) as ResultadoEstudioRequestDTO[]
+    )
+  }
+
+  // ── Reset ──────────────────────────────────────────────
   function resetForm() {
     reset({
       pacienteUUID: '',
@@ -192,16 +344,46 @@ export function LlenadoEstudioTab() {
     setSelectedPacienteUUID('')
     setSelectedTipoId(0)
     setEditingEstudioId(null)
+    setModoCaptura('NORMAL')
+    setGrupos([])
+    setGruposError(null)
   }
 
+  // ── Submit ─────────────────────────────────────────────
   function onSubmit(data: LlenadoForm) {
+    // Validate grupos mode
+    if (modoCaptura === 'GRUPOS') {
+      if (grupos.length === 0) {
+        setGruposError('Agregue al menos un grupo.')
+        return
+      }
+      const grupoVacio = grupos.some((g) =>
+        parametrosList.every((p) => {
+          const v = g.valores[p.id]
+          return v === undefined || v === null || v === ''
+        })
+      )
+      if (grupoVacio) {
+        setGruposError('Cada grupo debe tener al menos un resultado con valor.')
+        return
+      }
+      setGruposError(null)
+    }
+
+    const resultados = buildResultados(data)
+
+    if (resultados.length === 0) {
+      setGruposError('Ingrese al menos un resultado antes de guardar.')
+      return
+    }
+
     const payload: EstudioMedicoRequestDTO = {
       pacienteUUID: selectedPacienteUUID,
       usuarioRealizaUUID: userUuid,
       idTipoEstudio: Number(data.idTipoEstudio),
       fechaEstudio: data.fechaEstudio as string,
       observaciones: (data.observaciones as string)?.trim() || undefined,
-      resultados: buildResultados(data),
+      resultados,
     }
 
     if (editingEstudioId) {
@@ -402,6 +584,10 @@ export function LlenadoEstudioTab() {
                 setSelectedTipoId(id)
                 setValue('idTipoEstudio', id)
                 setEditingEstudioId(null)
+                // Reset capture mode when type changes
+                setModoCaptura('NORMAL')
+                setGrupos([])
+                setGruposError(null)
               }}
               disabled={isLoadingTipos || !!editingEstudioId}
             >
@@ -427,37 +613,127 @@ export function LlenadoEstudioTab() {
             />
           </FormField>
 
-          {/* Dynamic parameters */}
+          {/* Dynamic parameters section */}
           {selectedTipoId > 0 && (
             <>
               <Separator />
-              <div className="space-y-3">
-                <Label className="text-sm">Resultados</Label>
-                {isLoadingParams ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Spinner /> Cargando parámetros…
+
+              {isLoadingParams ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Spinner /> Cargando parámetros…
+                </div>
+              ) : parametrosList.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
+                  <AlertDescription>
+                    Esta plantilla no tiene parámetros definidos. Agrégalos en la pestaña Catálogos.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="space-y-3">
+                  {/* Mode toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Resultados</Label>
+                    <div className="flex items-center gap-1 rounded-md border p-0.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={modoCaptura === 'NORMAL' ? 'default' : 'ghost'}
+                        className="h-6 px-2 text-xs"
+                        onClick={() => handleModoChange('NORMAL')}
+                      >
+                        Normal
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={modoCaptura === 'GRUPOS' ? 'default' : 'ghost'}
+                        className="h-6 px-2 text-xs"
+                        onClick={() => handleModoChange('GRUPOS')}
+                      >
+                        Por grupos
+                      </Button>
+                    </div>
                   </div>
-                ) : parametrosList.length === 0 ? (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
-                    <AlertDescription>
-                      Esta plantilla no tiene parámetros definidos. Agrégalos en la pestaña Catálogos.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="space-y-3">
-                    {parametrosList.map((p) => (
-                      <ParametroInput
-                        key={p.id}
-                        parametro={p}
-                        register={register}
-                        control={control}
-                        error={errors[`param_${p.id}`]?.message as string | undefined}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+
+                  {/* ── NORMAL MODE ── */}
+                  {modoCaptura === 'NORMAL' && (
+                    <div className="space-y-3">
+                      {parametrosList.map((p) => (
+                        <ParametroInput
+                          key={p.id}
+                          parametro={p}
+                          register={register}
+                          control={control}
+                          error={errors[`param_${p.id}`]?.message as string | undefined}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── GRUPOS MODE ── */}
+                  {modoCaptura === 'GRUPOS' && (
+                    <div className="space-y-3">
+                      {grupos.map((grupo, idx) => (
+                        <Card key={grupo.grupoCodigo} className="p-3 space-y-3">
+                          {/* Group header */}
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={grupo.grupoEtiqueta}
+                              onChange={(e) => setGrupoEtiqueta(idx, e.target.value)}
+                              className="h-7 text-sm font-medium"
+                              placeholder="Nombre del grupo"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0"
+                              title="Eliminar grupo"
+                              onClick={() => removeGrupo(idx)}
+                              disabled={grupos.length === 1}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" strokeWidth={1.75} />
+                            </Button>
+                          </div>
+                          <Separator />
+                          {/* Parameters for this group */}
+                          <div className="space-y-3">
+                            {parametrosList.map((p) => (
+                              <ParametroInput
+                                key={p.id}
+                                parametro={p}
+                                standaloneValue={grupo.valores[p.id]}
+                                onStandaloneChange={(val) => setGrupoValor(idx, p.id, val)}
+                              />
+                            ))}
+                          </div>
+                        </Card>
+                      ))}
+
+                      {/* Grupos error */}
+                      {gruposError && (
+                        <p className="flex items-center gap-1.5 text-xs text-destructive">
+                          <AlertCircle className="size-3.5 shrink-0" />
+                          {gruposError}
+                        </p>
+                      )}
+
+                      {/* Add group button */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addGrupo}
+                        className="w-full"
+                      >
+                        <Plus className="mr-1 h-4 w-4" />
+                        Agregar grupo
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -491,48 +767,85 @@ export function LlenadoEstudioTab() {
 
 // ──────────────────────────────────────────────────────────
 // Dynamic parameter input
+// Supports two modes:
+//   - Form mode (react-hook-form): pass register + control
+//   - Standalone mode (local state / grupos): pass standaloneValue + onStandaloneChange
 // ──────────────────────────────────────────────────────────
 function ParametroInput({
   parametro,
   register,
   control,
   error,
+  standaloneValue,
+  onStandaloneChange,
 }: {
   parametro: ParametroEstudio
-  register: any
-  control: any
+  // Form mode props
+  register?: any
+  control?: any
   error?: string
+  // Standalone mode props
+  standaloneValue?: string | number | boolean
+  onStandaloneChange?: (val: string | number | boolean) => void
 }) {
   const fieldName = `param_${parametro.id}`
   const label = parametro.unidad
     ? `${parametro.nombre} (${parametro.unidad})`
     : parametro.nombre
+  const isStandalone = onStandaloneChange !== undefined
 
   return (
     <FormField label={label} error={error}>
       {parametro.tipo === 'NUMERICO' ? (
-        <Input
-          type="number"
-          step="any"
-          placeholder="0"
-          {...register(fieldName)}
-        />
-      ) : parametro.tipo === 'TEXTO' ? (
-        <Input type="text" placeholder="Ingrese valor…" {...register(fieldName)} />
-      ) : (
-        <div className="flex items-center gap-2 pt-1">
-          <Controller
-            name={fieldName}
-            control={control}
-            render={({ field }) => (
-              <Switch
-                checked={field.value ?? false}
-                onCheckedChange={field.onChange}
-              />
-            )}
+        isStandalone ? (
+          <Input
+            type="number"
+            step="any"
+            placeholder="0"
+            value={standaloneValue as number | string ?? ''}
+            onChange={(e) => onStandaloneChange!(e.target.value)}
           />
+        ) : (
+          <Input
+            type="number"
+            step="any"
+            placeholder="0"
+            {...register(fieldName)}
+          />
+        )
+      ) : parametro.tipo === 'TEXTO' ? (
+        isStandalone ? (
+          <Input
+            type="text"
+            placeholder="Ingrese valor…"
+            value={standaloneValue as string ?? ''}
+            onChange={(e) => onStandaloneChange!(e.target.value)}
+          />
+        ) : (
+          <Input type="text" placeholder="Ingrese valor…" {...register(fieldName)} />
+        )
+      ) : (
+        // BOOLEANO
+        <div className="flex items-center gap-2 pt-1">
+          {isStandalone ? (
+            <Switch
+              checked={Boolean(standaloneValue)}
+              onCheckedChange={(checked) => onStandaloneChange!(checked)}
+            />
+          ) : (
+            <Controller
+              name={fieldName}
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  checked={field.value ?? false}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          )}
           <span className="text-sm text-muted-foreground">
-            {register(fieldName).value ? 'Sí' : 'No'}
+            {isStandalone ? (standaloneValue ? 'Sí' : 'No') : 'Sí / No'}
           </span>
         </div>
       )}

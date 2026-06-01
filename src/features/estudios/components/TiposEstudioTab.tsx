@@ -66,6 +66,7 @@ export function TiposEstudioTab() {
   const [paramUnidad, setParamUnidad] = useState('')
   const [paramTipo, setParamTipo] = useState<TipoParametro>('NUMERICO')
   const [paramError, setParamError] = useState('')
+  const [paramListError, setParamListError] = useState('')
 
   const tipoForm = useForm<TipoEstudioFormData>({
     resolver: zodResolver(tipoEstudioSchema),
@@ -89,6 +90,7 @@ export function TiposEstudioTab() {
       return
     }
     setParamError('')
+    setParamListError('')
     setPending((prev) => [
       ...prev,
       { key: crypto.randomUUID(), nombre: trimmed, unidad: paramUnidad.trim(), tipo: paramTipo },
@@ -103,6 +105,11 @@ export function TiposEstudioTab() {
   }
 
   async function onSubmitTipo(data: TipoEstudioFormData) {
+    if (pending.length === 0) {
+      setParamListError('Agrega al menos un parámetro antes de guardar.')
+      return
+    }
+
     const payload: TipoEstudioRequestDTO = {
       nombre: data.nombre.trim(),
       descripcion: data.descripcion?.trim() || undefined,
@@ -111,17 +118,16 @@ export function TiposEstudioTab() {
     createTipo.mutate(payload, {
       onSuccess: async (created) => {
         tipoForm.reset(DEFAULT_TIPO)
-        if (pending.length > 0) {
-          for (const p of pending) {
-            await createParametro.mutateAsync({
-              idTipoEstudio: created.id,
-              nombre: p.nombre,
-              unidad: p.unidad || undefined,
-              tipo: p.tipo,
-            })
-          }
-          setPending([])
+        for (const p of pending) {
+          await createParametro.mutateAsync({
+            idTipoEstudio: created.id,
+            nombre: p.nombre,
+            unidad: p.unidad || undefined,
+            tipo: p.tipo,
+          })
         }
+        setPending([])
+        setParamListError('')
       },
     })
   }
@@ -225,9 +231,11 @@ export function TiposEstudioTab() {
           <Separator />
 
           <div className="space-y-2">
-            <Label className="text-sm">Parámetros</Label>
+            <Label className="text-sm">
+              Parámetros <span className="text-destructive">*</span>
+            </Label>
             <div className="text-xs text-muted-foreground">
-              Agrega los parámetros de esta plantilla. Se guardarán junto con el tipo.
+              Agrega al menos un parámetro. Se guardarán junto con el tipo.
             </div>
 
             {/* Pending list */}
@@ -300,6 +308,13 @@ export function TiposEstudioTab() {
               <Plus className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
               Agregar parámetro
             </Button>
+
+            {paramListError && (
+              <p className="flex items-start gap-1.5 text-xs text-destructive">
+                <AlertCircle className="mt-[1px] size-3.5 shrink-0" />
+                <span>{paramListError}</span>
+              </p>
+            )}
           </div>
 
           <Separator />
@@ -308,7 +323,7 @@ export function TiposEstudioTab() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => { tipoForm.reset(DEFAULT_TIPO); setPending([]) }}
+              onClick={() => { tipoForm.reset(DEFAULT_TIPO); setPending([]); setParamListError('') }}
               disabled={createTipo.isPending}
             >
               Limpiar
@@ -316,8 +331,10 @@ export function TiposEstudioTab() {
             <Button type="submit" disabled={createTipo.isPending}>
               {createTipo.isPending ? (
                 <><Spinner className="mr-2 h-4 w-4" /> Guardando…</>
+              ) : pending.length > 0 ? (
+                `Guardar (${pending.length} parámetro${pending.length !== 1 ? 's' : ''})`
               ) : (
-                `Guardar${pending.length > 0 ? ` (${pending.length + 1})` : ''}`
+                'Guardar'
               )}
             </Button>
           </div>
