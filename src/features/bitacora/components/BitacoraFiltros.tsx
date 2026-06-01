@@ -146,14 +146,14 @@ export function BitacoraFiltros(props: Props) {
           <div className="flex flex-col gap-1.5 min-w-[160px]">
             <Label className="text-[12px] text-[var(--imss-ink-400)]">Tipo de evento</Label>
             <Select
-              value={tipoEvento}
-              onValueChange={(v) => setTipoEvento(v as TipoEventoAcceso | '')}
+              value={tipoEvento === '' ? '__all__' : tipoEvento}
+              onValueChange={(v) => setTipoEvento(v === '__all__' ? '' : v as TipoEventoAcceso)}
             >
               <SelectTrigger className="h-9 text-[13px]">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="__all__">Todos</SelectItem>
                 {(Object.entries(TIPO_EVENTO_LABELS) as [TipoEventoAcceso, string][]).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v}</SelectItem>
                 ))}
@@ -165,14 +165,14 @@ export function BitacoraFiltros(props: Props) {
             <div className="flex flex-col gap-1.5 min-w-[160px]">
               <Label className="text-[12px] text-[var(--imss-ink-400)]">Tipo de acción</Label>
               <Select
-                value={tipoAccion}
-                onValueChange={(v) => setTipoAccion(v as TipoAccion | '')}
+                value={tipoAccion === '' ? '__all__' : tipoAccion}
+                onValueChange={(v) => setTipoAccion(v === '__all__' ? '' : v as TipoAccion)}
               >
                 <SelectTrigger className="h-9 text-[13px]">
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="__all__">Todas</SelectItem>
                   {(Object.entries(TIPO_ACCION_LABELS) as [TipoAccion, string][]).map(([k, v]) => (
                     <SelectItem key={k} value={k}>{v}</SelectItem>
                   ))}

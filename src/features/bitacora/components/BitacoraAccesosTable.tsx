@@ -22,6 +22,21 @@ function formatTimestamp(ts: string) {
   }
 }
 
+/** Muestra el margen de error GPS con color y etiqueta según la fuente probable */
+function PrecisionBadge({ metros }: { metros: number }) {
+  const { label, cls } =
+    metros <= 10   ? { label: `GPS ±${metros} m`,          cls: 'bg-green-100 text-green-700' }
+    : metros <= 100  ? { label: `WiFi ±${metros} m`,         cls: 'bg-blue-100 text-blue-700' }
+    : metros <= 2000 ? { label: `Red móvil ±${metros} m`,    cls: 'bg-yellow-100 text-yellow-700' }
+    :                  { label: `IP ±${metros.toLocaleString()} m`, cls: 'bg-red-100 text-red-600' }
+
+  return (
+    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${cls}`}>
+      {label}
+    </span>
+  )
+}
+
 function formatDuracion(secs: number | null) {
   if (secs === null) return '—'
   if (secs < 60) return `${secs}s`
@@ -114,18 +129,23 @@ export function BitacoraAccesosTable({ data, isLoading, page, onPageChange }: Pr
                     {row.ip ?? '—'}
                   </td>
 
-                  {/* Coordenadas → link a Google Maps */}
+                  {/* Coordenadas → link a Google Maps + indicador de precisión */}
                   <td className="px-3 py-2.5">
                     {row.latitud != null && row.longitud != null ? (
-                      <a
-                        href={`https://www.google.com/maps?q=${row.latitud},${row.longitud}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[12px] text-[var(--imss-green-600)] hover:underline"
-                      >
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        {row.latitud.toFixed(4)}, {row.longitud.toFixed(4)}
-                      </a>
+                      <div className="flex flex-col gap-0.5">
+                        <a
+                          href={`https://www.google.com/maps?q=${row.latitud},${row.longitud}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[12px] text-[var(--imss-green-600)] hover:underline"
+                        >
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          {row.latitud.toFixed(6)}, {row.longitud.toFixed(6)}
+                        </a>
+                        {row.precisionM != null && (
+                          <PrecisionBadge metros={row.precisionM} />
+                        )}
+                      </div>
                     ) : (
                       <span className="text-[var(--imss-ink-200)]">—</span>
                     )}

@@ -14,6 +14,8 @@ export interface BitacoraAccesoItem {
   ip:                  string | null
   latitud:             number | null
   longitud:            number | null
+  /** Margen de error de la lectura GPS en metros */
+  precisionM:          number | null
   tipoEvento:          TipoEventoAcceso
   timestamp:           string           // ISO-8601
   userAgent:           string | null
