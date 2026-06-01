@@ -8,6 +8,7 @@ export type UserRole =
   | 'LABORATORISTA'
   | 'RECEPCIONISTA'
   | 'PACIENTE'
+  | 'ENCARGADO'
 
 type RolLike = string | { nombre?: string } | null | undefined
 
@@ -53,6 +54,7 @@ function normalizeRoleName(rol: RolLike): string {
   if (withoutPrefix === 'RECEPCIONISTA') return 'RECEPCIONISTA'
   if (withoutPrefix === 'LABORATORISTA') return 'LABORATORISTA'
   if (withoutPrefix === 'PACIENTE') return 'PACIENTE'
+  if (withoutPrefix === 'ENCARGADO') return 'ENCARGADO'
 
   return ''
 }
@@ -106,8 +108,16 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        // Notificar al backend para registrar el LOGOUT en la bitácora (fire-and-forget)
-        axiosInstance.post('/auth/logout').catch(() => {})
+        // Leer el token ANTES de limpiar el store — el interceptor de axios corre
+        // como microtask (asíncrono), así que set(initialState) podría ejecutarse
+        // primero y dejar el token como null antes de que el interceptor lo agregue.
+        // Pasando el header explícitamente lo garantizamos.
+        const token = get().token
+        if (token) {
+          axiosInstance
+            .post('/auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } })
+            .catch(() => {})
+        }
         set(initialState)
       },
 

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "../schemas/login.schema";
-import { loginUser } from "../api/auth.api";
+import { loginUser, getGeolocation } from "../api/auth.api";
 import { useAuthStore } from "@/stores/authStore";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
@@ -16,7 +16,11 @@ import {
   ArrowRight,
   ShieldCheck,
   AlertCircle,
+  MapPin,
+  MapPinOff,
 } from "lucide-react";
+
+type GeoStatus = "requesting" | "granted" | "denied" | "unavailable";
 
 // =========================================================================
 // IMSS Cohorte — Login (Direction A · Split institucional)
@@ -92,10 +96,35 @@ function ShieldFiligree() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, isAuthenticated, hasRole } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [submitBtnHover, setSubmitBtnHover] = useState(false);
+
+  // ── Geolocalización obligatoria ──────────────────────────────────────────
+  const [geoStatus, setGeoStatus] = useState<GeoStatus>("requesting");
+  const [coords, setCoords] = useState<{ latitud: number; longitud: number; precisionM: number } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setGeoStatus("requesting");
+    getGeolocation()
+      .then((c) => {
+        if (cancelled) return;
+        setCoords(c);
+        setGeoStatus("granted");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // GeolocationPositionError.code 1 = PERMISSION_DENIED
+        if (err?.code === 1 || err?.message === "GEOLOCATION_UNAVAILABLE") {
+          setGeoStatus(err?.message === "GEOLOCATION_UNAVAILABLE" ? "unavailable" : "denied");
+        } else {
+          setGeoStatus("denied");
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const {
     control,
@@ -108,18 +137,27 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (isAuthenticated) navigate("/dashboard", { replace: true });
-  }, [isAuthenticated, navigate]);
+    if (isAuthenticated) navigate(hasRole('ENCARGADO') ? '/mis-muestras' : '/dashboard', { replace: true });
+  }, [isAuthenticated, navigate, hasRole]);
 
   const onSubmit = async (data: LoginFormData) => {
+    if (!coords) {
+      toast.error("Se requiere permiso de ubicación para acceder al sistema.");
+      return;
+    }
     setIsLoading(true);
     try {
-      const response = await loginUser(data);
+      const response = await loginUser(data, coords);
       if (!response.token || !response.user)
         throw new Error("Respuesta de servidor inválida");
       login({ token: response.token, user: response.user });
       toast.success("Inicio de sesión exitoso");
-      navigate("/dashboard", { replace: true });
+      // Role-based redirect: ENCARGADO goes to their samples page
+      const targetRole = response.user?.rol
+      const isEncargado = typeof targetRole === 'string'
+        ? targetRole === 'ENCARGADO'
+        : (targetRole as any)?.nombre === 'ENCARGADO'
+      navigate(isEncargado ? '/mis-muestras' : '/dashboard', { replace: true });
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
@@ -480,10 +518,13 @@ export default function LoginPage() {
               </a>
             </div>
 
+            {/* Banner de geolocalización */}
+            <GeoBanner status={geoStatus} precisionM={coords?.precisionM ?? null} />
+
             {/* Submit */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || geoStatus !== "granted"}
               onMouseEnter={() => setSubmitBtnHover(true)}
               onMouseLeave={() => setSubmitBtnHover(false)}
               style={{
@@ -494,18 +535,22 @@ export default function LoginPage() {
                 width: "100%",
                 height: 52,
                 padding: "0 20px",
-                background: isLoading
-                  ? "#143a2c"
-                  : submitBtnHover
-                    ? "#1a4332"
-                    : "#1e4e3a",
+                background:
+                  geoStatus !== "granted"
+                    ? "#9ca3af"
+                    : isLoading
+                      ? "#143a2c"
+                      : submitBtnHover
+                        ? "#1a4332"
+                        : "#1e4e3a",
                 color: "#ffffff",
                 fontSize: 15,
                 fontWeight: 600,
                 letterSpacing: "-0.005em",
                 border: 0,
                 borderRadius: 6,
-                cursor: isLoading ? "not-allowed" : "pointer",
+                cursor:
+                  isLoading || geoStatus !== "granted" ? "not-allowed" : "pointer",
                 fontFamily: "inherit",
                 opacity: isLoading ? 0.85 : 1,
               }}
@@ -549,6 +594,102 @@ export default function LoginPage() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+// =========================================================================
+// GeoBanner — muestra el estado del permiso de geolocalización.
+// Bloquea visualmente el acceso cuando el permiso no ha sido otorgado.
+// =========================================================================
+function GeoBanner({ status, precisionM }: { status: GeoStatus; precisionM: number | null }) {
+  if (status === "granted") {
+    // Clasificar la calidad de la señal según el margen de error
+    const quality =
+      precisionM === null      ? null
+      : precisionM <= 10       ? { label: "GPS · Alta precisión", color: "#166534", bg: "#f0fdf4", border: "#bbf7d0" }
+      : precisionM <= 100      ? { label: "WiFi · Buena precisión", color: "#166534", bg: "#f0fdf4", border: "#bbf7d0" }
+      : precisionM <= 2000     ? { label: "Red móvil · Precisión moderada", color: "#713f12", bg: "#fefce8", border: "#fef08a" }
+      :                          { label: "IP del proveedor · Baja precisión", color: "#9a3412", bg: "#fff7ed", border: "#fed7aa" }
+
+    return (
+      <div
+        style={{
+          padding: "10px 14px",
+          borderRadius: 6,
+          background: quality?.bg ?? "#f0fdf4",
+          border: `1px solid ${quality?.border ?? "#bbf7d0"}`,
+          marginBottom: 16,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: quality?.color ?? "#166534", fontWeight: 600 }}>
+          <MapPin size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+          Ubicación obtenida — acceso permitido
+        </div>
+        {precisionM !== null && (
+          <div style={{ marginTop: 3, fontSize: 11, color: quality?.color, opacity: 0.85 }}>
+            {quality?.label} · ±{precisionM.toLocaleString()} m de margen de error
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (status === "requesting") {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "10px 14px",
+          borderRadius: 6,
+          background: "#fffbeb",
+          border: "1px solid #fde68a",
+          marginBottom: 16,
+          fontSize: 12,
+          color: "#92400e",
+          fontWeight: 500,
+        }}
+      >
+        <Spinner className="h-3.5 w-3.5" />
+        Obteniendo ubicación… Por favor acepte el permiso en el navegador.
+      </div>
+    );
+  }
+
+  // denied | unavailable
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        borderRadius: 6,
+        background: "#fef2f2",
+        border: "1px solid #fecaca",
+        marginBottom: 16,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 13,
+          color: "#991b1b",
+          fontWeight: 600,
+          marginBottom: 6,
+        }}
+      >
+        <MapPinOff size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+        {status === "unavailable"
+          ? "Geolocalización no disponible en este dispositivo."
+          : "Permiso de ubicación denegado — acceso bloqueado."}
+      </div>
+      <p style={{ margin: 0, fontSize: 12, color: "#7f1d1d", lineHeight: 1.5 }}>
+        {status === "unavailable"
+          ? "Este sistema requiere un dispositivo con soporte de geolocalización para registrar su acceso."
+          : "Para acceder al sistema debe conceder permiso de ubicación. Haga clic en el ícono de candado o ubicación en la barra de direcciones de su navegador, seleccione «Permitir» y recargue la página."}
+      </p>
     </div>
   );
 }

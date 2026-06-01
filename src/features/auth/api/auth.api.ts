@@ -28,39 +28,76 @@ function decodeJWT(token: string): JWTPayload {
   }
 }
 
-/** Solicita la geolocalización del navegador con un timeout de 3 s.
- *  Retorna las coordenadas o null si el usuario deniega / no está disponible. */
-async function getGeolocation(): Promise<{ latitud: number; longitud: number } | null> {
-  return new Promise((resolve) => {
+/**
+ * Solicita la geolocalización del navegador con máxima precisión disponible.
+ *
+ * Estrategia en dos pasos para equilibrar velocidad y precisión:
+ *
+ * 1. Intento rápido-preciso: `enableHighAccuracy: true`, timeout 8 s.
+ *    - Móviles con GPS → resuelve en 2-5 s con < 10 m de error.
+ *    - PC con WiFi → resuelve en 1-3 s con ~100 m de error.
+ *    - PC sin WiFi → puede agotar los 8 s (no hay GPS ni WiFi).
+ *
+ * 2. Fallback rápido: si el paso 1 agota el timeout (NO si el usuario
+ *    deniega), reintenta con `enableHighAccuracy: false`, timeout 4 s.
+ *    Esto fuerza la localización por IP del proveedor, que es instantánea.
+ *
+ * Si el usuario deniega el permiso en cualquier paso → rechaza de inmediato
+ * (código 1 = PERMISSION_DENIED) y el login queda bloqueado.
+ *
+ * Tiempo máximo de espera: ~12 s en el peor caso (PC sin GPS ni WiFi).
+ * Tiempo habitual: 1-5 s.
+ */
+export async function getGeolocation(): Promise<{
+  latitud: number
+  longitud: number
+  precisionM: number
+}> {
+  const toResult = (pos: GeolocationPosition) => ({
+    latitud:   pos.coords.latitude,
+    longitud:  pos.coords.longitude,
+    precisionM: Math.round(pos.coords.accuracy),
+  })
+
+  return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      resolve(null)
+      reject(new Error('GEOLOCATION_UNAVAILABLE'))
       return
     }
-    const timer = setTimeout(() => resolve(null), 3000)
+
+    // ── Paso 1: alta precisión (GPS / WiFi) ───────────────────────────────
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        clearTimeout(timer)
-        resolve({ latitud: pos.coords.latitude, longitud: pos.coords.longitude })
+      (pos) => resolve(toResult(pos)),
+      (err) => {
+        // PERMISSION_DENIED (code 1) → bloquear login de inmediato
+        if (err.code === 1) {
+          reject(err)
+          return
+        }
+        // TIMEOUT (code 3) o POSITION_UNAVAILABLE (code 2) → fallback rápido
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve(toResult(pos)),
+          (err2) => reject(err2),
+          { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 },
+        )
       },
-      () => {
-        clearTimeout(timer)
-        resolve(null)
-      },
-      { timeout: 3000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
     )
   })
 }
 
-export async function loginUser(credentials: LoginRequest): Promise<{ token: string; user: UserData }> {
-  // Capturar geolocalización antes del login (silencioso en caso de denegación)
-  const geo = await getGeolocation()
-  const payload: LoginRequest = {
+export async function loginUser(
+  credentials: LoginRequest,
+  coords: { latitud: number; longitud: number; precisionM: number },
+): Promise<{ token: string; user: UserData }> {
+  const loginPayload: LoginRequest = {
     ...credentials,
-    latitud: geo?.latitud ?? null,
-    longitud: geo?.longitud ?? null,
+    latitud: coords.latitud,
+    longitud: coords.longitud,
+    precisionM: coords.precisionM,
   }
 
-  const response = await axiosInstance.post<LoginResponse>('/auth/login', payload)
+  const response = await axiosInstance.post<LoginResponse>('/auth/login', loginPayload)
   const jwtToken = response.data.data
 
   if (!jwtToken || typeof jwtToken !== 'string') {
