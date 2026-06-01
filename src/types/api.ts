@@ -75,6 +75,8 @@ export interface LoginRequest {
   password: string
   latitud?: number | null
   longitud?: number | null
+  /** Margen de error de la lectura GPS en metros (accuracy del browser) */
+  precisionM?: number | null
 }
 
 export interface LoginResponse {
@@ -509,7 +511,9 @@ export interface Caja {
   tipoCaja: string
   color?: string
   observaciones?: string
-  idPosicionPiso?: number
+  idPosicionPiso?: number | null
+  /** String formateado devuelto por el backend, ej.: "Refrigerador: REF01 | Piso: 1 | Posición: F1-C2-A3" */
+  ubicacionPiso?: string | null
   posiciones: PosicionCaja[]
   activo: boolean
 }
@@ -534,6 +538,85 @@ export interface PosicionCaja {
 }
 
 // ============================================
+// BIOBANCO - ALMACENES EXTERNOS
+// ============================================
+export interface EncargadoResumen {
+  id: number
+  uuid: string
+  username: string
+  nombreCompleto: string
+  email?: string
+}
+
+export interface Almacen {
+  id: number
+  nombre: string
+  estado: string
+  ciudad: string
+  direccion?: string
+  responsable?: string
+  telefono?: string
+  activo: boolean
+  encargado?: EncargadoResumen | null
+}
+
+export interface AlmacenRequestDTO {
+  nombre: string
+  estado: string
+  ciudad: string
+  direccion?: string
+  responsable?: string
+  telefono?: string
+  activo?: boolean
+  uuidEncargado?: string | null
+}
+
+// ============================================
+// BIOBANCO - TRASLADOS DE MUESTRAS
+// ============================================
+export interface TrasladoMuestra {
+  id: number
+  muestra: {
+    id: number
+    etiqueta: string
+    unidad: string
+  }
+  almacen: Almacen
+  autorizadoPor: {
+    id: number
+    uuid: string
+    username: string
+    nombreCompleto: string
+  }
+  estado: 'TRASLADADA' | 'RECIBIDA' | 'EN_DEVOLUCION' | 'DEVUELTA'
+  fechaTraslado: string
+  fechaRetorno?: string | null
+  motivo: string
+  observaciones?: string | null
+}
+
+export interface TrasladoRequestDTO {
+  idMuestra: number
+  idAlmacen: number
+  uuidAutoriza: string
+  motivo: string
+  observaciones?: string
+}
+
+export interface DevolucionRequestDTO {
+  observaciones?: string
+}
+
+export interface ConfirmarRecepcionRequestDTO {
+  uuidEncargado: string
+}
+
+export interface IniciarDevolucionRequestDTO {
+  uuidEncargado: string
+  observaciones?: string
+}
+
+// ============================================
 // PAGINATION
 // ============================================
 export interface PaginatedResponse<T> {
@@ -550,4 +633,15 @@ export interface PaginationParams {
   page?: number
   size?: number
   sort?: string
+}
+
+/** Matches Spring Data's Page<T> JSON serialization */
+export interface SpringPage<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  number: number   // current page (0-indexed)
+  size: number
+  first: boolean
+  last: boolean
 }
