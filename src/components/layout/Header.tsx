@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Bell, CalendarDays, ChevronRight, LayoutDashboard, Search, Settings, Stethoscope, TestTube2, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuthStore } from '@/stores/authStore'
 import {
   CommandDialog,
   CommandEmpty,
@@ -21,16 +22,21 @@ const routeLabels: Record<string, string> = {
   configuracion: 'Configuración',
   perfil: 'Mi perfil',
   login: 'Inicio de sesión',
+  'mis-muestras': 'Mis Almacenes',
 }
 
 function labelForSegment(segment: string) {
-  return routeLabels[segment] || segment
+  // Never show raw numeric IDs in breadcrumbs
+  if (/^\d+$/.test(segment)) return null
+  return routeLabels[segment] ?? segment
 }
 
 export function Header() {
   const location = useLocation()
   const navigate = useNavigate()
   const [commandOpen, setCommandOpen] = useState(false)
+  const { hasRole } = useAuthStore()
+  const homeHref = hasRole('ENCARGADO') ? '/mis-muestras' : '/dashboard'
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -45,20 +51,22 @@ export function Header() {
 
   const breadcrumbs = useMemo(() => {
     const segments = location.pathname.split('/').filter(Boolean)
-    const items: Array<{ label: string; href?: string }> = [{ label: 'Inicio', href: '/dashboard' }]
+    const items: Array<{ label: string; href?: string }> = [{ label: 'Inicio', href: homeHref }]
 
     let accPath = ''
     segments.forEach((seg, idx) => {
       accPath += `/${seg}`
+      const label = labelForSegment(seg)
+      if (label === null) return // skip numeric ID segments
       const isLast = idx === segments.length - 1
       items.push({
-        label: labelForSegment(seg),
+        label,
         href: isLast ? undefined : accPath,
       })
     })
 
     return items
-  }, [location.pathname])
+  }, [location.pathname, homeHref])
 
   const commandItems = useMemo(
     () => [

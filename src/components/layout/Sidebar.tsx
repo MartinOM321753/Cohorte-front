@@ -6,8 +6,10 @@ import { useAuthStore, type UserRole } from '@/stores/authStore'
 import { Button } from '@/components/ui/button'
 import {
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   ClipboardList,
   Database,
   LayoutDashboard,
@@ -19,7 +21,10 @@ import {
   UserRound,
   UsersRound,
   CircleUserRound,
+  Warehouse,
 } from 'lucide-react'
+import { useGetAlmacenesByEncargado } from '@/features/biobanco/hooks/useBiobanco'
+import { useEncargadoStore } from '@/stores/encargadoStore'
 
 interface NavItem {
   label: string
@@ -30,9 +35,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, group: 'Clínico' },
-  { label: 'Pacientes', href: '/pacientes', icon: UserRound, group: 'Clínico' },
-  { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, group: 'Clínico' },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE'], group: 'Clínico' },
+  { label: 'Pacientes', href: '/pacientes', icon: UserRound, roles: ['ADMINISTRADOR', 'RECEPCIONISTA'], group: 'Clínico' },
+  { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, roles: ['ADMINISTRADOR', 'RECEPCIONISTA'], group: 'Clínico' },
   {
     label: 'Exámenes',
     href: '/examenes',
@@ -86,7 +91,6 @@ const navItems: NavItem[] = [
     label: 'Mi perfil',
     href: '/perfil',
     icon: CircleUserRound,
-    // Sin roles: visible para todos los usuarios autenticados
     group: 'Sistema',
   },
 ]
@@ -105,13 +109,95 @@ function ImssShield({ size = 32 }: { size?: number }) {
   )
 }
 
+function EncargadoAlmacenesSection({ uuid, collapsed }: { uuid: string; collapsed: boolean }) {
+  const [expanded, setExpanded] = useState(true)
+  const location = useLocation()
+  const { data: almacenes = [] } = useGetAlmacenesByEncargado(uuid)
+  const { selectedAlmacenId, setSelectedAlmacen } = useEncargadoStore()
+
+  if (collapsed) {
+    return (
+      <div className="mb-2">
+        <div className="space-y-1 px-2">
+          {almacenes.map((almacen) => {
+            const isActive = location.pathname === '/mis-muestras' && selectedAlmacenId === almacen.id
+            return (
+              <Link
+                key={almacen.id}
+                to="/mis-muestras"
+                title={almacen.nombre}
+                onClick={() => setSelectedAlmacen(almacen.id)}
+                className={cn(
+                  'flex items-center justify-center rounded-[5px] py-2 text-white/78',
+                  'hover:bg-white/6 hover:text-white',
+                  isActive && 'bg-white/10 text-white shadow-[inset_2px_0_0_var(--imss-ochre-500)]'
+                )}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                <Warehouse className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-2">
+      <div className="px-3 pb-1 pt-3">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex w-full items-center justify-between text-[10px] font-semibold uppercase tracking-[0.06em] text-white/40 hover:text-white/60 transition-colors"
+        >
+          <span>Mis Almacenes</span>
+          {expanded
+            ? <ChevronUp className="h-3 w-3" />
+            : <ChevronDown className="h-3 w-3" />
+          }
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="space-y-1 px-2">
+          {almacenes.length === 0 ? (
+            <p className="px-[10px] py-1 text-[11px] text-white/30 italic">Sin almacenes asignados</p>
+          ) : (
+            almacenes.map((almacen) => {
+              const isActive = location.pathname === '/mis-muestras' && selectedAlmacenId === almacen.id
+              return (
+                <Link
+                  key={almacen.id}
+                  to="/mis-muestras"
+                  onClick={() => setSelectedAlmacen(almacen.id)}
+                  className={cn(
+                    'flex items-center gap-[10px] rounded-[5px] px-[10px] py-2 text-[13px] font-medium text-white/78',
+                    'hover:bg-white/6 hover:text-white',
+                    isActive && 'bg-white/10 text-white shadow-[inset_2px_0_0_var(--imss-ochre-500)]'
+                  )}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <Warehouse className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+                  <span className="truncate">{almacen.nombre}</span>
+                </Link>
+              )
+            })
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
   const { user, logout, hasRole } = useAuthStore()
+  const isEncargado = hasRole('ENCARGADO')
+
   const userRoleLabel = useMemo(() => {
     if (!user) return ''
-    const knownRoles: UserRole[] = ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE']
+    const knownRoles: UserRole[] = ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE', 'ENCARGADO']
     const normalized = knownRoles.find((r) => hasRole(r))
     if (normalized) return normalized
     return typeof user.rol === 'string' ? user.rol : typeof (user.rol as any)?.nombre === 'string' ? (user.rol as any).nombre : ''
@@ -180,6 +266,18 @@ export function Sidebar() {
       <nav className="flex-1 overflow-auto py-2">
         {(['Clínico', 'Biobanco', 'Sistema'] as const).map((group) => {
           const items = groupedNavItems[group]
+
+          // For ENCARGADO: replace Biobanco group with the dynamic almacenes section
+          if (group === 'Biobanco' && isEncargado) {
+            return (
+              <EncargadoAlmacenesSection
+                key="encargado-almacenes"
+                uuid={user?.uuid ?? ''}
+                collapsed={collapsed}
+              />
+            )
+          }
+
           if (items.length === 0) return null
 
           return (

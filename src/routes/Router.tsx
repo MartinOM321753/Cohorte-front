@@ -7,21 +7,28 @@ import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage'
 import ResetPasswordPage from '@/features/auth/pages/ResetPasswordPage'
 import CambiarContrasenaPage from '@/features/auth/pages/CambiarContrasenaPage'
 import { Spinner } from '@/components/ui/spinner'
+import { useAuthStore } from '@/stores/authStore'
 
 // Lazy load pages
-const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
-const PacientesPage = lazy(() => import('@/features/pacientes/pages/PacientesPage'))
-const EstudiosPage = lazy(() => import('@/features/estudios/pages/EstudiosPage'))
-const ExamenesPage = lazy(() => import('@/features/examenes/pages/ExamenesPage'))
-const BiobancoPage = lazy(() => import('@/features/biobanco/pages/BiobancoPage'))
-const CatalogosPage = lazy(() => import('@/features/catalogos/pages/CatalogosPage'))
-const ConfiguracionPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionPage'))
-const CitasPage = lazy(() => import('@/features/citas/pages/CitasPage'))
-const UsuariosPage = lazy(() => import('@/features/usuarios/pages/UsuariosPage'))
-const PerfilPage   = lazy(() => import('@/features/perfil/pages/PerfilPage'))
-const BitacoraPage = lazy(() => import('@/features/bitacora/pages/BitacoraPage'))
+const DashboardPage    = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
+const PacientesPage    = lazy(() => import('@/features/pacientes/pages/PacientesPage'))
+const EstudiosPage     = lazy(() => import('@/features/estudios/pages/EstudiosPage'))
+const ExamenesPage     = lazy(() => import('@/features/examenes/pages/ExamenesPage'))
+const BiobancoPage     = lazy(() => import('@/features/biobanco/pages/BiobancoPage'))
+const CatalogosPage    = lazy(() => import('@/features/catalogos/pages/CatalogosPage'))
+const ConfiguracionPage= lazy(() => import('@/features/configuracion/pages/ConfiguracionPage'))
+const CitasPage        = lazy(() => import('@/features/citas/pages/CitasPage'))
+const UsuariosPage     = lazy(() => import('@/features/usuarios/pages/UsuariosPage'))
+const PerfilPage       = lazy(() => import('@/features/perfil/pages/PerfilPage'))
+const BitacoraPage     = lazy(() => import('@/features/bitacora/pages/BitacoraPage'))
+const EncargadoPage    = lazy(() => import('@/features/biobanco/pages/EncargadoPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
-const NotFoundPage = lazy(() => import('@/features/errors/pages/NotFoundPage'))
+const NotFoundPage     = lazy(() => import('@/features/errors/pages/NotFoundPage'))
+
+import type { UserRole } from '@/stores/authStore'
+
+/** Roles that belong to the main clinical/admin area (not ENCARGADO) */
+const CLINICAL_ROLES: UserRole[] = ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE']
 
 function LoadingFallback() {
   return (
@@ -29,6 +36,12 @@ function LoadingFallback() {
       <Spinner className="h-8 w-8" />
     </div>
   )
+}
+
+/** Redirects to the correct home based on role after successful auth */
+function RoleBasedHome() {
+  const { hasRole } = useAuthStore()
+  return <Navigate to={hasRole('ENCARGADO') ? '/mis-muestras' : '/dashboard'} replace />
 }
 
 export function AppRouter() {
@@ -42,7 +55,7 @@ export function AppRouter() {
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/404" element={<NotFoundPage />} />
 
-        {/* Cambio de contraseña forzado — requiere auth pero fuera del AppLayout */}
+        {/* Password change — requires auth but outside AppLayout */}
         <Route
           path="/cambiar-contrasena"
           element={
@@ -60,78 +73,102 @@ export function AppRouter() {
             </ProtectedRoute>
           }
         >
+          {/* Root → role-aware redirect */}
+          <Route path="/" element={<RoleBasedHome />} />
+
+          {/* ── ENCARGADO-only routes ── */}
           <Route
-            path="/"
+            path="/mis-muestras"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <DashboardPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={['ENCARGADO']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <EncargadoPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
+
+          {/* ── Clinical / admin routes (ENCARGADO blocked) ── */}
           <Route
             path="/dashboard"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <DashboardPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={CLINICAL_ROLES}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <DashboardPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/pacientes"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <PacientesPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'RECEPCIONISTA']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <PacientesPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/estudios"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <EstudiosPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'RECEPCIONISTA']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <EstudiosPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/examenes"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ExamenesPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO', 'LABORATORISTA']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ExamenesPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/biobanco"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <BiobancoPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <BiobancoPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/citas"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <CitasPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CitasPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/catalogos"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <CatalogosPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CatalogosPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/configuracion"
             element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ConfiguracionPage />
-              </Suspense>
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ConfiguracionPage />
+                </Suspense>
+              </ProtectedRoute>
             }
-          />  
+          />
           <Route
             path="/usuarios"
             element={
@@ -162,7 +199,7 @@ export function AppRouter() {
           />
         </Route>
 
-        {/* Catch all - not found */}
+        {/* Catch all */}
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
     </Router>
