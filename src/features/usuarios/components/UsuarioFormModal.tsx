@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Mail } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Lock, Mail } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -30,6 +31,12 @@ interface UsuarioFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   usuario?: Usuario | null
+  /**
+   * Cuando se provee, el campo de rol se pre-selecciona con este nombre
+   * (e.g. "ENCARGADO") y queda bloqueado para el usuario.
+   * Solo aplica en creación — al editar siempre se permite cambiar el rol.
+   */
+  lockedRolNombre?: string
 }
 
 const SEXO_OPTIONS = [
@@ -37,17 +44,23 @@ const SEXO_OPTIONS = [
   { value: 'F', label: 'Femenino' },
 ] as const
 
-export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormModalProps) {
+export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre }: UsuarioFormModalProps) {
   const isEdit = !!usuario
   const createMutation = useCreateUsuario()
   const updateMutation = useUpdateUsuario()
   const { data: roles = [], isLoading: rolesLoading } = useGetRoles()
+
+  // UUID del rol que debe quedar bloqueado (solo aplica en creación)
+  const lockedRol = (!isEdit && lockedRolNombre)
+    ? roles.find((r) => r.nombre === lockedRolNombre)
+    : null
 
   const {
     register,
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<UsuarioFormData>({
     resolver: zodResolver(usuarioSchema),
@@ -97,6 +110,18 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
     }
   }, [open, usuario, reset])
 
+  // Pre-seleccionar el rol bloqueado:
+  // - Cubre el caso en que los roles aún no estaban cargados al abrir el modal
+  //   (lockedRol cambia de null → valor cuando termina la query)
+  // - Cubre el caso en que los roles YA estaban cacheados al abrir el modal
+  //   (open cambia a true con lockedRol ya presente; sin [open] en deps el effect
+  //    no re-dispara porque lockedRol no cambió, y el reset previo deja rolUuid = '')
+  useEffect(() => {
+    if (lockedRol && open) {
+      setValue('rolUuid', lockedRol.uuid)
+    }
+  }, [lockedRol, open, setValue])
+
   const onSubmit = async (formData: UsuarioFormData) => {
     const payload = {
       rolUuid: formData.rolUuid,
@@ -138,33 +163,57 @@ export function UsuarioFormModal({ open, onOpenChange, usuario }: UsuarioFormMod
               Datos de acceso
             </p>
 
-            {/* Rol — ancho completo (el username lo genera el backend automáticamente) */}
+            {/* Rol */}
             <div className="space-y-1.5">
               <Label className="text-[13px]">
                 Rol <span className="text-red-500">*</span>
               </Label>
-              <Controller
-                name="rolUuid"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? ''}
-                    onValueChange={field.onChange}
-                    disabled={rolesLoading}
-                  >
-                    <SelectTrigger className="h-9 text-[13px]">
-                      <SelectValue placeholder={rolesLoading ? 'Cargando roles…' : 'Seleccione un rol'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((r) => (
-                        <SelectItem key={r.uuid} value={r.uuid} className="text-[13px]">
-                          {ROL_LABELS[r.nombre] ?? r.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+
+              {lockedRol && !isEdit ? (
+                /* ── Rol bloqueado (alta desde almacén) ── */
+                <div className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 h-9">
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-[13px] flex-1">
+                    {ROL_LABELS[lockedRol.nombre] ?? lockedRol.nombre}
+                  </span>
+                  <Badge variant="secondary" className="text-[11px]">
+                    Asignado automáticamente
+                  </Badge>
+                  {/* Campo oculto para que react-hook-form capture el valor */}
+                  <Controller
+                    name="rolUuid"
+                    control={control}
+                    render={({ field }) => (
+                      <input type="hidden" {...field} value={lockedRol.uuid} />
+                    )}
+                  />
+                </div>
+              ) : (
+                /* ── Select normal ── */
+                <Controller
+                  name="rolUuid"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? ''}
+                      onValueChange={field.onChange}
+                      disabled={rolesLoading}
+                    >
+                      <SelectTrigger className="h-9 text-[13px]">
+                        <SelectValue placeholder={rolesLoading ? 'Cargando roles…' : 'Seleccione un rol'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((r) => (
+                          <SelectItem key={r.uuid} value={r.uuid} className="text-[13px]">
+                            {ROL_LABELS[r.nombre] ?? r.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              )}
+
               {errors.rolUuid && (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
                   {errors.rolUuid.message}

@@ -50,6 +50,7 @@ export const ROL_LABELS: Record<string, string> = {
   LABORATORISTA: 'Laboratorista',
   RECEPCIONISTA: 'Recepcionista',
   PACIENTE: 'Paciente',
+  ENCARGADO: 'Encargado de Almacén',
 }
 
 export function getNombreCompleto(persona: UsuarioPersona): string {
