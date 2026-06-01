@@ -150,9 +150,10 @@ export function RefrigeradoresTab() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar refrigerador?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Eliminar "{refrigerador.nombre}"?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta acción no se puede deshacer. Se eliminarán todos los pisos y posiciones asociadas.
+                          El refrigerador <strong>{refrigerador.nombre}</strong> (código: {refrigerador.codigo}) será eliminado
+                          junto con todos sus pisos y posiciones asociadas. Esta acción no se puede deshacer.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Edit, Trash2, Grid3X3, Package } from 'lucide-react'
+import { Plus, Edit, Trash2, Grid3X3, Package, MapPin } from 'lucide-react'
 import { useGetCajas, useDeleteCaja } from '../hooks/useBiobanco'
 import { CajaFormModal } from './CajaFormModal'
 import { PosicionesModal } from './PosicionesModal'
@@ -115,9 +115,17 @@ export function CajasTab() {
                     <span className="font-medium">Dimensiones:</span>
                     <p className="text-muted-foreground">{caja.filas}×{caja.columnas}</p>
                   </div>
-                  <div>
+                  <div className="flex items-center gap-2">
                     <span className="font-medium">Color:</span>
-                    <p className="text-muted-foreground">{caja.color || 'N/A'}</p>
+                    {caja.color ? (
+                      <span
+                        className="inline-block h-4 w-4 rounded-full border border-border shrink-0"
+                        style={{ backgroundColor: caja.color }}
+                        title={caja.color}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground">N/A</span>
+                    )}
                   </div>
                 </div>
 
@@ -135,6 +143,18 @@ export function CajasTab() {
                     <span className="text-muted-foreground">
                       / {caja.posiciones.length}
                     </span>
+                  </div>
+                )}
+
+                {caja.ubicacionPiso ? (
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                    <span className="text-blue-700 text-xs leading-snug">{caja.ubicacionPiso}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-xs italic">Sin posición asignada</span>
                   </div>
                 )}
 
@@ -163,9 +183,11 @@ export function CajasTab() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar caja?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Eliminar caja {caja.codigoCaja}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta acción no se puede deshacer. Se eliminarán todas las posiciones y muestras asociadas.
+                          La caja <strong>{caja.codigoCaja}</strong> ({caja.tipoCaja}) será eliminada junto con todas
+                          sus posiciones. Si contiene muestras almacenadas, la operación será rechazada.
+                          Esta acción no se puede deshacer.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

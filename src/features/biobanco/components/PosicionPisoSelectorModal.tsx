@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { useGetPosicionesByPiso } from '../hooks/useBiobanco'
 import { PosicionPiso } from '@/types/api'
 import { CheckCircle2, Layers } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface PosicionPisoSelectorModalProps {
   open: boolean
@@ -158,8 +159,8 @@ export function PosicionPisoSelectorModal({
 
                               if (!pos) {
                                 return (
-                                  <td key={col} className="p-1">
-                                    <div className="w-9 h-9 rounded border border-dashed border-border/40" />
+                                  <td key={col} className="p-0.5">
+                                    <div className="w-9 h-9 rounded border border-dashed border-border/30 bg-muted/10" />
                                   </td>
                                 )
                               }
@@ -168,25 +169,26 @@ export function PosicionPisoSelectorModal({
                               const isOcupada = pos.ocupada
 
                               return (
-                                <td key={col} className="p-1">
+                                <td key={col} className="p-0.5">
                                   <button
                                     type="button"
                                     disabled={isOcupada}
                                     onClick={() => setSelectedPosicion(pos)}
                                     title={
                                       isOcupada
-                                        ? 'Posición ocupada'
-                                        : `Fila ${fila} — Col ${col} — Altura ${activeAltura}`
+                                        ? `Fila ${fila} Col ${col} — Ocupada`
+                                        : `Fila ${fila} Col ${col} — Altura ${activeAltura}`
                                     }
-                                    className={`w-9 h-9 rounded text-xs font-bold transition-all border-2 ${
-                                      isSelected
-                                        ? 'bg-blue-500 border-blue-600 text-white scale-110 shadow-md'
-                                        : isOcupada
-                                        ? 'bg-muted/60 border-muted-foreground/20 text-muted-foreground cursor-not-allowed'
-                                        : 'bg-green-100 border-green-400 text-green-700 hover:bg-green-200 hover:scale-105 hover:shadow cursor-pointer'
-                                    }`}
+                                    className={cn(
+                                      'w-9 h-9 rounded border text-xs font-medium transition-colors',
+                                      isOcupada
+                                        ? 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50'
+                                        : isSelected
+                                        ? 'bg-blue-500 border-blue-600 text-white cursor-pointer ring-2 ring-blue-300'
+                                        : 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100 cursor-pointer',
+                                    )}
                                   >
-                                    {isSelected ? '✓' : isOcupada ? '×' : '○'}
+                                    {fila}{col}
                                   </button>
                                 </td>
                               )
@@ -200,19 +202,19 @@ export function PosicionPisoSelectorModal({
               )}
 
               {/* Legend */}
-              <div className="flex gap-5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded bg-green-100 border-2 border-green-400" />
-                  <span>Libre</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded bg-muted/60 border-2 border-muted-foreground/20" />
-                  <span>Ocupada</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded bg-blue-500 border-2 border-blue-600" />
-                  <span>Seleccionada</span>
-                </div>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-green-50 border border-green-300 inline-block" />
+                  Libre
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-muted border border-border inline-block opacity-50" />
+                  Ocupada
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-blue-500 border border-blue-600 inline-block" />
+                  Seleccionada
+                </span>
               </div>
 
               {/* Selected position info */}

@@ -56,6 +56,10 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
   const [selectedPiso, setSelectedPiso] = useState<string>('')
   const [selectedPosicionPiso, setSelectedPosicionPiso] = useState<PosicionPiso | null>(null)
   const [showPosicionSelector, setShowPosicionSelector] = useState(false)
+  // In edit mode: controls whether the user has clicked "Cambiar posición"
+  const [isChangingPosition, setIsChangingPosition] = useState(false)
+  // Formatted label showing current position (like posicionLabel in MuestraFormModal)
+  const [ubicacionLabel, setUbicacionLabel] = useState<string>('')
 
   const {
     register,
@@ -71,7 +75,8 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
 
   const createCajaMutation = useCreateCaja()
   const updateCajaMutation = useUpdateCaja()
-  const { data: refrigeradores } = useGetRefrigeradores({ enabled: open && !isEditing })
+  // Fetch refrigeradores for both create AND edit modes
+  const { data: refrigeradores } = useGetRefrigeradores({ enabled: open })
   const { data: pisos } = useGetPisosByRefrigerador(selectedRefrigerador ? parseInt(selectedRefrigerador) : 0)
   const { data: freshCaja } = useGetCajaById(open && isEditing ? caja!.id : 0)
 
@@ -86,16 +91,25 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
           tipoCaja: source.tipoCaja,
           color: source.color || '',
           observaciones: source.observaciones || '',
-          idPosicionPiso: source.idPosicionPiso,
+          idPosicionPiso: source.idPosicionPiso ?? undefined,
         })
+        // Populate the location label from the rich string the backend sends
+        setUbicacionLabel(source.ubicacionPiso || '')
       } else {
         reset(DEFAULT_VALUES)
+        setUbicacionLabel('')
       }
+      // Reset position-change UI when the modal re-opens
+      setIsChangingPosition(false)
+      setSelectedRefrigerador('')
+      setSelectedPiso('')
+      setSelectedPosicionPiso(null)
       return
     }
 
     const timer = setTimeout(() => {
       reset(DEFAULT_VALUES)
+      setUbicacionLabel('')
     }, 150)
 
     return () => clearTimeout(timer)
@@ -127,6 +141,8 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
       setSelectedPiso('')
       setSelectedPosicionPiso(null)
       setShowPosicionSelector(false)
+      setIsChangingPosition(false)
+      setUbicacionLabel('')
     }
     onOpenChange(newOpen)
   }
@@ -264,99 +280,186 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
             </div>
           </div>
 
-          {!isEditing && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Seleccionar Refrigerador</Label>
-                <Select value={selectedRefrigerador} onValueChange={(value) => {
-                  setSelectedRefrigerador(value)
-                  setSelectedPiso('')
-                  setSelectedPosicionPiso(null)
-                  setValue('idPosicionPiso', undefined)
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un refrigerador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {refrigeradores?.map((ref) => (
-                      <SelectItem key={ref.id} value={ref.id.toString()}>
-                        {ref.nombre} ({ref.codigo})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* ── POSICIÓN EN EL REFRIGERADOR ──────────────────────────────── */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">
+                Posición en Refrigerador {!isEditing && <span className="text-muted-foreground font-normal">(Opcional)</span>}
+              </Label>
+            </div>
 
-              {selectedRefrigerador && pisos && (
+            {/* EDIT MODE — show current position card ──────────────────── */}
+            {isEditing && !isChangingPosition && (
+              <>
+                {ubicacionLabel ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-200 rounded-md">
+                      <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
+                      <p className="text-sm text-blue-800 font-medium">{ubicacionLabel}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsChangingPosition(true)}
+                    >
+                      Cambiar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      title="Quitar posición asignada"
+                      onClick={() => {
+                        setValue('idPosicionPiso', undefined)
+                        setUbicacionLabel('')
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setIsChangingPosition(true)}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Asignar a una posición
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* SELECTOR — shown in create mode, OR in edit when "Cambiar" was clicked ─ */}
+            {(!isEditing || isChangingPosition) && (
+              <>
+                {isEditing && isChangingPosition && (
+                  <p className="text-xs text-muted-foreground">
+                    Selecciona el nuevo refrigerador y piso donde deseas mover la caja.
+                  </p>
+                )}
+
                 <div className="space-y-2">
-                  <Label>Seleccionar Piso (Opcional)</Label>
-                  <Select value={selectedPiso} onValueChange={(value) => {
-                    setSelectedPiso(value)
-                    setSelectedPosicionPiso(null)
-                    setValue('idPosicionPiso', undefined)
-                  }}>
+                  <Label>Seleccionar Refrigerador</Label>
+                  <Select
+                    value={selectedRefrigerador}
+                    onValueChange={(value) => {
+                      setSelectedRefrigerador(value)
+                      setSelectedPiso('')
+                      setSelectedPosicionPiso(null)
+                      setValue('idPosicionPiso', undefined)
+                    }}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un piso" />
+                      <SelectValue placeholder="Selecciona un refrigerador" />
                     </SelectTrigger>
                     <SelectContent>
-                      {pisos.map((piso: any) => (
-                        <SelectItem key={piso.id} value={piso.id.toString()}>
-                          Piso {piso.numeroPiso} ({piso.filas}×{piso.columnas}×{piso.altura})
+                      {refrigeradores?.map((ref) => (
+                        <SelectItem key={ref.id} value={ref.id.toString()}>
+                          {ref.nombre} ({ref.codigo})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              )}
 
-              {selectedPiso && (
-                <div className="space-y-2">
-                  <Label>Posición en el Piso (Opcional)</Label>
-                  {selectedPosicionPiso ? (
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-200 rounded-md">
-                        <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
-                        <p className="text-sm text-blue-800">
-                          Fila <strong>{selectedPosicionPiso.fila}</strong>, Columna{' '}
-                          <strong>{selectedPosicionPiso.columna}</strong>, Altura{' '}
-                          <strong>{selectedPosicionPiso.altura}</strong>
-                        </p>
+                {selectedRefrigerador && pisos && (
+                  <div className="space-y-2">
+                    <Label>Seleccionar Piso</Label>
+                    <Select
+                      value={selectedPiso}
+                      onValueChange={(value) => {
+                        setSelectedPiso(value)
+                        setSelectedPosicionPiso(null)
+                        setValue('idPosicionPiso', undefined)
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un piso" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pisos.map((piso: any) => (
+                          <SelectItem key={piso.id} value={piso.id.toString()}>
+                            Piso {piso.numeroPiso} ({piso.filas}×{piso.columnas}×{piso.altura})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {selectedPiso && (
+                  <div className="space-y-2">
+                    <Label>Posición en el Piso</Label>
+                    {selectedPosicionPiso ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-200 rounded-md">
+                          <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
+                          <p className="text-sm text-blue-800">
+                            Fila <strong>{selectedPosicionPiso.fila}</strong>, Columna{' '}
+                            <strong>{selectedPosicionPiso.columna}</strong>, Altura{' '}
+                            <strong>{selectedPosicionPiso.altura}</strong>
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowPosicionSelector(true)}
+                        >
+                          Cambiar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPosicionPiso(null)
+                            setValue('idPosicionPiso', undefined)
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
+                    ) : (
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
+                        className="w-full"
                         onClick={() => setShowPosicionSelector(true)}
                       >
-                        Cambiar
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Seleccionar Posición
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedPosicionPiso(null)
-                          setValue('idPosicionPiso', undefined)
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setShowPosicionSelector(true)}
-                    >
-                      <MapPin className="h-4 w-4 mr-2" />
-                      Seleccionar Posición
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                    )}
+                  </div>
+                )}
+
+                {isEditing && isChangingPosition && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground"
+                    onClick={() => {
+                      setIsChangingPosition(false)
+                      setSelectedRefrigerador('')
+                      setSelectedPiso('')
+                      setSelectedPosicionPiso(null)
+                      // Restore original idPosicionPiso and label
+                      const source = freshCaja ?? caja
+                      setValue('idPosicionPiso', source?.idPosicionPiso ?? undefined)
+                      setUbicacionLabel(source?.ubicacionPiso || '')
+                    }}
+                  >
+                    ← Cancelar cambio de posición
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="observaciones">Observaciones</Label>
@@ -409,6 +512,12 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
           onSelect={(posicion) => {
             setSelectedPosicionPiso(posicion)
             setValue('idPosicionPiso', posicion.id)
+            // Build label so the card shows position details immediately
+            const pisoNum = pisos?.find((p: any) => p.id.toString() === selectedPiso)?.numeroPiso ?? selectedPiso
+            const refNombre = refrigeradores?.find((r) => r.id.toString() === selectedRefrigerador)?.codigo ?? ''
+            setUbicacionLabel(`${refNombre} | Piso: ${pisoNum} | F${posicion.fila}-C${posicion.columna}-A${posicion.altura}`)
+            // If editing and user picked a new position, close the "change" mode
+            if (isEditing) setIsChangingPosition(false)
           }}
         />
       )}

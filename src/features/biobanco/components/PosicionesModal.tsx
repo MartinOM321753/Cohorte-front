@@ -9,9 +9,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Grid3X3, Package, TestTube } from 'lucide-react'
-import { useGetPosicionesByCaja } from '../hooks/useBiobanco'
-import { Caja } from '@/types/api'
+import { Grid3X3, Package, TestTube, User, Calendar } from 'lucide-react'
+import { useGetPosicionesByCaja, useGetMuestras } from '../hooks/useBiobanco'
+import { Caja, MuestraDetalleDTO } from '@/types/api'
+import { formatDate } from '@/lib/utils'
 
 interface PosicionesModalProps {
   open: boolean
@@ -23,6 +24,12 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
   const [selectedPosicion, setSelectedPosicion] = useState<any>(null)
 
   const { data: posiciones, isLoading } = useGetPosicionesByCaja(caja?.id || 0)
+  const { data: muestras = [] } = useGetMuestras()
+
+  // Busca la muestra completa (con paciente, fecha, etc.) para la posición seleccionada
+  const muestraEnPosicion: MuestraDetalleDTO | null = selectedPosicion?.ocupada
+    ? (muestras.find((m) => m.ubicacion?.idPosicionCaja === selectedPosicion.id) ?? null)
+    : null
 
   const handlePosicionClick = (posicion: any) => {
     setSelectedPosicion(posicion)
@@ -103,13 +110,13 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
 
     return (
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Grid3X3 className="h-4 w-4" />
             Posición {selectedPosicion.fila}-{selectedPosicion.columna}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Estado:</span>
             <Badge variant={selectedPosicion.ocupada ? 'default' : 'secondary'}>
@@ -117,17 +124,60 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
             </Badge>
           </div>
 
-          {selectedPosicion.ocupada && selectedPosicion.muestra && (
-            <div className="space-y-2 pt-2 border-t">
-              <div className="flex items-center gap-2">
-                <TestTube className="h-4 w-4" />
-                <span className="font-medium">Muestra:</span>
-              </div>
-              <div className="text-sm space-y-1 pl-6">
-                <div><span className="font-medium">Etiqueta:</span> {selectedPosicion.muestra.etiqueta}</div>
-                <div><span className="font-medium">Valor:</span> {selectedPosicion.muestra.valor} {selectedPosicion.muestra.unidad}</div>
-                <div><span className="font-medium">Fecha:</span> {new Date(selectedPosicion.muestra.fechaRecoleccion).toLocaleDateString()}</div>
-              </div>
+          {selectedPosicion.ocupada && (
+            <div className="pt-2 border-t space-y-2">
+              {muestraEnPosicion ? (
+                <>
+                  {/* Encabezado muestra */}
+                  <div className="flex items-center gap-2">
+                    <TestTube className="h-4 w-4 text-primary" />
+                    <span className="font-medium text-sm">Muestra almacenada</span>
+                  </div>
+
+                  {/* Etiqueta + valor */}
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Etiqueta</p>
+                      <p className="font-mono font-semibold">{muestraEnPosicion.etiqueta}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Valor</p>
+                      <p className="font-medium">{muestraEnPosicion.valor} {muestraEnPosicion.unidad}</p>
+                    </div>
+                  </div>
+
+                  {/* Fecha de recolección */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground text-xs">Recolectada:</span>
+                    <span className="text-xs">{formatDate(muestraEnPosicion.fechaRecoleccion)}</span>
+                  </div>
+
+                  {/* Paciente */}
+                  {muestraEnPosicion.paciente && (
+                    <div className="flex items-start gap-2 text-sm rounded-md bg-muted/40 px-2 py-1.5">
+                      <User className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Paciente</p>
+                        <p className="text-sm font-medium">{muestraEnPosicion.paciente.nombreCompleto}</p>
+                        <p className="text-xs text-muted-foreground">Folio: {muestraEnPosicion.paciente.folio}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Observaciones */}
+                  {muestraEnPosicion.observaciones && (
+                    <div className="text-sm">
+                      <p className="text-xs text-muted-foreground">Observaciones</p>
+                      <p className="text-xs mt-0.5">{muestraEnPosicion.observaciones}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  Posición ocupada — no se encontró detalle de la muestra.
+                </p>
+              )}
             </div>
           )}
         </CardContent>
