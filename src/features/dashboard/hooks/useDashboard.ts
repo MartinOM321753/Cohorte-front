@@ -1,69 +1,56 @@
 import { useQuery } from '@tanstack/react-query'
-import { getPacientesActivos } from '@/features/pacientes/api/pacientes.api'
-import { getCitas } from '@/features/citas/api/citas.api'
-import { getCitaStartDate } from '@/features/citas/lib/citaUtils'
-import { Cita } from '@/types/api'
+import api from '@/lib/axiosInstance'
+import { ApiResponse } from '@/types/api'
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 export interface DashboardStats {
   pacientesActivos: number
   citasProgramadas: number
-  estudiosPendientes: number
   muestrasBiobanco: number
 }
 
+export interface AgendaHoyItem {
+  uuid:             string
+  horaInicio:       string   // "HH:mm" en hora local
+  horaFin:          string   // "HH:mm" en hora local
+  duracionMinutos:  number
+  estadoCita:       string   // "Programada" | "Confirmada" | "Realizada" | "No_Asistio"
+  colorHex:         string | null
+  observaciones:    string | null
+  paciente: {
+    folio:          string
+    nombreCompleto: string
+  }
+}
+
+// ── Hooks ─────────────────────────────────────────────────────────────────────
+
 /**
- * Hook para obtener estadísticas del dashboard
+ * Estadísticas numéricas para el dashboard:
+ * pacientes activos, citas del mes y muestras en biobanco.
  */
 export function useDashboardStats() {
-  return useQuery({
+  return useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
-    queryFn: async (): Promise<DashboardStats> => {
-      try {
-        const pacientesActivos = await getPacientesActivos()
-
-        const now = new Date()
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-
-        const allCitas = await getCitas()
-
-        const citasProgramadas = allCitas.filter((cita: any) => {
-          const estado = String(cita.estadoCita).toUpperCase().trim()
-          const fechaCita = getCitaStartDate(cita)
-          if (!fechaCita) return false
-          return estado === 'PROGRAMADA' && fechaCita >= startOfMonth && fechaCita <= endOfMonth
-        })
-
-        return {
-          pacientesActivos: Array.isArray(pacientesActivos) ? pacientesActivos.length : 0,
-          citasProgramadas: Array.isArray(citasProgramadas) ? citasProgramadas.length : 0,
-          estudiosPendientes: 0,
-          muestrasBiobanco: 0,
-        }
-      } catch (error: any) {
-        console.error('Error in useDashboardStats:', error)
-        throw error
-      }
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<DashboardStats>>('/dashboard/stats')
+      return res.data.data
     },
+    staleTime: 60_000,   // consideramos los números "frescos" por 1 min
   })
 }
 
 /**
- * Hook para obtener las próximas citas programadas
+ * Citas no canceladas de hoy, ordenadas por hora de inicio.
  */
-export function useProximasCitas(limit: number = 5) {
-  return useQuery({
-    queryKey: ['proximas-citas', limit],
-    queryFn: async (): Promise<Cita[]> => {
-      const allCitas = await getCitas()
-      const citasProgramadas = allCitas.filter((cita: any) => cita.estadoCita === 'PROGRAMADA')
-
-      const citasOrdenadas = citasProgramadas
-        .sort((a: any, b: any) => (getCitaStartDate(a)?.getTime() ?? 0) - (getCitaStartDate(b)?.getTime() ?? 0))
-        .slice(0, limit)
-
-      return citasOrdenadas
+export function useAgendaHoy() {
+  return useQuery<AgendaHoyItem[]>({
+    queryKey: ['dashboard-agenda-hoy'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<AgendaHoyItem[]>>('/dashboard/agenda-hoy')
+      return res.data.data ?? []
     },
+    staleTime: 60_000,
   })
 }
-
