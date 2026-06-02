@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Bell, CalendarDays, ChevronRight, LayoutDashboard, Search, Settings, Stethoscope, TestTube2, UserRound } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { CalendarDays, ChevronRight, LayoutDashboard, Search, Settings, Stethoscope, TestTube2, UserRound } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher'
 import {
   CommandDialog,
   CommandEmpty,
@@ -23,11 +23,16 @@ const routeLabels: Record<string, string> = {
   perfil: 'Mi perfil',
   login: 'Inicio de sesión',
   'mis-muestras': 'Mis Almacenes',
+  expediente: 'Expediente',
 }
 
+// Regex para UUID v4 estándar (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function labelForSegment(segment: string) {
-  // Never show raw numeric IDs in breadcrumbs
+  // Nunca mostrar IDs numéricos ni UUIDs en el breadcrumb
   if (/^\d+$/.test(segment)) return null
+  if (UUID_RE.test(segment)) return null
   return routeLabels[segment] ?? segment
 }
 
@@ -82,7 +87,7 @@ export function Header() {
 
   return (
     <>
-      <header className="flex h-14 items-center gap-4 border-b border-border bg-white px-6">
+      <header className="flex h-14 items-center gap-4 border-b border-border bg-card px-6">
         <nav className="hidden min-w-0 items-center gap-2 text-[13px] md:flex">
           {breadcrumbs.map((item, idx) => {
             const isLast = idx === breadcrumbs.length - 1
@@ -111,15 +116,12 @@ export function Header() {
         >
           <Search className="h-3.5 w-3.5" strokeWidth={1.75} />
           <span className="flex-1 truncate">Buscar paciente, folio, estudio…</span>
-          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
             Ctrl K
           </kbd>
         </button>
 
-        <Button variant="ghost" size="icon" className="relative h-9 w-9">
-          <Bell className="h-4 w-4" strokeWidth={1.75} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
-        </Button>
+        <ThemeSwitcher />
       </header>
 
       <CommandDialog

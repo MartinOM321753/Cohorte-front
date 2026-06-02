@@ -151,7 +151,7 @@ export async function loginUser(
   const user: UserData = {
     uuid: dto?.uuid || dto?.UUID || subjectUuid,
     username: dto?.username || credentials.identifier,
-    nombreCompleto: nombreCompleto || payload.name || credentials.username,
+    nombreCompleto: nombreCompleto || payload.name || credentials.identifier,
     rol: rolNombre || payload.role || '',
   }
 

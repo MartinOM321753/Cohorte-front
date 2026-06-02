@@ -122,7 +122,7 @@ export function BitacoraFiltros(props: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-[var(--imss-ink-100)] bg-white p-4">
+    <div className="rounded-lg border border-[var(--imss-ink-100)] bg-card p-4">
       <div className="flex flex-wrap items-end gap-3">
         {/* Rango de fechas */}
         <div className="flex items-end gap-2">

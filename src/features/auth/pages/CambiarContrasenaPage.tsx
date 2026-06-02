@@ -57,7 +57,7 @@ export default function CambiarContrasenaPage() {
       <div className="w-full max-w-md">
 
         {/* Card */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="bg-card rounded-xl shadow-md overflow-hidden">
 
           {/* Cabecera */}
           <div className="bg-[#1e4e3a] px-8 py-6 text-center">

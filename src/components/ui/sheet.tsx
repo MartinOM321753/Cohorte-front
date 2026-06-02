@@ -58,7 +58,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'fixed z-50 flex flex-col gap-4 border-border bg-white shadow-[0_12px_32px_oklch(0.2_0.02_156/0.12),0_2px_6px_oklch(0.2_0.02_156/0.06)]',
+          'fixed z-50 flex flex-col gap-4 border-border bg-card shadow-[0_12px_32px_oklch(0.2_0.02_156/0.12),0_2px_6px_oklch(0.2_0.02_156/0.06)]',
           side === 'right' &&
             'inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm',
           side === 'left' &&

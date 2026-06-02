@@ -5,7 +5,7 @@ export default function NotFoundPage() {
   const navigate = useNavigate()
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-6">
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="w-full max-w-[480px] text-center">
         <div
           style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}

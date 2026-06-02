@@ -51,7 +51,7 @@ export function DataTable<TData, TValue>({ columns, data, isLoading = false, pag
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-border">
+      <div className="rounded-md border border-border bg-card">
         <Table>
           <TableHeader className="bg-[var(--muted)]">
             {table.getHeaderGroups().map((headerGroup) => (

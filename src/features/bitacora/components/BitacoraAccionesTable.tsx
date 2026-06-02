@@ -114,10 +114,10 @@ export function BitacoraAccionesTable({ data, isLoading, page, onPageChange }: P
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-x-auto rounded-lg border border-[var(--imss-ink-100)]">
+      <div className="overflow-x-auto rounded-lg border border-[var(--imss-ink-100)] bg-card">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[var(--imss-ink-100)] bg-[var(--imss-ink-50)]">
+            <tr className="border-b border-[var(--imss-ink-100)] bg-[var(--imss-green-50)]">
               <th className="w-8 px-2 py-2.5" />
               <th className="px-3 py-2.5 text-left font-semibold text-[var(--imss-ink-500)]">Fecha/Hora</th>
               <th className="px-3 py-2.5 text-left font-semibold text-[var(--imss-ink-500)]">Usuario</th>

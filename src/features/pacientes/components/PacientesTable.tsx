@@ -1,5 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { CalendarPlus, Eye, Pencil, Trash2 } from 'lucide-react'
+import { CalendarPlus, Eye, FileText, Pencil, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { DataTable } from '@/components/tables/DataTable'
 import { Button } from '@/components/ui/button'
 import { getFullName } from '@/lib/utils'
@@ -87,11 +88,20 @@ export function PacientesTable({
       header: '',
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
+          {/* Expediente 360 — UUID pasa por state, nunca por URL */}
+          <Link
+            to="/pacientes/expediente"
+            state={{ uuid: row.original.UUID || (row.original as any).uuid }}
+            title="Ver expediente 360"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-green-700)] hover:bg-[var(--imss-green-50)]"
+          >
+            <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Link>
           <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
-            title="Ver detalle"
+            title="Ver detalle rápido"
             onClick={() => onView(row.original)}
           >
             <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />

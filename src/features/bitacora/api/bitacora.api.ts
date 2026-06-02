@@ -6,7 +6,7 @@ import type {
   FiltrosAcciones,
   PageResponse,
 } from '../types/bitacora.types'
-import type { APIResponse } from '@/types/api'
+import type { ApiResponse as APIResponse } from '@/types/api'
 
 // ── Accesos ───────────────────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@ export async function getBitacoraAccesos(
   params.set('page', String(filtros.page))
   params.set('size', String(filtros.size))
 
-  const res = await api.get<APIResponse>(`/bitacora/accesos?${params}`)
+  const res = await api.get<APIResponse<PageResponse<BitacoraAccesoItem>>>(`/bitacora/accesos?${params}`)
   return res.data.data as PageResponse<BitacoraAccesoItem>
 }
 
@@ -39,6 +39,6 @@ export async function getBitacoraAcciones(
   params.set('page', String(filtros.page))
   params.set('size', String(filtros.size))
 
-  const res = await api.get<APIResponse>(`/bitacora/acciones?${params}`)
+  const res = await api.get<APIResponse<PageResponse<BitacoraAccionItem>>>(`/bitacora/acciones?${params}`)
   return res.data.data as PageResponse<BitacoraAccionItem>
 }

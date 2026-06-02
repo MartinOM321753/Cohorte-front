@@ -104,7 +104,7 @@ function CitasCalendarHeader() {
   }, [currentDate, view, firstDayOfWeek]);
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-(--imss-ink-100) bg-background px-4 py-2.5">
+    <div className="flex items-center justify-between gap-3 border-b border-(--imss-ink-100) bg-card px-4 py-2.5">
       {/* ← Navegación */}
       <div className="flex items-center gap-1">
         <Button
@@ -149,7 +149,7 @@ function CitasCalendarHeader() {
               "px-3 py-1.5 text-[13px] font-medium transition-colors",
               view === key
                 ? "bg-(--imss-green-500) text-white"
-                : "bg-background text-(--imss-ink-500) hover:bg-(--imss-ink-50) hover:text-(--imss-ink-900)",
+                : "bg-card text-(--imss-ink-500) hover:bg-(--imss-ink-50) hover:text-(--imss-ink-900)",
               "border-r border-(--imss-ink-100) last:border-r-0",
             ].join(" ")}
           >
@@ -314,6 +314,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     --calendar-time-col: 84px;
     --calendar-hour-row-height: 80px;
     --calendar-month-cell-height: 110px;
+    
 
     width: 100% !important;
     height: 100% !important;
@@ -325,7 +326,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     overflow: hidden !important;
     border: 1px solid hsl(var(--border));
     border-radius: 10px;
-    background: hsl(var(--background));
+    background: var(--card);
   }
 
   [data-testid="ilamy-calendar"] > div:first-child {
@@ -457,7 +458,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
   }
 
   [data-testid="ilamy-calendar"] [class*="sticky"] {
-    background: hsl(var(--background));
+    background: var(--card);
     z-index: 20;
   }
 
@@ -539,7 +540,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           }}
         />
         {isLoading ? (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-background/40 text-sm text-muted-foreground">
+          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-card/70 text-sm text-muted-foreground">
             Cargando citas…
           </div>
         ) : null}

@@ -83,7 +83,7 @@ export default function UsuariosPage() {
 
     // Detectar si el admin se está desactivando a sí mismo
     const desactivandoSiMismo =
-      usuarioToToggle.activo && usuarioToToggle.uuid === user?.uuid
+      usuarioToToggle.activo && usuarioToToggle.UUID === user?.uuid
 
     toggleActivoMutation.mutate(usuarioToToggle.id, {
       onSuccess: () => {

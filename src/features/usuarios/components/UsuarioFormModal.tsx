@@ -132,7 +132,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre 
         fechaNacimiento: formData.persona.fechaNacimiento,
         sexo: formData.persona.sexo,
         telefono: formData.persona.telefono || undefined,
-        email: formData.persona.email || undefined,
+        email: formData.persona.email || '',
       },
     }
 
