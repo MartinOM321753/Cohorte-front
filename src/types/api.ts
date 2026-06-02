@@ -146,6 +146,16 @@ export interface Cita {
   usuarioAgenda?: UsuarioResumenDTO
 }
 
+/** Slim projection returned by GET /citas/paciente/{uuid}/resumen */
+export interface CitaResumen {
+  citaUuid: string
+  pacienteUuid: string
+  fecha: string        // LocalDateTime in local TZ — ISO format "2026-05-18T07:00:00"
+  tipo: string | null
+  estado: string       // "Programada" | "No_Asistio" | "Completada" | "Cancelada"
+  profesional: string | null
+}
+
 export interface CitaRequestDTO {
   // Backend contract (Spring Boot DTO)
   pacienteUUID?: string
@@ -241,6 +251,8 @@ export interface EstudioListDTO {
   usuarioRealizauuid: string
   tipoEstudio: string
   tipoEstudioid: number
+  cantidadResultados?: number
+  cantidadAdjuntos?: number
 }
 
 /** Full detail DTO — returned by GET /estudios/{id} */
@@ -614,6 +626,40 @@ export interface ConfirmarRecepcionRequestDTO {
 export interface IniciarDevolucionRequestDTO {
   uuidEncargado: string
   observaciones?: string
+}
+
+// ============================================
+// SOMATOMETRÍA
+// ============================================
+export interface Somatometria {
+  id: number
+  pacienteUUID: string
+  pacienteNombre?: string
+  fechaMedicion: string         // ISO date "YYYY-MM-DD"
+  pesoKg?: number | null
+  tallaM?: number | null
+  /** IMC calculado en backend (peso / talla²) */
+  imc?: number | null
+  presionSistolica?: number | null
+  presionDiastolica?: number | null
+  circunferenciaAbdominalCm?: number | null
+  frecuenciaCardiacaReposo?: number | null
+  observaciones?: string | null
+  usuarioRegistraNombre?: string | null
+  fechaRegistro: string         // ISO datetime
+}
+
+export interface SomatometriaRequestDTO {
+  pacienteUUID: string
+  usuarioRegistraUUID: string
+  fechaMedicion: string         // "YYYY-MM-DD"
+  pesoKg?: number | null
+  tallaM?: number | null
+  presionSistolica?: number | null
+  presionDiastolica?: number | null
+  circunferenciaAbdominalCm?: number | null
+  frecuenciaCardiacaReposo?: number | null
+  observaciones?: string | null
 }
 
 // ============================================
