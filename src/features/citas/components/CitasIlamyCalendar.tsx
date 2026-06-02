@@ -60,6 +60,26 @@ function formatDateTime(d: dayjs.Dayjs): string {
   return d.format("dddd D [de] MMMM [·] HH:mm");
 }
 
+/**
+ * Calcula si el color de fondo requiere texto blanco o negro.
+ * Usa la fórmula de luminancia relativa (WCAG 2.0).
+ */
+function calcContrastColor(hexColor: string): string {
+  try {
+    const hex = hexColor.replace(/^#/, "");
+    const r = parseInt(hex.slice(0, 2), 16) / 255;
+    const g = parseInt(hex.slice(2, 4), 16) / 255;
+    const b = parseInt(hex.slice(4, 6), 16) / 255;
+    const toLinear = (c: number) =>
+      c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    const L =
+      0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+    return L > 0.179 ? "#0f172a" : "#ffffff";
+  } catch {
+    return "#0f172a";
+  }
+}
+
 // ─── Header personalizado ──────────────────────────────────────────────────────
 // Debe renderizarse dentro del contexto de IlamyCalendar (via headerComponent).
 
@@ -259,6 +279,8 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     [],
   );
 
+  const now = useMemo(() => dayjs(), []);
+
   const events = useMemo<CalendarEvent[]>(
     () =>
       citas
@@ -271,39 +293,56 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           const paciente = cita.paciente?.nombreCompleto || "Sin paciente";
           const usuario = cita.usuarioAgenda?.nombreCompleto;
 
-          const styleByEstado: Record<
-            string,
-            { color: string; backgroundColor: string }
-          > = {
-            PROGRAMADA: { color: "#1d4ed8", backgroundColor: "#dbeafe" },
-            COMPLETADA: { color: "#166534", backgroundColor: "#dcfce7" },
-            CANCELADA: { color: "#991b1b", backgroundColor: "#fee2e2" },
-            NO_ASISTIO: { color: "#7c2d12", backgroundColor: "#ffedd5" },
-          };
-
           const estadoKey = String(cita.estadoCita ?? "")
             .toUpperCase()
             .normalize("NFD")
             .replace(/[̀-ͯ]/g, "")
             .replace(/\s+/g, "_")
             .trim();
-          const eventStyle = styleByEstado[estadoKey] ?? {
-            color: "#0f172a",
-            backgroundColor: "#e2e8f0",
-          };
+
+          // Evento vencido: hora ya pasó y sigue en estado Programada
+          const esPasado =
+            estadoKey === "PROGRAMADA" && dayjs(startDate).isBefore(now);
+
+          // ── Color de fondo ────────────────────────────────────────────────
+          // 1. Si está vencida → rojo llamativo independientemente del colorHex
+          // 2. Si el usuario eligió un colorHex → usarlo de fondo
+          // 3. Fallback por estado
+          let bgColor: string;
+          let textColor: string;
+
+          if (esPasado) {
+            bgColor = "#ef4444";   // red-500
+            textColor = "#ffffff";
+          } else if (cita.colorHex) {
+            bgColor = cita.colorHex;
+            // Calcular contraste: si el color es oscuro → texto blanco, si claro → texto negro
+            textColor = calcContrastColor(cita.colorHex);
+          } else {
+            const fallback: Record<string, { bg: string; fg: string }> = {
+              PROGRAMADA:  { bg: "#dbeafe", fg: "#1d4ed8" },
+              COMPLETADA:  { bg: "#dcfce7", fg: "#166534" },
+              CANCELADA:   { bg: "#fee2e2", fg: "#991b1b" },
+              NO_ASISTIO:  { bg: "#ffedd5", fg: "#7c2d12" },
+            };
+            const f = fallback[estadoKey] ?? { bg: "#e2e8f0", fg: "#0f172a" };
+            bgColor = f.bg;
+            textColor = f.fg;
+          }
 
           return {
             id: String(cita.uuid || cita.id),
             title: usuario ? `${paciente} · ${usuario}` : paciente,
             start: dayjs(startDate),
             end: dayjs(endDate),
-            color: cita.colorHex ?? eventStyle.color,
-            backgroundColor: eventStyle.backgroundColor,
+            color: textColor,
+            backgroundColor: bgColor,
             description: cita.observaciones,
             data: { cita },
           } satisfies CalendarEvent;
         })
         .filter(Boolean) as CalendarEvent[],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [citas],
   );
 

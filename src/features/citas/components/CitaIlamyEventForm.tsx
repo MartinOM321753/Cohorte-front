@@ -374,6 +374,8 @@ export function CitaIlamyEventForm({
                 value={watch('fechaCita')}
                 onChange={(v) => setValue('fechaCita', v)}
                 disabled={isPast}
+                minHour={8}
+                maxHour={17}
               />
               {errors.fechaCita ? (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
