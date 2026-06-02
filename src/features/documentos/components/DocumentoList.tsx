@@ -161,14 +161,16 @@ export function DocumentoList({
           return (
             <li
               key={doc.id}
-              className="flex items-start gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors"
+              className="grid grid-cols-[16px_1fr_auto] items-start gap-2 px-3 py-2.5 hover:bg-muted/30 transition-colors"
             >
+              {/* Icon — fixed 16 px column */}
               <div className="mt-0.5">
                 <FileIcon mimeType={doc.mimeType} />
               </div>
 
-              <div className="flex-1 min-w-0 space-y-0.5">
-                <p className="truncate text-sm font-medium leading-none">
+              {/* Info — takes all remaining space; text wraps on long names */}
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-sm font-medium leading-snug break-all">
                   {doc.nombreOriginal}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -189,11 +191,12 @@ export function DocumentoList({
                   )}
                 </div>
                 {doc.descripcion && (
-                  <p className="text-xs text-muted-foreground truncate">{doc.descripcion}</p>
+                  <p className="text-xs text-muted-foreground break-words">{doc.descripcion}</p>
                 )}
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
+              {/* Actions — auto-sized, never compressed */}
+              <div className="flex items-center gap-1 pt-0.5">
                 {doc.puedeDescargar ? (
                   <>
                     {/* Ver inline (PDFs e imágenes) */}

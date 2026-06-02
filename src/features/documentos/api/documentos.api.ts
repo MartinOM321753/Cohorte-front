@@ -137,9 +137,18 @@ export async function downloadDocumentoBlob(
     })
 
     const contentDisposition = String(res.headers['content-disposition'] ?? '')
-    const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
-    const rawName = match ? match[1].replace(/['"]/g, '') : `documento-${id}`
-    const fileName = decodeURIComponent(rawName.replace(/%20/g, ' '))
+
+    // Prefer RFC 5987 filename*=UTF-8''<encoded> (set by backend for full Unicode support)
+    const rfc5987Match = contentDisposition.match(/filename\*\s*=\s*(?:UTF-8|utf-8)'[^']*'([^;\s]+)/i)
+    let fileName: string
+    if (rfc5987Match) {
+      fileName = decodeURIComponent(rfc5987Match[1])
+    } else {
+      // Fall back to plain filename="..." parameter
+      const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      const rawName = match ? match[1].replace(/['"]/g, '').trim() : `documento-${id}`
+      fileName = decodeURIComponent(rawName.replace(/%20/g, ' '))
+    }
 
     const mimeType = String(res.headers['content-type'] ?? 'application/octet-stream')
     const objectUrl = URL.createObjectURL(new Blob([res.data], { type: mimeType }))

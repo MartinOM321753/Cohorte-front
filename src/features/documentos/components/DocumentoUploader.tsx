@@ -165,10 +165,7 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
           <div className="text-center">
             <span className="font-medium text-foreground">Haz clic</span> o arrastra un archivo aquí
           </div>
-          {accept && (
-            <p className="text-xs opacity-60">{accept.replace(/,/g, ', ')}</p>
-          )}
-          <p className="text-xs opacity-60">Máx. 50 MB</p>
+          <p className="text-xs opacity-60">PDF, imágenes, Word, Excel · Máx. 50 MB</p>
           <input
             ref={fileInputRef}
             type="file"
