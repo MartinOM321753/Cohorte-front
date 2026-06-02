@@ -14,7 +14,22 @@
     <meta name="theme-color" content="#0F172A" />
     <title>IMSS Cohorte - Sistema Clínico</title>
   </head>
-  <body class="bg-white">
+  <body>
+    <!-- Anti-flash: lee localStorage antes de que React hidrate para evitar parpadeo de tema -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme') || 'imss-verde';
+          var valid = ['imss-verde','imss-oscuro','noche-slate','sepia-lectura','alto-contraste','ambar-oled'];
+          if (valid.indexOf(t) === -1) t = 'imss-verde';
+          document.documentElement.setAttribute('data-theme', t);
+          var dark = ['imss-oscuro','noche-slate','ambar-oled'];
+          document.documentElement.classList.toggle('dark', dark.indexOf(t) !== -1);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'imss-verde');
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

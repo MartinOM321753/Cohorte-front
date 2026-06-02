@@ -1,16 +1,26 @@
 @import 'tailwindcss';
 
+/* La clase .dark la administra el themeStore para los temas oscuros,
+   de modo que las utilidades dark:* de Tailwind siguen operando. */
 @custom-variant dark (&:is(.dark *));
 
+/* ---- Tokens base compartidos ---- */
 :root {
-  /* shadcn semantic — primary cambia a verde IMSS */
-  --background: oklch(1 0 0);
+  --radius: 0.375rem;
+}
+
+/* ============================================================
+   TEMA: IMSS Verde (claro · default)
+   ============================================================ */
+:root,
+[data-theme='imss-verde'] {
+  --background: rgb(238, 241, 239);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.36 0.05 156);              /* #1e4e3a IMSS green */
+  --primary: oklch(0.36 0.05 156);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0.005 156);
   --secondary-foreground: oklch(0.22 0.04 156);
@@ -18,63 +28,434 @@
   --muted-foreground: oklch(0.45 0.01 156);
   --accent: oklch(0.97 0.005 156);
   --accent-foreground: oklch(0.22 0.04 156);
-  --destructive: oklch(0.52 0.21 27);            /* #b3261e */
+  --destructive: oklch(0.52 0.21 27);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.005 156);               /* #dbe1de */
+  --border: oklch(0.92 0.005 156);
   --input: oklch(0.92 0.005 156);
   --ring: oklch(0.36 0.05 156);
-  --radius: 0.375rem;                            /* 6 px base */
 
-  /* Tokens de marca IMSS — úsalos en lugar de inventar colores */
+  /* Marca */
   --imss-green-900: #0e2a20;
   --imss-green-800: #143a2c;
-  --imss-green-700: #1a4332;                     /* hover de primary */
-  --imss-green-500: #1e4e3a;                     /* primary canónico */
+  --imss-green-700: #1a4332;
+  --imss-green-600: #1c4938;
+  --imss-green-500: #1e4e3a;
   --imss-green-100: #d9e4dd;
-  --imss-green-50:  #ecf2ee;                     /* selected-row, tinted bg */
+  --imss-green-50:  #ecf2ee;
 
   --imss-ochre-700: #735318;
-  --imss-ochre-500: #a87b2c;                     /* accent / investigación */
+  --imss-ochre-500: #a87b2c;
   --imss-ochre-300: #d4a866;
   --imss-ochre-50:  #f9f2e2;
 
-  --imss-paper:  #f6f3eb;                        /* off-white cálido */
-  --imss-bone:   #efebdf;
+  --imss-paper: #f6f3eb;
+  --imss-bone:  #efebdf;
 
   --imss-ink-900: #0d1411;
+  --imss-ink-700: #202e28;
   --imss-ink-500: #4a5651;
+  --imss-ink-400: #636e6a;
   --imss-ink-300: #7d8782;
+  --imss-ink-200: #a8b4af;
   --imss-ink-100: #dbe1de;
+  --imss-ink-50:  #eef1ef;
 
-  /* Estados clínicos / semánticos */
-  --status-success-bg: #e7f4ec;  --status-success-fg: #145c39;
-  --status-warning-bg: #fbf3e3;  --status-warning-fg: #8a560e;
-  --status-danger-bg:  #fbeae9;  --status-danger-fg:  #8a1a14;
-  --status-info-bg:    #e3f2f6;  --status-info-fg:    #0a566c;
-  --status-neutral-bg: #eaeeec;  --status-neutral-fg: #4a5651;
+  /* Estados clínicos */
+  --status-success-bg: #e7f4ec; --status-success-fg: #145c39;
+  --status-warning-bg: #fbf3e3; --status-warning-fg: #8a560e;
+  --status-danger-bg:  #fbeae9; --status-danger-fg:  #8a1a14;
+  --status-info-bg:    #e3f2f6; --status-info-fg:    #0a566c;
+  --status-neutral-bg: #eaeeec; --status-neutral-fg: #4a5651;
   --status-investiga-bg: #f9f2e2; --status-investiga-fg: #735318;
+
+  /* Sidebar */
+  --sidebar-bg: #0e2a20;
+  --sidebar-fg: #ffffff;
+  --sidebar-fg-dim: rgba(255,255,255,0.78);
+  --sidebar-muted: rgba(255,255,255,0.45);
+  --sidebar-border: rgba(255,255,255,0.08);
+  --sidebar-hover: rgba(255,255,255,0.06);
+  --sidebar-active-bg: rgba(255,255,255,0.10);
+  --sidebar-accent: #a87b2c;
+
+  /* Gráficas */
+  --chart-grid: #dbe1de;
+  --chart-line: #1e4e3a;
+  --chart-band: #ecf2ee;
+  --chart-pt:   #ffffff;
+  --chart-2: #a87b2c;
+  --chart-3: #0f7490;
+  --chart-4: #b3261e;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.488 0.243 264.376);
+/* ============================================================
+   TEMA: IMSS Oscuro (oscuro · verde-teñido)
+   ============================================================ */
+[data-theme='imss-oscuro'] {
+  --background: #0d1a14;
+  --foreground: #dde7e1;
+  --card: #14241d;
+  --card-foreground: #dde7e1;
+  --popover: #14241d;
+  --popover-foreground: #dde7e1;
+  --primary: #5fa37e;
+  --primary-foreground: #06120c;
+  --secondary: #1a2b23;
+  --secondary-foreground: #dde7e1;
+  --muted: #1a2b23;
+  --muted-foreground: #8a9991;
+  --accent: #1a2b23;
+  --accent-foreground: #dde7e1;
+  --destructive: #e06a60;
+  --destructive-foreground: #06120c;
+  --border: #26362e;
+  --input: #26362e;
+  --ring: #5fa37e;
+
+  --imss-green-900: #06120c;
+  --imss-green-800: #0a1a12;
+  --imss-green-700: #2c6149;
+  --imss-green-600: #3d7a5e;
+  --imss-green-500: #5fa37e;
+  --imss-green-100: #1f3329;
+  --imss-green-50:  #19281f;
+
+  --imss-ochre-700: #d4a866;
+  --imss-ochre-500: #c2974f;
+  --imss-ochre-300: #9a7536;
+  --imss-ochre-50:  #2a2113;
+
+  --imss-paper: #14241d;
+  --imss-bone:  #19281f;
+
+  --imss-ink-900: #eef4f0;
+  --imss-ink-700: #c8d6ce;
+  --imss-ink-500: #9aa7a0;
+  --imss-ink-400: #8a9891;
+  --imss-ink-300: #6f7d76;
+  --imss-ink-200: #505d57;
+  --imss-ink-100: #26362e;
+  --imss-ink-50:  #16271e;
+
+  --status-success-bg: #15281c; --status-success-fg: #6fcf97;
+  --status-warning-bg: #2a2113; --status-warning-fg: #e0b35e;
+  --status-danger-bg:  #2a1614; --status-danger-fg:  #e88a80;
+  --status-info-bg:    #13242a; --status-info-fg:    #6cc0d6;
+  --status-neutral-bg: #1f3329; --status-neutral-fg: #9aa7a0;
+  --status-investiga-bg: #2a2113; --status-investiga-fg: #d8b878;
+
+  --sidebar-bg: #0a1410;
+  --sidebar-fg: #ffffff;
+  --sidebar-fg-dim: rgba(255,255,255,0.74);
+  --sidebar-muted: rgba(255,255,255,0.40);
+  --sidebar-border: rgba(255,255,255,0.07);
+  --sidebar-hover: rgba(255,255,255,0.05);
+  --sidebar-active-bg: rgba(255,255,255,0.10);
+  --sidebar-accent: #d4a866;
+
+  --chart-grid: #26362e;
+  --chart-line: #5fa37e;
+  --chart-band: #16271e;
+  --chart-pt:   #14241d;
+  --chart-2: #d4a866;
+  --chart-3: #6cc0d6;
+  --chart-4: #e88a80;
+}
+
+/* ============================================================
+   TEMA: Noche Slate (oscuro · gris neutro)
+   ============================================================ */
+[data-theme='noche-slate'] {
+  --background: #0d1117;
+  --foreground: #e2e8f0;
+  --card: #161b22;
+  --card-foreground: #e2e8f0;
+  --popover: #161b22;
+  --popover-foreground: #e2e8f0;
+  --primary: #3f9d74;
+  --primary-foreground: #04120b;
+  --secondary: #1c2230;
+  --secondary-foreground: #e2e8f0;
+  --muted: #1c2230;
+  --muted-foreground: #8b95a5;
+  --accent: #1c2230;
+  --accent-foreground: #e2e8f0;
+  --destructive: #e5675c;
+  --destructive-foreground: #04120b;
+  --border: #293140;
+  --input: #293140;
+  --ring: #3f9d74;
+
+  --imss-green-900: #04120b;
+  --imss-green-800: #091a10;
+  --imss-green-700: #2c6149;
+  --imss-green-600: #347558;
+  --imss-green-500: #3f9d74;
+  --imss-green-100: #1c2a22;
+  --imss-green-50:  #18202b;
+
+  --imss-ochre-700: #dcb45c;
+  --imss-ochre-500: #c69e4a;
+  --imss-ochre-300: #9a7c38;
+  --imss-ochre-50:  #27220f;
+
+  --imss-paper: #161b22;
+  --imss-bone:  #1c2230;
+
+  --imss-ink-900: #eef2f7;
+  --imss-ink-700: #ccd5e0;
+  --imss-ink-500: #97a1b0;
+  --imss-ink-400: #848fa0;
+  --imss-ink-300: #6b7585;
+  --imss-ink-200: #4c5668;
+  --imss-ink-100: #293140;
+  --imss-ink-50:  #161b22;
+
+  --status-success-bg: #13261b; --status-success-fg: #5fd394;
+  --status-warning-bg: #27220f; --status-warning-fg: #dcb45c;
+  --status-danger-bg:  #27161a; --status-danger-fg:  #e8857e;
+  --status-info-bg:    #13212c; --status-info-fg:    #62b6d8;
+  --status-neutral-bg: #1c2a22; --status-neutral-fg: #97a1b0;
+  --status-investiga-bg: #27220f; --status-investiga-fg: #d6b475;
+
+  --sidebar-bg: #090d12;
+  --sidebar-fg: #ffffff;
+  --sidebar-fg-dim: rgba(255,255,255,0.72);
+  --sidebar-muted: rgba(255,255,255,0.40);
+  --sidebar-border: rgba(255,255,255,0.07);
+  --sidebar-hover: rgba(255,255,255,0.05);
+  --sidebar-active-bg: rgba(255,255,255,0.10);
+  --sidebar-accent: #3f9d74;
+
+  --chart-grid: #293140;
+  --chart-line: #3f9d74;
+  --chart-band: #15241b;
+  --chart-pt:   #161b22;
+  --chart-2: #dcb45c;
+  --chart-3: #62b6d8;
+  --chart-4: #e8857e;
+}
+
+/* ============================================================
+   TEMA: Sepia Lectura (claro · cálido)
+   ============================================================ */
+[data-theme='sepia-lectura'] {
+  --background: #f3ead7;
+  --foreground: #2e2519;
+  --card: #fbf5e9;
+  --card-foreground: #2e2519;
+  --popover: #fbf5e9;
+  --popover-foreground: #2e2519;
+  --primary: #1e4e3a;
+  --primary-foreground: #fbf5e9;
+  --secondary: #ece1cb;
+  --secondary-foreground: #3c3320;
+  --muted: #ece1cb;
+  --muted-foreground: #6b5d44;
+  --accent: #ece1cb;
+  --accent-foreground: #3c3320;
+  --destructive: #a8362a;
+  --destructive-foreground: #fbf5e9;
+  --border: #ddceb0;
+  --input: #d3c2a0;
+  --ring: #1e4e3a;
+
+  --imss-green-900: #1a3a2c;
+  --imss-green-800: #1a4030;
+  --imss-green-700: #1a4332;
+  --imss-green-600: #1c4a38;
+  --imss-green-500: #1e4e3a;
+  --imss-green-100: #cdd9cd;
+  --imss-green-50:  #e8eadb;
+
+  --imss-ochre-700: #7d5a16;
+  --imss-ochre-500: #9a6f24;
+  --imss-ochre-300: #bb8d3c;
+  --imss-ochre-50:  #f1e4c4;
+
+  --imss-paper: #f3ead7;
+  --imss-bone:  #ece1cb;
+
+  --imss-ink-900: #2e2519;
+  --imss-ink-700: #3c3320;
+  --imss-ink-500: #6b5d44;
+  --imss-ink-400: #7a6c55;
+  --imss-ink-300: #8a7c61;
+  --imss-ink-200: #a89880;
+  --imss-ink-100: #ddceb0;
+  --imss-ink-50:  #ece1cb;
+
+  --status-success-bg: #e3ecdb; --status-success-fg: #3c6b3a;
+  --status-warning-bg: #f5e6c8; --status-warning-fg: #8a5e16;
+  --status-danger-bg:  #f3ddd4; --status-danger-fg:  #9a3528;
+  --status-info-bg:    #dfe9e4; --status-info-fg:    #2a5c5a;
+  --status-neutral-bg: #e6ddc8; --status-neutral-fg: #6b5d44;
+  --status-investiga-bg: #f1e4c4; --status-investiga-fg: #7d5a16;
+
+  --sidebar-bg: #2c2417;
+  --sidebar-fg: #f5ecd9;
+  --sidebar-fg-dim: rgba(245,236,217,0.78);
+  --sidebar-muted: rgba(245,236,217,0.50);
+  --sidebar-border: rgba(245,236,217,0.10);
+  --sidebar-hover: rgba(245,236,217,0.07);
+  --sidebar-active-bg: rgba(245,236,217,0.12);
+  --sidebar-accent: #d4a866;
+
+  --chart-grid: #ddceb0;
+  --chart-line: #1e4e3a;
+  --chart-band: #e6e9d6;
+  --chart-pt:   #fbf5e9;
+  --chart-2: #9a6f24;
+  --chart-3: #2a5c5a;
+  --chart-4: #a8362a;
+}
+
+/* ============================================================
+   TEMA: Alto Contraste (claro · AAA)
+   ============================================================ */
+[data-theme='alto-contraste'] {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #0a3a28;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #000000;
+  --muted: #f0f0f0;
+  --muted-foreground: #1a1a1a;
+  --accent: #f0f0f0;
+  --accent-foreground: #000000;
+  --destructive: #9a0000;
+  --destructive-foreground: #ffffff;
+  --border: #000000;
+  --input: #000000;
+  --ring: #0a3a28;
+
+  --imss-green-900: #000000;
+  --imss-green-800: #051a10;
+  --imss-green-700: #0a3a28;
+  --imss-green-600: #0a3a28;
+  --imss-green-500: #0a3a28;
+  --imss-green-100: #cddbd3;
+  --imss-green-50:  #e8f0ec;
+
+  --imss-ochre-700: #5e3d00;
+  --imss-ochre-500: #8a4b00;
+  --imss-ochre-300: #a86200;
+  --imss-ochre-50:  #f5e4c0;
+
+  --imss-paper: #ffffff;
+  --imss-bone:  #f0f0f0;
+
+  --imss-ink-900: #000000;
+  --imss-ink-700: #0a0a0a;
+  --imss-ink-500: #1a1a1a;
+  --imss-ink-400: #262626;
+  --imss-ink-300: #333333;
+  --imss-ink-200: #555555;
+  --imss-ink-100: #000000;
+  --imss-ink-50:  #f0f0f0;
+
+  --status-success-bg: #d6efdf; --status-success-fg: #0a4a25;
+  --status-warning-bg: #fbeccb; --status-warning-fg: #6e4200;
+  --status-danger-bg:  #fadbd8; --status-danger-fg:  #7a0000;
+  --status-info-bg:    #d6ecf3; --status-info-fg:    #003d4d;
+  --status-neutral-bg: #e8e8e8; --status-neutral-fg: #1a1a1a;
+  --status-investiga-bg: #f5e4c0; --status-investiga-fg: #5e3d00;
+
+  --sidebar-bg: #000000;
+  --sidebar-fg: #ffffff;
+  --sidebar-fg-dim: rgba(255,255,255,0.92);
+  --sidebar-muted: rgba(255,255,255,0.70);
+  --sidebar-border: rgba(255,255,255,0.30);
+  --sidebar-hover: rgba(255,255,255,0.16);
+  --sidebar-active-bg: rgba(255,255,255,0.22);
+  --sidebar-accent: #ffb000;
+
+  --chart-grid: #999999;
+  --chart-line: #0a3a28;
+  --chart-band: #dfeae4;
+  --chart-pt:   #ffffff;
+  --chart-2: #8a4b00;
+  --chart-3: #003d4d;
+  --chart-4: #9a0000;
+}
+
+/* ============================================================
+   TEMA: Ámbar OLED (oscuro · negro puro)
+   ============================================================ */
+[data-theme='ambar-oled'] {
+  --background: #000000;
+  --foreground: #e8e2d4;
+  --card: #0d0d0c;
+  --card-foreground: #e8e2d4;
+  --popover: #0d0d0c;
+  --popover-foreground: #e8e2d4;
+  --primary: #d4a866;
+  --primary-foreground: #0a0805;
+  --secondary: #161614;
+  --secondary-foreground: #e8e2d4;
+  --muted: #161614;
+  --muted-foreground: #928a78;
+  --accent: #161614;
+  --accent-foreground: #e8e2d4;
+  --destructive: #e0726a;
+  --destructive-foreground: #0a0805;
+  --border: #262420;
+  --input: #262420;
+  --ring: #d4a866;
+
+  --imss-green-900: #000000;
+  --imss-green-800: #050504;
+  --imss-green-700: #2c6149;
+  --imss-green-600: #3d7a5e;
+  --imss-green-500: #74c79a;
+  --imss-green-100: #15231a;
+  --imss-green-50:  #141310;
+
+  --imss-ochre-700: #e0b87a;
+  --imss-ochre-500: #d4a866;
+  --imss-ochre-300: #9a7536;
+  --imss-ochre-50:  #241c0e;
+
+  --imss-paper: #0d0d0c;
+  --imss-bone:  #161614;
+
+  --imss-ink-900: #f0e9da;
+  --imss-ink-700: #ddd4c0;
+  --imss-ink-500: #9a917f;
+  --imss-ink-400: #857d6c;
+  --imss-ink-300: #6f685a;
+  --imss-ink-200: #4a4438;
+  --imss-ink-100: #262420;
+  --imss-ink-50:  #141310;
+
+  --status-success-bg: #10231a; --status-success-fg: #74c79a;
+  --status-warning-bg: #241c0e; --status-warning-fg: #dcb45c;
+  --status-danger-bg:  #241310; --status-danger-fg:  #e88a80;
+  --status-info-bg:    #0f2026; --status-info-fg:    #6cbcd2;
+  --status-neutral-bg: #1a1916; --status-neutral-fg: #9a917f;
+  --status-investiga-bg: #241c0e; --status-investiga-fg: #d4a866;
+
+  --sidebar-bg: #000000;
+  --sidebar-fg: #f0e9da;
+  --sidebar-fg-dim: rgba(240,233,218,0.72);
+  --sidebar-muted: rgba(240,233,218,0.40);
+  --sidebar-border: rgba(240,233,218,0.08);
+  --sidebar-hover: rgba(240,233,218,0.06);
+  --sidebar-active-bg: rgba(212,168,102,0.16);
+  --sidebar-accent: #d4a866;
+
+  --chart-grid: #262420;
+  --chart-line: #d4a866;
+  --chart-band: #1a1610;
+  --chart-pt:   #0d0d0c;
+  --chart-2: #74c79a;
+  --chart-3: #6cbcd2;
+  --chart-4: #e88a80;
 }
 
 @theme inline {
@@ -103,6 +484,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* Sidebar tokens como utilidades Tailwind opcionales */
+  --color-sidebar: var(--sidebar-bg);
+  --color-sidebar-foreground: var(--sidebar-fg);
 }
 
 @layer base {
@@ -112,6 +496,10 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  button {
+    cursor: pointer;
   }
 }
 

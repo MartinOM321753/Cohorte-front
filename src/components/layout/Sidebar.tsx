@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import type { ElementType } from 'react'
+import cohorteLogo from '../../assets/logo.png'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore, type UserRole } from '@/stores/authStore'
@@ -95,17 +96,21 @@ const navItems: NavItem[] = [
   },
 ]
 
-function ImssShield({ size = 32 }: { size?: number }) {
+function ImssShield({ size = 62 }: { size?: number }) {
   return (
-    <svg width={size} height={size * 1.08} viewBox="0 0 48 52" aria-hidden="true">
-      <path d="M24 1 L46 7 V26 C46 38 36 47 24 51 C12 47 2 38 2 26 V7 Z" fill="#ffffff" />
-      <path d="M24 6 L41 11 V26 C41 36 33 43 24 46 C15 43 7 36 7 26 V11 Z" fill="#a87b2c" />
-      <path
-        d="M24 14 L18 22 L13 20 L20 26 L13 30 L20 30 L17 38 L24 32 L31 38 L28 30 L35 30 L28 26 L35 20 L30 22 Z"
-        fill="#1e4e3a"
-      />
-      <rect x="7" y="40" width="34" height="2.4" fill="#ffffff" />
-    </svg>
+    <img
+      src={cohorteLogo}
+      alt="Cohorte de Trabajadores de la Salud"
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        objectFit: 'contain',
+        filter: 'invert(1)',
+        mixBlendMode: 'screen',
+        flexShrink: 0,
+      }}
+    />
   )
 }
 
@@ -127,11 +132,14 @@ function EncargadoAlmacenesSection({ uuid, collapsed }: { uuid: string; collapse
                 to="/mis-muestras"
                 title={almacen.nombre}
                 onClick={() => setSelectedAlmacen(almacen.id)}
-                className={cn(
-                  'flex items-center justify-center rounded-[5px] py-2 text-white/78',
-                  'hover:bg-white/6 hover:text-white',
-                  isActive && 'bg-white/10 text-white shadow-[inset_2px_0_0_var(--imss-ochre-500)]'
-                )}
+                className="flex items-center justify-center rounded-[5px] py-2 transition-colors"
+                style={{
+                  color: isActive ? 'var(--sidebar-fg)' : 'var(--sidebar-fg-dim)',
+                  background: isActive ? 'var(--sidebar-active-bg)' : undefined,
+                  boxShadow: isActive ? 'inset 2px 0 0 var(--sidebar-accent)' : undefined,
+                } as React.CSSProperties}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)' }}
+                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '' }}
                 aria-current={isActive ? 'page' : undefined}
               >
                 <Warehouse className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -148,7 +156,8 @@ function EncargadoAlmacenesSection({ uuid, collapsed }: { uuid: string; collapse
       <div className="px-3 pb-1 pt-3">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex w-full items-center justify-between text-[10px] font-semibold uppercase tracking-[0.06em] text-white/40 hover:text-white/60 transition-colors"
+          className="flex w-full items-center justify-between text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors hover:opacity-80"
+          style={{ color: 'var(--sidebar-muted)' }}
         >
           <span>Mis Almacenes</span>
           {expanded
@@ -161,7 +170,7 @@ function EncargadoAlmacenesSection({ uuid, collapsed }: { uuid: string; collapse
       {expanded && (
         <div className="space-y-1 px-2">
           {almacenes.length === 0 ? (
-            <p className="px-[10px] py-1 text-[11px] text-white/30 italic">Sin almacenes asignados</p>
+            <p className="px-[10px] py-1 text-[11px] italic" style={{ color: 'var(--sidebar-muted)' }}>Sin almacenes asignados</p>
           ) : (
             almacenes.map((almacen) => {
               const isActive = location.pathname === '/mis-muestras' && selectedAlmacenId === almacen.id
@@ -170,11 +179,14 @@ function EncargadoAlmacenesSection({ uuid, collapsed }: { uuid: string; collapse
                   key={almacen.id}
                   to="/mis-muestras"
                   onClick={() => setSelectedAlmacen(almacen.id)}
-                  className={cn(
-                    'flex items-center gap-[10px] rounded-[5px] px-[10px] py-2 text-[13px] font-medium text-white/78',
-                    'hover:bg-white/6 hover:text-white',
-                    isActive && 'bg-white/10 text-white shadow-[inset_2px_0_0_var(--imss-ochre-500)]'
-                  )}
+                  className="flex items-center gap-[10px] rounded-[5px] px-[10px] py-2 text-[13px] font-medium transition-colors"
+                  style={{
+                    color: isActive ? 'var(--sidebar-fg)' : 'var(--sidebar-fg-dim)',
+                    background: isActive ? 'var(--sidebar-active-bg)' : undefined,
+                    boxShadow: isActive ? 'inset 2px 0 0 var(--sidebar-accent)' : undefined,
+                  } as React.CSSProperties}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)' }}
+                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '' }}
                   aria-current={isActive ? 'page' : undefined}
                 >
                   <Warehouse className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -232,17 +244,22 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'flex flex-col border-r border-white/10 bg-[var(--imss-green-900)] text-white/80',
+        'flex flex-col border-r',
         collapsed ? 'w-16' : 'w-[248px]'
       )}
+      style={{
+        background: 'var(--sidebar-bg)',
+        color: 'var(--sidebar-fg)',
+        borderColor: 'var(--sidebar-border)',
+      }}
     >
-      <div className="flex h-14 items-center justify-between border-b border-white/10 px-3">
+      <div className="flex h-14 items-center justify-between border-b px-3" style={{ borderColor: 'var(--sidebar-border)' }}>
         {!collapsed ? (
           <div className="flex min-w-0 items-center gap-3">
             <ImssShield size={32} />
             <div className="min-w-0">
-              <div className="truncate text-[14px] font-semibold leading-none text-white">IMSS Cohorte</div>
-              <div className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.06em] text-white/60">
+              <div className="truncate text-[14px] font-semibold leading-none" style={{ color: 'var(--sidebar-fg)' }}>Cohorte</div>
+              <div className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--sidebar-muted)' }}>
                 Investigación · v1.0
               </div>
             </div>
@@ -255,7 +272,8 @@ export function Sidebar() {
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="h-8 w-8 text-white/70 hover:bg-white/10 hover:text-white"
+          className="h-8 w-8 hover:opacity-100 opacity-70"
+          style={{ color: 'var(--sidebar-fg)' } as React.CSSProperties}
           aria-label={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
           title={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
         >
@@ -283,7 +301,8 @@ export function Sidebar() {
           return (
             <div key={group} className="mb-2">
               {!collapsed && (
-                <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.06em] text-white/40">
+                <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.06em]"
+                  style={{ color: 'var(--sidebar-muted)' }}>
                   {group}
                 </div>
               )}
@@ -296,11 +315,14 @@ export function Sidebar() {
                     <Link
                       key={item.href}
                       to={item.href}
-                      className={cn(
-                        'flex items-center gap-[10px] rounded-[5px] px-[10px] py-2 text-[13px] font-medium text-white/78',
-                        'hover:bg-white/6 hover:text-white',
-                        isActive && 'bg-white/10 text-white shadow-[inset_2px_0_0_var(--imss-ochre-500)]'
-                      )}
+                      className="flex items-center gap-[10px] rounded-[5px] px-[10px] py-2 text-[13px] font-medium transition-colors"
+                      style={{
+                        color: isActive ? 'var(--sidebar-fg)' : 'var(--sidebar-fg-dim)',
+                        background: isActive ? 'var(--sidebar-active-bg)' : undefined,
+                        boxShadow: isActive ? 'inset 2px 0 0 var(--sidebar-accent)' : undefined,
+                      } as React.CSSProperties}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)' }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '' }}
                       aria-current={isActive ? 'page' : undefined}
                     >
                       <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -314,22 +336,24 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-white/10 p-2">
+      <div className="border-t p-2" style={{ borderColor: 'var(--sidebar-border)' }}>
         {user && !collapsed ? (
           <div className="flex items-center gap-3 rounded-md px-2 py-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--imss-green-700)] text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full"
+              style={{ background: 'var(--sidebar-active-bg)', color: 'var(--sidebar-fg)' }}>
               <span className="text-[13px] font-semibold">{initials}</span>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-medium text-white">
+              <div className="truncate text-[13px] font-medium" style={{ color: 'var(--sidebar-fg)' }}>
                 {user.nombreCompleto || user.username}
               </div>
-              <div className="truncate text-[11px] text-white/60">{userRoleLabel}</div>
+              <div className="truncate text-[11px]" style={{ color: 'var(--sidebar-muted)' }}>{userRoleLabel}</div>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-white/70 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 opacity-70 hover:opacity-100"
+              style={{ color: 'var(--sidebar-fg)' } as React.CSSProperties}
               onClick={logout}
               aria-label="Cerrar sesión"
               title="Cerrar sesión"
@@ -341,9 +365,10 @@ export function Sidebar() {
           <Button
             variant="ghost"
             className={cn(
-              'w-full justify-start gap-3 text-white/70 hover:bg-white/10 hover:text-white',
+              'w-full justify-start gap-3 opacity-70 hover:opacity-100',
               collapsed && 'justify-center px-0'
             )}
+            style={{ color: 'var(--sidebar-fg)' } as React.CSSProperties}
             onClick={logout}
             title="Cerrar sesión"
           >
