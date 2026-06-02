@@ -69,10 +69,16 @@ function roundUpMinutes(date: Date, step: number): string {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
-function buildTimeOptions(stepMinutes: number): string[] {
+function buildTimeOptions(
+  stepMinutes: number,
+  minHour = 0,
+  maxHour = 23
+): string[] {
   const times: string[] = []
-  for (let hour = 0; hour < 24; hour++) {
+  for (let hour = minHour; hour <= maxHour; hour++) {
     for (let minute = 0; minute < 60; minute += stepMinutes) {
+      // Para la última hora solo incluir :00
+      if (hour === maxHour && minute > 0) continue
       times.push(`${pad2(hour)}:${pad2(minute)}`)
     }
   }
@@ -85,12 +91,15 @@ export function DatePicker({
   placeholder = 'Selecciona una fecha',
   disabled,
   className,
+  maxDate,
 }: {
   value?: string
   onChange: (value: string) => void
   placeholder?: string
   disabled?: boolean
   className?: string
+  /** Si se proporciona, bloquea la selección de fechas posteriores a este día. */
+  maxDate?: Date
 }) {
   const selected = useMemo(() => parseDateOnly(value), [value])
 
@@ -111,6 +120,7 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={selected ?? undefined}
+          disabled={maxDate ? { after: maxDate } : undefined}
           onSelect={(d) => {
             if (!d) return
             onChange(toDateOnlyString(d))
@@ -179,6 +189,10 @@ export function DateTimePicker({
   disabled,
   timeStepMinutes = 15,
   maxDateTime,
+  /** Hora mínima del rango (inclusive). Por defecto 8 = 08:00. */
+  minHour = 8,
+  /** Hora máxima del rango (inclusive, solo el :00). Por defecto 17 = 17:00. */
+  maxHour = 17,
   className,
 }: {
   value?: string
@@ -187,12 +201,17 @@ export function DateTimePicker({
   disabled?: boolean
   timeStepMinutes?: number
   maxDateTime?: Date
+  minHour?: number
+  maxHour?: number
   className?: string
 }) {
   const parsed = useMemo(() => parseLocalDateTime(value), [value])
   const selectedDate = parsed?.date ?? null
   const selectedTime = parsed?.time ?? ''
-  const allTimeOptions = useMemo(() => buildTimeOptions(timeStepMinutes), [timeStepMinutes])
+  const allTimeOptions = useMemo(
+    () => buildTimeOptions(timeStepMinutes, minHour, maxHour),
+    [timeStepMinutes, minHour, maxHour]
+  )
 
   const timeOptions = useMemo(() => {
     if (!maxDateTime || !selectedDate) return allTimeOptions
@@ -211,7 +230,15 @@ export function DateTimePicker({
   }, [selectedDate])
 
   const setDate = (d: Date) => {
-    const time = selectedTime || roundUpMinutes(new Date(), timeStepMinutes)
+    // Si no hay hora seleccionada, usar el primer slot disponible del rango
+    const defaultTime = (() => {
+      const rounded = roundUpMinutes(new Date(), timeStepMinutes)
+      const [h] = rounded.split(':').map(Number)
+      if (h < minHour) return `${pad2(minHour)}:00`
+      if (h > maxHour) return `${pad2(maxHour)}:00`
+      return rounded
+    })()
+    const time = selectedTime || defaultTime
     onChange(`${toDateOnlyString(d)}T${time}`)
   }
 

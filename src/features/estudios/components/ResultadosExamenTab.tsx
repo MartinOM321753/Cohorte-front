@@ -8,8 +8,10 @@ import {
   ChevronsUpDown,
   ClipboardList,
   Minus,
+  Pencil,
   TrendingDown,
   TrendingUp,
+  X,
 } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/authStore'
@@ -19,6 +21,7 @@ import {
   useGetExamenes,
   useGetResultadosByPacienteUUID,
   useSaveResultadoExamen,
+  useUpdateResultadoExamen,
 } from '../hooks/useExamenes'
 import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
 
@@ -38,13 +41,6 @@ import { DatePicker } from '@/components/ui/date-time-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -112,22 +108,29 @@ function RangeIndicator({ status }: { status: 'low' | 'normal' | 'high' | null }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+const todayStr = new Date().toISOString().slice(0, 10)
+
 const DEFAULT_VALUES: ResultadoExamenFormData = {
   pacienteUUID: '',
   usuarioRegistroUUID: '',
   idExamen: 0,
   valorObtenido: 0,
   observaciones: '',
-  fechaResultado: new Date().toISOString().slice(0, 10),
+  fechaResultado: todayStr,
 }
 
 export function ResultadosExamenTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+
   const [openPaciente, setOpenPaciente] = useState(false)
+  const [openExamen, setOpenExamen] = useState(false)
+  // id del resultado que se está editando (null = modo crear)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const { data: pacientesRaw, isLoading: isLoadingPacientes } = useGetPacientes({ activos: true })
   const { data: examenes, isLoading: isLoadingExamenes } = useGetExamenes()
-  const saveMutation = useSaveResultadoExamen()
+  const saveMutation   = useSaveResultadoExamen()
+  const updateMutation = useUpdateResultadoExamen()
 
   const {
     register,
@@ -146,16 +149,20 @@ export function ResultadosExamenTab() {
   }, [userUuid, setValue])
 
   const watchedPacienteUUID = watch('pacienteUUID')
-  const watchedIdExamen = watch('idExamen')
-  const watchedFecha = watch('fechaResultado')
+  const watchedIdExamen     = watch('idExamen')
+  const watchedFecha        = watch('fechaResultado')
 
   const pacientes = useMemo<Paciente[]>(() => {
     const arr = Array.isArray(pacientesRaw) ? pacientesRaw : ((pacientesRaw as any)?.data ?? [])
     return Array.isArray(arr) ? arr : []
   }, [pacientesRaw])
 
+  // Exámenes activos ordenados alfabéticamente
   const examenesActivos = useMemo(
-    () => (examenes || []).filter((e) => e.activo),
+    () =>
+      [...(examenes || [])]
+        .filter((e) => e.activo)
+        .sort((a, b) => a.nombreExamen.localeCompare(b.nombreExamen, 'es')),
     [examenes]
   )
 
@@ -169,7 +176,6 @@ export function ResultadosExamenTab() {
     [examenesActivos, watchedIdExamen]
   )
 
-  // Resultados del paciente seleccionado en el formulario
   const {
     data: resultados,
     isLoading: isLoadingResultados,
@@ -185,30 +191,69 @@ export function ResultadosExamenTab() {
     [resultados]
   )
 
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+
   const handleSelectPaciente = (p: Paciente) => {
     setValue('pacienteUUID', getPacienteUUID(p))
     setOpenPaciente(false)
   }
 
+  /** Pre-llena el formulario con los valores del resultado a editar. */
+  const handleEditResultado = (r: ResultadoExamen) => {
+    setEditingId(r.id)
+    setValue('idExamen', r.idExamen ?? r.examen?.id ?? 0)
+    setValue('valorObtenido', r.valorObtenido)
+    setValue('observaciones', r.observaciones ?? '')
+    setValue('fechaResultado', String(r.fechaResultado || '').slice(0, 10))
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    reset({ ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid })
+  }
+
   const onSubmit = (data: ResultadoExamenFormData) => {
+    // Fecha: nunca futura
+    if (data.fechaResultado > todayStr) {
+      // el DatePicker ya bloquea fechas futuras, pero doble validación
+      return
+    }
+
     const fechaISO = data.fechaResultado.includes('T')
       ? data.fechaResultado
       : `${data.fechaResultado}T00:00:00`
 
     const payload: ResultadoExamenRequestDTO = {
-      pacienteUUID: data.pacienteUUID.trim(),
+      pacienteUUID:       data.pacienteUUID.trim(),
       usuarioRegistroUUID: userUuid.trim(),
-      idExamen: data.idExamen,
-      valorObtenido: data.valorObtenido,
-      observaciones: data.observaciones?.trim() || undefined,
-      fechaResultado: fechaISO,
+      idExamen:           data.idExamen,
+      valorObtenido:      data.valorObtenido,
+      observaciones:      data.observaciones?.trim() || undefined,
+      fechaResultado:     fechaISO,
     }
 
-    saveMutation.mutate(payload, {
-      onSuccess: () =>
-        reset({ ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid }),
-    })
+    if (editingId !== null) {
+      updateMutation.mutate(
+        { id: editingId, data: payload },
+        {
+          onSuccess: () => {
+            setEditingId(null)
+            reset({ ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid })
+          },
+        }
+      )
+    } else {
+      saveMutation.mutate(payload, {
+        onSuccess: () => reset({ ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid }),
+      })
+    }
   }
+
+  const isPending = saveMutation.isPending || updateMutation.isPending
+  const isEditing = editingId !== null
+
+  // Fecha máxima = hoy (bloquear fechas futuras en el calendario)
+  const maxDate = useMemo(() => new Date(), [])
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -266,6 +311,7 @@ export function ResultadosExamenTab() {
                     <TableHead>Examen</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Estado</TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,7 +321,10 @@ export function ResultadosExamenTab() {
                       selectedPaciente?.persona.sexo as 'M' | 'F' | undefined
                     )
                     return (
-                      <TableRow key={r.id}>
+                      <TableRow
+                        key={r.id}
+                        className={editingId === r.id ? 'bg-muted/50' : undefined}
+                      >
                         <TableCell className="font-mono text-xs">
                           {String(r.fechaResultado || '').slice(0, 10)}
                         </TableCell>
@@ -293,13 +342,29 @@ export function ResultadosExamenTab() {
                         <TableCell>
                           <RangeIndicator status={status} />
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title={editingId === r.id ? 'Cancelar edición' : 'Editar resultado'}
+                            onClick={() =>
+                              editingId === r.id ? handleCancelEdit() : handleEditResultado(r)
+                            }
+                          >
+                            {editingId === r.id
+                              ? <X className="h-3.5 w-3.5" />
+                              : <Pencil className="h-3.5 w-3.5" />
+                            }
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     )
                   })}
                   {sortedResultados.length === 0 && (
                     <TableRow>
                       <TableCell
-                        colSpan={4}
+                        colSpan={5}
                         className="py-8 text-center text-sm text-muted-foreground"
                       >
                         Sin resultados para este paciente
@@ -316,9 +381,13 @@ export function ResultadosExamenTab() {
       {/* ── Panel derecho: formulario ── */}
       <Card className="lg:col-span-2">
         <div className="border-b p-4">
-          <div className="text-sm font-medium">Registrar resultado</div>
+          <div className="text-sm font-medium">
+            {isEditing ? 'Editar resultado' : 'Registrar resultado'}
+          </div>
           <div className="text-xs text-muted-foreground">
-            Captura el valor obtenido en el examen de laboratorio.
+            {isEditing
+              ? 'Modifica el valor, fecha u observaciones del resultado seleccionado.'
+              : 'Captura el valor obtenido en el examen de laboratorio.'}
           </div>
         </div>
 
@@ -336,7 +405,7 @@ export function ResultadosExamenTab() {
                   role="combobox"
                   aria-expanded={openPaciente}
                   className="w-full justify-between"
-                  disabled={isLoadingPacientes}
+                  disabled={isLoadingPacientes || isEditing}
                 >
                   {watchedPacienteUUID
                     ? (() => {
@@ -384,27 +453,69 @@ export function ResultadosExamenTab() {
             </Popover>
           </FormField>
 
-          {/* Examen */}
+          {/* Examen — Combobox con búsqueda en lugar de Select */}
           <FormField label="Examen" required error={errors.idExamen?.message}>
-            <Select
-              value={watchedIdExamen ? String(watchedIdExamen) : ''}
-              onValueChange={(v) => setValue('idExamen', Number(v))}
-              disabled={isLoadingExamenes}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={isLoadingExamenes ? 'Cargando…' : 'Seleccione un examen'}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {examenesActivos.map((e) => (
-                  <SelectItem key={e.id} value={String(e.id)}>
-                    {e.nombreExamen}
-                    {e.unidad ? ` (${e.unidad})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={openExamen} onOpenChange={setOpenExamen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openExamen}
+                  className="w-full justify-between"
+                  disabled={isLoadingExamenes}
+                >
+                  <span className="truncate text-left">
+                    {watchedIdExamen && watchedIdExamen > 0
+                      ? (() => {
+                          const ex = examenesActivos.find((e) => e.id === watchedIdExamen)
+                          return ex
+                            ? `${ex.nombreExamen}${ex.unidad ? ` (${ex.unidad})` : ''}`
+                            : 'Examen seleccionado'
+                        })()
+                      : isLoadingExamenes
+                        ? 'Cargando exámenes…'
+                        : 'Buscar examen…'}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar examen…" />
+                  <CommandList className="max-h-64">
+                    <CommandEmpty>No se encontró el examen.</CommandEmpty>
+                    <CommandGroup>
+                      {examenesActivos.map((e) => (
+                        <CommandItem
+                          key={e.id}
+                          value={`${e.nombreExamen} ${e.unidad ?? ''}`}
+                          onSelect={() => {
+                            setValue('idExamen', e.id)
+                            setOpenExamen(false)
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              'mr-2 h-4 w-4 shrink-0',
+                              watchedIdExamen === e.id ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          <span className="flex-1 truncate text-[13px]">
+                            {e.nombreExamen}
+                            {e.unidad && (
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                ({e.unidad})
+                              </span>
+                            )}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </FormField>
 
           {/* Valor obtenido */}
@@ -443,12 +554,14 @@ export function ResultadosExamenTab() {
             )}
           </FormField>
 
-          {/* Fecha */}
+          {/* Fecha — máx = hoy, sin fechas futuras */}
           <FormField label="Fecha del resultado" required error={errors.fechaResultado?.message}>
             <input type="hidden" {...register('fechaResultado')} />
             <DatePicker
               value={watchedFecha}
               onChange={(v) => setValue('fechaResultado', v)}
+              disabled={false}
+              maxDate={maxDate}
             />
           </FormField>
 
@@ -466,19 +579,19 @@ export function ResultadosExamenTab() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() =>
-                reset({ ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid })
-              }
-              disabled={saveMutation.isPending}
+              onClick={handleCancelEdit}
+              disabled={isPending}
             >
-              Limpiar
+              {isEditing ? 'Cancelar' : 'Limpiar'}
             </Button>
-            <Button type="submit" disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? (
+            <Button type="submit" disabled={isPending}>
+              {isPending ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
-                  Registrando…
+                  {isEditing ? 'Guardando…' : 'Registrando…'}
                 </>
+              ) : isEditing ? (
+                'Guardar cambios'
               ) : (
                 'Registrar'
               )}

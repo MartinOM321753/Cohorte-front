@@ -74,7 +74,22 @@ export function ExamenesTab() {
 
   const handleCancel = () => {
     setEditingId(null)
-    reset(DEFAULT_VALUES)
+    // Se usa reset con valores explícitos para que los inputs type="number"
+    // con valueAsNumber queden visualmente vacíos (undefined → "")
+    reset({
+      nombreExamen: '',
+      descripcion: '',
+      unidad: '',
+      valorMinMujeres: undefined,
+      valorMaxMujeres: undefined,
+      valorMinHombres: undefined,
+      valorMaxHombres: undefined,
+    })
+    // Forzar limpieza de inputs numéricos por si el DOM retiene el valor anterior
+    setValue('valorMinMujeres', undefined as any)
+    setValue('valorMaxMujeres', undefined as any)
+    setValue('valorMinHombres', undefined as any)
+    setValue('valorMaxHombres', undefined as any)
   }
 
   const onSubmit = (data: ExamenFormData) => {
