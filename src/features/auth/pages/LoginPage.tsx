@@ -1,5 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import * as React from "react";
+import cohorteWatermark from "../../../assets/cohorte-watermark.png";
+import cohorteLogo from "../../../assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,67 +32,46 @@ type GeoStatus = "requesting" | "granted" | "denied" | "unavailable";
 //   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
 // =========================================================================
 
-// IMSS shield placeholder — replace with the official mark when available.
-function ImssShield({ size = 42 }: { size?: number }) {
+// ── Logo institucional — Cohorte de Trabajadores de la Salud ─────────────────
+function ImssShield({ size = 68 }: { size?: number }) {
   return (
-    <svg
-      width={size}
-      height={size * 1.08}
-      viewBox="0 0 48 52"
+    <img
+      src={cohorteLogo}
+      alt="Cohorte de Trabajadores de la Salud"
       aria-hidden="true"
-    >
-      <path
-        d="M24 1 L46 7 V26 C46 38 36 47 24 51 C12 47 2 38 2 26 V7 Z"
-        fill="#ffffff"
-      />
-      <path
-        d="M24 6 L41 11 V26 C41 36 33 43 24 46 C15 43 7 36 7 26 V11 Z"
-        fill="#a87b2c"
-      />
-      <path
-        d="M24 14 L18 22 L13 20 L20 26 L13 30 L20 30 L17 38 L24 32 L31 38 L28 30 L35 30 L28 26 L35 20 L30 22 Z"
-        fill="#1e4e3a"
-      />
-      <rect x="7" y="40" width="34" height="2.4" fill="#ffffff" />
-    </svg>
+      style={{
+        width: size,
+        height: size,
+        objectFit: "contain",
+        filter: "invert(1)",
+        mixBlendMode: "screen",
+        flexShrink: 0,
+      }}
+    />
   );
 }
 
-// Decorative oversized shield filigree used on the left panel.
+// ── Marca de agua circular centrada en el panel izquierdo ────────────────────
 function ShieldFiligree() {
   return (
-    <svg
-      viewBox="0 0 400 460"
+    <img
+      src={cohorteWatermark}
+      alt=""
       aria-hidden="true"
       style={{
         position: "absolute",
-        right: -90,
-        top: 60,
-        width: 560,
-        height: 640,
-        opacity: 0.07,
+        top: "65%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: 540,
+        height: 540,
+        objectFit: "contain",
+        opacity: 0.18,
+        mixBlendMode: "screen",
         pointerEvents: "none",
+        userSelect: "none",
       }}
-    >
-      <path
-        d="M200 0 L400 50 V230 C400 340 320 420 200 460 C80 420 0 340 0 230 V50 Z"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M200 30 L370 70 V230 C370 320 300 390 200 425 C100 390 30 320 30 230 V70 Z"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M200 100 L160 160 L120 145 L165 195 L120 235 L165 235 L150 295 L200 250 L250 295 L235 235 L280 235 L235 195 L280 145 L240 160 Z"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="1.5"
-      />
-    </svg>
+    />
   );
 }
 
@@ -103,7 +84,11 @@ export default function LoginPage() {
 
   // ── Geolocalización obligatoria ──────────────────────────────────────────
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("requesting");
-  const [coords, setCoords] = useState<{ latitud: number; longitud: number; precisionM: number } | null>(null);
+  const [coords, setCoords] = useState<{
+    latitud: number;
+    longitud: number;
+    precisionM: number;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,12 +103,18 @@ export default function LoginPage() {
         if (cancelled) return;
         // GeolocationPositionError.code 1 = PERMISSION_DENIED
         if (err?.code === 1 || err?.message === "GEOLOCATION_UNAVAILABLE") {
-          setGeoStatus(err?.message === "GEOLOCATION_UNAVAILABLE" ? "unavailable" : "denied");
+          setGeoStatus(
+            err?.message === "GEOLOCATION_UNAVAILABLE"
+              ? "unavailable"
+              : "denied",
+          );
         } else {
           setGeoStatus("denied");
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const {
@@ -137,7 +128,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (isAuthenticated) navigate(hasRole('ENCARGADO') ? '/mis-muestras' : '/dashboard', { replace: true });
+    if (isAuthenticated)
+      navigate(hasRole("ENCARGADO") ? "/mis-muestras" : "/dashboard", {
+        replace: true,
+      });
   }, [isAuthenticated, navigate, hasRole]);
 
   const onSubmit = async (data: LoginFormData) => {
@@ -153,11 +147,12 @@ export default function LoginPage() {
       login({ token: response.token, user: response.user });
       toast.success("Inicio de sesión exitoso");
       // Role-based redirect: ENCARGADO goes to their samples page
-      const targetRole = response.user?.rol
-      const isEncargado = typeof targetRole === 'string'
-        ? targetRole === 'ENCARGADO'
-        : (targetRole as any)?.nombre === 'ENCARGADO'
-      navigate(isEncargado ? '/mis-muestras' : '/dashboard', { replace: true });
+      const targetRole = response.user?.rol;
+      const isEncargado =
+        typeof targetRole === "string"
+          ? targetRole === "ENCARGADO"
+          : (targetRole as any)?.nombre === "ENCARGADO";
+      navigate(isEncargado ? "/mis-muestras" : "/dashboard", { replace: true });
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
@@ -188,7 +183,6 @@ export default function LoginPage() {
           padding: "56px 64px",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
           position: "relative",
           overflow: "hidden",
         }}
@@ -204,9 +198,9 @@ export default function LoginPage() {
             position: "relative",
           }}
         >
-          <ImssShield size={42} />
+          <ImssShield size={92} />
           <div>
-            <div
+            {/* <div
               style={{
                 fontSize: 11,
                 fontWeight: 600,
@@ -216,9 +210,9 @@ export default function LoginPage() {
               }}
             >
               Instituto Mexicano del Seguro Social
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 600, marginTop: 2 }}>
-              Cohorte · Investigación clínica
+            </div> */}
+            <div style={{ fontSize: 28, fontWeight: 600, marginTop: 2 }}>
+               Cohorte de Trabajadores de la salud
             </div>
           </div>
         </div>
@@ -238,7 +232,8 @@ export default function LoginPage() {
               letterSpacing: "0.16em",
               textTransform: "uppercase",
               color: "#d4a866",
-              marginBottom: 24,
+              marginBottom: 15,
+              marginTop: 35,
             }}
           >
             <span
@@ -262,73 +257,43 @@ export default function LoginPage() {
               color: "#ffffff",
             }}
           >
-            Gestión de cohortes para{" "}
             <span
               style={{ fontStyle: "italic", fontWeight: 400, color: "#d4a866" }}
             >
-              investigación clínica
+              Investigación clínica
             </span>
-            .
           </h1>
-          <p
-            style={{
-              margin: "24px 0 0",
-              fontSize: 16,
-              lineHeight: 1.55,
-              maxWidth: 480,
-              color: "rgba(255,255,255,0.78)",
-            }}
-          >
-            Pacientes, estudios médicos, biobanco criogénico y prueba escalón en
-            una sola plataforma institucional.
-          </p>
         </div>
 
-        {/* Footer credentials grid */}
-        <div
+        {/* Texto institucional fijo al fondo del panel */}
+        <p
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 24,
-            paddingTop: 24,
-            borderTop: "1px solid rgba(255,255,255,0.14)",
-            position: "relative",
+            position: "absolute",
+            bottom: 56,
+            left: 64,
+            right: 64,
+            margin: 0,
+            fontSize: 18,
+            lineHeight: 1.55,
+            color: "rgba(255,255,255,0.78)",
           }}
         >
-          {[
-            ["11", "Unidades médicas conectadas"],
-            ["5,412", "Pacientes en cohorte activa"],
-            ["v1.0", "Versión del sistema · 2026"],
-          ].map(([n, label]) => (
-            <div key={label}>
-              <div
-                style={{
-                  fontFamily: "'Fraunces', Georgia, serif",
-                  fontSize: 32,
-                  fontWeight: 500,
-                  letterSpacing: "-0.02em",
-                  color: "#ffffff",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {n}
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.55)",
-                  marginTop: 4,
-                }}
-              >
-                {label}
-              </div>
-            </div>
-          ))}
-        </div>
-       </aside>
+          Pacientes, estudios médicos y biobanco criogénico en una sola
+          plataforma institucional.
+        </p>
+        <hr style={{
+            position: "absolute",
+            bottom: 56,
+            left: 64,
+            right: 64,
+            margin: 0,
+            fontSize: 14,
+            lineHeight: 1.55,
+            color: "rgba(255,255,255,0.78)",
+            
+          }}></hr>
+
+      </aside>
 
       {/* ============== RIGHT — FORM ============== */}
       <section
@@ -505,7 +470,10 @@ export default function LoginPage() {
               </label>
               <a
                 href="/forgot-password"
-                onClick={(e) => { e.preventDefault(); navigate('/forgot-password') }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/forgot-password");
+                }}
                 style={{
                   fontSize: 13,
                   color: "#1e4e3a",
@@ -519,7 +487,10 @@ export default function LoginPage() {
             </div>
 
             {/* Banner de geolocalización */}
-            <GeoBanner status={geoStatus} precisionM={coords?.precisionM ?? null} />
+            <GeoBanner
+              status={geoStatus}
+              precisionM={coords?.precisionM ?? null}
+            />
 
             {/* Submit */}
             <button
@@ -550,7 +521,9 @@ export default function LoginPage() {
                 border: 0,
                 borderRadius: 6,
                 cursor:
-                  isLoading || geoStatus !== "granted" ? "not-allowed" : "pointer",
+                  isLoading || geoStatus !== "granted"
+                    ? "not-allowed"
+                    : "pointer",
                 fontFamily: "inherit",
                 opacity: isLoading ? 0.85 : 1,
               }}
@@ -602,15 +575,45 @@ export default function LoginPage() {
 // GeoBanner — muestra el estado del permiso de geolocalización.
 // Bloquea visualmente el acceso cuando el permiso no ha sido otorgado.
 // =========================================================================
-function GeoBanner({ status, precisionM }: { status: GeoStatus; precisionM: number | null }) {
+function GeoBanner({
+  status,
+  precisionM,
+}: {
+  status: GeoStatus;
+  precisionM: number | null;
+}) {
   if (status === "granted") {
     // Clasificar la calidad de la señal según el margen de error
     const quality =
-      precisionM === null      ? null
-      : precisionM <= 10       ? { label: "GPS · Alta precisión", color: "#166534", bg: "#f0fdf4", border: "#bbf7d0" }
-      : precisionM <= 100      ? { label: "WiFi · Buena precisión", color: "#166534", bg: "#f0fdf4", border: "#bbf7d0" }
-      : precisionM <= 2000     ? { label: "Red móvil · Precisión moderada", color: "#713f12", bg: "#fefce8", border: "#fef08a" }
-      :                          { label: "IP del proveedor · Baja precisión", color: "#9a3412", bg: "#fff7ed", border: "#fed7aa" }
+      precisionM === null
+        ? null
+        : precisionM <= 10
+          ? {
+              label: "GPS · Alta precisión",
+              color: "#166534",
+              bg: "#f0fdf4",
+              border: "#bbf7d0",
+            }
+          : precisionM <= 100
+            ? {
+                label: "WiFi · Buena precisión",
+                color: "#166534",
+                bg: "#f0fdf4",
+                border: "#bbf7d0",
+              }
+            : precisionM <= 2000
+              ? {
+                  label: "Red móvil · Precisión moderada",
+                  color: "#713f12",
+                  bg: "#fefce8",
+                  border: "#fef08a",
+                }
+              : {
+                  label: "IP del proveedor · Baja precisión",
+                  color: "#9a3412",
+                  bg: "#fff7ed",
+                  border: "#fed7aa",
+                };
 
     return (
       <div
@@ -622,13 +625,30 @@ function GeoBanner({ status, precisionM }: { status: GeoStatus; precisionM: numb
           marginBottom: 16,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: quality?.color ?? "#166534", fontWeight: 600 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 12,
+            color: quality?.color ?? "#166534",
+            fontWeight: 600,
+          }}
+        >
           <MapPin size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
           Ubicación obtenida — acceso permitido
         </div>
         {precisionM !== null && (
-          <div style={{ marginTop: 3, fontSize: 11, color: quality?.color, opacity: 0.85 }}>
-            {quality?.label} · ±{precisionM.toLocaleString()} m de margen de error
+          <div
+            style={{
+              marginTop: 3,
+              fontSize: 11,
+              color: quality?.color,
+              opacity: 0.85,
+            }}
+          >
+            {quality?.label} · ±{precisionM.toLocaleString()} m de margen de
+            error
           </div>
         )}
       </div>
