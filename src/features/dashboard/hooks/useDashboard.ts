@@ -8,6 +8,10 @@ export interface DashboardStats {
   pacientesActivos: number
   citasProgramadas: number
   muestrasBiobanco: number
+  estudiosConResultados: number
+  examenesLab: number
+  documentosGenerales: number
+  documentosMuestra: number
 }
 
 export interface AgendaHoyItem {
