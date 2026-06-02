@@ -10,7 +10,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { useAuthStore } from '@/stores/authStore'
 
 // Lazy load pages
-const DashboardPage    = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
+const DashboardPage         = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
+const ExpedientePacientePage= lazy(() => import('@/features/pacientes/pages/ExpedientePacientePage'))
 const PacientesPage    = lazy(() => import('@/features/pacientes/pages/PacientesPage'))
 const EstudiosPage     = lazy(() => import('@/features/estudios/pages/EstudiosPage'))
 const ExamenesPage     = lazy(() => import('@/features/examenes/pages/ExamenesPage'))
@@ -105,6 +106,17 @@ export function AppRouter() {
               <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'RECEPCIONISTA']}>
                 <Suspense fallback={<LoadingFallback />}>
                   <PacientesPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          {/* Expediente 360 — accesible por todos los roles clínicos */}
+          <Route
+            path="/pacientes/expediente"
+            element={
+              <ProtectedRoute requiredRoles={CLINICAL_ROLES}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ExpedientePacientePage />
                 </Suspense>
               </ProtectedRoute>
             }
