@@ -58,6 +58,13 @@ export async function getResultadosByPacienteUUID(uuid: string): Promise<Resulta
   return response.data.data
 }
 
+export async function countResultadosByPacienteUUID(uuid: string): Promise<number> {
+  const response = await axiosInstance.get<ApiResponse<number>>(
+    `/examenes/resultados/paciente/uuid/${uuid}/count`
+  )
+  return response.data.data
+}
+
 export async function getResultadosByPacienteFolio(folio: string): Promise<ResultadoExamen[]> {
   const response = await axiosInstance.get<ApiResponse<ResultadoExamen[]>>(
     `/examenes/resultados/paciente/folio/${folio}`

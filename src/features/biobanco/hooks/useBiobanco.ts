@@ -21,6 +21,7 @@ import {
   getMuestras,
   getMuestraById,
   getMuestrasByPaciente,
+  countMuestrasByPaciente,
   createMuestra,
   updateMuestra,
   deleteMuestra,
@@ -320,6 +321,17 @@ export function useGetMuestrasByPaciente(uuid: string) {
     queryKey: ['muestras-paciente', uuid],
     queryFn: () => getMuestrasByPaciente(uuid),
     enabled: !!uuid,
+  })
+}
+
+export function useCountMuestrasByPaciente(
+  uuid: string,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: ['muestras-count', uuid],
+    queryFn: () => countMuestrasByPaciente(uuid),
+    enabled: (options?.enabled ?? true) && !!uuid,
   })
 }
 

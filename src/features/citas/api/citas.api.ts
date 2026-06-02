@@ -1,8 +1,13 @@
 import api from '@/lib/axiosInstance'
-import { ApiResponse, Cita, CitaRequestDTO, CitaUpdateRequestDTO } from '@/types/api'
+import { ApiResponse, Cita, CitaRequestDTO, CitaResumen, CitaUpdateRequestDTO } from '@/types/api'
 
 export async function getCitas(params?: { pacienteUUID?: string; buscar?: string }) {
   const response = await api.get<ApiResponse<Cita[]>>('/citas', { params })
+  return response.data.data
+}
+
+export async function getCitasResumenByPaciente(pacienteUuid: string): Promise<CitaResumen[]> {
+  const response = await api.get<ApiResponse<CitaResumen[]>>(`/citas/paciente/${pacienteUuid}/resumen`)
   return response.data.data
 }
 

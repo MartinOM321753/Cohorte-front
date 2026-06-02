@@ -1,12 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createCita, getCitas, updateCita } from '../api/citas.api'
+import { createCita, getCitas, getCitasResumenByPaciente, updateCita } from '../api/citas.api'
 import { CitaRequestDTO, CitaUpdateRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
 
-export function useGetCitas(params?: { pacienteUUID?: string }) {
+export function useGetCitas(
+  params?: { pacienteUUID?: string },
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ['citas', params],
     queryFn: () => getCitas(params),
+    enabled: options?.enabled ?? true,
+  })
+}
+
+export function useCitasResumenByPaciente(
+  pacienteUuid: string,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: ['citas-resumen', pacienteUuid],
+    queryFn: () => getCitasResumenByPaciente(pacienteUuid),
+    enabled: (options?.enabled ?? true) && !!pacienteUuid,
   })
 }
 

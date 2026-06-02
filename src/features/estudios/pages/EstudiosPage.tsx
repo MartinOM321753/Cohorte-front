@@ -19,28 +19,20 @@ export default function EstudiosPage() {
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-2">
             <TabsTrigger value="llenado">Llenado</TabsTrigger>
-            <TabsTrigger value="examenes">Exámenes Lab.</TabsTrigger>
             <TabsTrigger value="catalogos">Cat. Estudios</TabsTrigger>
-            <TabsTrigger value="cat-examenes">Cat. Exámenes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="llenado" className="space-y-4">
             <LlenadoEstudioTab />
           </TabsContent>
-
-          <TabsContent value="examenes" className="space-y-4">
-            <ResultadosExamenTab />
-          </TabsContent>
+      
 
           <TabsContent value="catalogos" className="space-y-4">
             <TiposEstudioTab />
           </TabsContent>
 
-          <TabsContent value="cat-examenes" className="space-y-4">
-            <ExamenesTab />
-          </TabsContent>
         </Tabs>
       </div>
     </RoleGuard>

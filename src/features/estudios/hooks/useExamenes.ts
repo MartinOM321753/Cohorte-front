@@ -8,6 +8,7 @@ import {
   updateResultadoExamen,
   getResultadosByPacienteUUID,
   getResultadosByPacienteFolio,
+  countResultadosByPacienteUUID,
 } from '../api/examenes.api'
 import { ExamenRequestDTO, ResultadoExamenRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
@@ -97,6 +98,17 @@ export function useGetResultadosByPacienteUUID(uuid: string | null) {
     queryKey: ['resultadosExamen', 'uuid', uuid],
     queryFn: () => getResultadosByPacienteUUID(uuid as string),
     enabled: !!uuid,
+  })
+}
+
+export function useCountResultadosByPacienteUUID(
+  uuid: string | null,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: ['resultadosExamen', 'count', uuid],
+    queryFn: () => countResultadosByPacienteUUID(uuid as string),
+    enabled: (options?.enabled ?? true) && !!uuid,
   })
 }
 

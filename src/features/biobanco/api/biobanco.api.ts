@@ -153,6 +153,11 @@ export async function getMuestrasByPaciente(uuid: string) {
   return response.data.data
 }
 
+export async function countMuestrasByPaciente(uuid: string): Promise<number> {
+  const response = await api.get<ApiResponse<number>>(`/almacenamiento/muestras/paciente/uuid/${uuid}/count`)
+  return response.data.data
+}
+
 export async function createMuestra(data: MuestraRequestDTO) {
   const response = await api.post<ApiResponse<Muestra>>('/almacenamiento/muestras', data)
   return response.data.data
