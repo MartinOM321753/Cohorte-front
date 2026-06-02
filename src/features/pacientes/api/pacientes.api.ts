@@ -67,3 +67,13 @@ export async function updatePaciente(id: number, data: PacienteRequestDTO): Prom
 export async function deletePaciente(id: number): Promise<void> {
   await axiosInstance.delete(`/pacientes/${id}`)
 }
+
+/**
+ * Toggle activo / inactivo del paciente identificado por UUID.
+ */
+export async function toggleActivoPaciente(uuid: string): Promise<Paciente> {
+  const response = await axiosInstance.patch<ApiResponse<Paciente>>(
+    `/pacientes/uuid/${uuid}/toggle-activo`
+  )
+  return response.data.data
+}

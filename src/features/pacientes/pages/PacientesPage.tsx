@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
 import { CalendarDays, Search, UserRound, UserRoundPlus } from 'lucide-react'
 import { useGetPacientes } from '../hooks/useGetPacientes'
-import { useDeletePaciente } from '../hooks/useCreatePaciente'
+import { useToggleActivoPaciente } from '../hooks/useCreatePaciente'
 import { PacientesTable } from '../components/PacientesTable'
 import { PacienteFormModal } from '../components/PacienteFormModal'
 import { PacienteDetailDrawer } from '../components/PacienteDetailDrawer'
 import { CitaIlamyEventForm } from '@/features/citas/components/CitaIlamyEventForm'
-import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -15,14 +14,13 @@ import type { Paciente } from '@/types/api'
 
 export default function PacientesPage() {
   const { data: pacientes, isLoading } = useGetPacientes()
-  const deleteMutation = useDeletePaciente()
+  const toggleActivoMutation = useToggleActivoPaciente()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Paciente | null>(null)
   const [isCitaModalOpen, setIsCitaModalOpen] = useState(false)
   const [patientToSchedule, setPatientToSchedule] = useState<Paciente | null>(null)
 
@@ -125,7 +123,10 @@ export default function PacientesPage() {
         isLoading={isLoading}
         onView={handleView}
         onEdit={handleEdit}
-        onDelete={(p) => setDeleteTarget(p)}
+        onToggleActivo={(p) => {
+          const uuid = p.UUID || (p as any).uuid
+          if (uuid) toggleActivoMutation.mutate(uuid)
+        }}
         onSchedule={handleSchedule}
       />
 
@@ -157,24 +158,6 @@ export default function PacientesPage() {
         }
       />
 
-      {/* Confirmación de eliminación */}
-      <ConfirmDialog
-        open={deleteTarget !== null}
-        title="Eliminar paciente"
-        description={`¿Confirmas que deseas eliminar a ${deleteTarget ? getFullName(deleteTarget.persona) : 'este paciente'}? Esta acción no se puede deshacer.`}
-        actionLabel="Eliminar"
-        cancelLabel="Cancelar"
-        destructive
-        onConfirm={() => {
-          if (deleteTarget) {
-            deleteMutation.mutate(deleteTarget.id, {
-              onSuccess: () => setDeleteTarget(null),
-            })
-          }
-        }}
-        onCancel={() => setDeleteTarget(null)}
-        isLoading={deleteMutation.isPending}
-      />
     </div>
   )
 }

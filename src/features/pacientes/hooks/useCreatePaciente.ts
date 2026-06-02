@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createPaciente, updatePaciente, deletePaciente } from '../api/pacientes.api'
+import { createPaciente, updatePaciente, deletePaciente, toggleActivoPaciente } from '../api/pacientes.api'
 import { PacienteRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -48,6 +48,22 @@ export function useDeletePaciente() {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message ?? 'Error al eliminar el paciente')
+    },
+  })
+}
+
+export function useToggleActivoPaciente() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (uuid: string) => toggleActivoPaciente(uuid),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      toast.success(updated.activo ? 'Paciente activado' : 'Paciente desactivado')
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message ?? 'Error al cambiar estado del paciente')
     },
   })
 }

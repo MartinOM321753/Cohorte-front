@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { CalendarPlus, Eye, FileText, Pencil, Trash2 } from 'lucide-react'
+import { CalendarPlus, Eye, FileText, Pencil, UserCheck, UserX } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { DataTable } from '@/components/tables/DataTable'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ interface PacientesTableProps {
   isLoading?: boolean
   onView: (paciente: Paciente) => void
   onEdit: (paciente: Paciente) => void
-  onDelete: (paciente: Paciente) => void
+  onToggleActivo: (paciente: Paciente) => void
   onSchedule: (paciente: Paciente) => void
 }
 
@@ -36,7 +36,7 @@ export function PacientesTable({
   isLoading,
   onView,
   onEdit,
-  onDelete,
+  onToggleActivo,
   onSchedule,
 }: PacientesTableProps) {
   const columns: ColumnDef<Paciente>[] = [
@@ -127,11 +127,19 @@ export function PacientesTable({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--status-danger-fg)]"
-            title="Eliminar paciente"
-            onClick={() => onDelete(row.original)}
+            className={[
+              'h-7 w-7',
+              row.original.activo
+                ? 'text-[var(--imss-ink-300)] hover:text-[var(--status-danger-fg)]'
+                : 'text-[var(--imss-ink-300)] hover:text-[var(--status-success-fg)]',
+            ].join(' ')}
+            title={row.original.activo ? 'Desactivar paciente' : 'Activar paciente'}
+            onClick={() => onToggleActivo(row.original)}
           >
-            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {row.original.activo
+              ? <UserX className="h-3.5 w-3.5" strokeWidth={1.75} />
+              : <UserCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
+            }
           </Button>
         </div>
       ),
