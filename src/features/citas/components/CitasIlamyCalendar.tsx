@@ -444,8 +444,12 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     }
   }
 
-  /* ── Eventos compactos en vista semana/día (una línea) ── */
-  [data-testid="vertical-grid-body"] div.absolute {
+  /* ── Eventos compactos en vista semana/día (una línea) ──
+     IMPORTANTE: usar :not(.inset-0) para NO afectar al wrapper del
+     events-layer (div.absolute.inset-0), que debe mantener su altura
+     natural (inset-0 = full height). Solo los chips individuales se
+     compactan a 26 px.                                              */
+  [data-testid="vertical-grid-body"] div.absolute:not(.inset-0) {
     height: 26px !important;
     min-height: 26px !important;
     overflow: hidden !important;
@@ -506,6 +510,14 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     font-size: 11px;
     line-height: 1.2;
     overflow: hidden;
+  }
+
+  /* ── Ocultar la línea roja de "hora actual" de la librería ── */
+  /* La librería renderiza [data-testid="current-time-indicator"] como una
+     franja roja vertical (w-0.5 bg-red-500 z-50). En este sistema el indicador
+     de evento vencido es el color de fondo del evento; la línea es redundante. */
+  [data-testid="current-time-indicator"] {
+    display: none !important;
   }
 
 `}</style>
