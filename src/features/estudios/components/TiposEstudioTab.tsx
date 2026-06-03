@@ -4,13 +4,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
 import {
   AlertCircle,
+  Check,
   ChevronDown,
   ChevronRight,
   Hash,
+  Pencil,
   Plus,
   Trash2,
   ToggleLeft,
   ToggleRight,
+  X,
 } from 'lucide-react'
 
 import { TipoParametro, TipoEstudioRequestDTO } from '@/types/api'
@@ -21,6 +24,7 @@ import {
   useDeleteParametroEstudio,
   useGetTodosLosTipos,
   useToggleTipoEstudio,
+  useUpdateParametroEstudio,
 } from '../hooks/useEstudios'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -383,9 +387,6 @@ function TipoRow({
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
           )}
           <span className="truncate text-sm font-medium">{tipo.nombre}</span>
-          {tipo.descripcion && (
-            <span className="truncate text-xs text-muted-foreground">{tipo.descripcion}</span>
-          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Badge variant="outline" className="font-mono text-[10px]">
@@ -416,33 +417,13 @@ function TipoRow({
           ) : (
             <div className="space-y-1.5">
               {parametros.map((p) => (
-                <div
+                <EditableParametroRow
                   key={p.id}
-                  className="flex items-center justify-between rounded-md border bg-background px-3 py-2"
-                >
-                  <div className="flex items-center gap-2 text-sm">
-                    <Hash className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
-                    <span className="font-medium">{p.nombre}</span>
-                    {p.unidad && (
-                      <span className="font-mono text-xs text-muted-foreground">({p.unidad})</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px]">
-                      {TIPO_LABELS[p.tipo]}
-                    </Badge>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => onDeleteParametro(p.id)}
-                      disabled={isDeletingParametro}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    </Button>
-                  </div>
-                </div>
+                  parametro={p}
+                  tipoEstudioId={tipo.id}
+                  onDelete={() => onDeleteParametro(p.id)}
+                  isDeleting={isDeletingParametro}
+                />
               ))}
             </div>
           )}
@@ -456,6 +437,145 @@ function TipoRow({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Fila de parámetro con modo de edición inline. */
+function EditableParametroRow({
+  parametro,
+  tipoEstudioId,
+  onDelete,
+  isDeleting,
+}: {
+  parametro: import('@/types/api').ParametroEstudio
+  tipoEstudioId: number
+  onDelete: () => void
+  isDeleting: boolean
+}) {
+  const updateParametro = useUpdateParametroEstudio(parametro.id)
+
+  const [editing, setEditing] = useState(false)
+  const [nombre, setNombre]   = useState(parametro.nombre)
+  const [unidad, setUnidad]   = useState(parametro.unidad ?? '')
+  const [tipo,   setTipo]     = useState<TipoParametro>(parametro.tipo as TipoParametro)
+  const [error,  setError]    = useState('')
+
+  function startEdit() {
+    // Restablecer al valor actual antes de abrir
+    setNombre(parametro.nombre)
+    setUnidad(parametro.unidad ?? '')
+    setTipo(parametro.tipo as TipoParametro)
+    setError('')
+    setEditing(true)
+  }
+
+  function cancelEdit() {
+    setEditing(false)
+    setError('')
+  }
+
+  function saveEdit() {
+    const trimmed = nombre.trim()
+    if (!trimmed) { setError('El nombre es requerido'); return }
+    setError('')
+    updateParametro.mutate(
+      { idTipoEstudio: tipoEstudioId, nombre: trimmed, unidad: unidad.trim() || undefined, tipo },
+      { onSuccess: () => setEditing(false) }
+    )
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-md border bg-background px-3 py-2 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2">
+            <Input
+              value={nombre}
+              onChange={(e) => { setNombre(e.target.value); setError('') }}
+              placeholder="Nombre del parámetro"
+              className={cn('h-8 text-sm', error && 'border-destructive')}
+              autoFocus
+            />
+            {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
+          </div>
+          <Select value={tipo} onValueChange={(v) => setTipo(v as TipoParametro)}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NUMERICO">Numérico</SelectItem>
+              <SelectItem value="TEXTO">Texto</SelectItem>
+              <SelectItem value="BOOLEANO">Booleano</SelectItem>
+            </SelectContent>
+          </Select>
+          <UnidadSelect value={unidad} onChange={setUnidad} placeholder="Unidad" compact />
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={cancelEdit}
+            disabled={updateParametro.isPending}
+          >
+            <X className="mr-1 h-3 w-3" strokeWidth={1.75} />
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={saveEdit}
+            disabled={updateParametro.isPending}
+          >
+            {updateParametro.isPending ? (
+              <><Spinner className="mr-1 h-3 w-3" /> Guardando…</>
+            ) : (
+              <><Check className="mr-1 h-3 w-3" strokeWidth={1.75} /> Guardar</>
+            )}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
+      <div className="flex items-center gap-2 text-sm">
+        <Hash className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
+        <span className="font-medium">{parametro.nombre}</span>
+        {parametro.unidad && (
+          <span className="font-mono text-xs text-muted-foreground">({parametro.unidad})</span>
+        )}
+      </div>
+      <div className="flex items-center gap-1">
+        <Badge variant="secondary" className="text-[10px]">
+          {TIPO_LABELS[parametro.tipo as TipoParametro] ?? parametro.tipo}
+        </Badge>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          onClick={startEdit}
+          title="Editar parámetro"
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-destructive hover:text-destructive"
+          onClick={onDelete}
+          disabled={isDeleting}
+          title="Eliminar parámetro"
+        >
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </Button>
+      </div>
     </div>
   )
 }
