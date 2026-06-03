@@ -244,7 +244,7 @@ export function CitaIlamyEventForm({
               <Label className="text-[13px]">
                 Paciente <span className="text-red-500">*</span>
               </Label>
-              <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
+              <Popover open={openPaciente} onOpenChange={setOpenPaciente} >
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
@@ -275,8 +275,8 @@ export function CitaIlamyEventForm({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[min(96vw,600px)] p-0" align="start">
-                  <Command
+                <PopoverContent className="w-[min(96vw,400px)] p-0" align="start">
+                  <Command 
                     filter={(value, search) =>
                       value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
                     }
@@ -321,6 +321,7 @@ export function CitaIlamyEventForm({
                     </CommandList>
                   </Command>
                 </PopoverContent>
+              
               </Popover>
               {errors.pacienteUUID ? (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
@@ -365,8 +366,8 @@ export function CitaIlamyEventForm({
           )}
 
           {/* ── FECHA Y DURACIÓN ── */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 gap-30 sm:grid-cols-2">
+            <div className="space-y-1.5 ">
               <Label className="text-[13px]">
                 Fecha y hora <span className="text-red-500">*</span>
               </Label>
@@ -374,6 +375,7 @@ export function CitaIlamyEventForm({
                 value={watch('fechaCita')}
                 onChange={(v) => setValue('fechaCita', v)}
                 disabled={isPast}
+                minDate={isEditing ? undefined : new Date()}
                 minHour={8}
                 maxHour={17}
               />
