@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/axiosInstance'
-import { ApiResponse } from '@/types/api'
+import type { ApiResponse } from '@/types/api'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +42,52 @@ export function useDashboardStats() {
       return res.data.data
     },
     staleTime: 60_000,   // consideramos los números "frescos" por 1 min
+  })
+}
+
+// ── Global chart types ────────────────────────────────────────────────────────
+
+export interface SomatometriaGlobalPoint {
+  fecha: string
+  pesoKg:                  number | null
+  imc:                     number | null
+  presionSistolica:        number | null
+  presionDiastolica:       number | null
+  circunferenciaAbdominalCm: number | null
+}
+
+export interface ExamenResultGlobalPoint {
+  fecha:           string
+  nombreExamen:    string
+  unidad:          string | null
+  valorObtenido:   number
+  valorMinHombres: number | null
+  valorMaxHombres: number | null
+  valorMinMujeres: number | null
+  valorMaxMujeres: number | null
+}
+
+// ── Global chart hooks ────────────────────────────────────────────────────────
+
+export function useSomatometriaGlobal() {
+  return useQuery<SomatometriaGlobalPoint[]>({
+    queryKey: ['dashboard-somatometria-global'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<SomatometriaGlobalPoint[]>>('/dashboard/somatometria-global')
+      return res.data.data ?? []
+    },
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useExamenesGlobal() {
+  return useQuery<ExamenResultGlobalPoint[]>({
+    queryKey: ['dashboard-examenes-global'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<ExamenResultGlobalPoint[]>>('/dashboard/examenes-global')
+      return res.data.data ?? []
+    },
+    staleTime: 5 * 60_000,
   })
 }
 

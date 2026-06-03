@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { RoleGuard } from '@/components/routes/RoleGuard'
 import { useDashboardStats, useAgendaHoy, AgendaHoyItem } from '../hooks/useDashboard'
+import { SomatometriaGlobalCharts, ExamenesGlobalCharts } from '../components/DashboardCharts'
 import {
   CalendarDays,
   CalendarX,
@@ -329,6 +330,14 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Gráficas globales ── */}
+      <RoleGuard allowedRoles={['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA']}>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <SomatometriaGlobalCharts />
+          <ExamenesGlobalCharts />
+        </div>
+      </RoleGuard>
 
       {/* Modal de edición de cita desde la agenda */}
       <CitaIlamyEventForm
