@@ -39,6 +39,10 @@ const DEFAULT_VALUES: ExamenFormData = {
 
 export function ExamenesTab() {
   const [editingId, setEditingId] = useState<number | null>(null)
+  /** Cambia al limpiar/cancelar para forzar el remount del formulario y
+   *  limpiar visualmente los inputs type="number" (React no actualiza el DOM
+   *  cuando se pasa undefined a un input controlado con valueAsNumber). */
+  const [formKey, setFormKey] = useState(0)
 
   const { data: examenes, isLoading, isError } = useGetExamenes()
   const createMutation = useCreateExamen()
@@ -74,22 +78,10 @@ export function ExamenesTab() {
 
   const handleCancel = () => {
     setEditingId(null)
-    // Se usa reset con valores explícitos para que los inputs type="number"
-    // con valueAsNumber queden visualmente vacíos (undefined → "")
-    reset({
-      nombreExamen: '',
-      descripcion: '',
-      unidad: '',
-      valorMinMujeres: undefined,
-      valorMaxMujeres: undefined,
-      valorMinHombres: undefined,
-      valorMaxHombres: undefined,
-    })
-    // Forzar limpieza de inputs numéricos por si el DOM retiene el valor anterior
-    setValue('valorMinMujeres', undefined as any)
-    setValue('valorMaxMujeres', undefined as any)
-    setValue('valorMinHombres', undefined as any)
-    setValue('valorMaxHombres', undefined as any)
+    reset(DEFAULT_VALUES)
+    // Incrementar la key fuerza el unmount+remount de <form> → los inputs
+    // type="number" quedan completamente vacíos sin importar el estado anterior
+    setFormKey((k) => k + 1)
   }
 
   const onSubmit = (data: ExamenFormData) => {
@@ -110,7 +102,10 @@ export function ExamenesTab() {
       )
     } else {
       createMutation.mutate(payload, {
-        onSuccess: () => reset(DEFAULT_VALUES),
+        onSuccess: () => {
+          reset(DEFAULT_VALUES)
+          setFormKey((k) => k + 1)
+        },
       })
     }
   }
@@ -221,7 +216,7 @@ export function ExamenesTab() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 p-4">
+        <form key={formKey} onSubmit={handleSubmit(onSubmit)} className="grid gap-4 p-4">
           <FormField label="Nombre del examen" required error={errors.nombreExamen?.message}>
             <Input
               placeholder="Ej. Glucosa en ayuno"
