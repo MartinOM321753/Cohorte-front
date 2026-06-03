@@ -260,7 +260,7 @@ export default function LoginPage() {
             <span
               style={{ fontStyle: "italic", fontWeight: 400, color: "#d4a866" }}
             >
-              Investigación clínica
+              Etapa 2026-2027
             </span>
           </h1>
         </div>
