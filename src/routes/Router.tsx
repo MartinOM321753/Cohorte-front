@@ -23,6 +23,7 @@ const UsuariosPage     = lazy(() => import('@/features/usuarios/pages/UsuariosPa
 const PerfilPage       = lazy(() => import('@/features/perfil/pages/PerfilPage'))
 const BitacoraPage     = lazy(() => import('@/features/bitacora/pages/BitacoraPage'))
 const EncargadoPage    = lazy(() => import('@/features/biobanco/pages/EncargadoPage'))
+const CoberturaPage    = lazy(() => import('@/features/cobertura/pages/CoberturaPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage     = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
@@ -157,6 +158,16 @@ export function AppRouter() {
               <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA']}>
                 <Suspense fallback={<LoadingFallback />}>
                   <CitasPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cobertura"
+            element={
+              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO']}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CoberturaPage />
                 </Suspense>
               </ProtectedRoute>
             }

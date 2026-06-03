@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   LogOut,
   Microscope,
+  PieChart,
   Settings,
   Stethoscope,
   TestTube2,
@@ -51,6 +52,13 @@ const navItems: NavItem[] = [
     href: '/citas',
     icon: CalendarDays,
     roles: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA'],
+    group: 'Clínico',
+  },
+  {
+    label: 'Cobertura',
+    href: '/cobertura',
+    icon: PieChart,
+    roles: ['ADMINISTRADOR', 'MEDICO'],
     group: 'Clínico',
   },
   {
