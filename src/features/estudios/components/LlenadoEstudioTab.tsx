@@ -32,7 +32,6 @@ import { DatePicker } from '@/components/ui/date-time-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
@@ -56,13 +55,38 @@ interface GrupoCaptura {
 }
 
 // ──────────────────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────────────────
+/** Formats a YYYY-MM-DD string as DD-MM-YYYY for display */
+function formatFechaDDMMYYYY(fecha: string | undefined | null): string {
+  const s = String(fecha ?? '').slice(0, 10)
+  if (!s || s.length < 10) return '—'
+  const [y, m, d] = s.split('-')
+  return `${d}-${m}-${y}`
+}
+
+/** Today's date as YYYY-MM-DD (local time, not UTC) */
+function todayString(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// ──────────────────────────────────────────────────────────
 // Dynamic schema builder
 // ──────────────────────────────────────────────────────────
 function buildResultadosSchema(parametros: ParametroEstudio[]) {
   const fields: Record<string, z.ZodTypeAny> = {
     pacienteUUID: z.string().min(1, 'Seleccione un paciente'),
     idTipoEstudio: z.number().min(1, 'Seleccione una plantilla'),
-    fechaEstudio: z.string().min(1, 'La fecha es requerida'),
+    fechaEstudio: z.string()
+      .min(1, 'La fecha es requerida')
+      .refine((v) => {
+        if (!v) return false
+        return v <= todayString()
+      }, 'No se permiten fechas futuras'),
     observaciones: z.string().optional(),
   }
   for (const p of parametros) {
@@ -92,6 +116,7 @@ export function LlenadoEstudioTab() {
   const canUploadEstudio = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'MEDICO']))
 
   const [openPaciente, setOpenPaciente] = useState(false)
+  const [openTipo, setOpenTipo] = useState(false)
   const [selectedPacienteUUID, setSelectedPacienteUUID] = useState('')
   const [selectedTipoId, setSelectedTipoId] = useState<number>(0)
   const [editingEstudioId, setEditingEstudioId] = useState<number | null>(null)
@@ -136,7 +161,7 @@ export function LlenadoEstudioTab() {
     defaultValues: {
       pacienteUUID: '',
       idTipoEstudio: 0,
-      fechaEstudio: new Date().toISOString().slice(0, 10),
+      fechaEstudio: todayString(),
       observaciones: '',
     },
   })
@@ -334,14 +359,33 @@ export function LlenadoEstudioTab() {
   }
 
   // ── Reset ──────────────────────────────────────────────
+  /** Full reset — called by "Limpiar" / "Cancelar" button. Clears patient too. */
   function resetForm() {
     reset({
       pacienteUUID: '',
       idTipoEstudio: 0,
-      fechaEstudio: new Date().toISOString().slice(0, 10),
+      fechaEstudio: todayString(),
       observaciones: '',
     })
     setSelectedPacienteUUID('')
+    setSelectedTipoId(0)
+    setEditingEstudioId(null)
+    setModoCaptura('NORMAL')
+    setGrupos([])
+    setGruposError(null)
+  }
+
+  /**
+   * Post-submit reset — keeps the selected patient so the user can keep
+   * registering studies for the same person without searching again.
+   */
+  function resetFormAfterSubmit() {
+    reset({
+      pacienteUUID: selectedPacienteUUID,   // ← keep patient
+      idTipoEstudio: 0,
+      fechaEstudio: todayString(),
+      observaciones: '',
+    })
     setSelectedTipoId(0)
     setEditingEstudioId(null)
     setModoCaptura('NORMAL')
@@ -387,9 +431,9 @@ export function LlenadoEstudioTab() {
     }
 
     if (editingEstudioId) {
-      updateMutation.mutate(payload, { onSuccess: resetForm })
+      updateMutation.mutate(payload, { onSuccess: resetFormAfterSubmit })
     } else {
-      createMutation.mutate(payload, { onSuccess: resetForm })
+      createMutation.mutate(payload, { onSuccess: resetFormAfterSubmit })
     }
   }
 
@@ -457,7 +501,7 @@ export function LlenadoEstudioTab() {
                     className={cn(editingEstudioId === e.id && 'bg-muted/50')}
                   >
                     <TableCell className="font-mono text-xs">
-                      {String(e.fechaEstudio ?? '').slice(0, 10)}
+                      {formatFechaDDMMYYYY(String(e.fechaEstudio))}
                     </TableCell>
                     <TableCell className="text-sm">{e.tipoEstudio}</TableCell>
                     <TableCell className="truncate text-xs text-muted-foreground max-w-[120px]">
@@ -571,37 +615,69 @@ export function LlenadoEstudioTab() {
             </Popover>
           </FormField>
 
-          {/* Plantilla */}
+          {/* Plantilla — combobox con búsqueda */}
           <FormField
             label="Plantilla (tipo de estudio)"
             required
             error={errors.idTipoEstudio?.message as string}
           >
-            <Select
-              value={selectedTipoId > 0 ? String(selectedTipoId) : ''}
-              onValueChange={(v) => {
-                const id = Number(v)
-                setSelectedTipoId(id)
-                setValue('idTipoEstudio', id)
-                setEditingEstudioId(null)
-                // Reset capture mode when type changes
-                setModoCaptura('NORMAL')
-                setGrupos([])
-                setGruposError(null)
-              }}
-              disabled={isLoadingTipos || !!editingEstudioId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={isLoadingTipos ? 'Cargando…' : 'Seleccione una plantilla'} />
-              </SelectTrigger>
-              <SelectContent>
-                {tiposParaSelector.map((t) => (
-                  <SelectItem key={t.id} value={String(t.id)}>
-                    {t.nombre}{!t.activo ? ' (deshabilitado)' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={openTipo} onOpenChange={setOpenTipo}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openTipo}
+                  className="w-full justify-between text-sm"
+                  disabled={isLoadingTipos || !!editingEstudioId}
+                >
+                  <span className="truncate">
+                    {selectedTipoId > 0
+                      ? tiposParaSelector.find((t) => t.id === selectedTipoId)?.nombre ?? '…'
+                      : isLoadingTipos
+                        ? 'Cargando…'
+                        : 'Buscar plantilla…'}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar plantilla…" />
+                  <CommandList>
+                    <CommandEmpty>No se encontró la plantilla.</CommandEmpty>
+                    <CommandGroup>
+                      {tiposParaSelector.map((t) => (
+                        <CommandItem
+                          key={t.id}
+                          value={t.nombre}
+                          onSelect={() => {
+                            setSelectedTipoId(t.id)
+                            setValue('idTipoEstudio', t.id)
+                            setEditingEstudioId(null)
+                            setModoCaptura('NORMAL')
+                            setGrupos([])
+                            setGruposError(null)
+                            setOpenTipo(false)
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              'mr-2 h-4 w-4 shrink-0',
+                              selectedTipoId === t.id ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          {t.nombre}
+                          {!t.activo && (
+                            <span className="ml-2 text-[11px] text-muted-foreground">(deshabilitado)</span>
+                          )}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </FormField>
 
           {/* Fecha */}
@@ -610,6 +686,7 @@ export function LlenadoEstudioTab() {
             <DatePicker
               value={watchedFecha}
               onChange={(v) => setValue('fechaEstudio', v)}
+              maxDate={new Date()}
             />
           </FormField>
 
@@ -794,8 +871,33 @@ function ParametroInput({
     : parametro.nombre
   const isStandalone = onStandaloneChange !== undefined
 
+  // Out-of-range warning for NUMERICO params with defined reference range
+  const rangeWarning = (() => {
+    if (parametro.tipo !== 'NUMERICO') return null
+    const min = parametro.valorMinimo
+    const max = parametro.valorMaximo
+    if (min == null && max == null) return null
+    const raw = isStandalone ? standaloneValue : undefined   // form mode: no live access here
+    const num = raw !== undefined && raw !== '' ? Number(raw) : NaN
+    if (Number.isNaN(num)) return null
+    if (min != null && num < min) return `Valor por debajo del mínimo de referencia (${min})`
+    if (max != null && num > max) return `Valor supera el máximo de referencia (${max})`
+    return null
+  })()
+
+  // Reference range label shown as hint
+  const rangeHint = (() => {
+    if (parametro.tipo !== 'NUMERICO') return null
+    const min = parametro.valorMinimo
+    const max = parametro.valorMaximo
+    if (min == null && max == null) return null
+    if (min != null && max != null) return `Ref: ${min} – ${max}${parametro.unidad ? ' ' + parametro.unidad : ''}`
+    if (min != null) return `Ref: ≥ ${min}${parametro.unidad ? ' ' + parametro.unidad : ''}`
+    return `Ref: ≤ ${max}${parametro.unidad ? ' ' + parametro.unidad : ''}`
+  })()
+
   return (
-    <FormField label={label} error={error}>
+    <FormField label={label} error={error} hint={rangeHint ?? undefined}>
       {parametro.tipo === 'NUMERICO' ? (
         isStandalone ? (
           <Input
@@ -849,6 +951,12 @@ function ParametroInput({
           </span>
         </div>
       )}
+      {rangeWarning && (
+        <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+          <AlertCircle className="size-3.5 shrink-0" />
+          {rangeWarning}
+        </p>
+      )}
     </FormField>
   )
 }
@@ -857,19 +965,26 @@ function FormField({
   label,
   required,
   error,
+  hint,
   children,
 }: {
   label: string
   required?: boolean
   error?: string
+  hint?: string
   children: ReactNode
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-sm">
-        {label}
-        {required && <span className="ml-1 text-destructive">*</span>}
-      </Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-sm">
+          {label}
+          {required && <span className="ml-1 text-destructive">*</span>}
+        </Label>
+        {hint && (
+          <span className="text-[11px] text-muted-foreground font-mono">{hint}</span>
+        )}
+      </div>
       {children}
       {error && (
         <p className="flex items-start gap-1.5 text-xs text-destructive">

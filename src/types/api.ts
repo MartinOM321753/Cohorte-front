@@ -188,6 +188,9 @@ export interface ParametroEstudio {
   unidad?: string
   tipo: TipoParametro
   tipoEstudio?: string
+  /** Rango de referencia — solo aplica a tipo NUMERICO */
+  valorMinimo?: number | null
+  valorMaximo?: number | null
 }
 
 export interface ParametroEstudioRequestDTO {
@@ -195,6 +198,8 @@ export interface ParametroEstudioRequestDTO {
   nombre: string
   unidad?: string
   tipo: TipoParametro
+  valorMinimo?: number | null
+  valorMaximo?: number | null
 }
 
 export interface TipoEstudio {

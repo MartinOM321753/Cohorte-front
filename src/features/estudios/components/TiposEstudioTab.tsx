@@ -45,6 +45,8 @@ interface PendingParametro {
   nombre: string
   unidad: string
   tipo: TipoParametro
+  valorMinimo?: string
+  valorMaximo?: string
 }
 
 const TIPO_LABELS: Record<TipoParametro, string> = {
@@ -69,7 +71,10 @@ export function TiposEstudioTab() {
   const [paramNombre, setParamNombre] = useState('')
   const [paramUnidad, setParamUnidad] = useState('')
   const [paramTipo, setParamTipo] = useState<TipoParametro>('NUMERICO')
+  const [paramValorMin, setParamValorMin] = useState('')
+  const [paramValorMax, setParamValorMax] = useState('')
   const [paramError, setParamError] = useState('')
+  const [paramRangoError, setParamRangoError] = useState('')
   const [paramListError, setParamListError] = useState('')
 
   const tipoForm = useForm<TipoEstudioFormData>({
@@ -93,15 +98,32 @@ export function TiposEstudioTab() {
       setParamError('Ya existe un parámetro con ese nombre')
       return
     }
+    // Validate min/max range for NUMERICO
+    if (paramTipo === 'NUMERICO' && paramValorMin !== '' && paramValorMax !== '') {
+      if (Number(paramValorMin) >= Number(paramValorMax)) {
+        setParamRangoError('El valor mínimo debe ser menor que el máximo')
+        return
+      }
+    }
     setParamError('')
+    setParamRangoError('')
     setParamListError('')
     setPending((prev) => [
       ...prev,
-      { key: crypto.randomUUID(), nombre: trimmed, unidad: paramUnidad.trim(), tipo: paramTipo },
+      {
+        key: crypto.randomUUID(),
+        nombre: trimmed,
+        unidad: paramUnidad.trim(),
+        tipo: paramTipo,
+        valorMinimo: paramTipo === 'NUMERICO' && paramValorMin !== '' ? paramValorMin : undefined,
+        valorMaximo: paramTipo === 'NUMERICO' && paramValorMax !== '' ? paramValorMax : undefined,
+      },
     ])
     setParamNombre('')
     setParamUnidad('')
     setParamTipo('NUMERICO')
+    setParamValorMin('')
+    setParamValorMax('')
   }
 
   function removePending(key: string) {
@@ -128,6 +150,8 @@ export function TiposEstudioTab() {
             nombre: p.nombre,
             unidad: p.unidad || undefined,
             tipo: p.tipo,
+            valorMinimo: p.valorMinimo !== undefined ? Number(p.valorMinimo) : undefined,
+            valorMaximo: p.valorMaximo !== undefined ? Number(p.valorMaximo) : undefined,
           })
         }
         setPending([])
@@ -285,7 +309,7 @@ export function TiposEstudioTab() {
                 />
                 {paramError && <p className="mt-1 text-xs text-destructive">{paramError}</p>}
               </div>
-              <Select value={paramTipo} onValueChange={(v) => setParamTipo(v as TipoParametro)}>
+              <Select value={paramTipo} onValueChange={(v) => { setParamTipo(v as TipoParametro); setParamValorMin(''); setParamValorMax(''); setParamRangoError('') }}>
                 <SelectTrigger className="text-sm">
                   <SelectValue />
                 </SelectTrigger>
@@ -301,6 +325,33 @@ export function TiposEstudioTab() {
                 placeholder="Unidad (opcional)"
                 compact
               />
+              {/* Rango de referencia — solo para NUMERICO */}
+              {paramTipo === 'NUMERICO' && (
+                <>
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder="Mín. referencia"
+                    value={paramValorMin}
+                    onChange={(e) => { setParamValorMin(e.target.value); setParamRangoError('') }}
+                    className="text-sm"
+                  />
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder="Máx. referencia"
+                    value={paramValorMax}
+                    onChange={(e) => { setParamValorMax(e.target.value); setParamRangoError('') }}
+                    className="text-sm"
+                  />
+                  {paramRangoError && (
+                    <p className="col-span-2 text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="size-3 shrink-0" />
+                      {paramRangoError}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
             <Button
               type="button"
@@ -455,32 +506,52 @@ function EditableParametroRow({
 }) {
   const updateParametro = useUpdateParametroEstudio(parametro.id)
 
-  const [editing, setEditing] = useState(false)
-  const [nombre, setNombre]   = useState(parametro.nombre)
-  const [unidad, setUnidad]   = useState(parametro.unidad ?? '')
-  const [tipo,   setTipo]     = useState<TipoParametro>(parametro.tipo as TipoParametro)
-  const [error,  setError]    = useState('')
+  const [editing, setEditing]     = useState(false)
+  const [nombre, setNombre]       = useState(parametro.nombre)
+  const [unidad, setUnidad]       = useState(parametro.unidad ?? '')
+  const [tipo,   setTipo]         = useState<TipoParametro>(parametro.tipo as TipoParametro)
+  const [valMin, setValMin]       = useState(parametro.valorMinimo != null ? String(parametro.valorMinimo) : '')
+  const [valMax, setValMax]       = useState(parametro.valorMaximo != null ? String(parametro.valorMaximo) : '')
+  const [error,  setError]        = useState('')
+  const [rangoError, setRangoError] = useState('')
 
   function startEdit() {
-    // Restablecer al valor actual antes de abrir
     setNombre(parametro.nombre)
     setUnidad(parametro.unidad ?? '')
     setTipo(parametro.tipo as TipoParametro)
+    setValMin(parametro.valorMinimo != null ? String(parametro.valorMinimo) : '')
+    setValMax(parametro.valorMaximo != null ? String(parametro.valorMaximo) : '')
     setError('')
+    setRangoError('')
     setEditing(true)
   }
 
   function cancelEdit() {
     setEditing(false)
     setError('')
+    setRangoError('')
   }
 
   function saveEdit() {
     const trimmed = nombre.trim()
     if (!trimmed) { setError('El nombre es requerido'); return }
+    if (tipo === 'NUMERICO' && valMin !== '' && valMax !== '') {
+      if (Number(valMin) >= Number(valMax)) {
+        setRangoError('El valor mínimo debe ser menor que el máximo')
+        return
+      }
+    }
     setError('')
+    setRangoError('')
     updateParametro.mutate(
-      { idTipoEstudio: tipoEstudioId, nombre: trimmed, unidad: unidad.trim() || undefined, tipo },
+      {
+        idTipoEstudio: tipoEstudioId,
+        nombre: trimmed,
+        unidad: unidad.trim() || undefined,
+        tipo,
+        valorMinimo: tipo === 'NUMERICO' && valMin !== '' ? Number(valMin) : undefined,
+        valorMaximo: tipo === 'NUMERICO' && valMax !== '' ? Number(valMax) : undefined,
+      },
       { onSuccess: () => setEditing(false) }
     )
   }
@@ -499,7 +570,7 @@ function EditableParametroRow({
             />
             {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
           </div>
-          <Select value={tipo} onValueChange={(v) => setTipo(v as TipoParametro)}>
+          <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMin(''); setValMax(''); setRangoError('') }}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -510,6 +581,33 @@ function EditableParametroRow({
             </SelectContent>
           </Select>
           <UnidadSelect value={unidad} onChange={setUnidad} placeholder="Unidad" compact />
+          {/* Reference range — only for NUMERICO */}
+          {tipo === 'NUMERICO' && (
+            <>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Mín. referencia"
+                value={valMin}
+                onChange={(e) => { setValMin(e.target.value); setRangoError('') }}
+                className="h-8 text-sm"
+              />
+              <Input
+                type="number"
+                step="any"
+                placeholder="Máx. referencia"
+                value={valMax}
+                onChange={(e) => { setValMax(e.target.value); setRangoError('') }}
+                className="h-8 text-sm"
+              />
+              {rangoError && (
+                <p className="col-span-2 text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="size-3 shrink-0" />
+                  {rangoError}
+                </p>
+              )}
+            </>
+          )}
         </div>
         <div className="flex items-center justify-end gap-2">
           <Button
@@ -541,6 +639,17 @@ function EditableParametroRow({
     )
   }
 
+  // Reference range display string
+  const rangoLabel = (() => {
+    if (parametro.tipo !== 'NUMERICO') return null
+    const min = parametro.valorMinimo
+    const max = parametro.valorMaximo
+    if (min != null && max != null) return `${min}–${max}`
+    if (min != null) return `≥${min}`
+    if (max != null) return `≤${max}`
+    return null
+  })()
+
   return (
     <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
       <div className="flex items-center gap-2 text-sm">
@@ -548,6 +657,11 @@ function EditableParametroRow({
         <span className="font-medium">{parametro.nombre}</span>
         {parametro.unidad && (
           <span className="font-mono text-xs text-muted-foreground">({parametro.unidad})</span>
+        )}
+        {rangoLabel && (
+          <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+            ref: {rangoLabel}
+          </span>
         )}
       </div>
       <div className="flex items-center gap-1">
@@ -586,15 +700,32 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
   const [nombre, setNombre] = useState('')
   const [unidad, setUnidad] = useState('')
   const [tipo, setTipo] = useState<TipoParametro>('NUMERICO')
+  const [valMin, setValMin] = useState('')
+  const [valMax, setValMax] = useState('')
   const [error, setError] = useState('')
+  const [rangoError, setRangoError] = useState('')
 
   function handleAdd() {
     const trimmed = nombre.trim()
     if (!trimmed) { setError('Requerido'); return }
+    if (tipo === 'NUMERICO' && valMin !== '' && valMax !== '') {
+      if (Number(valMin) >= Number(valMax)) {
+        setRangoError('El mínimo debe ser menor que el máximo')
+        return
+      }
+    }
     setError('')
+    setRangoError('')
     createParametro.mutate(
-      { idTipoEstudio: tipoId, nombre: trimmed, unidad: unidad.trim() || undefined, tipo },
-      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO') } }
+      {
+        idTipoEstudio: tipoId,
+        nombre: trimmed,
+        unidad: unidad.trim() || undefined,
+        tipo,
+        valorMinimo: tipo === 'NUMERICO' && valMin !== '' ? Number(valMin) : undefined,
+        valorMaximo: tipo === 'NUMERICO' && valMax !== '' ? Number(valMax) : undefined,
+      },
+      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMin(''); setValMax('') } }
     )
   }
 
@@ -611,7 +742,7 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
           />
           {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
         </div>
-        <Select value={tipo} onValueChange={(v) => setTipo(v as TipoParametro)}>
+        <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMin(''); setValMax(''); setRangoError('') }}>
           <SelectTrigger className="h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
@@ -627,6 +758,32 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
           placeholder="Unidad"
           compact
         />
+        {tipo === 'NUMERICO' && (
+          <>
+            <Input
+              type="number"
+              step="any"
+              placeholder="Mín. referencia"
+              value={valMin}
+              onChange={(e) => { setValMin(e.target.value); setRangoError('') }}
+              className="h-8 text-sm"
+            />
+            <Input
+              type="number"
+              step="any"
+              placeholder="Máx. referencia"
+              value={valMax}
+              onChange={(e) => { setValMax(e.target.value); setRangoError('') }}
+              className="h-8 text-sm"
+            />
+            {rangoError && (
+              <p className="col-span-2 text-xs text-destructive flex items-center gap-1">
+                <AlertCircle className="size-3 shrink-0" />
+                {rangoError}
+              </p>
+            )}
+          </>
+        )}
       </div>
       <Button
         type="button"
