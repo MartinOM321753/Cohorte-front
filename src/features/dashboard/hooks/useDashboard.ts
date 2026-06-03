@@ -5,13 +5,14 @@ import type { ApiResponse } from '@/types/api'
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface DashboardStats {
-  pacientesActivos: number
-  citasProgramadas: number
-  muestrasBiobanco: number
-  estudiosConResultados: number
-  examenesLab: number
-  documentosGenerales: number
-  documentosMuestra: number
+  pacientesActivos:         number
+  citasMes:                 number
+  citasSinActualizar:       number
+  estudiosConResultadosMes: number
+  examenesLabMes:           number
+  muestrasBiobanco:         number
+  documentosGenerales:      number
+  deltasPacientes:          number
 }
 
 export interface AgendaHoyItem {
@@ -28,31 +29,28 @@ export interface AgendaHoyItem {
   }
 }
 
-// ── Hooks ─────────────────────────────────────────────────────────────────────
+export interface ExamenesCalidadDTO {
+  enRango:       number
+  fueraDeRango:  number
+  sinReferencia: number
+}
 
-/**
- * Estadísticas numéricas para el dashboard:
- * pacientes activos, citas del mes y muestras en biobanco.
- */
-export function useDashboardStats() {
-  return useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
-    queryFn: async () => {
-      const res = await api.get<ApiResponse<DashboardStats>>('/dashboard/stats')
-      return res.data.data
-    },
-    staleTime: 60_000,   // consideramos los números "frescos" por 1 min
-  })
+export interface RefrigeradorOcupacionDTO {
+  refrigeradorId:  number
+  nombre:          string
+  totalPosiciones: number
+  ocupadas:        number
+  pct:             number
 }
 
 // ── Global chart types ────────────────────────────────────────────────────────
 
 export interface SomatometriaGlobalPoint {
   fecha: string
-  pesoKg:                  number | null
-  imc:                     number | null
-  presionSistolica:        number | null
-  presionDiastolica:       number | null
+  pesoKg:                    number | null
+  imc:                       number | null
+  presionSistolica:          number | null
+  presionDiastolica:         number | null
   circunferenciaAbdominalCm: number | null
 }
 
@@ -67,8 +65,33 @@ export interface ExamenResultGlobalPoint {
   valorMaxMujeres: number | null
 }
 
-// ── Global chart hooks ────────────────────────────────────────────────────────
+// ── Hooks ─────────────────────────────────────────────────────────────────────
 
+/** Estadísticas numéricas del mes en curso para el dashboard. */
+export function useDashboardStats() {
+  return useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<DashboardStats>>('/dashboard/stats')
+      return res.data.data
+    },
+    staleTime: 60_000,
+  })
+}
+
+/** Citas no canceladas de hoy, ordenadas por hora de inicio. */
+export function useAgendaHoy() {
+  return useQuery<AgendaHoyItem[]>({
+    queryKey: ['dashboard-agenda-hoy'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<AgendaHoyItem[]>>('/dashboard/agenda-hoy')
+      return res.data.data ?? []
+    },
+    staleTime: 60_000,
+  })
+}
+
+/** Datos de somatometría global para gráficas de tendencia. */
 export function useSomatometriaGlobal() {
   return useQuery<SomatometriaGlobalPoint[]>({
     queryKey: ['dashboard-somatometria-global'],
@@ -80,6 +103,7 @@ export function useSomatometriaGlobal() {
   })
 }
 
+/** Datos de resultados de exámenes globales para gráficas. */
 export function useExamenesGlobal() {
   return useQuery<ExamenResultGlobalPoint[]>({
     queryKey: ['dashboard-examenes-global'],
@@ -91,16 +115,26 @@ export function useExamenesGlobal() {
   })
 }
 
-/**
- * Citas no canceladas de hoy, ordenadas por hora de inicio.
- */
-export function useAgendaHoy() {
-  return useQuery<AgendaHoyItem[]>({
-    queryKey: ['dashboard-agenda-hoy'],
+/** Calidad de resultados: en rango / fuera de rango / sin referencia. */
+export function useExamenesCalidad() {
+  return useQuery<ExamenesCalidadDTO>({
+    queryKey: ['dashboard-examenes-calidad'],
     queryFn: async () => {
-      const res = await api.get<ApiResponse<AgendaHoyItem[]>>('/dashboard/agenda-hoy')
+      const res = await api.get<ApiResponse<ExamenesCalidadDTO>>('/dashboard/examenes-calidad')
+      return res.data.data
+    },
+    staleTime: 5 * 60_000,
+  })
+}
+
+/** Ocupación de refrigeradores del biobanco, ordenados por % DESC. */
+export function useBiobancoOcupacion() {
+  return useQuery<RefrigeradorOcupacionDTO[]>({
+    queryKey: ['dashboard-biobanco-ocupacion'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<RefrigeradorOcupacionDTO[]>>('/dashboard/biobanco-ocupacion')
       return res.data.data ?? []
     },
-    staleTime: 60_000,
+    staleTime: 2 * 60_000,
   })
 }
