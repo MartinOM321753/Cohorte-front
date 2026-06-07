@@ -102,11 +102,11 @@ export default function EncargadoPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
             <Warehouse className="h-12 w-12 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Selecciona un almacén</h2>
+            <h2 className="text-lg font-semibold">Selecciona una institución</h2>
             <p className="text-sm text-muted-foreground text-center">
               {almacenes.length === 0
-                ? 'No tienes almacenes asignados. Contacta al administrador.'
-                : 'Elige un almacén del menú lateral para ver sus muestras.'}
+                ? 'No tienes instituciones asignadas. Contacta al administrador.'
+                : 'Elige una institución del menú lateral para ver sus muestras.'}
             </p>
           </CardContent>
         </Card>
@@ -128,7 +128,7 @@ export default function EncargadoPage() {
         <Warehouse className="h-7 w-7 text-primary mt-0.5" />
         <div>
           <h1 className="text-2xl font-bold">
-            {selectedAlmacen?.nombre ?? `Almacén #${numericAlmacenId}`}
+            {selectedAlmacen?.nombre ?? `Institución #${numericAlmacenId}`}
           </h1>
           {selectedAlmacen && (
             <p className="text-sm text-muted-foreground">
@@ -329,7 +329,7 @@ export default function EncargadoPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8 gap-2">
                 <AlertCircle className="h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No hay muestras registradas en este almacén.</p>
+                <p className="text-sm text-muted-foreground">No hay muestras registradas en esta institución.</p>
               </CardContent>
             </Card>
           )}

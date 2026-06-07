@@ -180,7 +180,7 @@ export interface CitaUpdateRequestDTO {
 // ============================================
 // ESTUDIOS MÉDICOS
 // ============================================
-export type TipoParametro = 'NUMERICO' | 'TEXTO' | 'BOOLEANO'
+export type TipoParametro = 'NUMERICO' | 'TEXTO' | 'BOOLEANO' | 'TEXTO_OPCIONES'
 
 export interface ParametroEstudio {
   id: number
@@ -191,6 +191,8 @@ export interface ParametroEstudio {
   /** Rango de referencia — solo aplica a tipo NUMERICO */
   valorMinimo?: number | null
   valorMaximo?: number | null
+  /** Opciones predefinidas — solo aplica a tipo TEXTO_OPCIONES */
+  opciones?: string[] | null
 }
 
 export interface ParametroEstudioRequestDTO {
@@ -200,6 +202,8 @@ export interface ParametroEstudioRequestDTO {
   tipo: TipoParametro
   valorMinimo?: number | null
   valorMaximo?: number | null
+  /** Lista de valores válidos — solo cuando tipo == TEXTO_OPCIONES */
+  opciones?: string[]
 }
 
 export interface TipoEstudio {
@@ -415,6 +419,61 @@ export interface DocumentoResponseDTO {
 }
 
 // ============================================
+// BIOBANCO - TIPOS DE MUESTRA (Stream C)
+// ============================================
+export interface TuboMuestra {
+  id: number
+  nombre: string
+  prefijoCodigo?: string | null
+  numeroAlicuotas: number
+  volumenAlicuota?: number | null
+  unidadVolumen?: string | null
+  destinoSugerido?: string | null
+  orden: number
+  activo: boolean
+}
+
+export interface TuboMuestraRequestDTO {
+  nombre: string
+  prefijoCodigo?: string
+  numeroAlicuotas: number
+  volumenAlicuota?: number
+  unidadVolumen?: string
+  destinoSugerido?: string
+  orden?: number
+  activo?: boolean
+}
+
+export interface TipoMuestra {
+  id: number
+  nombre: string
+  descripcion?: string | null
+  temperaturaAlmacenamiento?: string | null
+  activo: boolean
+  tubos: TuboMuestra[]
+}
+
+export interface TipoMuestraRequestDTO {
+  nombre: string
+  descripcion?: string
+  temperaturaAlmacenamiento?: string
+}
+
+/** Resumen ligero incluido en MuestraDetalleDTO */
+export interface TipoMuestraResumen {
+  id: number
+  nombre: string
+  temperaturaAlmacenamiento?: string | null
+}
+
+export interface TuboMuestraResumen {
+  id: number
+  nombre: string
+  prefijoCodigo?: string | null
+  numeroAlicuotas: number
+}
+
+// ============================================
 // BIOBANCO - MUESTRAS
 // ============================================
 export interface Muestra {
@@ -433,13 +492,16 @@ export interface Muestra {
 
 export interface MuestraRequestDTO {
   etiqueta: string
-  valor: number
-  unidad: string
+  valor?: number
+  unidad?: string
   fechaRecoleccion: string
   observaciones?: string
   pacienteUUID: string
   usuarioRecolectaUUID: string
-  idPosicionCaja: number
+  idPosicionCaja?: number | null
+  // Stream C
+  idTipoMuestra?: number | null
+  idTuboMuestra?: number | null
 }
 
 export interface MuestraDetalleDTO {
@@ -464,14 +526,120 @@ export interface MuestraDetalleDTO {
     nombreCompleto: string
     uuid: string
   }
-  ubicacion: {
+  ubicacion?: {
     idPosicionCaja: number
     fila: string
     columna: string
     codigoCaja: string
     numeroPiso: string
     codigoRefrigerador: string
-  }
+  } | null
+  // Stream C
+  tipoMuestra?: TipoMuestraResumen | null
+  tuboMuestra?: TuboMuestraResumen | null
+  idMuestraPadre?: number | null
+  numeroAlicuota?: number | null
+  totalAlicuotas?: number | null
+  /** Solo presente en respuesta de creación cuando se auto-generaron alícuotas */
+  alicuotasGeneradas?: number | null
+}
+
+// ============================================
+// BIOBANCO - ESTUDIOS DE MUESTRAS (reemplaza Stream D)
+// ============================================
+
+export interface ParametroEstudioMuestra {
+  id: number
+  idTipoEstudioMuestra?: number | null
+  nombreTipoEstudioMuestra?: string | null
+  nombre: string
+  unidad?: string | null
+  tipo: TipoParametro
+  valorMinimo?: number | null
+  valorMaximo?: number | null
+  /** Valores válidos — solo cuando tipo == TEXTO_OPCIONES */
+  opciones?: string[] | null
+}
+
+export interface ParametroEstudioMuestraRequestDTO {
+  idTipoEstudioMuestra: number
+  nombre: string
+  unidad?: string
+  tipo: TipoParametro
+  valorMinimo?: number | null
+  valorMaximo?: number | null
+  opciones?: string[]
+}
+
+export interface TipoEstudioMuestra {
+  id: number
+  nombre: string
+  descripcion?: string | null
+  activo: boolean
+  fechaCreacion?: string | null
+  parametros?: ParametroEstudioMuestra[] | null
+}
+
+export interface TipoEstudioMuestraRequestDTO {
+  nombre: string
+  descripcion?: string
+}
+
+export interface ResultadoEstudioMuestraRequestDTO {
+  idParametro: number
+  valorNumerico?: number | null
+  valorTexto?: string | null
+  valorBooleano?: boolean | null
+  grupoCodigo?: string | null
+  grupoEtiqueta?: string | null
+  orden?: number | null
+}
+
+export interface ResultadoEstudioMuestraResponse {
+  id: number
+  parametro: string
+  idParametro: number
+  valorNumerico?: number | null
+  valorTexto?: string | null
+  valorBooleano?: boolean | null
+  grupoCodigo?: string | null
+  grupoEtiqueta?: string | null
+  orden?: number | null
+}
+
+export interface EstudioMuestraRequestDTO {
+  idTipoEstudioMuestra: number
+  usuarioRealizaUUID: string
+  fechaEstudio: string
+  observaciones?: string
+  cantidadConsumida?: number | null
+  unidadConsumida?: string | null
+  resultados?: ResultadoEstudioMuestraRequestDTO[]
+}
+
+export interface EstudioMuestraResponse {
+  id: number
+  idMuestra: number
+  etiquetaMuestra: string
+  tipoEstudioMuestra: TipoEstudioMuestra
+  usuarioRealiza: UsuarioResumenDTO
+  fechaEstudio: string
+  fechaRegistro: string
+  observaciones?: string | null
+  cantidadConsumida?: number | null
+  unidadConsumida?: string | null
+  resultados: ResultadoEstudioMuestraResponse[]
+  cantidadResultados: number
+}
+
+export interface HistorialCambioMuestraResponse {
+  id: number
+  campo: string
+  valorAnterior?: string | null
+  valorNuevo?: string | null
+  usuario: string
+  fechaCambio: string
+  motivo?: string | null
 }
 
 // ============================================
@@ -555,8 +723,19 @@ export interface PosicionCaja {
 }
 
 // ============================================
-// BIOBANCO - ALMACENES EXTERNOS
+// BIOBANCO - INSTITUCIONES EXTERNAS
 // ============================================
+
+export type TipoInstitucion = 'INMEGEN' | 'INSP' | 'HOSPITAL' | 'LABORATORIO' | 'OTRA'
+
+export const TIPO_INSTITUCION_LABELS: Record<TipoInstitucion, string> = {
+  INMEGEN:     'INMEGEN',
+  INSP:        'INSP',
+  HOSPITAL:    'Hospital',
+  LABORATORIO: 'Laboratorio',
+  OTRA:        'Otra institución',
+}
+
 export interface EncargadoResumen {
   id: number
   uuid: string
@@ -565,6 +744,7 @@ export interface EncargadoResumen {
   email?: string
 }
 
+/** Institución externa (antes "Almacén") — destino de traslados de muestras */
 export interface Almacen {
   id: number
   nombre: string
@@ -574,6 +754,8 @@ export interface Almacen {
   responsable?: string
   telefono?: string
   activo: boolean
+  tipo?: TipoInstitucion | null
+  tieneBiobanco?: boolean
   encargado?: EncargadoResumen | null
 }
 
@@ -585,6 +767,8 @@ export interface AlmacenRequestDTO {
   responsable?: string
   telefono?: string
   activo?: boolean
+  tipo?: TipoInstitucion
+  tieneBiobanco?: boolean
   uuidEncargado?: string | null
 }
 

@@ -67,8 +67,8 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
                   className={`
                     aspect-square rounded border-2 text-xs font-medium transition-all
                     ${posicion?.ocupada
-                      ? 'bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200'
-                      : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                      ? 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20'
+                      : 'bg-background border-border text-muted-foreground hover:bg-muted/50'
                     }
                     ${selectedPosicion?.id === posicion?.id ? 'ring-2 ring-primary' : ''}
                   `}
@@ -91,12 +91,12 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
 
         <div className="flex justify-center gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-white border-2 border-gray-300 rounded"></div>
+            <div className="w-4 h-4 bg-background border-2 border-border rounded"></div>
             <span>Libre</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-100 border-2 border-blue-300 rounded flex items-center justify-center">
-              <TestTube className="h-2 w-2" />
+            <div className="w-4 h-4 bg-primary/10 border-2 border-primary/30 rounded flex items-center justify-center">
+              <TestTube className="h-2 w-2 text-primary" />
             </div>
             <span>Ocupada</span>
           </div>

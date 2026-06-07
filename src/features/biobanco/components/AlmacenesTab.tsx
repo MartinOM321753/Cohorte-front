@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Edit, Warehouse, MapPin, Phone, User, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { Plus, Edit, Building2, MapPin, Phone, User, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 import { useGetAlmacenes, useDeleteAlmacen, useActivateAlmacen } from '../hooks/useBiobanco'
 import { AlmacenFormModal } from './AlmacenFormModal'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Almacen } from '@/types/api'
+import { Almacen, TIPO_INSTITUCION_LABELS } from '@/types/api'
 
 export function AlmacenesTab() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -57,20 +57,20 @@ export function AlmacenesTab() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Almacenes Externos</h2>
-          <p className="text-muted-foreground">Laboratorios externos a los que se pueden trasladar muestras</p>
+          <h2 className="text-2xl font-bold">Instituciones Externas</h2>
+          <p className="text-muted-foreground">Instituciones (INMEGEN, INSP, hospitales, laboratorios) que reciben traslados de muestras</p>
         </div>
         <Button onClick={() => setIsModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nuevo Almacén
+          Nueva Institución
         </Button>
       </div>
 
       <Alert>
-        <Warehouse className="h-4 w-4" />
+        <Building2 className="h-4 w-4" />
         <AlertDescription>
-          Registra los laboratorios externos de otros estados. Una vez registrados podrás trasladar muestras hacia ellos y llevar el historial de ida y vuelta.
-          Los almacenes inactivos conservan su historial pero no pueden recibir nuevos traslados.
+          Registra las instituciones externas que tienen acceso al biobanco o a las que se trasladan muestras.
+          Las instituciones inactivas conservan su historial pero no pueden recibir nuevos traslados.
         </AlertDescription>
       </Alert>
 
@@ -78,13 +78,13 @@ export function AlmacenesTab() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8">
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No hay almacenes registrados</h3>
+            <h3 className="text-lg font-semibold mb-2">No hay instituciones registradas</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Registra el primer laboratorio externo para poder trasladar muestras.
+              Registra la primera institución externa para poder trasladar muestras.
             </p>
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Crear Primer Almacén
+              Registrar Primera Institución
             </Button>
           </CardContent>
         </Card>
@@ -95,9 +95,16 @@ export function AlmacenesTab() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base leading-tight">{almacen.nombre}</CardTitle>
-                  <Badge variant={almacen.activo ? 'default' : 'secondary'} className="shrink-0">
-                    {almacen.activo ? 'Activo' : 'Inactivo'}
-                  </Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge variant={almacen.activo ? 'default' : 'secondary'}>
+                      {almacen.activo ? 'Activa' : 'Inactiva'}
+                    </Badge>
+                    {almacen.tipo && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {TIPO_INSTITUCION_LABELS[almacen.tipo] ?? almacen.tipo}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="flex-1 space-y-3">
@@ -168,11 +175,11 @@ export function AlmacenesTab() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>¿Desactivar almacén?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Desactivar institución?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          El almacén <strong>{almacen.nombre}</strong> quedará inactivo y no podrá recibir nuevos traslados.
+                          La institución <strong>{almacen.nombre}</strong> quedará inactiva y no podrá recibir nuevos traslados.
                           El historial de traslados anteriores se conserva.
-                          Solo es posible desactivarlo si todas las muestras ya fueron devueltas.
+                          Solo es posible desactivarla si todas las muestras ya fueron devueltas.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -201,9 +208,9 @@ export function AlmacenesTab() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>¿Activar almacén?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Activar institución?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          El almacén <strong>{almacen.nombre}</strong> volverá a estar disponible para recibir nuevos traslados de muestras.
+                          La institución <strong>{almacen.nombre}</strong> volverá a estar disponible para recibir nuevos traslados de muestras.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

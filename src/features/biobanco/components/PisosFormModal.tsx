@@ -197,7 +197,7 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
             <div className="border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50">
+                  <TableRow className="bg-muted/50">
                     <TableHead>Piso</TableHead>
                     <TableHead className="text-center">Filas</TableHead>
                     <TableHead className="text-center">Columnas</TableHead>
@@ -211,7 +211,7 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                   {existingPisos.map((piso) =>
                     editingId === piso.id && editForm ? (
                       /* ── fila en modo edición ── */
-                      <TableRow key={piso.id} className="bg-blue-50">
+                      <TableRow key={piso.id} className="bg-primary/5">
                         <TableCell>
                           <Input
                             value={editForm.numeroPiso}
@@ -250,7 +250,7 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                           {editForm.filas * editForm.columnas * editForm.altura}
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">Editando</span>
+                          <span className="text-xs px-2 py-1 rounded bg-primary/10 text-primary">Editando</span>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1 justify-center">
@@ -276,18 +276,18 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                       </TableRow>
                     ) : (
                       /* ── fila normal ── */
-                      <TableRow key={piso.id} className="hover:bg-slate-50">
-                        <TableCell className="font-semibold text-blue-600">Piso {piso.numeroPiso}</TableCell>
+                      <TableRow key={piso.id}>
+                        <TableCell className="font-semibold text-primary">Piso {piso.numeroPiso}</TableCell>
                         <TableCell className="text-center">{piso.filas}</TableCell>
                         <TableCell className="text-center">{piso.columnas}</TableCell>
                         <TableCell className="text-center">
                           {typeof piso.altura === 'number' ? piso.altura : parseInt(piso.altura || '1', 10)}
                         </TableCell>
-                        <TableCell className="text-center font-semibold text-blue-600">
+                        <TableCell className="text-center font-semibold text-primary">
                           {getTotalPosiciones(piso)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className={`text-xs px-2 py-1 rounded ${piso.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                          <span className={`text-xs px-2 py-1 rounded ${piso.activo ? 'bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
                             {piso.activo ? 'Activo' : 'Inactivo'}
                           </span>
                         </TableCell>

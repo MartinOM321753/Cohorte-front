@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import {
@@ -24,10 +25,17 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { AlertCircle, Check, ChevronsUpDown, MapPin, X } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { AlertCircle, Check, ChevronsUpDown, FlaskConical, Info, MapPin, TestTube, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-import { useCreateMuestra, useUpdateMuestra, useGetMuestraById } from '../hooks/useBiobanco'
+import { useCreateMuestra, useUpdateMuestra, useGetMuestraById, useGetTiposMuestraActivos } from '../hooks/useBiobanco'
 import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
 import { useAuthStore } from '@/stores/authStore'
 import { MuestraDetalleDTO, Paciente } from '@/types/api'
@@ -64,7 +72,12 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   const [showPosicionModal, setShowPosicionModal] = useState(false)
   const [posicionLabel, setPosicionLabel] = useState<string>('')
 
+  // Stream C — TipoMuestra / TuboMuestra selection
+  const [selectedTipoId, setSelectedTipoId] = useState<number | null>(null)
+  const [selectedTuboId, setSelectedTuboId] = useState<number | null>(null)
+
   const user = useAuthStore((state) => state.user)
+  const { data: tiposMuestra = [] } = useGetTiposMuestraActivos()
 
   const {
     register,
@@ -128,9 +141,16 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         observaciones: freshMuestra.observaciones || '',
         pacienteUUID: freshMuestra.paciente.uuid,
         usuarioRecolectaUUID: freshMuestra.usuarioRecolecta.uuid,
-        idPosicionCaja: u.idPosicionCaja,
+        idPosicionCaja: u?.idPosicionCaja ?? 0,
       })
-      setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
+      if (u) {
+        setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
+      } else {
+        setPosicionLabel('')
+      }
+      // Stream C — restaurar tipo/tubo
+      setSelectedTipoId(freshMuestra.tipoMuestra?.id ?? null)
+      setSelectedTuboId(freshMuestra.tuboMuestra?.id ?? null)
     } else if (open && muestra) {
       const u = muestra.ubicacion
       reset({
@@ -141,16 +161,27 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         observaciones: muestra.observaciones || '',
         pacienteUUID: muestra.paciente.uuid,
         usuarioRecolectaUUID: muestra.usuarioRecolecta.uuid,
-        idPosicionCaja: u.idPosicionCaja,
+        idPosicionCaja: u?.idPosicionCaja ?? 0,
       })
-      setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
+      if (u) {
+        setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
+      } else {
+        setPosicionLabel('')
+      }
+      // Stream C — restaurar tipo/tubo
+      setSelectedTipoId(muestra.tipoMuestra?.id ?? null)
+      setSelectedTuboId(muestra.tuboMuestra?.id ?? null)
     } else if (open) {
       reset(buildDefaultValues())
       setPosicionLabel('')
+      setSelectedTipoId(null)
+      setSelectedTuboId(null)
     } else {
       const timer = setTimeout(() => {
         reset(buildDefaultValues())
         setPosicionLabel('')
+        setSelectedTipoId(null)
+        setSelectedTuboId(null)
       }, 150)
       return () => clearTimeout(timer)
     }
@@ -158,10 +189,15 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
   const onSubmit = async (data: MuestraFormData) => {
     try {
+      const payload = {
+        ...data,
+        idTipoMuestra: selectedTipoId ?? undefined,
+        idTuboMuestra: selectedTuboId ?? undefined,
+      }
       if (isEditing && muestra) {
-        await updateMuestraMutation.mutateAsync({ id: muestra.id, data })
+        await updateMuestraMutation.mutateAsync({ id: muestra.id, data: payload })
       } else {
-        await createMuestraMutation.mutateAsync(data)
+        await createMuestraMutation.mutateAsync(payload)
       }
       onOpenChange(false)
     } catch (error) { }
@@ -172,9 +208,15 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
       setPosicionLabel('')
       setOpenPaciente(false)
       setShowPosicionModal(false)
+      setSelectedTipoId(null)
+      setSelectedTuboId(null)
     }
     onOpenChange(newOpen)
   }
+
+  // Tubos del tipo seleccionado
+  const selectedTipo = tiposMuestra.find((t) => t.id === selectedTipoId) ?? null
+  const tubosDisponibles = selectedTipo?.tubos.filter((tb) => tb.activo) ?? []
 
   const watchedUnidad = watch('unidad')
   const watchedPacienteUUID = watch('pacienteUUID')
@@ -231,6 +273,114 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                 )}
               </div>
             </div>
+
+            {/* Tipo de muestra (opcional) ────────────────────────────────── */}
+            {tiposMuestra.length > 0 && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
+                    Tipo de muestra
+                    <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </Label>
+                  <Select
+                    value={selectedTipoId != null ? String(selectedTipoId) : '__none__'}
+                    onValueChange={(v) => {
+                      const id = v === '__none__' ? null : parseInt(v)
+                      setSelectedTipoId(id)
+                      setSelectedTuboId(null)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sin tipo específico" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sin tipo específico</SelectItem>
+                      {tiposMuestra.map((t) => (
+                        <SelectItem key={t.id} value={String(t.id)}>
+                          {t.nombre}
+                          {t.temperaturaAlmacenamiento && (
+                            <span className="text-muted-foreground ml-1 text-xs">· {t.temperaturaAlmacenamiento}</span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Árbol de tubos del tipo seleccionado ─────────────────── */}
+                {selectedTipo && (
+                  <div className="rounded-md border border-dashed p-3 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <TestTube className="h-3.5 w-3.5" />
+                      Tubos configurados para "{selectedTipo.nombre}"
+                    </p>
+                    {tubosDisponibles.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Sin tubos activos configurados</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {tubosDisponibles.map((tb) => {
+                          const isSelected = selectedTuboId === tb.id
+                          return (
+                            <button
+                              key={tb.id}
+                              type="button"
+                              onClick={() => setSelectedTuboId(isSelected ? null : tb.id)}
+                              className={`w-full text-left rounded-md border px-3 py-2 text-sm transition-colors ${
+                                isSelected
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-transparent bg-muted/30 hover:bg-muted/60'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  {isSelected
+                                    ? <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                                    : <div className="h-3.5 w-3.5 shrink-0" />
+                                  }
+                                  <span className="font-medium">{tb.nombre}</span>
+                                  {tb.prefijoCodigo && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tb.prefijoCodigo}</Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  {tb.numeroAlicuotas === 0 ? (
+                                    <span className="italic">Tubo directo</span>
+                                  ) : (
+                                    <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                      → {tb.numeroAlicuotas} alícuota{tb.numeroAlicuotas !== 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                  {tb.volumenAlicuota != null && (
+                                    <span>{tb.volumenAlicuota} {tb.unidadVolumen ?? ''}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Aviso de generación automática ──────────────────── */}
+                    {selectedTuboId != null && (() => {
+                      const tubo = tubosDisponibles.find(tb => tb.id === selectedTuboId)
+                      if (!tubo || tubo.numeroAlicuotas === 0) return null
+                      return (
+                        <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 mt-2">
+                          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>
+                            Al registrar se crearán automáticamente <strong>{tubo.numeroAlicuotas} alícuotas</strong> hija
+                            con el prefijo <strong>{tubo.prefijoCodigo || 'A'}</strong>.
+                            Podrás asignarles su posición en caja desde la lista de muestras.
+                          </span>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -328,9 +478,9 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
               <Label>Posición en Caja *</Label>
               {posicionLabel ? (
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-200 rounded-md">
-                    <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
-                    <p className="text-sm text-blue-800 font-medium">{posicionLabel}</p>
+                  <div className="flex-1 flex items-center gap-2 p-2.5 bg-primary/10 border border-primary/20 rounded-md">
+                    <MapPin className="h-4 w-4 text-primary shrink-0" />
+                    <p className="text-sm text-primary font-medium">{posicionLabel}</p>
                   </div>
                   <Button
                     type="button"

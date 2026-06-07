@@ -24,31 +24,31 @@ interface HistorialTrasladosModalProps {
 function estadoBadge(estado: TrasladoMuestra['estado']) {
   switch (estado) {
     case 'TRASLADADA':
-      return { label: 'En tránsito', className: 'border-amber-400 text-amber-700 bg-amber-100' }
+      return { label: 'En tránsito',   className: 'border-amber-500/40  text-amber-700  dark:text-amber-400  bg-amber-500/10'  }
     case 'RECIBIDA':
-      return { label: 'Recibida', className: 'border-blue-400 text-blue-700 bg-blue-100' }
+      return { label: 'Recibida',      className: 'border-blue-500/40   text-blue-700   dark:text-blue-400   bg-blue-500/10'   }
     case 'EN_DEVOLUCION':
-      return { label: 'En devolución', className: 'border-orange-400 text-orange-700 bg-orange-100' }
+      return { label: 'En devolución', className: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
     case 'DEVUELTA':
-      return { label: 'Devuelta', className: 'border-green-400 text-green-700 bg-green-100' }
+      return { label: 'Devuelta',      className: 'border-green-500/40  text-green-700  dark:text-green-400  bg-green-500/10'  }
   }
 }
 
 function estadoCardBg(estado: TrasladoMuestra['estado']) {
   switch (estado) {
-    case 'TRASLADADA':   return 'border-amber-300 bg-amber-50'
-    case 'RECIBIDA':     return 'border-blue-200 bg-blue-50'
-    case 'EN_DEVOLUCION':return 'border-orange-200 bg-orange-50'
-    case 'DEVUELTA':     return 'border-green-200 bg-green-50'
+    case 'TRASLADADA':    return 'border-amber-500/30  bg-amber-500/10'
+    case 'RECIBIDA':      return 'border-blue-500/20   bg-blue-500/10'
+    case 'EN_DEVOLUCION': return 'border-orange-500/20 bg-orange-500/10'
+    case 'DEVUELTA':      return 'border-green-500/20  bg-green-500/10'
   }
 }
 
 function EstadoIcon({ estado }: { estado: TrasladoMuestra['estado'] }) {
   switch (estado) {
-    case 'TRASLADADA':    return <Clock className="h-4 w-4 text-amber-600" />
-    case 'RECIBIDA':      return <PackageCheck className="h-4 w-4 text-blue-600" />
-    case 'EN_DEVOLUCION': return <RotateCcw className="h-4 w-4 text-orange-600" />
-    case 'DEVUELTA':      return <CheckCircle2 className="h-4 w-4 text-green-600" />
+    case 'TRASLADADA':    return <Clock        className="h-4 w-4 text-amber-600  dark:text-amber-400"  />
+    case 'RECIBIDA':      return <PackageCheck className="h-4 w-4 text-blue-600   dark:text-blue-400"   />
+    case 'EN_DEVOLUCION': return <RotateCcw    className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+    case 'DEVUELTA':      return <CheckCircle2 className="h-4 w-4 text-green-600  dark:text-green-400"  />
   }
 }
 
@@ -168,8 +168,8 @@ export function HistorialTrasladosModal({ open, onOpenChange, muestra }: Histori
 
                   {/* Admin confirm return form */}
                   {confirmingDevolucionId === traslado.id && (
-                    <div className="mt-3 pt-3 border-t border-orange-300 space-y-3">
-                      <p className="text-xs font-medium text-orange-800">
+                    <div className="mt-3 pt-3 border-t border-orange-500/30 space-y-3">
+                      <p className="text-xs font-medium text-orange-700 dark:text-orange-300">
                         Confirmar retorno físico de la muestra al biobanco
                       </p>
                       <div className="space-y-1">

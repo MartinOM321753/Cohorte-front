@@ -39,6 +39,14 @@ import {
   iniciarDevolucion,
   getUsuariosByRol,
   getAlmacenesByEncargadoUuid,
+  getTiposMuestra,
+  getTiposMuestraActivos,
+  createTipoMuestra,
+  updateTipoMuestra,
+  toggleTipoMuestra,
+  addTuboMuestra,
+  updateTuboMuestra,
+  deleteTuboMuestra,
 } from '../api/biobanco.api'
 import {
   RefrigeradorRequestDTO,
@@ -51,6 +59,8 @@ import {
   DevolucionRequestDTO,
   ConfirmarRecepcionRequestDTO,
   IniciarDevolucionRequestDTO,
+  TipoMuestraRequestDTO,
+  TuboMuestraRequestDTO,
 } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -340,11 +350,16 @@ export function useCreateMuestra() {
 
   return useMutation({
     mutationFn: (data: MuestraRequestDTO) => createMuestra(data),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['muestras'] })
       queryClient.invalidateQueries({ queryKey: ['posiciones'] })
       queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
-      toast.success('Muestra registrada exitosamente')
+      const alicuotas = data?.alicuotasGeneradas
+      if (alicuotas && alicuotas > 0) {
+        toast.success(`Muestra registrada. Se generaron ${alicuotas} alícuotas — asigna sus posiciones desde la lista.`, { duration: 6000 })
+      } else {
+        toast.success('Muestra registrada exitosamente')
+      }
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error al registrar la muestra'
@@ -578,6 +593,117 @@ export function useGetAlmacenesByEncargado(uuid: string, options?: { enabled?: b
     queryKey: ['almacenes-encargado', uuid],
     queryFn: () => getAlmacenesByEncargadoUuid(uuid),
     enabled: (options?.enabled ?? true) && !!uuid,
+  })
+}
+
+// ============================================
+// HOOKS PARA TIPOS DE MUESTRA (Stream C)
+// ============================================
+
+export function useGetTiposMuestra() {
+  return useQuery({
+    queryKey: ['tipos-muestra'],
+    queryFn: () => getTiposMuestra(),
+  })
+}
+
+export function useGetTiposMuestraActivos() {
+  return useQuery({
+    queryKey: ['tipos-muestra-activos'],
+    queryFn: () => getTiposMuestraActivos(),
+  })
+}
+
+export function useCreateTipoMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: TipoMuestraRequestDTO) => createTipoMuestra(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra-activos'] })
+      toast.success('Tipo de muestra creado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al crear el tipo de muestra')
+    },
+  })
+}
+
+export function useUpdateTipoMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: TipoMuestraRequestDTO }) =>
+      updateTipoMuestra(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra-activos'] })
+      toast.success('Tipo de muestra actualizado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al actualizar el tipo de muestra')
+    },
+  })
+}
+
+export function useToggleTipoMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => toggleTipoMuestra(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra-activos'] })
+      toast.success(data.activo ? 'Tipo de muestra activado' : 'Tipo de muestra desactivado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al cambiar el estado')
+    },
+  })
+}
+
+export function useAddTuboMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idTipo, data }: { idTipo: number; data: TuboMuestraRequestDTO }) =>
+      addTuboMuestra(idTipo, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra-activos'] })
+      toast.success('Tubo agregado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al agregar el tubo')
+    },
+  })
+}
+
+export function useUpdateTuboMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: TuboMuestraRequestDTO }) =>
+      updateTuboMuestra(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra-activos'] })
+      toast.success('Tubo actualizado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al actualizar el tubo')
+    },
+  })
+}
+
+export function useDeleteTuboMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteTuboMuestra(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra-activos'] })
+      toast.success('Tubo eliminado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar el tubo')
+    },
   })
 }
 

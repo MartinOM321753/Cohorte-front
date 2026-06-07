@@ -18,6 +18,17 @@ import {
   ConfirmarRecepcionRequestDTO,
   IniciarDevolucionRequestDTO,
   SpringPage,
+  TipoMuestra,
+  TipoMuestraRequestDTO,
+  TuboMuestra,
+  TuboMuestraRequestDTO,
+  TipoEstudioMuestra,
+  TipoEstudioMuestraRequestDTO,
+  ParametroEstudioMuestra,
+  ParametroEstudioMuestraRequestDTO,
+  EstudioMuestraRequestDTO,
+  EstudioMuestraResponse,
+  HistorialCambioMuestraResponse,
 } from '@/types/api'
 import { Usuario } from '@/types/api'
 
@@ -159,7 +170,7 @@ export async function countMuestrasByPaciente(uuid: string): Promise<number> {
 }
 
 export async function createMuestra(data: MuestraRequestDTO) {
-  const response = await api.post<ApiResponse<Muestra>>('/almacenamiento/muestras', data)
+  const response = await api.post<ApiResponse<MuestraDetalleDTO>>('/almacenamiento/muestras', data)
   return response.data.data
 }
 
@@ -192,32 +203,32 @@ export async function deletePiso(id: number) {
 // ============================================
 
 export async function getAlmacenes() {
-  const response = await api.get<ApiResponse<Almacen[]>>('/almacenamiento/almacenes')
+  const response = await api.get<ApiResponse<Almacen[]>>('/almacenamiento/instituciones')
   return response.data.data
 }
 
 export async function getAlmacenById(id: number) {
-  const response = await api.get<ApiResponse<Almacen>>(`/almacenamiento/almacenes/${id}`)
+  const response = await api.get<ApiResponse<Almacen>>(`/almacenamiento/instituciones/${id}`)
   return response.data.data
 }
 
 export async function createAlmacen(data: AlmacenRequestDTO) {
-  const response = await api.post<ApiResponse<Almacen>>('/almacenamiento/almacenes', data)
+  const response = await api.post<ApiResponse<Almacen>>('/almacenamiento/instituciones', data)
   return response.data.data
 }
 
 export async function updateAlmacen(id: number, data: AlmacenRequestDTO) {
-  const response = await api.put<ApiResponse<Almacen>>(`/almacenamiento/almacenes/${id}`, data)
+  const response = await api.put<ApiResponse<Almacen>>(`/almacenamiento/instituciones/${id}`, data)
   return response.data.data
 }
 
 export async function deleteAlmacen(id: number) {
-  const response = await api.delete<ApiResponse<void>>(`/almacenamiento/almacenes/${id}`)
+  const response = await api.delete<ApiResponse<void>>(`/almacenamiento/instituciones/${id}`)
   return response.data
 }
 
 export async function activateAlmacen(id: number) {
-  const response = await api.patch<ApiResponse<Almacen>>(`/almacenamiento/almacenes/${id}/activar`)
+  const response = await api.patch<ApiResponse<Almacen>>(`/almacenamiento/instituciones/${id}/activar`)
   return response.data.data
 }
 
@@ -274,6 +285,151 @@ export async function getUsuariosByRol(roleName: string) {
 }
 
 export async function getAlmacenesByEncargadoUuid(uuid: string) {
-  const response = await api.get<ApiResponse<Almacen[]>>(`/almacenamiento/almacenes/encargado/${uuid}`)
+  const response = await api.get<ApiResponse<Almacen[]>>(`/almacenamiento/instituciones/encargado/${uuid}`)
+  return response.data.data
+}
+
+// ============================================
+// TIPOS DE MUESTRA (Stream C)
+// ============================================
+
+export async function getTiposMuestra() {
+  const response = await api.get<ApiResponse<TipoMuestra[]>>('/muestras/tipos/todos')
+  return response.data.data
+}
+
+export async function getTiposMuestraActivos() {
+  const response = await api.get<ApiResponse<TipoMuestra[]>>('/muestras/tipos')
+  return response.data.data
+}
+
+export async function getTipoMuestraById(id: number) {
+  const response = await api.get<ApiResponse<TipoMuestra>>(`/muestras/tipos/${id}`)
+  return response.data.data
+}
+
+export async function createTipoMuestra(data: TipoMuestraRequestDTO) {
+  const response = await api.post<ApiResponse<TipoMuestra>>('/muestras/tipos', data)
+  return response.data.data
+}
+
+export async function updateTipoMuestra(id: number, data: TipoMuestraRequestDTO) {
+  const response = await api.put<ApiResponse<TipoMuestra>>(`/muestras/tipos/${id}`, data)
+  return response.data.data
+}
+
+export async function toggleTipoMuestra(id: number) {
+  const response = await api.put<ApiResponse<TipoMuestra>>(`/muestras/tipos/${id}/toggle`)
+  return response.data.data
+}
+
+export async function addTuboMuestra(idTipo: number, data: TuboMuestraRequestDTO) {
+  const response = await api.post<ApiResponse<TuboMuestra>>(`/muestras/tipos/${idTipo}/tubos`, data)
+  return response.data.data
+}
+
+export async function updateTuboMuestra(idTubo: number, data: TuboMuestraRequestDTO) {
+  const response = await api.put<ApiResponse<TuboMuestra>>(`/muestras/tipos/tubos/${idTubo}`, data)
+  return response.data.data
+}
+
+export async function deleteTuboMuestra(idTubo: number) {
+  const response = await api.delete<ApiResponse<void>>(`/muestras/tipos/tubos/${idTubo}`)
+  return response.data
+}
+
+// ============================================
+// TIPOS DE ESTUDIO DE MUESTRA — catálogo
+// ============================================
+
+export async function getTiposEstudioMuestra() {
+  const response = await api.get<ApiResponse<TipoEstudioMuestra[]>>('/muestras/estudios/tipos')
+  return response.data.data
+}
+
+export async function getTodosLosTiposEstudioMuestra() {
+  const response = await api.get<ApiResponse<TipoEstudioMuestra[]>>('/muestras/estudios/tipos/todos')
+  return response.data.data
+}
+
+export async function createTipoEstudioMuestra(data: TipoEstudioMuestraRequestDTO) {
+  const response = await api.post<ApiResponse<TipoEstudioMuestra>>('/muestras/estudios/tipos', data)
+  return response.data.data
+}
+
+export async function updateTipoEstudioMuestra(id: number, data: TipoEstudioMuestraRequestDTO) {
+  const response = await api.put<ApiResponse<TipoEstudioMuestra>>(`/muestras/estudios/tipos/${id}`, data)
+  return response.data.data
+}
+
+export async function toggleTipoEstudioMuestra(id: number) {
+  const response = await api.put<ApiResponse<boolean>>(`/muestras/estudios/tipos/${id}/toggle`)
+  return response.data.data
+}
+
+export async function getParametrosByTipoEstudioMuestra(idTipo: number) {
+  const response = await api.get<ApiResponse<ParametroEstudioMuestra[]>>(`/muestras/estudios/tipos/${idTipo}/parametros`)
+  return response.data.data
+}
+
+// ============================================
+// PARÁMETROS DE ESTUDIO DE MUESTRA
+// ============================================
+
+export async function createParametroEstudioMuestra(data: ParametroEstudioMuestraRequestDTO) {
+  const response = await api.post<ApiResponse<ParametroEstudioMuestra>>('/muestras/estudios/parametros', data)
+  return response.data.data
+}
+
+export async function updateParametroEstudioMuestra(id: number, data: ParametroEstudioMuestraRequestDTO) {
+  const response = await api.put<ApiResponse<ParametroEstudioMuestra>>(`/muestras/estudios/parametros/${id}`, data)
+  return response.data.data
+}
+
+export async function deleteParametroEstudioMuestra(id: number) {
+  const response = await api.delete<ApiResponse<void>>(`/muestras/estudios/parametros/${id}`)
+  return response.data
+}
+
+export async function addOpcionParametroEstudioMuestra(parametroId: number, valor: string) {
+  const response = await api.post<ApiResponse<string>>(`/muestras/estudios/parametros/${parametroId}/opciones`, { valor })
+  return response.data.data
+}
+
+export async function deleteOpcionParametroEstudioMuestra(opcionId: number) {
+  const response = await api.delete<ApiResponse<void>>(`/muestras/estudios/parametros/opciones/${opcionId}`)
+  return response.data
+}
+
+// ============================================
+// ESTUDIOS POR MUESTRA
+// ============================================
+
+export async function getEstudiosByMuestra(idMuestra: number) {
+  const response = await api.get<ApiResponse<EstudioMuestraResponse[]>>(`/muestras/${idMuestra}/estudios`)
+  return response.data.data
+}
+
+export async function createEstudioMuestra(idMuestra: number, data: EstudioMuestraRequestDTO) {
+  const response = await api.post<ApiResponse<EstudioMuestraResponse>>(`/muestras/${idMuestra}/estudios`, data)
+  return response.data.data
+}
+
+export async function updateEstudioMuestra(id: number, data: EstudioMuestraRequestDTO) {
+  const response = await api.put<ApiResponse<EstudioMuestraResponse>>(`/muestras/estudios/${id}`, data)
+  return response.data.data
+}
+
+export async function deleteEstudioMuestra(id: number) {
+  const response = await api.delete<ApiResponse<void>>(`/muestras/estudios/${id}`)
+  return response.data
+}
+
+// ============================================
+// HISTORIAL DE CAMBIOS DE MUESTRA
+// ============================================
+
+export async function getHistorialMuestra(idMuestra: number) {
+  const response = await api.get<ApiResponse<HistorialCambioMuestraResponse[]>>(`/muestras/${idMuestra}/historial`)
   return response.data.data
 }

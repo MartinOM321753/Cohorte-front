@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/command'
 import {
   AlertCircle,
-  Warehouse,
+  Building2,
   Search,
   UserPlus,
   X,
@@ -37,7 +37,8 @@ import {
   ChevronsUpDown,
 } from 'lucide-react'
 import { useCreateAlmacen, useUpdateAlmacen, useGetUsuariosByRol } from '../hooks/useBiobanco'
-import { Almacen } from '@/types/api'
+import { Almacen, TipoInstitucion, TIPO_INSTITUCION_LABELS } from '@/types/api'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { UsuarioFormModal } from '@/features/usuarios/components/UsuarioFormModal'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -151,6 +152,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
   const [encargadoError, setEncargadoError] = useState<string | null>(null)
   const [searchEncargado, setSearchEncargado] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
+  const [tipoInstitucion, setTipoInstitucion] = useState<TipoInstitucion>('OTRA')
 
   const { data: encargados = [] } = useGetUsuariosByRol('ENCARGADO', { enabled: open })
 
@@ -208,9 +210,11 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
         telefono:    almacen.telefono ?? '',
       })
       setUuidEncargado(almacen.encargado?.uuid ?? null)
+      setTipoInstitucion(almacen.tipo ?? 'OTRA')
     } else if (open && !almacen) {
       reset({ nombre: '', estado: '', ciudad: '', direccion: '', responsable: '', telefono: '' })
       setUuidEncargado(null)
+      setTipoInstitucion('OTRA')
     }
     setSearchEncargado('')
     setEncargadoError(null)
@@ -224,6 +228,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
     setUuidEncargado(null)
     setSearchEncargado('')
     setEncargadoError(null)
+    setTipoInstitucion('OTRA')
     onOpenChange(false)
   }
 
@@ -248,10 +253,10 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
       if (isEditing && almacen) {
         await updateMutation.mutateAsync({
           id: almacen.id,
-          data: { ...data, activo: almacen.activo, uuidEncargado },
+          data: { ...data, activo: almacen.activo, uuidEncargado, tipo: tipoInstitucion, tieneBiobanco: true },
         })
       } else {
-        await createMutation.mutateAsync({ ...data, activo: true, uuidEncargado })
+        await createMutation.mutateAsync({ ...data, activo: true, uuidEncargado, tipo: tipoInstitucion, tieneBiobanco: true })
       }
       handleClose()
     } catch (_) {}
@@ -269,35 +274,50 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
         <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Warehouse className="h-5 w-5" />
-              {isEditing ? 'Editar Almacén' : 'Nuevo Almacén'}
+              <Building2 className="h-5 w-5" />
+              {isEditing ? 'Editar Institución' : 'Nueva Institución'}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? 'Actualiza los datos del laboratorio externo.'
-                : 'Registra un laboratorio o almacén externo al que se pueden trasladar muestras.'}
+                ? 'Actualiza los datos de la institución externa.'
+                : 'Registra una institución externa (INMEGEN, INSP, hospital, laboratorio) a la que se pueden trasladar muestras.'}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-            {/* Nombre ──────────────────────────────────────────────────── */}
-            <div className="space-y-2">
-              <Label>
-                Nombre del laboratorio / almacén <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                {...register('nombre')}
-                sanitize="alfanumerico"
-                placeholder="Ej: Lab Coahuila Norte"
-                maxLength={100}
-              />
-              {errors.nombre && (
-                <p className="flex items-center gap-1 text-xs text-destructive">
-                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
-                  {errors.nombre.message}
-                </p>
-              )}
+            {/* Nombre + Tipo ──────────────────────────────────────────── */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2 space-y-2">
+                <Label>
+                  Nombre de la institución <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  {...register('nombre')}
+                  sanitize="alfanumerico"
+                  placeholder="Ej: INMEGEN Coahuila"
+                  maxLength={100}
+                />
+                {errors.nombre && (
+                  <p className="flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                    {errors.nombre.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo <span className="text-destructive">*</span></Label>
+                <Select value={tipoInstitucion} onValueChange={(v) => setTipoInstitucion(v as TipoInstitucion)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TIPO_INSTITUCION_LABELS) as TipoInstitucion[]).map((t) => (
+                      <SelectItem key={t} value={t}>{TIPO_INSTITUCION_LABELS[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Estado + Ciudad ─────────────────────────────────────────── */}
@@ -403,11 +423,11 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
               </div>
             </div>
 
-            {/* Encargado del almacén ───────────────────────────────────── */}
+            {/* Encargado de la institución ────────────────────────────── */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>
-                  Encargado del almacén <span className="text-destructive">*</span>
+                  Encargado de la institución <span className="text-destructive">*</span>
                 </Label>
                 <Button
                   type="button"
@@ -490,7 +510,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                Solo usuarios activos con rol ENCARGADO. Campo obligatorio.
+                Solo usuarios activos con rol ENCARGADO. Campo obligatorio. El encargado podrá gestionar traslados desde la institución.
               </p>
             </div>
 
@@ -501,7 +521,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting
                   ? isEditing ? 'Actualizando...' : 'Creando...'
-                  : isEditing ? 'Actualizar' : 'Crear Almacén'}
+                  : isEditing ? 'Actualizar' : 'Registrar Institución'}
               </Button>
             </DialogFooter>
           </form>

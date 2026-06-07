@@ -35,7 +35,7 @@ import { useAuthStore } from '@/stores/authStore'
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  idAlmacen: z.string().min(1, 'Debes seleccionar un almacén destino'),
+  idAlmacen: z.string().min(1, 'Debes seleccionar una institución destino'),
   motivo: z
     .string()
     .trim()
@@ -196,14 +196,14 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-          {/* Almacén destino — combobox searchable ─────────────────────── */}
+          {/* Institución destino — combobox searchable ──────────────── */}
           <div className="space-y-2">
             <Label>
-              Almacén destino <span className="text-destructive">*</span>
+              Institución destino <span className="text-destructive">*</span>
             </Label>
             {almacenesActivos.length === 0 ? (
               <p className="text-sm text-muted-foreground rounded-md border border-input px-3 py-2">
-                No hay almacenes activos registrados
+                No hay instituciones activas registradas
               </p>
             ) : (
               <Controller
@@ -214,9 +214,9 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
                     value={field.value}
                     onChange={field.onChange}
                     options={almacenOptions}
-                    placeholder="Selecciona el laboratorio destino"
+                    placeholder="Selecciona la institución destino"
                     searchPlaceholder="Buscar por nombre, ciudad o estado..."
-                    emptyText="Almacén no encontrado"
+                    emptyText="Institución no encontrada"
                     hasError={!!errors.idAlmacen}
                   />
                 )}

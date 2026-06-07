@@ -8,6 +8,8 @@ import { RefrigeradoresTab } from '../components/RefrigeradoresTab'
 import { CajasTab } from '../components/CajasTab'
 import { MuestrasTab } from '../components/MuestrasTab'
 import { AlmacenesTab } from '../components/AlmacenesTab'
+import { TipoMuestraAdminTab } from '../components/TipoMuestraAdminTab'
+import { TipoEstudioMuestraAdminTab } from '../components/TipoEstudioMuestraAdminTab'
 
 export default function BiobancoPage() {
   const [activeTab, setActiveTab] = useState('refrigeradores')
@@ -23,16 +25,18 @@ export default function BiobancoPage() {
         <Alert>
           <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
           <AlertDescription>
-            Sistema de almacenamiento criogénico jerárquico: Refrigerador → Piso → Caja → Muestra. Las muestras pueden trasladarse a laboratorios externos registrados en Almacenes.
+            Sistema de almacenamiento criogénico jerárquico: Refrigerador → Piso → Caja → Muestra. Las muestras pueden trasladarse a instituciones externas registradas (INMEGEN, INSP, hospitales, laboratorios).
           </AlertDescription>
         </Alert>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="refrigeradores">Refrigeradores</TabsTrigger>
             <TabsTrigger value="cajas">Cajas criogénicas</TabsTrigger>
             <TabsTrigger value="muestras">Muestras</TabsTrigger>
-            <TabsTrigger value="almacenes">Almacenes</TabsTrigger>
+            <TabsTrigger value="tipos-muestra">Tipos de Muestra</TabsTrigger>
+            <TabsTrigger value="est-muestras">Est. Muestras</TabsTrigger>
+            <TabsTrigger value="almacenes">Instituciones</TabsTrigger>
           </TabsList>
 
           <TabsContent value="refrigeradores" className="space-y-4">
@@ -45,6 +49,14 @@ export default function BiobancoPage() {
 
           <TabsContent value="muestras" className="space-y-4">
             <MuestrasTab />
+          </TabsContent>
+
+          <TabsContent value="tipos-muestra" className="space-y-4">
+            <TipoMuestraAdminTab />
+          </TabsContent>
+
+          <TabsContent value="est-muestras" className="space-y-4">
+            <TipoEstudioMuestraAdminTab />
           </TabsContent>
 
           <TabsContent value="almacenes" className="space-y-4">
