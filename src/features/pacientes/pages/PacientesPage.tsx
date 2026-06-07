@@ -68,7 +68,7 @@ export default function PacientesPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
-        title="Pacientes"
+        title="Colaboradores"
         subtitle="Registro de pacientes incluidos en la cohorte"
         actions={
           <>

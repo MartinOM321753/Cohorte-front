@@ -37,8 +37,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE'], group: 'Clínico' },
-  { label: 'Pacientes', href: '/pacientes', icon: UserRound, roles: ['ADMINISTRADOR', 'RECEPCIONISTA'], group: 'Clínico' },
+  { label: 'Inicio', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE'], group: 'Clínico' },
+  { label: 'Colaboradores', href: '/pacientes', icon: UserRound, roles: ['ADMINISTRADOR', 'RECEPCIONISTA'], group: 'Clínico' },
   { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, roles: ['ADMINISTRADOR', 'RECEPCIONISTA'], group: 'Clínico' },
   {
     label: 'Exámenes',

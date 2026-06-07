@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/command'
 
 const routeLabels: Record<string, string> = {
-  dashboard: 'Dashboard',
-  pacientes: 'Pacientes',
+  dashboard: 'Inicio',
+  pacientes: 'Colaboradores',
   estudios: 'Estudios médicos',
   citas: 'Citas',
   biobanco: 'Biobanco',

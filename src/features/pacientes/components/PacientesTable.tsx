@@ -42,7 +42,7 @@ export function PacientesTable({
   const columns: ColumnDef<Paciente>[] = [
     {
       id: 'nombre',
-      header: 'Paciente',
+      header: 'Colaborador',
       cell: ({ row }) => {
         const p = row.original
         return (
