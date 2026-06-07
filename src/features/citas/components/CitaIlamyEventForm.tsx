@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { toast } from 'sonner'
+import dayjs from 'dayjs'
 import type { CalendarEvent, EventFormProps } from '@ilamy/calendar'
 
 import type { Cita } from '@/types/api'
@@ -76,9 +77,9 @@ function normalizeEstadoCita(raw: unknown): CitaFormData['estadoCita'] {
     .trim()
     .toUpperCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // quita acentos: ó→o, etc.
-    .replace(/\s+/g, '_')            // "NO ASISTIO" → "NO_ASISTIO"
-  const valid = ['PROGRAMADA', 'COMPLETADA', 'CANCELADA', 'NO_ASISTIO'] as const
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, '_')
+  const valid = ['PROGRAMADA', 'CONFIRMADA', 'REALIZADA', 'CANCELADA', 'NO_ASISTIO'] as const
   return valid.find((v) => v === s)
 }
 
@@ -129,7 +130,10 @@ export function CitaIlamyEventForm({
 
   const [openPaciente, setOpenPaciente] = useState(false)
 
-  const { data: pacientesRaw } = useGetPacientes({ activos: true }, { enabled: open })
+  // isEditing se calcula antes del hook para evitar la query innecesaria al editar
+  const isEditingEarly = Boolean((selectedEvent?.data as any)?.cita?.uuid)
+
+  const { data: pacientesRaw } = useGetPacientes({ activos: true }, { enabled: open && !isEditingEarly })
   const pacientes = Array.isArray(pacientesRaw)
     ? pacientesRaw
     : (pacientesRaw as any)?.data ?? []
@@ -146,6 +150,7 @@ export function CitaIlamyEventForm({
     reset,
     watch,
     control,
+    setError,
     formState: { errors },
   } = useForm<CitaFormData>({
     resolver: zodResolver(citaFormSchema),
@@ -159,7 +164,7 @@ export function CitaIlamyEventForm({
   const watchedPacienteUUID = watch('pacienteUUID')
 
   const cita = (selectedEvent?.data as any)?.cita as Cita | undefined
-  const isEditing = Boolean(cita?.uuid)
+  const isEditing = isEditingEarly
 
   const isPast = useMemo(() => {
     if (!isEditing) return false
@@ -167,9 +172,50 @@ export function CitaIlamyEventForm({
     return !!d && d < new Date()
   }, [isEditing, cita])
 
+  // ── Guard: bloquear apertura del formulario en slots pasados o fin de semana ──
+  // Solo aplica al crear una nueva cita (no al editar).
+  // Usamos una ref para disparar el toast solo una vez por apertura.
+  const guardFiredRef = useRef(false)
+  useEffect(() => {
+    if (!open || isEditing) {
+      guardFiredRef.current = false
+      return
+    }
+    if (guardFiredRef.current) return
+
+    const start = selectedEvent?.start
+    if (!start) return
+
+    // CalendarEvent.start es Dayjs, pero guardamos compatibilidad con otros tipos
+    const startDayjs = dayjs.isDayjs(start)
+      ? (start as dayjs.Dayjs)
+      : dayjs(start as string | Date)
+    const dow = startDayjs.day() // 0=Dom, 6=Sáb
+    const isWeekend = dow === 0 || dow === 6
+    const isPastSlot = startDayjs.isBefore(dayjs())
+
+    if (isWeekend) {
+      guardFiredRef.current = true
+      toast.warning('No es posible agendar citas los sábados o domingos.')
+      onClose()
+      return
+    }
+
+    if (isPastSlot) {
+      guardFiredRef.current = true
+      toast.warning('No es posible agendar citas en fechas u horas pasadas.')
+      onClose()
+    }
+  }, [open, isEditing, selectedEvent, onClose])
+
   // ─── Submit ──────────────────────────────────────────────────────────────────
 
   const onSubmit = (data: CitaFormData) => {
+    if (!isEditing && !data.pacienteUUID) {
+      setError('pacienteUUID', { message: 'Paciente obligatorio' })
+      return
+    }
+
     if (!currentUserUuid) {
       toast.error('No hay usuario autenticado.')
       return
@@ -179,14 +225,21 @@ export function CitaIlamyEventForm({
       updateCita.mutate(
         {
           uuid: cita!.uuid,
-          data: {
-            startAtLocal: data.fechaCita,
-            timezone,
-            durationMinutes: data.duracionMinutos,
-            colorHex: data.colorHex,
-            estadoCita: data.estadoCita,
-            observaciones: data.observaciones,
-          },
+          data: isPast
+            ? {
+                // Cita pasada: el backend bloquea startAtLocal/timezone/durationMinutes
+                estadoCita:   data.estadoCita,
+                colorHex:     data.colorHex,
+                observaciones: data.observaciones,
+              }
+            : {
+                startAtLocal:    data.fechaCita,
+                timezone,
+                durationMinutes: data.duracionMinutos,
+                colorHex:        data.colorHex,
+                estadoCita:      data.estadoCita,
+                observaciones:   data.observaciones,
+              },
         },
         { onSuccess: onClose },
       )
@@ -342,7 +395,6 @@ export function CitaIlamyEventForm({
                   <Select
                     value={field.value ?? ''}
                     onValueChange={field.onChange}
-                    disabled={isPast}
                   >
                     <SelectTrigger className="h-9 text-[13px]">
                       <SelectValue placeholder="Seleccionar estado" />
@@ -395,7 +447,6 @@ export function CitaIlamyEventForm({
                 min={15}
                 max={240}
                 step={15}
-                disabled={isPast}
                 {...register('duracionMinutos')}
                 className="h-9 text-[13px]"
               />
@@ -437,7 +488,7 @@ export function CitaIlamyEventForm({
             <Label className="text-[13px]">Observaciones</Label>
             <Textarea
               rows={3}
-              disabled={isPast}
+              // disabled={isPast}
               placeholder="Notas adicionales…"
               className="resize-none text-[13px]"
               sanitize="descripcion"
@@ -461,7 +512,7 @@ export function CitaIlamyEventForm({
             >
               Cancelar
             </Button>
-            {!isPast && (
+            {(!isPast || isEditing) && (
               <Button
                 type="submit"
                 disabled={isPending}

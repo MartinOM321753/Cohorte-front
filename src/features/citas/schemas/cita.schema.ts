@@ -1,16 +1,17 @@
 import { z } from 'zod'
 
 export const ESTADOS_CITA = [
-  { value: 'PROGRAMADA', label: 'Programada' },
-  { value: 'COMPLETADA', label: 'Completada' },
-  { value: 'CANCELADA', label: 'Cancelada' },
-  { value: 'NO_ASISTIO', label: 'No asistió' },
+  { value: 'PROGRAMADA',  label: 'Programada'  },
+  { value: 'CONFIRMADA',  label: 'Confirmada'  },
+  { value: 'REALIZADA',   label: 'Realizada'   },
+  { value: 'CANCELADA',   label: 'Cancelada'   },
+  { value: 'NO_ASISTIO',  label: 'No asistió'  },
 ] as const
 
 export type EstadoCita = (typeof ESTADOS_CITA)[number]['value']
 
 export const citaFormSchema = z.object({
-  pacienteUUID: z.string().min(1, 'Paciente obligatorio'),
+  pacienteUUID: z.string(),
   fechaCita: z
     .string()
     .min(1, 'Fecha y hora de la cita son obligatorias')
@@ -28,7 +29,7 @@ export const citaFormSchema = z.object({
     .optional(),
   observaciones: z.string().trim().max(500, 'Máximo 500 caracteres').optional(),
   estadoCita: z
-    .enum(['PROGRAMADA', 'COMPLETADA', 'CANCELADA', 'NO_ASISTIO'])
+    .enum(['PROGRAMADA', 'CONFIRMADA', 'REALIZADA', 'CANCELADA', 'NO_ASISTIO'])
     .optional(),
 })
 

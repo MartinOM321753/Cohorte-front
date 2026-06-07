@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import isoWeek from "dayjs/plugin/isoWeek";
 import {
   IlamyCalendar,
   useIlamyCalendarContext,
@@ -11,6 +12,8 @@ import {
 } from "@ilamy/calendar";
 import { toast } from "sonner";
 import { CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
+
+dayjs.extend(isoWeek);
 
 import type { Cita } from "@/types/api";
 import { useUpdateCita } from "../hooks/useCitas";
@@ -183,12 +186,161 @@ function CitasCalendarHeader() {
 
 // ─── Componente principal ──────────────────────────────────────────────────────
 
+// ─── Helpers de validación ─────────────────────────────────────────────────────
+
+/** Retorna true si el dayjs dado cae en sábado o domingo. */
+function isWeekend(d: dayjs.Dayjs): boolean {
+  const dow = d.day(); // 0=Dom, 6=Sáb
+  return dow === 0 || dow === 6;
+}
+
+/** Retorna true si el dayjs dado está en el pasado (estrictamente antes de ahora). */
+function isPastDateTime(d: dayjs.Dayjs): boolean {
+  return d.isBefore(dayjs());
+}
+
+// ─── CSS dinámico para bloquear slots pasados ──────────────────────────────────
+
+/**
+ * Genera las reglas CSS que:
+ *  - Superponen un overlay gris en columnas de días ya pasados (semana actual)
+ *  - Superponen un overlay gris parcial sobre las horas pasadas del día actual
+ *  - Bloquean toda la semana/día si es un período enteramente pasado
+ *
+ * El `::after` se posiciona absolute sobre `vertical-grid-body > :nth-child(N)`
+ * que son exactamente las columnas de día (sin time-gutter dentro del body).
+ *
+ * businessStart/End: horas límite del horario clínico (8–17).
+ */
+function buildPastBlockCSS(
+  now: dayjs.Dayjs,
+  calendarDate: dayjs.Dayjs,
+  view: CalendarView,
+  businessStart = 8,
+  businessEnd = 17,
+): string {
+  const OVERLAY = `
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: hsl(var(--muted) / 0.65);
+    pointer-events: all;
+    z-index: 15;
+    cursor: not-allowed;
+  `;
+
+  const businessMinutes = (businessEnd - businessStart) * 60;
+  const elapsedMinutes = Math.max(
+    0,
+    Math.min(
+      businessMinutes,
+      now.hour() * 60 + now.minute() - businessStart * 60,
+    ),
+  );
+  const pastPct = ((elapsedMinutes / businessMinutes) * 100).toFixed(2);
+
+  // ── Vista DÍA ──────────────────────────────────────────────────────────────
+  if (view === "day") {
+    if (calendarDate.isBefore(now, "day")) {
+      // Día totalmente pasado → overlay completo
+      return `
+        [data-testid="vertical-grid-body"] > * { position: relative; }
+        [data-testid="vertical-grid-body"] > *::after { ${OVERLAY} }
+      `;
+    }
+    if (calendarDate.isSame(now, "day") && elapsedMinutes > 0) {
+      // Hoy → overlay en la fracción de horas pasadas
+      return `
+        [data-testid="vertical-grid-body"] > * { position: relative; }
+        [data-testid="vertical-grid-body"] > *::after {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: ${pastPct}%;
+          background: hsl(var(--muted) / 0.65);
+          pointer-events: all;
+          z-index: 15;
+          cursor: not-allowed;
+        }
+      `;
+    }
+    return ""; // Día futuro → sin bloqueo
+  }
+
+  // ── Vista SEMANA ────────────────────────────────────────────────────────────
+  if (view === "week") {
+    const isCurrentWeek = calendarDate.isSame(now, "isoWeek");
+    const isPastWeek = calendarDate.isBefore(now.startOf("isoWeek"), "day");
+
+    if (isPastWeek) {
+      // Semana totalmente pasada → bloquear todo
+      return `
+        [data-testid="vertical-grid-body"] > * { position: relative; }
+        [data-testid="vertical-grid-body"] > *::after { ${OVERLAY} }
+      `;
+    }
+    if (!isCurrentWeek) return ""; // Semana futura → sin bloqueo
+
+    // ── Semana actual ──────────────────────────────────────────────────────────
+    // Con hiddenDays=['saturday','sunday'] y firstDayOfWeek='monday':
+    //   :nth-child(1)=Lun, :nth-child(2)=Mar, ..., :nth-child(5)=Vie
+    // isoWeekday(): 1=Lun ... 5=Vie (sáb/dom no aparecen)
+    const todayCol = now.isoWeekday(); // 1–5
+
+    let css = `[data-testid="vertical-grid-body"] > * { position: relative; }`;
+
+    // Columnas de días completamente pasados (antes de hoy en la semana)
+    if (todayCol > 1) {
+      css += `
+        [data-testid="vertical-grid-body"] > :nth-child(-n+${todayCol - 1})::after { ${OVERLAY} }
+      `;
+      // Atenuar también los encabezados de días pasados
+      css += `
+        [data-testid="vertical-grid-header"] > :nth-child(-n+${todayCol - 1}) {
+          opacity: 0.45;
+        }
+      `;
+    }
+
+    // Columna de HOY → overlay de horas pasadas
+    if (elapsedMinutes > 0) {
+      css += `
+        [data-testid="vertical-grid-body"] > :nth-child(${todayCol})::after {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: ${pastPct}%;
+          background: hsl(var(--muted) / 0.65);
+          pointer-events: all;
+          z-index: 15;
+          cursor: not-allowed;
+        }
+      `;
+    }
+
+    return css;
+  }
+
+  return "";
+}
+
 export function CitasIlamyCalendar({ citas, isLoading }: Props) {
   const timezone = useMemo(() => safeTimeZone(), []);
   const updateCita = useUpdateCita();
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
-  // 1. Agrega una ref al wrapper del calendario
   const calendarWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Estado para rastrear fecha y vista actual del calendario
+  const [calendarDate, setCalendarDate] = useState<dayjs.Dayjs>(dayjs());
+  const [calendarView, setCalendarView] = useState<CalendarView>("week");
+
+  /**
+   * Contador que se incrementa cuando un drop es rechazado.
+   * Al cambiar, el useMemo de `events` genera una nueva referencia de array.
+   * La librería detecta el cambio ($!==j.current) y revierte su estado
+   * interno al array original — sin necesidad de remount.
+   */
+  const [eventsRevision, setEventsRevision] = useState(0);
 
   useEffect(() => {
     const wrapper = calendarWrapperRef.current;
@@ -214,6 +366,30 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     observer.observe(wrapper);
     return () => observer.disconnect();
   }, []);
+
+  // ── Inyección dinámica de CSS para bloquear slots pasados ──────────────────
+  useEffect(() => {
+    const STYLE_ID = "ilamy-past-block-style";
+
+    function inject() {
+      let el = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
+      if (!el) {
+        el = document.createElement("style");
+        el.id = STYLE_ID;
+        document.head.appendChild(el);
+      }
+      el.textContent = buildPastBlockCSS(dayjs(), calendarDate, calendarView);
+    }
+
+    inject(); // inmediato
+    const timer = setInterval(inject, 60_000); // refresca cada minuto
+
+    return () => {
+      clearInterval(timer);
+      // Limpiamos el style al desmontar
+      document.getElementById(STYLE_ID)?.remove();
+    };
+  }, [calendarDate, calendarView]);
   const translations = useMemo<Translations>(
     () => ({
       ...defaultTranslations,
@@ -343,7 +519,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
         })
         .filter(Boolean) as CalendarEvent[],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [citas],
+    [citas, eventsRevision],
   );
 
   return (
@@ -419,16 +595,26 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     min-height: var(--calendar-month-cell-height) !important;
   }
 
-  /* ── Vista año ── */
+  /* ── Vista año ──────────────────────────────────────────────────────────────
+     El year-view vive en un flex parent con flex:1 1 auto; min-height:0.
+     Debe llenarlo y hacer scroll cuando el contenido (12 meses) supera
+     la pantalla. NO forzamos height:100% porque en un contexto flex eso
+     puede colapsar el grid.                                                 */
   [data-testid="year-view"] {
-    height: 100% !important;
-    overflow: auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
-  /* La librería usa sm:grid-cols-2 lg:grid-cols-3 pero esas clases no se
-     generan porque node_modules queda fuera del escaneo de Tailwind.
-     Las forzamos aquí directamente. */
+  /* La librería usa 'auto-rows-fr' (grid-auto-rows: minmax(0,1fr)) que
+     distribuye las 4 filas equitativamente dentro del viewport.
+     Con 'auto' cada fila tiene la altura natural de sus cards y el
+     grid puede superar la altura del contenedor → scroll funciona.         */
   [data-testid="year-grid"] {
+    grid-auto-rows: auto !important;
+    /* La librería usa sm:grid-cols-2 lg:grid-cols-3 que Tailwind no genera
+       para node_modules — las forzamos directamente.                        */
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 
@@ -444,15 +630,98 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     }
   }
 
+  /* ── Mini-calendario de cada mes en vista año ──────────────────────────────
+     La librería usa clases Tailwind (grid, grid-cols-7, flex, aspect-square…)
+     que el compilador no genera desde node_modules. Sin ellas los días caen
+     en lista vertical. Forzamos todos los estilos de layout necesarios.       */
+
+  /* Grilla de 7 columnas para cabeceras + 42 botones de días */
+  [data-testid$="-mini"] {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 1px !important;
+  }
+
+  /* Cabeceras de día (D L M M J V S): centradas, altura fija */
+  [data-testid$="-mini"] > div {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 0.75rem !important;
+  }
+
+  /* Botones de día: cuadrados, centrados */
+  [data-testid$="-mini"] > button {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    aspect-ratio: 1 / 1 !important;
+    width: 100% !important;
+    position: relative !important;
+    cursor: pointer !important;
+  }
+
+  /* Atenuar columnas de domingo (1ª) y sábado (7ª) en el mini-calendario.
+     El array interno de la librería es [dom,lun,mar,mié,jue,vie,sáb] (7 items)
+     seguido de 42 botones de días → total 49 hijos directos del grid.
+     nth-child(7n+1) apunta a: col1-header(dom), fila1-dom, fila2-dom …
+     nth-child(7n)   apunta a: col7-header(sáb), fila1-sáb, fila2-sáb …    */
+  [data-testid$="-mini"] > :nth-child(7n+1),
+  [data-testid$="-mini"] > :nth-child(7n) {
+    opacity: 0.35;
+  }
+
+  /* ── Iniciales de días en español para el mini-calendario del año ──────────
+     La librería hardcodea [S,M,T,W,T,F,S] (inglés). Las cabeceras son los 7
+     primeros hijos <div> del grid; los días son <button> a partir del 8º.
+     Ocultamos el texto original con font-size:0 y lo reemplazamos vía ::after.
+     Orden del array interno: 1=Dom 2=Lun 3=Mar 4=Mié 5=Jue 6=Vie 7=Sáb     */
+  [data-testid$="-mini"] > div:nth-child(1),
+  [data-testid$="-mini"] > div:nth-child(2),
+  [data-testid$="-mini"] > div:nth-child(3),
+  [data-testid$="-mini"] > div:nth-child(4),
+  [data-testid$="-mini"] > div:nth-child(5),
+  [data-testid$="-mini"] > div:nth-child(6),
+  [data-testid$="-mini"] > div:nth-child(7) {
+    font-size: 0 !important;
+  }
+  [data-testid$="-mini"] > div:nth-child(1)::after { content: 'D'; font-size: 0.6rem; }
+  [data-testid$="-mini"] > div:nth-child(2)::after { content: 'L'; font-size: 0.6rem; }
+  [data-testid$="-mini"] > div:nth-child(3)::after { content: 'M'; font-size: 0.6rem; }
+  [data-testid$="-mini"] > div:nth-child(4)::after { content: 'M'; font-size: 0.6rem; }
+  [data-testid$="-mini"] > div:nth-child(5)::after { content: 'J'; font-size: 0.6rem; }
+  [data-testid$="-mini"] > div:nth-child(6)::after { content: 'V'; font-size: 0.6rem; }
+  [data-testid$="-mini"] > div:nth-child(7)::after { content: 'S'; font-size: 0.6rem; }
+
+  /* ── Capa de eventos en vista semana/día ─────────────────────────────────
+     La librería renderiza los eventos dentro de un div.absolute.inset-0 que
+     usa framer-motion (transform/opacity) → crea su propio stacking context.
+
+     Problema: el overlay ::after tiene z-index:15.  Los event-chips dentro
+     de .inset-0 nunca pueden superar el z-index del overlay porque están
+     atrapados en el stacking context de .inset-0 (z-index:auto → pintado en
+     el paso 4 del algoritmo de pintura, antes que z-index:15 en el paso 5).
+
+     Solución en dos partes:
+       1. .inset-0 → z-index:25 para pintarse ENCIMA del overlay (paso 5, 25>15)
+       2. .inset-0 → pointer-events:none para que el espacio vacío de la capa
+          sea transparente a clicks y éstos lleguen al overlay bloqueador.
+          Los event-chips individuales mantienen pointer-events:auto (default)
+          y siguen siendo clickeables incluso dentro de la capa none.        */
+  [data-testid="vertical-grid-body"] div.absolute.inset-0 {
+    z-index: 25 !important;
+    pointer-events: none !important;
+  }
+
   /* ── Eventos compactos en vista semana/día (una línea) ──
-     IMPORTANTE: usar :not(.inset-0) para NO afectar al wrapper del
-     events-layer (div.absolute.inset-0), que debe mantener su altura
-     natural (inset-0 = full height). Solo los chips individuales se
-     compactan a 26 px.                                              */
+     Solo los chips individuales (no el wrapper .inset-0) se compactan.     */
   [data-testid="vertical-grid-body"] div.absolute:not(.inset-0) {
-    height: 26px !important;
-    min-height: 26px !important;
+    height: 30px !important;
+    min-height: 30px !important;
     overflow: hidden !important;
+    pointer-events: auto !important;   /* restaurar clicks en los chips       */
+    cursor: pointer !important;
   }
 
   /* ── Columna de tiempo (ancho) ── */
@@ -510,6 +779,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     font-size: 11px;
     line-height: 1.2;
     overflow: hidden;
+    cursor: pointer !important;
   }
 
   /* ── Ocultar la línea roja de "hora actual" de la librería ── */
@@ -524,7 +794,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
       <div
         ref={calendarWrapperRef}
         className="relative w-full"
-        style={{ height: "calc(100vh - 200px)" }}
+        style={{ height: "calc(100vh)" }}
       >
         <IlamyCalendar
           events={events}
@@ -546,7 +816,9 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           stickyViewHeader
           /* ── Header distribuido en todo el ancho ── */
           headerComponent={<CitasCalendarHeader />}
-          /* ── Horario clínico: 08:00 – 17:00 todos los días ── */
+          /* ── Ocultar sábado y domingo de la vista semana ── */
+          hiddenDays={["saturday", "sunday"]}
+          /* ── Horario clínico: 08:00 – 17:00, solo Lun–Vie ── */
           businessHours={{
             daysOfWeek: [
               "monday",
@@ -554,8 +826,6 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
               "wednesday",
               "thursday",
               "friday",
-              "saturday",
-              "sunday",
             ],
             startTime: 8,
             endTime: 17,
@@ -567,16 +837,42 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
             disabledCell: "bg-muted/60 pointer-events-none cursor-not-allowed",
           }}
           renderEventForm={(props) => <CitaIlamyEventForm {...props} />}
+          /* ── Rastrear fecha y vista para el CSS de bloqueo ── */
+          onDateChange={(date) => setCalendarDate(date)}
+          onViewChange={(view) => setCalendarView(view)}
           onEventUpdate={(event) => {
             const cita = (event.data as any)?.cita as Cita | undefined;
             if (!cita?.uuid) return;
 
-            const newStart = event.start;
-            const newEnd = event.end;
-            const now = dayjs();
+            let newStart = event.start;
+            let newEnd = event.end;
 
-            if (newStart.isBefore(now)) {
+            // ── Vista mes: la librería hace drop a las 00:00 del día destino.
+            //    Restauramos la hora original de la cita para que el cambio
+            //    solo afecte la fecha, no la hora.
+            if (calendarView === "month") {
+              const originalDate = getCitaStartDate(cita);
+              if (originalDate) {
+                const orig = dayjs(originalDate);
+                newStart = newStart.hour(orig.hour()).minute(orig.minute()).second(0);
+                const dur = getCitaDurationMinutes(cita);
+                newEnd = newStart.add(dur, "minute");
+              }
+            }
+
+            // Bloquear drag hacia el pasado
+            if (isPastDateTime(newStart)) {
               toast.error("No puedes reprogramar una cita a una fecha pasada.");
+              setEventsRevision((v) => v + 1); // revierte la posición visual
+              return;
+            }
+
+            // Bloquear drag hacia fin de semana
+            if (isWeekend(newStart)) {
+              toast.error(
+                "No puedes reprogramar una cita a un sábado o domingo.",
+              );
+              setEventsRevision((v) => v + 1); // revierte la posición visual
               return;
             }
 

@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+/* Permite que Tailwind v4 escanee el bundle de @ilamy/calendar y genere
+   las clases Tailwind que usa internamente (grid-cols-7, aspect-square, etc.)
+   Sin esto la vista Año muestra los días en lista vertical en lugar de grilla. */
+@source "../../node_modules/@ilamy/calendar/dist/index.js";
+
 /* La clase .dark la administra el themeStore para los temas oscuros,
    de modo que las utilidades dark:* de Tailwind siguen operando. */
 @custom-variant dark (&:is(.dark *));

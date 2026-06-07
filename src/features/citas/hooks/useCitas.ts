@@ -52,6 +52,7 @@ export function useUpdateCita() {
       queryClient.invalidateQueries({ queryKey: ['citas'] })
       queryClient.invalidateQueries({ queryKey: ['proximas-citas'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-agenda-hoy'] })
       toast.success('Cita actualizada.')
     },
     onError: (error: any) => {
