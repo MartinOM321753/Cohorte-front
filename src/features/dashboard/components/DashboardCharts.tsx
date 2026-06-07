@@ -5,7 +5,7 @@
  * o de CSS vars directamente, para que los 6 temas funcionen correctamente.
  */
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,8 @@ import {
   type ExamenResultGlobalPoint,
   type ExamenesCalidadDTO,
   type RefrigeradorOcupacionDTO,
+  type PisoResumenDTO,
+  type CajaOcupacionDTO,
   type AgendaHoyItem,
 } from '../hooks/useDashboard'
 import type { ReactNode } from 'react'
@@ -84,10 +86,10 @@ function TrendLine({
   inkColor:  string
 }) {
   const n = dates.length
-  if (n < 2 || values.length < 2) {
+  if (n < 1 || values.length < 1) {
     return (
       <p className="py-4 text-center text-[11px] text-muted-foreground">
-        Sin suficientes datos para mostrar tendencia (mín. 2 puntos)
+        Sin datos disponibles para esta métrica.
       </p>
     )
   }
@@ -235,89 +237,119 @@ function useSomaMonthlyAverages(data: SomatometriaGlobalPoint[]) {
   }, [data])
 }
 
+type SomaTab = 'imc' | 'peso' | 'presion'
+
 export function SomatometriaGlobalCharts() {
   const { data = [], isLoading } = useSomatometriaGlobal()
-  const agg = useSomaMonthlyAverages(data)
-  const colors = useChartColors()
+  const agg     = useSomaMonthlyAverages(data)
+  const colors  = useChartColors()
   const hasData = data.length > 0
+  const [activeTab, setActiveTab] = useState<SomaTab>('imc')
+
+  const TABS: { key: SomaTab; label: string }[] = [
+    { key: 'imc',     label: 'IMC'     },
+    { key: 'peso',    label: 'Peso'    },
+    { key: 'presion', label: 'Presión' },
+  ]
+
+  function renderChart() {
+    switch (activeTab) {
+      case 'imc': {
+        const vals  = agg.imc.filter((v): v is number => v !== null)
+        const dates = agg.dates.filter((_, i) => agg.imc[i] !== null)
+        return (
+          <>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-300)]">
+              IMC promedio mensual · banda = rango normal (18.5–24.9)
+            </p>
+            <TrendLine values={vals} dates={dates} color={colors.line2}
+              refMin={18.5} refMax={24.9}
+              bandColor={colors.band} gridColor={colors.grid} inkColor={colors.ink300} />
+          </>
+        )
+      }
+      case 'peso': {
+        const vals  = agg.peso.filter((v): v is number => v !== null)
+        const dates = agg.dates.filter((_, i) => agg.peso[i] !== null)
+        return (
+          <>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-300)]">
+              Peso promedio mensual · kg
+            </p>
+            <TrendLine values={vals} dates={dates} color={colors.line}
+              unit="kg"
+              bandColor={colors.band} gridColor={colors.grid} inkColor={colors.ink300} />
+          </>
+        )
+      }
+      case 'presion': {
+        const vals  = agg.sis.filter((v): v is number => v !== null)
+        const dates = agg.dates.filter((_, i) => agg.sis[i] !== null)
+        return (
+          <>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-300)]">
+              Presión sistólica promedio · banda verde = rango normal (90–120)
+            </p>
+            <TrendLine values={vals} dates={dates} color={colors.line3}
+              unit="mmHg" refMin={90} refMax={120}
+              bandColor={colors.band} gridColor={colors.grid} inkColor={colors.ink300} />
+          </>
+        )
+      }
+    }
+  }
 
   return (
     <Card className="border border-border shadow-none">
       <CardHeader className="px-6 pt-5 pb-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
-          Somatometría global
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
+              Salud poblacional
+            </div>
+            <div className="mt-0.5 text-[13px] font-medium text-foreground">
+              Somatometría · promedios mensuales
+            </div>
+            {!isLoading && hasData && (
+              <div className="text-[12px] text-muted-foreground mt-0.5">
+                {data.length} medición{data.length !== 1 ? 'es' : ''} · todos los pacientes
+              </div>
+            )}
+          </div>
+
+          {/* Tab toggle — solo visible cuando hay datos */}
+          {!isLoading && hasData && (
+            <div className="flex items-center rounded-md border border-border overflow-hidden shrink-0">
+              {TABS.map((tab, i) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  className={[
+                    'px-3 py-1.5 text-[12px] font-medium transition-colors',
+                    i > 0 ? 'border-l border-border' : '',
+                    activeTab === tab.key
+                      ? 'bg-foreground text-background'
+                      : 'bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40',
+                  ].join(' ')}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="mt-0.5 text-[13px] font-medium text-foreground">
-          Promedios mensuales · todos los pacientes
-        </div>
-        {!isLoading && hasData && (
-          <div className="text-[12px] text-muted-foreground">{data.length} medición{data.length !== 1 ? 'es' : ''} registradas</div>
-        )}
       </CardHeader>
+
       <CardContent className="px-6 pb-6">
         {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-32 w-full rounded-md" />
-            <Skeleton className="h-32 w-full rounded-md" />
-          </div>
+          <Skeleton className="h-44 w-full rounded-md" />
         ) : !hasData ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
             Sin registros de somatometría todavía.
           </p>
         ) : (
-          <div className="space-y-6">
-            {agg.imc.filter((v) => v !== null).length >= 2 && (
-              <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-300)]">
-                  IMC promedio mensual · banda = rango normal (18.5–24.9)
-                </p>
-                <TrendLine
-                  values={agg.imc.filter((v): v is number => v !== null)}
-                  dates={agg.dates.filter((_, i) => agg.imc[i] !== null)}
-                  color={colors.line2}
-                  refMin={18.5}
-                  refMax={24.9}
-                  bandColor={colors.band}
-                  gridColor={colors.grid}
-                  inkColor={colors.ink300}
-                />
-              </div>
-            )}
-            {agg.peso.filter((v) => v !== null).length >= 2 && (
-              <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-300)]">
-                  Peso promedio mensual · kg
-                </p>
-                <TrendLine
-                  values={agg.peso.filter((v): v is number => v !== null)}
-                  dates={agg.dates.filter((_, i) => agg.peso[i] !== null)}
-                  color={colors.line}
-                  unit="kg"
-                  bandColor={colors.band}
-                  gridColor={colors.grid}
-                  inkColor={colors.ink300}
-                />
-              </div>
-            )}
-            {agg.sis.filter((v) => v !== null).length >= 2 && (
-              <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-300)]">
-                  Presión sistólica promedio mensual · mmHg · banda = rango normal (90–120)
-                </p>
-                <TrendLine
-                  values={agg.sis.filter((v): v is number => v !== null)}
-                  dates={agg.dates.filter((_, i) => agg.sis[i] !== null)}
-                  color={colors.line3}
-                  unit="mmHg"
-                  refMin={90}
-                  refMax={120}
-                  bandColor={colors.band}
-                  gridColor={colors.grid}
-                  inkColor={colors.ink300}
-                />
-              </div>
-            )}
-          </div>
+          renderChart()
         )}
       </CardContent>
     </Card>
@@ -554,62 +586,144 @@ export function ExamenesCalidadDonut({ data }: { data?: ExamenesCalidadDTO }) {
 //  BiobancoCapacity — barras de ocupación por refrigerador
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function BiobancoCapacity({ data }: { data: RefrigeradorOcupacionDTO[] }) {
+type BiobancoTab = 'refrigeradores' | 'cajas'
+
+export function BiobancoCapacity({
+  refrigeradores,
+  cajas,
+}: {
+  refrigeradores: RefrigeradorOcupacionDTO[]
+  cajas:          CajaOcupacionDTO[]
+}) {
   const colors = useChartColors()
+  const [activeTab, setActiveTab] = useState<BiobancoTab>('refrigeradores')
+
+  function OcupacionBar({ pct, label, sublabel }: { pct: number; label: string; sublabel: string }) {
+    const barColor = pct >= 90 ? colors.danger : pct > 75 ? colors.warning : colors.primary
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-[12px]">
+          <span className="font-medium text-foreground truncate max-w-[60%]">{label}</span>
+          <div className="flex items-center gap-2">
+            {pct >= 90 && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-300 text-red-600 bg-red-50">
+                Casi lleno
+              </Badge>
+            )}
+            <span className="tabular-nums font-semibold" style={{ color: barColor }}>{pct}%</span>
+          </div>
+        </div>
+        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
+        </div>
+        <p className="text-[11px] text-muted-foreground">{sublabel}</p>
+      </div>
+    )
+  }
+
+  const TABS: { key: BiobancoTab; label: string }[] = [
+    { key: 'refrigeradores', label: 'Refrigeradores' },
+    { key: 'cajas',          label: 'Cajas'          },
+  ]
 
   return (
     <Card className="border border-border shadow-none">
       <CardHeader className="px-6 pt-5 pb-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
-          Biobanco · ocupación
-        </div>
-        <div className="mt-0.5 text-[13px] font-medium text-foreground">
-          Posiciones ocupadas por refrigerador
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
+              Biobanco · ocupación
+            </div>
+            <div className="mt-0.5 text-[13px] font-medium text-foreground">
+              {activeTab === 'refrigeradores' ? 'Posiciones por refrigerador' : 'Posiciones por caja'}
+            </div>
+          </div>
+
+          {/* Tab toggle */}
+          <div className="flex items-center rounded-md border border-border overflow-hidden shrink-0">
+            {TABS.map((tab, i) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={[
+                  'px-2.5 py-1.5 text-[11px] font-medium transition-colors',
+                  i > 0 ? 'border-l border-border' : '',
+                  activeTab === tab.key
+                    ? 'bg-foreground text-background'
+                    : 'bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40',
+                ].join(' ')}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="px-6 pb-6">
-        {data.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
-            Sin refrigeradores activos registrados.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {data.map((ref) => {
-              const barColor =
-                ref.pct >= 90
-                  ? colors.danger
-                  : ref.pct > 75
-                  ? colors.warning
-                  : colors.primary
 
-              return (
-                <div key={ref.refrigeradorId} className="space-y-1">
-                  <div className="flex items-center justify-between text-[12px]">
-                    <span className="font-medium text-foreground truncate max-w-[60%]">{ref.nombre}</span>
-                    <div className="flex items-center gap-2">
-                      {ref.pct >= 90 && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-300 text-red-600 bg-red-50">
-                          Casi lleno
-                        </Badge>
-                      )}
-                      <span className="tabular-nums font-semibold" style={{ color: barColor }}>
-                        {ref.pct}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${ref.pct}%`, backgroundColor: barColor }}
+      <CardContent className="px-6 pb-6">
+        {activeTab === 'refrigeradores' ? (
+          refrigeradores.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">Sin refrigeradores activos.</p>
+          ) : (
+            <div className="space-y-5">
+              {refrigeradores.map((ref) => {
+                const refColor = ref.pct >= 90 ? colors.danger : ref.pct > 75 ? colors.warning : colors.primary
+                return (
+                  <div key={ref.refrigeradorId} className="space-y-2">
+                    {/* Barra total del refrigerador */}
+                    <OcupacionBar
+                      pct={ref.pct}
+                      label={ref.nombre}
+                      sublabel={`${ref.ocupadas} / ${ref.totalPosiciones} posiciones totales`}
                     />
+
+                    {/* Pisos — indentados debajo */}
+                    {ref.pisos && ref.pisos.length > 0 && (
+                      <div className="ml-3 space-y-1.5 border-l-2 pl-3" style={{ borderColor: refColor + '55' }}>
+                        {ref.pisos.map((piso: PisoResumenDTO) => {
+                          const pisoColor = piso.pct >= 90 ? colors.danger : piso.pct > 75 ? colors.warning : colors.primary
+                          return (
+                            <div key={piso.pisoId} className="space-y-0.5">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-muted-foreground">
+                                  Piso {piso.numeroPiso}
+                                </span>
+                                <span className="tabular-nums font-medium" style={{ color: pisoColor }}>
+                                  {piso.pct}% · {piso.ocupadas}/{piso.total}
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{ width: `${piso.pct}%`, backgroundColor: pisoColor }}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    {ref.ocupadas} / {ref.totalPosiciones} posiciones
-                  </p>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )
+        ) : (
+          cajas.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">Sin cajas criogénicas activas.</p>
+          ) : (
+            <div className="space-y-4">
+              {cajas.map((caja) => (
+                <OcupacionBar
+                  key={caja.cajaId}
+                  pct={caja.pct}
+                  label={`${caja.codigo}${caja.tipoCaja ? ` · ${caja.tipoCaja}` : ''}`}
+                  sublabel={`${caja.ocupadas} / ${caja.totalPosiciones} posiciones`}
+                />
+              ))}
+            </div>
+          )
         )}
       </CardContent>
     </Card>
@@ -728,7 +842,7 @@ export function MiniStatStrip({ stats, isLoading }: { stats?: { muestrasBiobanco
     { label: 'Muestras biobanco',   value: stats?.muestrasBiobanco ?? 0,     icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M9 3v11.5A3.5 3.5 0 0012.5 18 3.5 3.5 0 0016 14.5V3M9 3h7M9 7h7"/></svg> },
     { label: 'Exámenes este mes',   value: stats?.examenesLabMes ?? 0,        icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15m0 0l6.75 6.75M4.5 12l6.75-6.75"/></svg> },
     { label: 'Documentos',          value: stats?.documentosGenerales ?? 0,   icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg> },
-    { label: 'Sin actualizar hoy',  value: stats?.citasSinActualizar ?? 0,    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>, warn: (stats?.citasSinActualizar ?? 0) > 0 },
+    { label: 'Sin actualizar',  value: stats?.citasSinActualizar ?? 0,    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>, warn: (stats?.citasSinActualizar ?? 0) > 0 },
   ]
 
   return (
@@ -816,10 +930,10 @@ export function AgendaHoyPanel({
   onCitaClick?:  (uuid: string) => void
 }) {
   return (
-    <Card className="border border-border shadow-none sticky top-4 overflow-hidden">
+    <Card className="border border-border shadow-none sticky top-4 overflow-x-hidden">
       <CardHeader className="px-5 pt-5 pb-3 border-b border-border">
         <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
-          Agenda hoy
+          Agenda de hoy
         </div>
         <div className="flex items-baseline gap-2 mt-0.5">
           <span className="text-[13px] font-medium text-foreground">Citas clínicas</span>
@@ -830,7 +944,7 @@ export function AgendaHoyPanel({
           )}
         </div>
       </CardHeader>
-      <CardContent className="p-0 overflow-y-auto max-h-[calc(100vh-220px)]">
+      <CardContent className="p-0 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-220px)]">
         {isLoading ? (
           <div className="space-y-0 divide-y divide-border">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -854,7 +968,7 @@ export function AgendaHoyPanel({
                   type="button"
                   onClick={() => onCitaClick?.(cita.uuid)}
                   className={[
-                    'flex w-full items-stretch gap-0 text-left transition-colors hover:bg-muted/30',
+                    'flex w-full min-w-0 overflow-hidden items-stretch gap-0 text-left transition-colors hover:bg-muted/30',
                     vencida ? 'bg-red-50 dark:bg-red-950/20' : '',
                   ].join(' ')}
                 >
@@ -863,7 +977,7 @@ export function AgendaHoyPanel({
                     className="w-1 shrink-0"
                     style={{ backgroundColor: vencida ? 'var(--destructive)' : (cita.colorHex ?? 'transparent') }}
                   />
-                  <div className="flex flex-1 items-start gap-3 px-4 py-3">
+                  <div className="flex flex-1 min-w-0 items-start gap-3 px-4 py-3">
                     {/* Hora */}
                     <div className="flex flex-col items-center shrink-0 min-w-[44px]">
                       <span className={['tabular-nums text-[18px] font-bold leading-none', vencida ? 'text-red-600 dark:text-red-400' : 'text-foreground'].join(' ')}>
@@ -881,7 +995,7 @@ export function AgendaHoyPanel({
                       <p className="text-[13px] font-semibold leading-tight truncate">
                         {cita.paciente.nombreCompleto || 'Sin nombre'}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                      <p className="text-[11px] text-muted-foreground mt-0.5 font-mono truncate">
                         {cita.paciente.folio}
                       </p>
                       {vencida && (
@@ -890,7 +1004,9 @@ export function AgendaHoyPanel({
                         </p>
                       )}
                     </div>
-                    <EstadoBadge estado={cita.estadoCita} />
+                    <div className="shrink-0">
+                      <EstadoBadge estado={cita.estadoCita} />
+                    </div>
                   </div>
                 </button>
               )

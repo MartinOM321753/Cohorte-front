@@ -35,9 +35,27 @@ export interface ExamenesCalidadDTO {
   sinReferencia: number
 }
 
+export interface PisoResumenDTO {
+  pisoId:    number
+  numeroPiso: string
+  total:     number
+  ocupadas:  number
+  pct:       number
+}
+
 export interface RefrigeradorOcupacionDTO {
   refrigeradorId:  number
   nombre:          string
+  totalPosiciones: number
+  ocupadas:        number
+  pct:             number
+  pisos:           PisoResumenDTO[]
+}
+
+export interface CajaOcupacionDTO {
+  cajaId:          number
+  codigo:          string
+  tipoCaja:        string | null
   totalPosiciones: number
   ocupadas:        number
   pct:             number
@@ -133,6 +151,18 @@ export function useBiobancoOcupacion() {
     queryKey: ['dashboard-biobanco-ocupacion'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<RefrigeradorOcupacionDTO[]>>('/dashboard/biobanco-ocupacion')
+      return res.data.data ?? []
+    },
+    staleTime: 2 * 60_000,
+  })
+}
+
+/** Ocupación de cajas criogénicas del biobanco, ordenadas por % DESC. */
+export function useBiobancoOcupacionCajas() {
+  return useQuery<CajaOcupacionDTO[]>({
+    queryKey: ['dashboard-biobanco-cajas'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<CajaOcupacionDTO[]>>('/dashboard/biobanco-cajas')
       return res.data.data ?? []
     },
     staleTime: 2 * 60_000,
