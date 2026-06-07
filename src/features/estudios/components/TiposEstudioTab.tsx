@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   Hash,
+  List,
   Pencil,
   Plus,
   Trash2,
@@ -47,12 +48,14 @@ interface PendingParametro {
   tipo: TipoParametro
   valorMinimo?: string
   valorMaximo?: string
+  opciones?: string[]
 }
 
 const TIPO_LABELS: Record<TipoParametro, string> = {
   NUMERICO: 'Numérico',
-  TEXTO: 'Texto',
+  TEXTO: 'Texto libre',
   BOOLEANO: 'Booleano',
+  TEXTO_OPCIONES: 'Selección',
 }
 
 const DEFAULT_TIPO: TipoEstudioFormData = { nombre: '', descripcion: '' }
@@ -73,6 +76,8 @@ export function TiposEstudioTab() {
   const [paramTipo, setParamTipo] = useState<TipoParametro>('NUMERICO')
   const [paramValorMin, setParamValorMin] = useState('')
   const [paramValorMax, setParamValorMax] = useState('')
+  const [paramOpciones, setParamOpciones] = useState<string[]>([])
+  const [paramOpcionInput, setParamOpcionInput] = useState('')
   const [paramError, setParamError] = useState('')
   const [paramRangoError, setParamRangoError] = useState('')
   const [paramListError, setParamListError] = useState('')
@@ -117,6 +122,7 @@ export function TiposEstudioTab() {
         tipo: paramTipo,
         valorMinimo: paramTipo === 'NUMERICO' && paramValorMin !== '' ? paramValorMin : undefined,
         valorMaximo: paramTipo === 'NUMERICO' && paramValorMax !== '' ? paramValorMax : undefined,
+        opciones: paramTipo === 'TEXTO_OPCIONES' ? [...paramOpciones] : undefined,
       },
     ])
     setParamNombre('')
@@ -124,6 +130,8 @@ export function TiposEstudioTab() {
     setParamTipo('NUMERICO')
     setParamValorMin('')
     setParamValorMax('')
+    setParamOpciones([])
+    setParamOpcionInput('')
   }
 
   function removePending(key: string) {
@@ -152,6 +160,7 @@ export function TiposEstudioTab() {
             tipo: p.tipo,
             valorMinimo: p.valorMinimo !== undefined ? Number(p.valorMinimo) : undefined,
             valorMaximo: p.valorMaximo !== undefined ? Number(p.valorMaximo) : undefined,
+            opciones: p.tipo === 'TEXTO_OPCIONES' ? (p.opciones ?? []) : undefined,
           })
         }
         setPending([])
@@ -309,14 +318,15 @@ export function TiposEstudioTab() {
                 />
                 {paramError && <p className="mt-1 text-xs text-destructive">{paramError}</p>}
               </div>
-              <Select value={paramTipo} onValueChange={(v) => { setParamTipo(v as TipoParametro); setParamValorMin(''); setParamValorMax(''); setParamRangoError('') }}>
+              <Select value={paramTipo} onValueChange={(v) => { setParamTipo(v as TipoParametro); setParamValorMin(''); setParamValorMax(''); setParamOpciones([]); setParamOpcionInput(''); setParamRangoError('') }}>
                 <SelectTrigger className="text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NUMERICO">Numérico</SelectItem>
-                  <SelectItem value="TEXTO">Texto</SelectItem>
+                  <SelectItem value="TEXTO">Texto libre</SelectItem>
                   <SelectItem value="BOOLEANO">Booleano</SelectItem>
+                  <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
                 </SelectContent>
               </Select>
               <UnidadSelect
@@ -351,6 +361,48 @@ export function TiposEstudioTab() {
                     </p>
                   )}
                 </>
+              )}
+              {/* Opciones configurables — solo para TEXTO_OPCIONES */}
+              {paramTipo === 'TEXTO_OPCIONES' && (
+                <div className="col-span-2 space-y-1.5">
+                  <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>
+                  {paramOpciones.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {paramOpciones.map((op, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs bg-muted">
+                          {op}
+                          <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setParamOpciones(prev => prev.filter((_, j) => j !== i))}>
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-1">
+                    <Input
+                      placeholder="Nueva opción…"
+                      value={paramOpcionInput}
+                      onChange={(e) => setParamOpcionInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          const v = paramOpcionInput.trim()
+                          if (v && !paramOpciones.includes(v)) setParamOpciones(prev => [...prev, v])
+                          setParamOpcionInput('')
+                        }
+                      }}
+                      className="h-7 text-sm flex-1"
+                    />
+                    <Button
+                      type="button" variant="outline" size="sm" className="h-7 px-2 shrink-0"
+                      onClick={() => {
+                        const v = paramOpcionInput.trim()
+                        if (v && !paramOpciones.includes(v)) setParamOpciones(prev => [...prev, v])
+                        setParamOpcionInput('')
+                      }}
+                    ><Plus className="h-3 w-3" /></Button>
+                  </div>
+                </div>
               )}
             </div>
             <Button
@@ -506,14 +558,16 @@ function EditableParametroRow({
 }) {
   const updateParametro = useUpdateParametroEstudio(parametro.id)
 
-  const [editing, setEditing]     = useState(false)
-  const [nombre, setNombre]       = useState(parametro.nombre)
-  const [unidad, setUnidad]       = useState(parametro.unidad ?? '')
-  const [tipo,   setTipo]         = useState<TipoParametro>(parametro.tipo as TipoParametro)
-  const [valMin, setValMin]       = useState(parametro.valorMinimo != null ? String(parametro.valorMinimo) : '')
-  const [valMax, setValMax]       = useState(parametro.valorMaximo != null ? String(parametro.valorMaximo) : '')
-  const [error,  setError]        = useState('')
-  const [rangoError, setRangoError] = useState('')
+  const [editing, setEditing]         = useState(false)
+  const [nombre, setNombre]           = useState(parametro.nombre)
+  const [unidad, setUnidad]           = useState(parametro.unidad ?? '')
+  const [tipo,   setTipo]             = useState<TipoParametro>(parametro.tipo as TipoParametro)
+  const [valMin, setValMin]           = useState(parametro.valorMinimo != null ? String(parametro.valorMinimo) : '')
+  const [valMax, setValMax]           = useState(parametro.valorMaximo != null ? String(parametro.valorMaximo) : '')
+  const [opciones, setOpciones]       = useState<string[]>(parametro.opciones ?? [])
+  const [opcionInput, setOpcionInput] = useState('')
+  const [error,  setError]            = useState('')
+  const [rangoError, setRangoError]   = useState('')
 
   function startEdit() {
     setNombre(parametro.nombre)
@@ -521,6 +575,8 @@ function EditableParametroRow({
     setTipo(parametro.tipo as TipoParametro)
     setValMin(parametro.valorMinimo != null ? String(parametro.valorMinimo) : '')
     setValMax(parametro.valorMaximo != null ? String(parametro.valorMaximo) : '')
+    setOpciones(parametro.opciones ?? [])
+    setOpcionInput('')
     setError('')
     setRangoError('')
     setEditing(true)
@@ -551,6 +607,7 @@ function EditableParametroRow({
         tipo,
         valorMinimo: tipo === 'NUMERICO' && valMin !== '' ? Number(valMin) : undefined,
         valorMaximo: tipo === 'NUMERICO' && valMax !== '' ? Number(valMax) : undefined,
+        opciones: tipo === 'TEXTO_OPCIONES' ? opciones : undefined,
       },
       { onSuccess: () => setEditing(false) }
     )
@@ -570,14 +627,15 @@ function EditableParametroRow({
             />
             {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
           </div>
-          <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMin(''); setValMax(''); setRangoError('') }}>
+          <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMin(''); setValMax(''); setOpciones([]); setOpcionInput(''); setRangoError('') }}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="NUMERICO">Numérico</SelectItem>
-              <SelectItem value="TEXTO">Texto</SelectItem>
+              <SelectItem value="TEXTO">Texto libre</SelectItem>
               <SelectItem value="BOOLEANO">Booleano</SelectItem>
+              <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
             </SelectContent>
           </Select>
           <UnidadSelect value={unidad} onChange={setUnidad} placeholder="Unidad" compact />
@@ -607,6 +665,48 @@ function EditableParametroRow({
                 </p>
               )}
             </>
+          )}
+          {/* Opciones — solo para TEXTO_OPCIONES */}
+          {tipo === 'TEXTO_OPCIONES' && (
+            <div className="col-span-2 space-y-1.5">
+              <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>
+              {opciones.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {opciones.map((op, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs bg-muted">
+                      {op}
+                      <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setOpciones(prev => prev.filter((_, j) => j !== i))}>
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-1">
+                <Input
+                  placeholder="Nueva opción…"
+                  value={opcionInput}
+                  onChange={(e) => setOpcionInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const v = opcionInput.trim()
+                      if (v && !opciones.includes(v)) setOpciones(prev => [...prev, v])
+                      setOpcionInput('')
+                    }
+                  }}
+                  className="h-7 text-sm flex-1"
+                />
+                <Button
+                  type="button" variant="outline" size="sm" className="h-7 px-2 shrink-0"
+                  onClick={() => {
+                    const v = opcionInput.trim()
+                    if (v && !opciones.includes(v)) setOpciones(prev => [...prev, v])
+                    setOpcionInput('')
+                  }}
+                ><Plus className="h-3 w-3" /></Button>
+              </div>
+            </div>
           )}
         </div>
         <div className="flex items-center justify-end gap-2">
@@ -651,45 +751,56 @@ function EditableParametroRow({
   })()
 
   return (
-    <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
-      <div className="flex items-center gap-2 text-sm">
-        <Hash className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
-        <span className="font-medium">{parametro.nombre}</span>
-        {parametro.unidad && (
-          <span className="font-mono text-xs text-muted-foreground">({parametro.unidad})</span>
-        )}
-        {rangoLabel && (
-          <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-            ref: {rangoLabel}
-          </span>
-        )}
+    <div className="rounded-md border bg-background px-3 py-2 space-y-1">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm">
+          <Hash className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
+          <span className="font-medium">{parametro.nombre}</span>
+          {parametro.unidad && (
+            <span className="font-mono text-xs text-muted-foreground">({parametro.unidad})</span>
+          )}
+          {rangoLabel && (
+            <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              ref: {rangoLabel}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <Badge variant="secondary" className="text-[10px]">
+            {TIPO_LABELS[parametro.tipo as TipoParametro] ?? parametro.tipo}
+          </Badge>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            onClick={startEdit}
+            title="Editar parámetro"
+          >
+            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={onDelete}
+            disabled={isDeleting}
+            title="Eliminar parámetro"
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Button>
+        </div>
       </div>
-      <div className="flex items-center gap-1">
-        <Badge variant="secondary" className="text-[10px]">
-          {TIPO_LABELS[parametro.tipo as TipoParametro] ?? parametro.tipo}
-        </Badge>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-          onClick={startEdit}
-          title="Editar parámetro"
-        >
-          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-destructive hover:text-destructive"
-          onClick={onDelete}
-          disabled={isDeleting}
-          title="Eliminar parámetro"
-        >
-          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </Button>
-      </div>
+      {/* Mostrar opciones configuradas para TEXTO_OPCIONES */}
+      {parametro.tipo === 'TEXTO_OPCIONES' && parametro.opciones && parametro.opciones.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 pt-0.5">
+          <List className="h-3 w-3 text-muted-foreground shrink-0" />
+          {parametro.opciones.map((op) => (
+            <span key={op} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{op}</span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -697,13 +808,15 @@ function EditableParametroRow({
 /** Inline add-parameter form rendered inside an expanded tipo row */
 function AddParametroInline({ tipoId }: { tipoId: number }) {
   const createParametro = useCreateParametroEstudio()
-  const [nombre, setNombre] = useState('')
-  const [unidad, setUnidad] = useState('')
-  const [tipo, setTipo] = useState<TipoParametro>('NUMERICO')
-  const [valMin, setValMin] = useState('')
-  const [valMax, setValMax] = useState('')
-  const [error, setError] = useState('')
-  const [rangoError, setRangoError] = useState('')
+  const [nombre, setNombre]           = useState('')
+  const [unidad, setUnidad]           = useState('')
+  const [tipo, setTipo]               = useState<TipoParametro>('NUMERICO')
+  const [valMin, setValMin]           = useState('')
+  const [valMax, setValMax]           = useState('')
+  const [opciones, setOpciones]       = useState<string[]>([])
+  const [opcionInput, setOpcionInput] = useState('')
+  const [error, setError]             = useState('')
+  const [rangoError, setRangoError]   = useState('')
 
   function handleAdd() {
     const trimmed = nombre.trim()
@@ -724,8 +837,9 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
         tipo,
         valorMinimo: tipo === 'NUMERICO' && valMin !== '' ? Number(valMin) : undefined,
         valorMaximo: tipo === 'NUMERICO' && valMax !== '' ? Number(valMax) : undefined,
+        opciones: tipo === 'TEXTO_OPCIONES' ? opciones : undefined,
       },
-      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMin(''); setValMax('') } }
+      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMin(''); setValMax(''); setOpciones([]); setOpcionInput('') } }
     )
   }
 
@@ -742,14 +856,15 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
           />
           {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
         </div>
-        <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMin(''); setValMax(''); setRangoError('') }}>
+        <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMin(''); setValMax(''); setOpciones([]); setOpcionInput(''); setRangoError('') }}>
           <SelectTrigger className="h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="NUMERICO">Numérico</SelectItem>
-            <SelectItem value="TEXTO">Texto</SelectItem>
+            <SelectItem value="TEXTO">Texto libre</SelectItem>
             <SelectItem value="BOOLEANO">Booleano</SelectItem>
+            <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
           </SelectContent>
         </Select>
         <UnidadSelect
@@ -783,6 +898,47 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
               </p>
             )}
           </>
+        )}
+        {tipo === 'TEXTO_OPCIONES' && (
+          <div className="col-span-2 space-y-1.5">
+            <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>
+            {opciones.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {opciones.map((op, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs bg-muted">
+                    {op}
+                    <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setOpciones(prev => prev.filter((_, j) => j !== i))}>
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-1">
+              <Input
+                placeholder="Nueva opción…"
+                value={opcionInput}
+                onChange={(e) => setOpcionInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const v = opcionInput.trim()
+                    if (v && !opciones.includes(v)) setOpciones(prev => [...prev, v])
+                    setOpcionInput('')
+                  }
+                }}
+                className="h-7 text-sm flex-1"
+              />
+              <Button
+                type="button" variant="outline" size="sm" className="h-7 px-2 shrink-0"
+                onClick={() => {
+                  const v = opcionInput.trim()
+                  if (v && !opciones.includes(v)) setOpciones(prev => [...prev, v])
+                  setOpcionInput('')
+                }}
+              ><Plus className="h-3 w-3" /></Button>
+            </div>
+          </div>
         )}
       </div>
       <Button

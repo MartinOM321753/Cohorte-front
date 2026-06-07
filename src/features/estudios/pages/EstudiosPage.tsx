@@ -4,8 +4,6 @@ import { RoleGuard } from '@/components/routes/RoleGuard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LlenadoEstudioTab } from '../components/LlenadoEstudioTab'
 import { TiposEstudioTab } from '../components/TiposEstudioTab'
-import { ExamenesTab } from '../components/ExamenesTab'
-import { ResultadosExamenTab } from '../components/ResultadosExamenTab'
 
 export default function EstudiosPage() {
   const [activeTab, setActiveTab] = useState('llenado')

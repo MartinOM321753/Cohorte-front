@@ -32,6 +32,7 @@ import { DatePicker } from '@/components/ui/date-time-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
@@ -925,6 +926,40 @@ function ParametroInput({
           />
         ) : (
           <Input type="text" placeholder="Ingrese valor…" {...register(fieldName)} />
+        )
+      ) : parametro.tipo === 'TEXTO_OPCIONES' ? (
+        // Selección de opción predefinida
+        isStandalone ? (
+          <Select
+            value={String(standaloneValue ?? '')}
+            onValueChange={(v) => onStandaloneChange!(v)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccione una opción…" />
+            </SelectTrigger>
+            <SelectContent>
+              {(parametro.opciones ?? []).map((op) => (
+                <SelectItem key={op} value={op}>{op}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Controller
+            name={fieldName}
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione una opción…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(parametro.opciones ?? []).map((op) => (
+                    <SelectItem key={op} value={op}>{op}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         )
       ) : (
         // BOOLEANO

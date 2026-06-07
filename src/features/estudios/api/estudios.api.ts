@@ -147,3 +147,21 @@ export async function updateParametroEstudio(
 export async function deleteParametroEstudio(id: number): Promise<void> {
   await axiosInstance.delete(`/estudios/parametros/${id}`)
 }
+
+// ============================================
+// OPCIONES DE PARÁMETRO (TEXTO_OPCIONES)
+// ============================================
+
+/**
+ * Add a single option to a TEXTO_OPCIONES parameter
+ */
+export async function addOpcionParametro(parametroId: number, valor: string): Promise<void> {
+  await axiosInstance.post(`/estudios/parametros/${parametroId}/opciones`, { valor })
+}
+
+/**
+ * Delete a single option by ID
+ */
+export async function deleteOpcionParametro(opcionId: number): Promise<void> {
+  await axiosInstance.delete(`/estudios/parametros/opciones/${opcionId}`)
+}
