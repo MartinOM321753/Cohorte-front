@@ -142,9 +142,9 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await loginUser(data, coords);
-      if (!response.token || !response.user)
-        throw new Error("Respuesta de servidor inválida");
-      login({ token: response.token, user: response.user });
+      if (!response.user) throw new Error("Respuesta de servidor inválida");
+      const ok = login({ user: response.user, mustChangePassword: response.mustChangePassword });
+      if (!ok) throw new Error("Rol de usuario no reconocido");
       toast.success("Inicio de sesión exitoso");
       // Role-based redirect: ENCARGADO goes to their samples page
       const targetRole = response.user?.rol;
@@ -278,7 +278,7 @@ export default function LoginPage() {
             color: "rgba(255,255,255,0.78)",
           }}
         >
-          Pacientes, estudios médicos y biobanco criogénico en una sola
+          Participantes, estudios médicos y biobanco criogénico en una sola
           plataforma institucional.
         </p>
         <hr style={{

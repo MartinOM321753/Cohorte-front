@@ -1,32 +1,6 @@
 import axiosInstance from '@/lib/axiosInstance'
-import { ApiResponse, LoginRequest, LoginResponse, Usuario } from '@/types/api'
+import { ApiResponse, LoginRequest } from '@/types/api'
 import { UserData } from '@/stores/authStore'
-
-interface JWTPayload {
-  // `sub` idealmente es el UUID (subject)
-  sub: string
-
-  // Algunos backends envían el UUID en un claim dedicado (recomendado)
-  uuid?: string
-  userUUID?: string
-
-  // claims custom del backend
-  name?: string
-  role?: string
-  activo: boolean
-  iat: number
-  exp: number
-}
-
-function decodeJWT(token: string): JWTPayload {
-  try {
-    const payload = token.split('.')[1]
-    const decoded = JSON.parse(atob(payload))
-    return decoded
-  } catch {
-    throw new Error('Token inválido')
-  }
-}
 
 /**
  * Solicita la geolocalización del navegador con máxima precisión disponible.
@@ -86,10 +60,19 @@ export async function getGeolocation(): Promise<{
   })
 }
 
+/**
+ * Inicia sesión y restaura los datos del usuario autenticado.
+ *
+ * El backend ya no devuelve el JWT en el cuerpo de la respuesta: lo emite como
+ * cookie httpOnly (ver AuthController/auth_token), inaccesible desde JS — esto
+ * elimina el vector de robo del token vía XSS. El navegador adjunta la cookie
+ * automáticamente en la siguiente petición (`withCredentials: true`), así que
+ * basta con consultar /auth/me para obtener los datos de la sesión recién creada.
+ */
 export async function loginUser(
   credentials: LoginRequest,
   coords: { latitud: number; longitud: number; precisionM: number },
-): Promise<{ token: string; user: UserData }> {
+): Promise<{ user: UserData; mustChangePassword: boolean }> {
   const loginPayload: LoginRequest = {
     ...credentials,
     latitud: coords.latitud,
@@ -97,50 +80,17 @@ export async function loginUser(
     precisionM: coords.precisionM,
   }
 
-  const response = await axiosInstance.post<LoginResponse>('/auth/login', loginPayload)
-  const jwtToken = response.data.data
+  await axiosInstance.post('/auth/login', loginPayload)
 
-  if (!jwtToken || typeof jwtToken !== 'string') {
-    throw new Error('Token inválido en la respuesta del servidor')
+  const meResponse = await axiosInstance.get<ApiResponse<{ user: any; mustChangePassword: boolean }>>('/auth/me')
+  const data = meResponse.data?.data
+  const dto = data?.user
+
+  if (!dto) {
+    throw new Error('No se pudo obtener la información de la sesión')
   }
 
-  const payload = decodeJWT(jwtToken)
-
-  // Preferir UUID real: claim dedicado > `sub`
-  const subjectUuid =
-    (typeof payload.uuid === 'string' && payload.uuid.trim()) ||
-    (typeof payload.userUUID === 'string' && payload.userUUID.trim()) ||
-    payload.sub
-
-  // Fetch real user data — pass token manually porque el store aún no lo tiene
-  let dto: any | null = null
-  try {
-    const userResponse = await axiosInstance.get<ApiResponse<any>>(`/users/uuid/${subjectUuid}`, {
-      headers: { Authorization: `Bearer ${jwtToken}` },
-    })
-    dto = userResponse.data?.data ?? null
-  } catch {
-    dto = null
-  }
-
-  // Fallback: si el token trae username en `sub`, intentar resolver UUID real listando usuarios
-  if (!dto && typeof payload.sub === 'string' && payload.sub.trim()) {
-    try {
-      const listResponse = await axiosInstance.get<ApiResponse<Usuario[]>>('/users', {
-        headers: { Authorization: `Bearer ${jwtToken}` },
-      })
-      const users = listResponse.data?.data ?? []
-      const match =
-        users.find((u) => u.uuid === payload.sub) ||
-        users.find((u) => u.username === payload.sub) ||
-        users.find((u) => u.username === credentials.identifier)
-      dto = match ?? null
-    } catch {
-      dto = null
-    }
-  }
-
-  const nombreCompleto = dto
+  const nombreCompleto = dto.persona
     ? [dto.persona?.nombre, dto.persona?.apellidoPaterno, dto.persona?.apellidoMaterno].filter(Boolean).join(' ').trim()
     : ''
 
@@ -148,19 +98,20 @@ export async function loginUser(
   const rolNombre =
     typeof dto?.rol === 'string' ? dto.rol : typeof dto?.rol?.nombre === 'string' ? dto.rol.nombre : ''
 
+  const institucionDto = dto?.institucion
+  const institucion = institucionDto && (institucionDto.uuid || institucionDto.nombre)
+    ? { uuid: institucionDto.uuid || '', nombre: institucionDto.nombre || '' }
+    : null
+
   const user: UserData = {
-    uuid: dto?.uuid || dto?.UUID || subjectUuid,
+    uuid: dto?.uuid || dto?.UUID || '',
     username: dto?.username || credentials.identifier,
-    nombreCompleto: nombreCompleto || payload.name || credentials.identifier,
-    rol: rolNombre || payload.role || '',
+    nombreCompleto: nombreCompleto || credentials.identifier,
+    rol: rolNombre,
+    institucion,
   }
 
-  return { token: jwtToken, user }
-}
-
-export async function refreshToken(token: string): Promise<{ token: string }> {
-  const response = await axiosInstance.post<{ token: string }>('/auth/refresh', { token })
-  return response as any as { token: string }
+  return { user, mustChangePassword: data?.mustChangePassword === true }
 }
 
 // ── Recuperación de contraseña ─────────────────────────────────────────────────

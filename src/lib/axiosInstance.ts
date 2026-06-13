@@ -1,4 +1,4 @@
-import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, { AxiosError, AxiosResponse } from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080/api'
@@ -6,27 +6,21 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localho
 let isForcingLogout = false
 
 // Create axios instance
+//
+// Autenticación basada en cookie httpOnly: el backend emite la cookie de sesión
+// (`auth_token`, HttpOnly + Secure + SameSite) en /auth/login y el navegador la
+// envía automáticamente en cada petición — `withCredentials` es lo que le indica
+// a Axios/el navegador que incluya cookies en peticiones cross-origin.
+// Ya NO se adjunta manualmente un header Authorization: el JS no tiene ni puede
+// leer el token (HttpOnly), lo que elimina el vector de robo vía XSS.
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 })
-
-// Request interceptor - add JWT token
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().token
-    if (token && config.headers) {  
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error)
-  }
-)
 
 // Response interceptor — manejo de errores de autenticación
 //

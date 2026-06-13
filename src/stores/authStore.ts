@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { persist, subscribeWithSelector } from 'zustand/middleware'
+import { subscribeWithSelector } from 'zustand/middleware'
 import axiosInstance from '@/lib/axiosInstance'
+import { getModulosHabilitadosActual } from '@/features/instituciones/api/instituciones.api'
 
 export type UserRole =
   | 'ADMINISTRADOR'
@@ -12,32 +13,65 @@ export type UserRole =
 
 type RolLike = string | { nombre?: string } | null | undefined
 
+export interface InstitucionResumen {
+  id?: number
+  uuid: string
+  nombre: string
+}
+
 export interface UserData {
   uuid: string
   username: string
   nombreCompleto: string
   rol: RolLike
+  institucion?: InstitucionResumen | null
 }
 
 export interface AuthState {
-  token: string | null
   user: UserData | null
   isAuthenticated: boolean
   isLoading: boolean
   mustChangePassword: boolean
+  /** Módulos del sistema (BIOBANCO, EXAMENES, CITAS, etc.) habilitados para la institución del usuario. */
+  modulosHabilitados: string[]
 
-  login: (credentials: { token: string; user: UserData }) => void
+  login: (data: { user: UserData; mustChangePassword?: boolean }) => boolean
   logout: () => void
   hasRole: (role: UserRole | UserRole[]) => boolean
+  /** Indica si la institución del usuario tiene habilitado el módulo dado (ver ModuloSistema). */
+  hasModulo: (modulo: string) => boolean
   clearMustChangePassword: () => void
+  /**
+   * Restaura la sesión a partir de la cookie httpOnly al cargar la app
+   * (el JS no puede leer el token, así que se valida contra /auth/me).
+   */
+  restoreSession: () => Promise<void>
 }
 
 const initialState = {
-  token: null,
   user: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true,
   mustChangePassword: false,
+  modulosHabilitados: [] as string[],
+}
+
+function parseInstitucion(raw: any): InstitucionResumen | null {
+  if (!raw || typeof raw !== 'object') return null
+  const uuid = raw.uuid || raw.UUID || ''
+  const nombre = raw.nombre || ''
+  if (!uuid && !nombre) return null
+  const id = typeof raw.id === 'number' ? raw.id : undefined
+  return { id, uuid, nombre }
+}
+
+async function loadModulosHabilitados(set: (partial: Partial<AuthState>) => void) {
+  try {
+    const modulos = await getModulosHabilitadosActual()
+    set({ modulosHabilitados: Array.isArray(modulos) ? modulos : [] })
+  } catch {
+    set({ modulosHabilitados: [] })
+  }
 }
 
 function normalizeRoleName(rol: RolLike): string {
@@ -59,103 +93,83 @@ function normalizeRoleName(rol: RolLike): string {
   return ''
 }
 
-function decodeJwtPayload(token: string): any | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length < 2) return null
-    const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-    const padded = payloadB64.padEnd(payloadB64.length + ((4 - (payloadB64.length % 4)) % 4), '=')
-    const binary = globalThis.atob(padded)
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
-    const json = new TextDecoder().decode(bytes)
-    return JSON.parse(json)
-  } catch {
-    return null
-  }
-}
-
 export const useAuthStore = create<AuthState>()(
-  persist(
-    subscribeWithSelector((set, get) => ({
-      ...initialState,
+  subscribeWithSelector((set, get) => ({
+    ...initialState,
 
-      login: (credentials: { token: string; user: UserData }) => {
-        const tokenPayload = decodeJwtPayload(credentials.token)
-        const rawRoleFromToken = tokenPayload?.role ?? tokenPayload?.rol ?? tokenPayload?.authorities
-        const roleFromToken = normalizeRoleName(rawRoleFromToken ?? null)
+    login: ({ user, mustChangePassword = false }) => {
+      const normalizedRole = normalizeRoleName(user.rol)
+      if (!normalizedRole) {
+        set({ ...initialState, isLoading: false })
+        return false
+      }
 
-        // If backend explicitly sends a role in the token, it must be a known role.
-        // Do NOT fallback to `credentials.user.rol` when token role is unknown (e.g. "ADMIN").
-        if (rawRoleFromToken != null && String(rawRoleFromToken).trim() && !roleFromToken) {
-          set(initialState)
+      set({
+        user: { ...user, rol: normalizedRole },
+        isAuthenticated: true,
+        isLoading: false,
+        mustChangePassword,
+      })
+      void loadModulosHabilitados(set)
+      return true
+    },
+
+    logout: () => {
+      // El backend lee la cookie httpOnly directamente — no hace falta pasar el token.
+      axiosInstance.post('/auth/logout').catch(() => {})
+      set({ ...initialState, isLoading: false })
+    },
+
+    clearMustChangePassword: () => {
+      set({ mustChangePassword: false })
+    },
+
+    hasRole: (role: UserRole | UserRole[]) => {
+      const { user } = get()
+      if (!user) return false
+      const rolesToCheck = Array.isArray(role) ? role : [role]
+      const userRoleName = normalizeRoleName(user.rol)
+      if (!userRoleName) return false
+      return rolesToCheck.includes(userRoleName as UserRole)
+    },
+
+    hasModulo: (modulo: string) => {
+      return get().modulosHabilitados.includes(modulo)
+    },
+
+    restoreSession: async () => {
+      set({ isLoading: true })
+      try {
+        const response = await axiosInstance.get('/auth/me')
+        const data = response.data?.data
+        const dto = data?.user
+        if (!dto) {
+          set({ ...initialState, isLoading: false })
           return
         }
 
-        const normalizedRole = roleFromToken || normalizeRoleName(credentials.user.rol)
-        if (!normalizedRole) {
-          set(initialState)
-          return
+        const rolNombre =
+          typeof dto?.rol === 'string' ? dto.rol : typeof dto?.rol?.nombre === 'string' ? dto.rol.nombre : ''
+        const nombreCompleto = dto?.persona
+          ? [dto.persona?.nombre, dto.persona?.apellidoPaterno, dto.persona?.apellidoMaterno]
+              .filter(Boolean)
+              .join(' ')
+              .trim()
+          : ''
+
+        const user: UserData = {
+          uuid: dto?.uuid || dto?.UUID || '',
+          username: dto?.username || '',
+          nombreCompleto,
+          rol: rolNombre,
+          institucion: parseInstitucion(dto?.institucion),
         }
 
-        const mustChangePassword = tokenPayload?.mustChangePassword === true
-
-        set({
-          token: credentials.token,
-          user: { ...credentials.user, rol: normalizedRole },
-          isAuthenticated: true,
-          mustChangePassword,
-        })
-      },
-
-      logout: () => {
-        // Leer el token ANTES de limpiar el store — el interceptor de axios corre
-        // como microtask (asíncrono), así que set(initialState) podría ejecutarse
-        // primero y dejar el token como null antes de que el interceptor lo agregue.
-        // Pasando el header explícitamente lo garantizamos.
-        const token = get().token
-        if (token) {
-          axiosInstance
-            .post('/auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } })
-            .catch(() => {})
-        }
-        set(initialState)
-      },
-
-      clearMustChangePassword: () => {
-        set({ mustChangePassword: false })
-      },
-
-      hasRole: (role: UserRole | UserRole[]) => {
-        const { user } = get()
-        if (!user) return false
-        const rolesToCheck = Array.isArray(role) ? role : [role]
-        const userRoleName = normalizeRoleName(user.rol)
-        if (!userRoleName) return false
-        return rolesToCheck.includes(userRoleName as UserRole)
-      },
-    })),
-    {
-      name: 'auth-store',
-      version: 2,
-      onRehydrateStorage: () => (state) => {
-        if (!state?.isAuthenticated || !state.user) return
-        const tokenPayload = state.token ? decodeJwtPayload(state.token) : null
-        const normalizedRole = normalizeRoleName(tokenPayload?.role ?? tokenPayload?.rol ?? state.user.rol)
-        if (!normalizedRole) {
-          state.logout()
-          return
-        }
-        if (typeof state.user.rol !== 'string' || state.user.rol !== normalizedRole) {
-          // Keep persisted user but normalize role to the app's known set
-          state.login({ token: state.token as string, user: { ...state.user, rol: normalizedRole } })
-        }
-      },
-      partialize: (state) => ({
-        token: state.token,
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-        mustChangePassword: state.mustChangePassword,
-      }),
-    }
-  )
+        get().login({ user, mustChangePassword: data?.mustChangePassword === true })
+      } catch {
+        // Sin cookie válida (no autenticado o sesión expirada)
+        set({ ...initialState, isLoading: false })
+      }
+    },
+  }))
 )

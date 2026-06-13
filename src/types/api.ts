@@ -97,11 +97,74 @@ export interface Paciente {
   fechaRegistro: string
   fechaActualizacion: string
   persona: PersonaResponseDTO
+  reclutamiento?: ReclutamientoParticipanteResponseDTO | null
 }
 
 export interface PacienteRequestDTO {
-  folio: string
+  // Opcional: si se omite, el backend genera uno automáticamente (formato COH-AA-NNNNN)
+  folio?: string
   persona: PersonaRequestDTO
+  reclutamiento: ReclutamientoParticipanteRequestDTO
+}
+
+// ============================================
+// RECLUTAMIENTO DE PARTICIPANTES (clasificación retorno/nuevo)
+// ============================================
+
+/** RETORNO: ya participó antes y fue recontactado · NUEVO: nunca ha participado. */
+export type TipoReclutamiento = 'RETORNO' | 'NUEVO'
+
+/** Resultado del contacto/recontacto — aplica principalmente a participantes RETORNO. */
+export type EstadoContacto =
+  | 'PENDIENTE'
+  | 'ACEPTA_PARTICIPAR'
+  | 'ACEPTA_CUESTIONARIO_RECUPERACION'
+  | 'RECHAZA_CONTACTO_FUTURO'
+
+/** Medio por el cual se contactó/reclutó al participante. */
+export type MedioContacto = 'TELEFONO' | 'CORREO' | 'PRESENCIAL' | 'OTRO'
+
+export interface ReclutamientoParticipanteRequestDTO {
+  tipoReclutamiento: TipoReclutamiento
+  estadoContacto?: EstadoContacto | null
+  medioContacto?: MedioContacto | null
+  /** UUID del usuario que realizó el contacto/reclutamiento. Si se omite, se usa el autenticado. */
+  uuidUsuarioRecluta?: string | null
+  observaciones?: string
+  /** ISO datetime */
+  fechaContacto?: string | null
+}
+
+export interface ReclutamientoParticipanteResponseDTO {
+  id: number
+  tipoReclutamiento: TipoReclutamiento
+  estadoContacto?: EstadoContacto | null
+  medioContacto?: MedioContacto | null
+  institucionReclutamiento?: { id: number; uuid: string; nombre: string } | null
+  usuarioRecluta?: { id: number; uuid: string; nombreCompleto: string } | null
+  observaciones?: string | null
+  fechaContacto?: string | null
+  fechaRegistro?: string | null
+}
+
+/** Etiquetas legibles para mostrar en la UI */
+export const TIPO_RECLUTAMIENTO_LABELS: Record<TipoReclutamiento, string> = {
+  RETORNO: 'Retorno (ya participó antes)',
+  NUEVO: 'Nuevo (primera vez)',
+}
+
+export const ESTADO_CONTACTO_LABELS: Record<EstadoContacto, string> = {
+  PENDIENTE: 'Pendiente',
+  ACEPTA_PARTICIPAR: 'Acepta participar',
+  ACEPTA_CUESTIONARIO_RECUPERACION: 'Acepta cuestionario de recuperación',
+  RECHAZA_CONTACTO_FUTURO: 'Rechaza contacto futuro',
+}
+
+export const MEDIO_CONTACTO_LABELS: Record<MedioContacto, string> = {
+  TELEFONO: 'Teléfono',
+  CORREO: 'Correo electrónico',
+  PRESENCIAL: 'Presencial',
+  OTRO: 'Otro',
 }
 
 export interface PacienteResumenDTO {
@@ -488,10 +551,11 @@ export interface Muestra {
   usuarioRecolectaUUID: string
   idPosicionCaja: number
   activo: boolean
+  estadoMuestra?: EstadoMuestra | null
 }
 
 export interface MuestraRequestDTO {
-  etiqueta: string
+  etiqueta?: string
   valor?: number
   unidad?: string
   fechaRecoleccion: string
@@ -542,6 +606,8 @@ export interface MuestraDetalleDTO {
   totalAlicuotas?: number | null
   /** Solo presente en respuesta de creación cuando se auto-generaron alícuotas */
   alicuotasGeneradas?: number | null
+  /** Estado actual de la muestra en el biobanco */
+  estadoMuestra?: EstadoMuestra | null
 }
 
 // ============================================
@@ -773,23 +839,160 @@ export interface AlmacenRequestDTO {
 }
 
 // ============================================
+// CATÁLOGO DE INSTITUCIONES (jerarquía / multi-institución)
+// ============================================
+
+export interface TipoInstitucionResumen {
+  id: number
+  nombre: string
+}
+
+/** Catálogo configurable de tipos de institución (administrable en /catalogos/tipos-institucion) */
+export interface TipoInstitucionCatalogo {
+  id: number
+  nombre: string
+  activo: boolean
+}
+
+export interface InstitucionResumen {
+  id: number
+  uuid: string
+  nombre: string
+}
+
+/** Institución del catálogo central (jerárquica, con ubicación geográfica y módulos habilitables) */
+export interface Institucion {
+  id: number
+  uuid: string
+  nombre: string
+  tipoInstitucion: TipoInstitucionResumen | null
+  institucionPadre: InstitucionResumen | null
+  latitud?: number | null
+  longitud?: number | null
+  estado: string
+  ciudad: string
+  direccion?: string | null
+  responsable?: string | null
+  telefono?: string | null
+  encargado?: EncargadoResumen | null
+  tieneBiobanco: boolean
+  activo: boolean
+}
+
+export interface InstitucionRequestDTO {
+  nombre: string
+  idTipoInstitucion: number
+  idInstitucionPadre?: number | null
+  latitud?: number | null
+  longitud?: number | null
+  estado: string
+  ciudad: string
+  direccion?: string
+  responsable?: string
+  telefono?: string
+  uuidEncargado?: string | null
+  tieneBiobanco?: boolean
+  activo?: boolean
+}
+
+export interface InstitucionPaginadoResponse {
+  content: Institucion[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+/** Módulos del sistema (ver enum ModuloSistema en backend) que se pueden habilitar por institución, estilo ERP. */
+export const MODULOS_SISTEMA = [
+  'PARTICIPANTES',
+  'BIOBANCO',
+  'EXAMENES',
+  'ESTUDIOS_MEDICOS',
+  'CITAS',
+  'COBERTURA',
+  'SOMATOMETRIA',
+  'DOCUMENTOS',
+  'BITACORA_ACCESOS',
+  'BITACORA_ACCIONES',
+] as const
+
+export type ModuloSistema = (typeof MODULOS_SISTEMA)[number]
+
+/** Etiquetas legibles para mostrar cada módulo en la UI de permisos. */
+export const MODULO_LABELS: Record<ModuloSistema, string> = {
+  PARTICIPANTES: 'Participantes',
+  BIOBANCO: 'Biobanco',
+  EXAMENES: 'Exámenes',
+  ESTUDIOS_MEDICOS: 'Estudios médicos',
+  CITAS: 'Citas',
+  COBERTURA: 'Cobertura',
+  SOMATOMETRIA: 'Somatometría',
+  DOCUMENTOS: 'Documentos',
+  BITACORA_ACCESOS: 'Bitácora Accesos',
+  BITACORA_ACCIONES: 'Bitácora Acciones',
+}
+
+export interface InstitucionModuloPermiso {
+  id: number
+  idInstitucion: number
+  nombreInstitucion: string
+  modulo: ModuloSistema
+  habilitado: boolean
+  idOtorgadoPor: number | null
+  nombreOtorgadoPor: string | null
+  fechaOtorgamiento: string | null
+}
+
+export interface TipoInstitucionRequestDTO {
+  nombre: string
+}
+
+// ============================================
+// BIOBANCO - ESTADO DE MUESTRA
+// ============================================
+export type EstadoMuestra = 'SIN_POSICION' | 'EN_BIOBANCO' | 'PRESTADA' | 'BAJA'
+
+export interface AsignarPosicionRequestDTO {
+  idPosicionCaja: number
+  motivo?: string
+}
+
+// ============================================
 // BIOBANCO - TRASLADOS DE MUESTRAS
 // ============================================
+
+/** Resumen de institución incluido en TrasladoMuestra */
+export interface InstitucionTrasladoResumen {
+  id: number
+  nombre: string
+  ciudad?: string
+  estado?: string
+}
+
+/** Resumen de usuario incluido en TrasladoMuestra */
+export interface UsuarioTrasladoResumen {
+  id: number
+  uuid: string
+  username: string
+  nombreCompleto: string
+}
+
 export interface TrasladoMuestra {
   id: number
   muestra: {
     id: number
     etiqueta: string
     unidad: string
+    estadoMuestra?: EstadoMuestra | null
+    esAlicuota?: boolean
   }
-  almacen: Almacen
-  autorizadoPor: {
-    id: number
-    uuid: string
-    username: string
-    nombreCompleto: string
-  }
-  estado: 'TRASLADADA' | 'RECIBIDA' | 'EN_DEVOLUCION' | 'DEVUELTA'
+  institucionOrigen: InstitucionTrasladoResumen
+  institucionDestino: InstitucionTrasladoResumen
+  autorizadoPor: UsuarioTrasladoResumen
+  recibidoPor?: UsuarioTrasladoResumen | null
+  grupoTraslado?: string | null
+  estado: 'ENVIADA' | 'RECIBIDA' | 'EN_DEVOLUCION' | 'DEVUELTA' | 'CANCELADO'
   fechaTraslado: string
   fechaRetorno?: string | null
   motivo: string
@@ -797,23 +1000,29 @@ export interface TrasladoMuestra {
 }
 
 export interface TrasladoRequestDTO {
-  idMuestra: number
-  idAlmacen: number
+  idsMuestras: number[]
+  idInstitucionDestino: number
   uuidAutoriza: string
   motivo: string
   observaciones?: string
 }
 
 export interface DevolucionRequestDTO {
+  uuidConfirma: string
   observaciones?: string
 }
 
 export interface ConfirmarRecepcionRequestDTO {
-  uuidEncargado: string
+  uuidConfirma: string
+}
+
+export interface CancelarPrestamoRequestDTO {
+  uuidUsuario: string
+  motivo?: string
 }
 
 export interface IniciarDevolucionRequestDTO {
-  uuidEncargado: string
+  uuidInicia: string
   observaciones?: string
 }
 
