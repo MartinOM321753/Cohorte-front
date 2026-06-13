@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 const pisoSchema = z.object({
-  numeroPiso: z.string().min(1, 'El número de piso es obligatorio'),
+  numeroPiso: z.string().max(50).optional(),
   filas: z.number().min(1, 'Debe tener al menos 1 fila'),
   columnas: z.number().min(1, 'Debe tener al menos 1 columna'),
   altura: z.union([z.number(), z.string()])
@@ -118,7 +118,7 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
       await createPisosMutation.mutateAsync({
         idRefrigerador: refrigerador.id,
         pisos: data.pisos.map(piso => ({
-          numeroPiso: piso.numeroPiso,
+          numeroPiso: piso.numeroPiso || '',
           filas: piso.filas,
           columnas: piso.columnas,
           altura: piso.altura,
@@ -373,12 +373,13 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <Label>Código de Piso *</Label>
+                      <Label>Código de Piso</Label>
                       <Input
                         {...control.register(`pisos.${index}.numeroPiso`)}
                         sanitize="folio"
-                        placeholder="P1"
+                        placeholder="Auto: P-0001"
                       />
+                      <p className="text-[11px] text-muted-foreground">Dejar vacío para auto-generar</p>
                       {errors.pisos?.[index]?.numeroPiso && (
                         <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
                           <AlertCircle className="h-3 w-3" strokeWidth={1.75} />

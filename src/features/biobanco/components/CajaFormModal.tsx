@@ -23,7 +23,7 @@ import { Controller } from 'react-hook-form'  // ← agregar
 
 
 const cajaSchema = z.object({
-  codigoCaja: z.string().min(1, 'El código es obligatorio').max(50, 'Máximo 50 caracteres'),
+  codigoCaja: z.string().max(50, 'Máximo 50 caracteres').optional(),
   filas: z.number().min(1, 'Debe tener al menos 1 fila'),
   columnas: z.number().min(1, 'Debe tener al menos 1 columna'),
   tipoCaja: z.string().min(1, 'El tipo de caja es obligatorio').max(50, 'Máximo 50 caracteres'),
@@ -121,6 +121,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
       const { idPosicionPiso, ...rest } = data
       const payload = {
         ...rest,
+        codigoCaja: rest.codigoCaja || '',
         color: rest.color ?? '',
         observaciones: rest.observaciones ?? '',
         ...(idPosicionPiso !== undefined && { idPosicionPiso }),
@@ -165,14 +166,17 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="codigoCaja">Código de Caja *</Label>
+              <Label htmlFor="codigoCaja">Código de Caja</Label>
               <Input
                 id="codigoCaja"
                 {...register('codigoCaja')}
                 sanitize="codigo"
-                placeholder="CAJA-A001"
+                placeholder="Auto: C-0001"
                 disabled={isEditing}
               />
+              {!isEditing && (
+                <p className="text-[11px] text-muted-foreground">Dejar vacío para auto-generar</p>
+              )}
               {errors.codigoCaja && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="h-3 w-3" strokeWidth={1.75} />

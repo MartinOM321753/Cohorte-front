@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { AlertCircle, Check, ChevronsUpDown, FlaskConical, Info, MapPin, TestTube, X } from 'lucide-react'
+import { AlertCircle, ArrowRightFromLine, Check, ChevronsUpDown, FlaskConical, Info, Lock, MapPin, TestTube, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { useCreateMuestra, useUpdateMuestra, useGetMuestraById, useGetTiposMuestraActivos } from '../hooks/useBiobanco'
@@ -43,14 +43,13 @@ import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
 
 const muestraSchema = z.object({
-  etiqueta: z.string().trim().min(1, 'La etiqueta es obligatoria').max(50, 'Máximo 50 caracteres'),
   valor: z.number().min(0, 'El valor debe ser positivo'),
   unidad: z.string().min(1, 'La unidad es obligatoria'),
   fechaRecoleccion: z.string().min(1, 'La fecha es obligatoria'),
   observaciones: z.string().trim().max(200, 'Máximo 200 caracteres').optional(),
-  pacienteUUID: z.string().min(1, 'El paciente es obligatorio'),
+  pacienteUUID: z.string().min(1, 'El participante es obligatorio'),
   usuarioRecolectaUUID: z.string().min(1, 'El recolector es obligatorio'),
-  idPosicionCaja: z.number().min(1, 'Debe seleccionar una posición'),
+  idPosicionCaja: z.number().optional(),
 })
 
 type MuestraFormData = z.infer<typeof muestraSchema>
@@ -89,7 +88,6 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   } = useForm<MuestraFormData>({
     resolver: zodResolver(muestraSchema),
     defaultValues: {
-      etiqueta: '',
       valor: 0,
       unidad: '',
       fechaRecoleccion: toLocalDateTimeInput(new Date()),
@@ -114,7 +112,6 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
     p.UUID || (p as unknown as { uuid?: string }).uuid || ''
 
   const buildDefaultValues = (): MuestraFormData => ({
-    etiqueta: '',
     valor: 0,
     unidad: '',
     fechaRecoleccion: toLocalDateTimeInput(new Date()),
@@ -134,7 +131,6 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
     if (open && freshMuestra) {
       const u = freshMuestra.ubicacion
       reset({
-        etiqueta: freshMuestra.etiqueta,
         valor: freshMuestra.valor,
         unidad: freshMuestra.unidad,
         fechaRecoleccion: toLocalDateTimeInput(new Date(freshMuestra.fechaRecoleccion)),
@@ -154,7 +150,6 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
     } else if (open && muestra) {
       const u = muestra.ubicacion
       reset({
-        etiqueta: muestra.etiqueta,
         valor: muestra.valor,
         unidad: muestra.unidad,
         fechaRecoleccion: toLocalDateTimeInput(new Date(muestra.fechaRecoleccion)),
@@ -187,16 +182,40 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
     }
   }, [open, freshMuestra, muestra, reset, user])
 
+  const [tipoTuboError, setTipoTuboError] = useState<string | null>(null)
+
   const onSubmit = async (data: MuestraFormData) => {
-    try {
-      const payload = {
-        ...data,
-        idTipoMuestra: selectedTipoId ?? undefined,
-        idTuboMuestra: selectedTuboId ?? undefined,
+    if (!isEditing) {
+      if (!selectedTipoId) {
+        setTipoTuboError('Debe seleccionar un tipo de muestra')
+        return
       }
+      if (!selectedTuboId) {
+        setTipoTuboError('Debe seleccionar un tubo para el tipo de muestra')
+        return
+      }
+    }
+    setTipoTuboError(null)
+    try {
       if (isEditing && muestra) {
+        // Solo campos editables — tipo, tubo y participante son inmutables
+        // Si está prestada, no enviar idPosicionCaja (backend la rechazaría igualmente)
+        const payload = {
+          valor: data.valor,
+          unidad: data.unidad,
+          fechaRecoleccion: data.fechaRecoleccion,
+          observaciones: data.observaciones,
+          idPosicionCaja: isPrestada ? undefined : (data.idPosicionCaja || undefined),
+          pacienteUUID: data.pacienteUUID,
+          usuarioRecolectaUUID: data.usuarioRecolectaUUID,
+        }
         await updateMuestraMutation.mutateAsync({ id: muestra.id, data: payload })
       } else {
+        const payload = {
+          ...data,
+          idTipoMuestra: selectedTipoId!,
+          idTuboMuestra: selectedTuboId!,
+        }
         await createMuestraMutation.mutateAsync(payload)
       }
       onOpenChange(false)
@@ -222,6 +241,9 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   const watchedPacienteUUID = watch('pacienteUUID')
   const watchedFechaRecoleccion = watch('fechaRecoleccion')
 
+  const muestraActiva = freshMuestra ?? muestra
+  const isPrestada = isEditing && muestraActiva?.estadoMuestra === 'PRESTADA'
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -239,63 +261,69 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="etiqueta">Etiqueta *</Label>
-                <Input
-                  id="etiqueta"
-                  {...register('etiqueta')}
-                  sanitize="folio"
-                  placeholder="M-2024-0001-SANGRE"
-                  disabled={isEditing}
-                />
-                {errors.etiqueta && (
-                  <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
-                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
-                    {errors.etiqueta.message}
-                  </p>
-                )}
+            {/* Etiqueta: auto-generada — solo mostrar en modo edición */}
+            {isEditing && muestra && (
+              <div className="flex items-center gap-2 rounded-md bg-muted/50 border px-3 py-2">
+                <Label className="text-xs text-muted-foreground shrink-0">Etiqueta:</Label>
+                <span className="text-sm font-mono font-medium">{freshMuestra?.etiqueta ?? muestra.etiqueta}</span>
               </div>
+            )}
+            {!isEditing && (
+              <div className="flex items-start gap-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>La etiqueta se genera automáticamente con el formato <strong>{'{prefijo}/{folio}/F4'}</strong> según el tubo seleccionado y el participante.</span>
+              </div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="fechaRecoleccion">Fecha de Recolección *</Label>
-                <input id="fechaRecoleccion" type="hidden" {...register('fechaRecoleccion')} />
-                <DateTimePicker
-                  value={watchedFechaRecoleccion}
-                  onChange={(v) => setValue('fechaRecoleccion', v)}
-                  maxDateTime={new Date()}
-                />
-                {errors.fechaRecoleccion && (
-                  <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
-                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
-                    {errors.fechaRecoleccion.message}
-                  </p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="fechaRecoleccion">Fecha de Recolección *</Label>
+              <input id="fechaRecoleccion" type="hidden" {...register('fechaRecoleccion')} />
+              <DateTimePicker
+                value={watchedFechaRecoleccion}
+                onChange={(v) => setValue('fechaRecoleccion', v)}
+                maxDateTime={new Date()}
+              />
+              {errors.fechaRecoleccion && (
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {errors.fechaRecoleccion.message}
+                </p>
+              )}
             </div>
 
-            {/* Tipo de muestra (opcional) ────────────────────────────────── */}
-            {tiposMuestra.length > 0 && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
-                    Tipo de muestra
-                    <span className="text-muted-foreground font-normal">(opcional)</span>
-                  </Label>
+            {/* Tipo de muestra ─────────────────────────────────────────── */}
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
+                  Tipo de muestra {!isEditing && <span className="text-destructive">*</span>}
+                </Label>
+
+                {isEditing ? (
+                  /* Solo lectura en edición */
+                  <div className="flex items-center gap-2 rounded-md bg-muted/50 border px-3 py-2">
+                    <FlaskConical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-sm font-medium">
+                      {selectedTipo?.nombre ?? <span className="text-muted-foreground italic">Sin tipo</span>}
+                    </span>
+                    {selectedTipo?.temperaturaAlmacenamiento && (
+                      <span className="text-xs text-muted-foreground">· {selectedTipo.temperaturaAlmacenamiento}</span>
+                    )}
+                    <span className="ml-auto text-[10px] text-muted-foreground italic">No editable</span>
+                  </div>
+                ) : (
                   <Select
-                    value={selectedTipoId != null ? String(selectedTipoId) : '__none__'}
+                    value={selectedTipoId != null ? String(selectedTipoId) : ''}
                     onValueChange={(v) => {
-                      const id = v === '__none__' ? null : parseInt(v)
-                      setSelectedTipoId(id)
+                      setSelectedTipoId(parseInt(v))
                       setSelectedTuboId(null)
+                      setTipoTuboError(null)
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sin tipo específico" />
+                    <SelectTrigger className={tipoTuboError && !selectedTipoId ? 'border-destructive' : ''}>
+                      <SelectValue placeholder="Seleccionar tipo de muestra..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Sin tipo específico</SelectItem>
                       {tiposMuestra.map((t) => (
                         <SelectItem key={t.id} value={String(t.id)}>
                           {t.nombre}
@@ -306,16 +334,39 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                )}
+              </div>
 
-                {/* Árbol de tubos del tipo seleccionado ─────────────────── */}
-                {selectedTipo && (
-                  <div className="rounded-md border border-dashed p-3 space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                      <TestTube className="h-3.5 w-3.5" />
-                      Tubos configurados para "{selectedTipo.nombre}"
-                    </p>
-                    {tubosDisponibles.length === 0 ? (
+              {/* Tubos del tipo seleccionado ─────────────────────────────── */}
+              {selectedTipo && (
+                <div className="rounded-md border border-dashed p-3 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                    <TestTube className="h-3.5 w-3.5" />
+                    {isEditing ? 'Tubo registrado' : `Tubos para "${selectedTipo.nombre}" ${!isEditing ? '*' : ''}`}
+                  </p>
+
+                  {isEditing ? (
+                    /* Solo lectura — mostrar tubo actual */
+                    (() => {
+                      const tubo = tubosDisponibles.find(tb => tb.id === selectedTuboId)
+                      return tubo ? (
+                        <div className="flex items-center justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="font-medium">{tubo.nombre}</span>
+                            {tubo.prefijoCodigo && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tubo.prefijoCodigo}</Badge>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground italic">No editable</span>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">Sin tubo registrado</p>
+                      )
+                    })()
+                  ) : (
+                    /* Selección en creación */
+                    tubosDisponibles.length === 0 ? (
                       <p className="text-xs text-muted-foreground">Sin tubos activos configurados</p>
                     ) : (
                       <div className="space-y-1.5">
@@ -325,19 +376,20 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                             <button
                               key={tb.id}
                               type="button"
-                              onClick={() => setSelectedTuboId(isSelected ? null : tb.id)}
+                              onClick={() => { setSelectedTuboId(isSelected ? null : tb.id); setTipoTuboError(null) }}
                               className={`w-full text-left rounded-md border px-3 py-2 text-sm transition-colors ${
                                 isSelected
                                   ? 'border-primary bg-primary/5'
-                                  : 'border-transparent bg-muted/30 hover:bg-muted/60'
+                                  : tipoTuboError && !selectedTuboId
+                                    ? 'border-destructive/50 bg-muted/30 hover:bg-muted/60'
+                                    : 'border-transparent bg-muted/30 hover:bg-muted/60'
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                   {isSelected
                                     ? <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                                    : <div className="h-3.5 w-3.5 shrink-0" />
-                                  }
+                                    : <div className="h-3.5 w-3.5 shrink-0" />}
                                   <span className="font-medium">{tb.nombre}</span>
                                   {tb.prefijoCodigo && (
                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tb.prefijoCodigo}</Badge>
@@ -360,27 +412,43 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                           )
                         })}
                       </div>
-                    )}
+                    )
+                  )}
 
-                    {/* Aviso de generación automática ──────────────────── */}
-                    {selectedTuboId != null && (() => {
-                      const tubo = tubosDisponibles.find(tb => tb.id === selectedTuboId)
-                      if (!tubo || tubo.numeroAlicuotas === 0) return null
-                      return (
-                        <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 mt-2">
-                          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                          <span>
-                            Al registrar se crearán automáticamente <strong>{tubo.numeroAlicuotas} alícuotas</strong> hija
-                            con el prefijo <strong>{tubo.prefijoCodigo || 'A'}</strong>.
-                            Podrás asignarles su posición en caja desde la lista de muestras.
-                          </span>
-                        </div>
-                      )
-                    })()}
-                  </div>
-                )}
-              </div>
-            )}
+                  {/* Error de tubo no seleccionado */}
+                  {tipoTuboError && selectedTipoId && !selectedTuboId && (
+                    <p className="flex items-center gap-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                      {tipoTuboError}
+                    </p>
+                  )}
+
+                  {/* Aviso generación automática */}
+                  {!isEditing && selectedTuboId != null && (() => {
+                    const tubo = tubosDisponibles.find(tb => tb.id === selectedTuboId)
+                    if (!tubo || tubo.numeroAlicuotas === 0) return null
+                    return (
+                      <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 mt-2">
+                        <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                        <span>
+                          Al registrar se crearán automáticamente <strong>{tubo.numeroAlicuotas} alícuotas</strong> con
+                          etiqueta <strong>{tubo.prefijoCodigo || 'M'}/folio/F4/1-{tubo.numeroAlicuotas}</strong> … <strong>{tubo.numeroAlicuotas}-{tubo.numeroAlicuotas}</strong>.
+                          Podrás asignarles su posición en caja desde la lista de muestras.
+                        </span>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {/* Error de tipo no seleccionado */}
+              {tipoTuboError && !selectedTipoId && (
+                <p className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {tipoTuboError}
+                </p>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -412,7 +480,25 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
             </div>
 
             <div className="space-y-2">
-              <Label>Paciente *</Label>
+              <Label>Participante *</Label>
+              {isEditing ? (
+                /* Solo lectura en edición — el participante es inmutable */
+                <div className="flex items-center gap-2 rounded-md bg-muted/50 border px-3 py-2">
+                  <span className="text-sm font-medium">
+                    {(() => {
+                      const p = pacientes.find((p: Paciente) => getPacienteUUID(p) === watchedPacienteUUID)
+                      return p
+                        ? `${p.folio} — ${p.persona.nombre} ${p.persona.apellidoPaterno}${p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}`
+                        : watchedPacienteUUID || (freshMuestra?.paciente
+                            ? `${freshMuestra.paciente.folio} — ${freshMuestra.paciente.nombreCompleto}`
+                            : muestra?.paciente
+                              ? `${muestra.paciente.folio} — ${muestra.paciente.nombreCompleto}`
+                              : '—')
+                    })()}
+                  </span>
+                  <span className="ml-auto text-[10px] text-muted-foreground italic shrink-0">No editable</span>
+                </div>
+              ) : (
               <Popover open={openPaciente} onOpenChange={setOpenPaciente} modal={true}>
                 <PopoverTrigger asChild>
                   <Button
@@ -429,7 +515,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                               ? `${p.folio} — ${p.persona.nombre} ${p.persona.apellidoPaterno}${p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}`
                               : watchedPacienteUUID
                           })()
-                        : 'Buscar paciente...'
+                        : 'Buscar participante...'
                       }
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -441,7 +527,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                   }>
                     <CommandInput placeholder="Buscar por folio o nombre..." />
                     <CommandList>
-                      <CommandEmpty>No se encontró el paciente.</CommandEmpty>
+                      <CommandEmpty>No se encontró el participante.</CommandEmpty>
                       <CommandGroup>
                         {pacientes.map((p: Paciente) => (
                           <CommandItem
@@ -466,7 +552,8 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                   </Command>
                 </PopoverContent>
               </Popover>
-              {errors.pacienteUUID && (
+              )}
+              {!isEditing && errors.pacienteUUID && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
                   {errors.pacienteUUID.message}
@@ -475,8 +562,20 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
             </div>
 
             <div className="space-y-2">
-              <Label>Posición en Caja *</Label>
-              {posicionLabel ? (
+              <Label>Posición en Caja</Label>
+              {isPrestada ? (
+                /* Muestra en tránsito — posición bloqueada */
+                <div className="flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/30 px-3 py-2.5">
+                  <Lock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-300">En tránsito — posición no editable</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                      Esta muestra está prestada a otra institución. La posición se libera automáticamente al iniciar el traslado.
+                    </p>
+                  </div>
+                  <ArrowRightFromLine className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                </div>
+              ) : posicionLabel ? (
                 <div className="flex items-center gap-2">
                   <div className="flex-1 flex items-center gap-2 p-2.5 bg-primary/10 border border-primary/20 rounded-md">
                     <MapPin className="h-4 w-4 text-primary shrink-0" />

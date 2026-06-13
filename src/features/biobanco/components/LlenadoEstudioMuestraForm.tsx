@@ -16,7 +16,6 @@ import {
   useCreateEstudioMuestra,
 } from '../hooks/useEstudiosMuestra'
 import { useAuthStore } from '@/stores/authStore'
-import { UnidadSelect } from '@/components/forms/UnidadSelect'
 import { DatePicker } from '@/components/ui/date-time-picker'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -142,7 +141,7 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
   const [fechaEstudio, setFechaEstudio] = useState(() => localDateString())
   const [observaciones, setObservaciones] = useState('')
   const [cantidadConsumida, setCantidadConsumida] = useState('')
-  const [unidadConsumida, setUnidadConsumida] = useState('')
+  const unidadConsumida = muestra.unidad ?? ''
   const [valores, setValores] = useState<Record<number, ValorParametro>>({})
   const [error, setError] = useState('')
 
@@ -184,6 +183,13 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
     if (!idTipo) { setError('Selecciona un tipo de estudio'); return }
     if (!fechaEstudio) { setError('Selecciona una fecha'); return }
     if (!user?.uuid) { setError('Usuario no autenticado'); return }
+    if (cantidadConsumida === '' || Number(cantidadConsumida) <= 0) {
+      setError('La cantidad consumida es requerida y debe ser mayor a 0'); return
+    }
+    const consumo = Number(cantidadConsumida)
+    if (muestra.valor != null && consumo > muestra.valor) {
+      setError(`La cantidad consumida (${consumo}) excede el valor actual de la muestra (${muestra.valor} ${muestra.unidad})`); return
+    }
     setError('')
 
     crearEstudio({
@@ -191,8 +197,8 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
       usuarioRealizaUUID: user.uuid,
       fechaEstudio,
       observaciones: observaciones || undefined,
-      cantidadConsumida: cantidadConsumida !== '' ? Number(cantidadConsumida) : null,
-      unidadConsumida: cantidadConsumida !== '' ? unidadConsumida : null,
+      cantidadConsumida: consumo,
+      unidadConsumida,
       resultados: buildPayload(),
     }, { onSuccess })
   }
@@ -279,23 +285,28 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
       {/* Consumo de muestra */}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">Cantidad consumida</Label>
+          <Label className="text-xs">Cantidad consumida *</Label>
           <Input
             type="number"
             step="any"
             min="0"
+            max={muestra.valor ?? undefined}
             value={cantidadConsumida}
             onChange={e => setCantidadConsumida(e.target.value)}
             placeholder="0"
             className="h-9 text-sm"
           />
+          {muestra.valor != null && (
+            <p className="text-xs text-muted-foreground">Disponible: {muestra.valor} {muestra.unidad}</p>
+          )}
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Unidad consumida</Label>
-          <UnidadSelect
+          <Label className="text-xs">Unidad</Label>
+          <Input
+            type="text"
             value={unidadConsumida}
-            onChange={setUnidadConsumida}
-            placeholder="Selecciona…"
+            disabled
+            className="h-9 text-sm bg-muted/50"
           />
         </div>
       </div>

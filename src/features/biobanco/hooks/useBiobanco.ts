@@ -25,20 +25,25 @@ import {
   createMuestra,
   updateMuestra,
   deleteMuestra,
+  getMuestrasEnBiobanco,
+  getAlicuotasByMuestra,
+  asignarPosicionMuestra,
+  liberarPosicionMuestra,
   getAlmacenes,
   createAlmacen,
   updateAlmacen,
   deleteAlmacen,
   activateAlmacen,
   getAllTraslados,
+  getHistorialTraslados,
   getTrasladosByMuestra,
-  getTrasladosByAlmacen,
-  registrarTraslado,
-  registrarDevolucion,
+  getTrasladosByGrupo,
+  iniciarPrestamo,
   confirmarRecepcion,
   iniciarDevolucion,
+  confirmarDevolucion,
+  cancelarPrestamo,
   getUsuariosByRol,
-  getAlmacenesByEncargadoUuid,
   getTiposMuestra,
   getTiposMuestraActivos,
   createTipoMuestra,
@@ -55,10 +60,12 @@ import {
   MuestraRequestDTO,
   MuestraDetalleDTO,
   AlmacenRequestDTO,
+  AsignarPosicionRequestDTO,
   TrasladoRequestDTO,
   DevolucionRequestDTO,
   ConfirmarRecepcionRequestDTO,
   IniciarDevolucionRequestDTO,
+  CancelarPrestamoRequestDTO,
   TipoMuestraRequestDTO,
   TuboMuestraRequestDTO,
 } from '@/types/api'
@@ -481,13 +488,77 @@ export function useActivateAlmacen() {
 }
 
 // ============================================
-// HOOKS PARA TRASLADOS DE MUESTRAS
+// HOOKS PARA MUESTRAS EN BIOBANCO
 // ============================================
 
+export function useGetMuestrasEnBiobanco(page = 0, size = 50) {
+  return useQuery({
+    queryKey: ['muestras-biobanco', page, size],
+    queryFn: () => getMuestrasEnBiobanco(page, size),
+  })
+}
+
+export function useGetAlicuotasByMuestra(idMuestra: number) {
+  return useQuery({
+    queryKey: ['alicuotas', idMuestra],
+    queryFn: () => getAlicuotasByMuestra(idMuestra),
+    enabled: !!idMuestra,
+  })
+}
+
+export function useAsignarPosicionMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: AsignarPosicionRequestDTO }) =>
+      asignarPosicionMuestra(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+      queryClient.invalidateQueries({ queryKey: ['posiciones'] })
+      queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
+      toast.success('Posición asignada exitosamente')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al asignar posición')
+    },
+  })
+}
+
+export function useLiberarPosicionMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, motivo }: { id: number; motivo?: string }) =>
+      liberarPosicionMuestra(id, motivo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+      queryClient.invalidateQueries({ queryKey: ['posiciones'] })
+      queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
+      toast.success('Posición liberada exitosamente')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al liberar posición')
+    },
+  })
+}
+
+// ============================================
+// HOOKS PARA PRÉSTAMOS / TRASLADOS DE MUESTRAS
+// ============================================
+
+/** Préstamos activos de mi institución */
 export function useGetAllTraslados() {
   return useQuery({
     queryKey: ['traslados'],
     queryFn: () => getAllTraslados(),
+  })
+}
+
+/** Historial paginado de préstamos de mi institución */
+export function useGetHistorialTraslados(page = 0, size = 20) {
+  return useQuery({
+    queryKey: ['traslados-historial', page, size],
+    queryFn: () => getHistorialTraslados(page, size),
   })
 }
 
@@ -499,41 +570,37 @@ export function useGetTrasladosByMuestra(idMuestra: number) {
   })
 }
 
-export function useRegistrarTraslado() {
+export function useGetTrasladosByGrupo(grupoTraslado: string) {
+  return useQuery({
+    queryKey: ['traslados-grupo', grupoTraslado],
+    queryFn: () => getTrasladosByGrupo(grupoTraslado),
+    enabled: !!grupoTraslado,
+  })
+}
+
+/** Iniciar préstamo de una o varias muestras */
+export function useIniciarPrestamo() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: TrasladoRequestDTO) => registrarTraslado(data),
-    onSuccess: () => {
+    mutationFn: (data: TrasladoRequestDTO) => iniciarPrestamo(data),
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
-      queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
-      toast.success('Traslado registrado exitosamente')
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+      queryClient.invalidateQueries({ queryKey: ['posiciones'] })
+      queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
+      const count = Array.isArray(data) ? data.length : 1
+      toast.success(count > 1 ? `Préstamo iniciado: ${count} muestras enviadas` : 'Préstamo iniciado exitosamente')
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Error al registrar el traslado'
+      const message = error.response?.data?.message || 'Error al iniciar el préstamo'
       toast.error(message)
     },
   })
 }
 
-export function useRegistrarDevolucion() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ idTraslado, data }: { idTraslado: number; data: DevolucionRequestDTO }) =>
-      registrarDevolucion(idTraslado, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['traslados'] })
-      queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
-      toast.success('Devolución confirmada exitosamente')
-    },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Error al confirmar la devolución'
-      toast.error(message)
-    },
-  })
-}
-
+/** ENVIADA → RECIBIDA */
 export function useConfirmarRecepcion() {
   const queryClient = useQueryClient()
 
@@ -543,7 +610,8 @@ export function useConfirmarRecepcion() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
       queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
-      queryClient.invalidateQueries({ queryKey: ['traslados-almacen'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       toast.success('Recepción confirmada exitosamente')
     },
     onError: (error: any) => {
@@ -553,6 +621,7 @@ export function useConfirmarRecepcion() {
   })
 }
 
+/** RECIBIDA → EN_DEVOLUCION */
 export function useIniciarDevolucion() {
   const queryClient = useQueryClient()
 
@@ -562,7 +631,8 @@ export function useIniciarDevolucion() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
       queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
-      queryClient.invalidateQueries({ queryKey: ['traslados-almacen'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       toast.success('Devolución iniciada exitosamente')
     },
     onError: (error: any) => {
@@ -572,11 +642,45 @@ export function useIniciarDevolucion() {
   })
 }
 
-export function useGetTrasladosByAlmacen(idAlmacen: number, page: number = 0, size: number = 10) {
-  return useQuery({
-    queryKey: ['traslados-almacen', idAlmacen, page, size],
-    queryFn: () => getTrasladosByAlmacen(idAlmacen, page, size),
-    enabled: !!idAlmacen,
+/** EN_DEVOLUCION → DEVUELTA */
+export function useConfirmarDevolucion() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ idTraslado, data }: { idTraslado: number; data: DevolucionRequestDTO }) =>
+      confirmarDevolucion(idTraslado, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['traslados'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+      toast.success('Devolución confirmada exitosamente')
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Error al confirmar la devolución'
+      toast.error(message)
+    },
+  })
+}
+
+/** ENVIADA → CANCELADO */
+export function useCancelarPrestamo() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ idTraslado, data }: { idTraslado: number; data: CancelarPrestamoRequestDTO }) =>
+      cancelarPrestamo(idTraslado, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['traslados'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+      toast.success('Préstamo cancelado. La muestra fue restaurada a su ubicación anterior.')
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Error al cancelar el préstamo'
+      toast.error(message)
+    },
   })
 }
 
@@ -588,11 +692,15 @@ export function useGetUsuariosByRol(roleName: string, options?: { enabled?: bool
   })
 }
 
-export function useGetAlmacenesByEncargado(uuid: string, options?: { enabled?: boolean }) {
+/**
+ * @deprecated El rol ENCARGADO ya no está vinculado a almacenes específicos.
+ * Retorna siempre una lista vacía. Mantenido por compatibilidad con Sidebar.
+ */
+export function useGetAlmacenesByEncargado(_uuid: string, _options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: ['almacenes-encargado', uuid],
-    queryFn: () => getAlmacenesByEncargadoUuid(uuid),
-    enabled: (options?.enabled ?? true) && !!uuid,
+    queryKey: ['almacenes-encargado-stub'],
+    queryFn: async () => [] as import('@/types/api').Almacen[],
+    staleTime: Infinity,
   })
 }
 

@@ -12,11 +12,13 @@ import {
   PosicionCaja,
   Almacen,
   AlmacenRequestDTO,
+  AsignarPosicionRequestDTO,
   TrasladoMuestra,
   TrasladoRequestDTO,
   DevolucionRequestDTO,
   ConfirmarRecepcionRequestDTO,
   IniciarDevolucionRequestDTO,
+  CancelarPrestamoRequestDTO,
   SpringPage,
   TipoMuestra,
   TipoMuestraRequestDTO,
@@ -184,6 +186,30 @@ export async function deleteMuestra(id: number) {
   return response.data
 }
 
+export async function getMuestrasEnBiobanco(page = 0, size = 50) {
+  const response = await api.get<ApiResponse<SpringPage<MuestraDetalleDTO>>>('/almacenamiento/muestras/biobanco', {
+    params: { page, size },
+  })
+  return response.data.data
+}
+
+export async function getAlicuotasByMuestra(idMuestra: number) {
+  const response = await api.get<ApiResponse<MuestraDetalleDTO[]>>(`/almacenamiento/muestras/${idMuestra}/alicuotas`)
+  return response.data.data
+}
+
+export async function asignarPosicionMuestra(id: number, data: AsignarPosicionRequestDTO) {
+  const response = await api.put<ApiResponse<Muestra>>(`/almacenamiento/muestras/${id}/posicion`, data)
+  return response.data.data
+}
+
+export async function liberarPosicionMuestra(id: number, motivo?: string) {
+  const response = await api.delete<ApiResponse<Muestra>>(`/almacenamiento/muestras/${id}/posicion`, {
+    params: motivo ? { motivo } : undefined,
+  })
+  return response.data.data
+}
+
 // ============================================
 // PISOS — UPDATE / DELETE (endpoints nuevos)
 // ============================================
@@ -233,11 +259,20 @@ export async function activateAlmacen(id: number) {
 }
 
 // ============================================
-// TRASLADOS DE MUESTRAS
+// PRÉSTAMOS / TRASLADOS DE MUESTRAS
 // ============================================
 
+/** Préstamos activos de mi institución (ENVIADA | RECIBIDA | EN_DEVOLUCION, yo soy origen O destino) */
 export async function getAllTraslados() {
   const response = await api.get<ApiResponse<TrasladoMuestra[]>>('/almacenamiento/traslados')
+  return response.data.data
+}
+
+/** Historial paginado de préstamos de mi institución */
+export async function getHistorialTraslados(page = 0, size = 20) {
+  const response = await api.get<ApiResponse<SpringPage<TrasladoMuestra>>>('/almacenamiento/traslados/historial', {
+    params: { page, size },
+  })
   return response.data.data
 }
 
@@ -246,46 +281,50 @@ export async function getTrasladoById(id: number) {
   return response.data.data
 }
 
+/** Cadena de custodia de una muestra */
 export async function getTrasladosByMuestra(idMuestra: number) {
   const response = await api.get<ApiResponse<TrasladoMuestra[]>>(`/almacenamiento/traslados/muestra/${idMuestra}`)
   return response.data.data
 }
 
-export async function registrarTraslado(data: TrasladoRequestDTO) {
-  const response = await api.post<ApiResponse<TrasladoMuestra>>('/almacenamiento/traslados', data)
+/** Traslados de un lote (grupoTraslado) */
+export async function getTrasladosByGrupo(grupoTraslado: string) {
+  const response = await api.get<ApiResponse<TrasladoMuestra[]>>(`/almacenamiento/traslados/grupo/${grupoTraslado}`)
   return response.data.data
 }
 
-export async function registrarDevolucion(idTraslado: number, data: DevolucionRequestDTO) {
-  const response = await api.put<ApiResponse<TrasladoMuestra>>(`/almacenamiento/traslados/${idTraslado}/devolver`, data)
+/** Iniciar préstamo — una o varias muestras a otra institución */
+export async function iniciarPrestamo(data: TrasladoRequestDTO) {
+  const response = await api.post<ApiResponse<TrasladoMuestra[]>>('/almacenamiento/traslados', data)
   return response.data.data
 }
 
+/** ENVIADA → RECIBIDA */
 export async function confirmarRecepcion(idTraslado: number, data: ConfirmarRecepcionRequestDTO) {
   const response = await api.put<ApiResponse<TrasladoMuestra>>(`/almacenamiento/traslados/${idTraslado}/confirmar-recepcion`, data)
   return response.data.data
 }
 
+/** RECIBIDA → EN_DEVOLUCION */
 export async function iniciarDevolucion(idTraslado: number, data: IniciarDevolucionRequestDTO) {
   const response = await api.put<ApiResponse<TrasladoMuestra>>(`/almacenamiento/traslados/${idTraslado}/iniciar-devolucion`, data)
   return response.data.data
 }
 
-export async function getTrasladosByAlmacen(idAlmacen: number, page: number = 0, size: number = 10) {
-  const response = await api.get<ApiResponse<SpringPage<TrasladoMuestra>>>(
-    `/almacenamiento/traslados/almacen/${idAlmacen}`,
-    { params: { page, size } }
-  )
+/** EN_DEVOLUCION → DEVUELTA */
+export async function confirmarDevolucion(idTraslado: number, data: DevolucionRequestDTO) {
+  const response = await api.put<ApiResponse<TrasladoMuestra>>(`/almacenamiento/traslados/${idTraslado}/confirmar-devolucion`, data)
+  return response.data.data
+}
+
+/** ENVIADA → CANCELADO (solo antes de que el destino confirme recepción) */
+export async function cancelarPrestamo(idTraslado: number, data: CancelarPrestamoRequestDTO) {
+  const response = await api.put<ApiResponse<TrasladoMuestra>>(`/almacenamiento/traslados/${idTraslado}/cancelar`, data)
   return response.data.data
 }
 
 export async function getUsuariosByRol(roleName: string) {
   const response = await api.get<ApiResponse<Usuario[]>>(`/users/rol/${roleName}`)
-  return response.data.data
-}
-
-export async function getAlmacenesByEncargadoUuid(uuid: string) {
-  const response = await api.get<ApiResponse<Almacen[]>>(`/almacenamiento/instituciones/encargado/${uuid}`)
   return response.data.data
 }
 

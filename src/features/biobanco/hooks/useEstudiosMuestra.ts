@@ -13,7 +13,6 @@ import {
   getEstudiosByMuestra,
   createEstudioMuestra,
   updateEstudioMuestra,
-  deleteEstudioMuestra,
   getHistorialMuestra,
 } from '../api/biobanco.api'
 import type {
@@ -172,7 +171,10 @@ export function useCreateEstudioMuestra(idMuestra: number) {
     mutationFn: (data: EstudioMuestraRequestDTO) => createEstudioMuestra(idMuestra, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: estudiosMuestraKeys.byMuestra(idMuestra) })
-      toast.success('Estudio registrado correctamente')
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.historial(idMuestra) })
+      qc.invalidateQueries({ queryKey: ['muestras'] })
+      qc.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+      toast.success('Estudio registrado — valor de la muestra actualizado')
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? 'Error al registrar estudio')
@@ -187,24 +189,13 @@ export function useUpdateEstudioMuestra(idMuestra: number) {
       updateEstudioMuestra(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: estudiosMuestraKeys.byMuestra(idMuestra) })
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.historial(idMuestra) })
+      qc.invalidateQueries({ queryKey: ['muestras'] })
+      qc.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       toast.success('Estudio actualizado')
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? 'Error al actualizar estudio')
-    },
-  })
-}
-
-export function useDeleteEstudioMuestra(idMuestra: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: number) => deleteEstudioMuestra(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.byMuestra(idMuestra) })
-      toast.success('Estudio eliminado')
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Error al eliminar estudio')
     },
   })
 }

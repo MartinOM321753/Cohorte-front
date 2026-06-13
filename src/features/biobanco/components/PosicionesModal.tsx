@@ -48,7 +48,7 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
         </div>
 
         <div
-          className="grid gap-1 p-4 border rounded-lg bg-muted/20"
+          className="grid gap-1 p-4 border border-border rounded-lg bg-card"
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
             maxWidth: '600px',
@@ -67,10 +67,10 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
                   className={`
                     aspect-square rounded border-2 text-xs font-medium transition-all
                     ${posicion?.ocupada
-                      ? 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20'
-                      : 'bg-background border-border text-muted-foreground hover:bg-muted/50'
+                      ? 'bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 dark:hover:bg-emerald-500/30'
+                      : 'bg-muted/60 border-muted-foreground/20 text-muted-foreground hover:bg-muted hover:border-muted-foreground/40'
                     }
-                    ${selectedPosicion?.id === posicion?.id ? 'ring-2 ring-primary' : ''}
+                    ${selectedPosicion?.id === posicion?.id ? 'ring-2 ring-primary ring-offset-1' : ''}
                   `}
                   onClick={() => posicion && handlePosicionClick(posicion)}
                   title={posicion ? `Fila ${posicion.fila}, Columna ${posicion.columna}` : 'Posición no creada'}
@@ -89,14 +89,14 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
           ).flat()}
         </div>
 
-        <div className="flex justify-center gap-4 text-sm">
+        <div className="flex justify-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-background border-2 border-border rounded"></div>
+            <div className="w-4 h-4 bg-muted/60 border-2 border-muted-foreground/20 rounded"></div>
             <span>Libre</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-primary/10 border-2 border-primary/30 rounded flex items-center justify-center">
-              <TestTube className="h-2 w-2 text-primary" />
+            <div className="w-4 h-4 bg-emerald-500/15 border-2 border-emerald-500/50 rounded flex items-center justify-center">
+              <TestTube className="h-2 w-2 text-emerald-600 dark:text-emerald-400" />
             </div>
             <span>Ocupada</span>
           </div>
@@ -158,7 +158,7 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
                     <div className="flex items-start gap-2 text-sm rounded-md bg-muted/40 px-2 py-1.5">
                       <User className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Paciente</p>
+                        <p className="text-xs text-muted-foreground">Participante</p>
                         <p className="text-sm font-medium">{muestraEnPosicion.paciente.nombreCompleto}</p>
                         <p className="text-xs text-muted-foreground">Folio: {muestraEnPosicion.paciente.folio}</p>
                       </div>

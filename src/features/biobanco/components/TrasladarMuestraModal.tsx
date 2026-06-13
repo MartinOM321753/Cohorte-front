@@ -28,14 +28,16 @@ import {
 } from '@/components/ui/command'
 import { AlertCircle, ArrowRightFromLine, Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGetAlmacenes, useRegistrarTraslado } from '../hooks/useBiobanco'
+import { useQuery } from '@tanstack/react-query'
+import { getInstitucionesActivas } from '../../instituciones/api/instituciones.api'
+import { useIniciarPrestamo } from '../hooks/useBiobanco'
 import { MuestraDetalleDTO } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  idAlmacen: z.string().min(1, 'Debes seleccionar una institución destino'),
+  idInstitucionDestino: z.string().min(1, 'Debes seleccionar una institución destino'),
   motivo: z
     .string()
     .trim()
@@ -104,7 +106,7 @@ function Combobox({
               {options.map((o) => (
                 <CommandItem
                   key={o.value}
-                  value={o.label}          /* cmdk filtra por el nombre visible */
+                  value={o.label}
                   onSelect={() => {
                     onChange(o.value)
                     setOpen(false)
@@ -136,16 +138,26 @@ interface TrasladarMuestraModalProps {
 }
 
 export function TrasladarMuestraModal({ open, onOpenChange, muestra }: TrasladarMuestraModalProps) {
-  const userUuid = useAuthStore((s) => s.user?.uuid) || ''
-  const { data: almacenes = [] } = useGetAlmacenes()
-  const trasladarMutation = useRegistrarTraslado()
+  const userUuid     = useAuthStore((s) => s.user?.uuid) || ''
+  const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
+  const prestarMutation = useIniciarPrestamo()
 
-  const almacenesActivos = almacenes.filter((a) => a.activo)
+  // Carga la lista completa de instituciones activas (endpoint /instituciones/activas)
+  // y filtra cliente-side: solo las que tienen biobanco y no son la propia institución del usuario.
+  const { data: todasInstituciones = [] } = useQuery({
+    queryKey: ['instituciones', 'activas'],
+    queryFn:  getInstitucionesActivas,
+    enabled:  open,
+    staleTime: 1000 * 60 * 5, // 5 min
+  })
 
-  // Opciones para el combobox: "Nombre — Ciudad, Estado"
-  const almacenOptions = almacenesActivos.map((a) => ({
-    value: String(a.id),
-    label: `${a.nombre} — ${a.ciudad}, ${a.estado}`,
+  const institucionsConBiobanco = todasInstituciones.filter(
+    (i) => i.tieneBiobanco && i.activo && i.id !== myInstitucionId,
+  )
+
+  const institucionOptions = institucionsConBiobanco.map((i) => ({
+    value: String(i.id),
+    label: `${i.nombre}${i.ciudad ? ` — ${i.ciudad}` : ''}${i.estado ? `, ${i.estado}` : ''}`,
   }))
 
   const {
@@ -156,7 +168,7 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { idAlmacen: '', motivo: '', observaciones: '' },
+    defaultValues: { idInstitucionDestino: '', motivo: '', observaciones: '' },
   })
 
   const handleClose = () => {
@@ -167,12 +179,12 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
   const onSubmit = async (data: FormData) => {
     if (!muestra) return
     try {
-      await trasladarMutation.mutateAsync({
-        idMuestra: muestra.id,
-        idAlmacen: parseInt(data.idAlmacen),
+      await prestarMutation.mutateAsync({
+        idsMuestras: [muestra.id],
+        idInstitucionDestino: parseInt(data.idInstitucionDestino),
         uuidAutoriza: userUuid,
         motivo: data.motivo,
-        observaciones: data.observaciones,
+        observaciones: data.observaciones || undefined,
       })
       handleClose()
     } catch (_) {}
@@ -182,11 +194,17 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent
+        className="sm:max-w-[500px]"
+        // Evitar que el Dialog cierre al interactuar con Popovers/Comboboxes.
+        // El Dialog tiene botones Cancelar e Iniciar Préstamo explícitos.
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightFromLine className="h-5 w-5" />
-            Trasladar Muestra
+            Prestar Muestra
           </DialogTitle>
           <DialogDescription>
             Muestra: <span className="font-mono font-semibold">{muestra.etiqueta}</span>
@@ -201,31 +219,31 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
             <Label>
               Institución destino <span className="text-destructive">*</span>
             </Label>
-            {almacenesActivos.length === 0 ? (
+            {institucionsConBiobanco.length === 0 ? (
               <p className="text-sm text-muted-foreground rounded-md border border-input px-3 py-2">
-                No hay instituciones activas registradas
+                No hay instituciones con biobanco activas registradas
               </p>
             ) : (
               <Controller
-                name="idAlmacen"
+                name="idInstitucionDestino"
                 control={control}
                 render={({ field }) => (
                   <Combobox
                     value={field.value}
                     onChange={field.onChange}
-                    options={almacenOptions}
+                    options={institucionOptions}
                     placeholder="Selecciona la institución destino"
                     searchPlaceholder="Buscar por nombre, ciudad o estado..."
                     emptyText="Institución no encontrada"
-                    hasError={!!errors.idAlmacen}
+                    hasError={!!errors.idInstitucionDestino}
                   />
                 )}
               />
             )}
-            {errors.idAlmacen && (
+            {errors.idInstitucionDestino && (
               <p className="flex items-center gap-1 text-xs text-destructive">
                 <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
-                {errors.idAlmacen.message}
+                {errors.idInstitucionDestino.message}
               </p>
             )}
           </div>
@@ -233,7 +251,7 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
           {/* Motivo ─────────────────────────────────────────────────────── */}
           <div className="space-y-2">
             <Label>
-              Motivo del traslado <span className="text-destructive">*</span>
+              Motivo del préstamo <span className="text-destructive">*</span>
             </Label>
             <Textarea
               {...register('motivo')}
@@ -269,15 +287,16 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
           </div>
 
           <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-            La posición de la muestra en la caja quedará reservada durante el traslado y se liberará al registrar la devolución.
+            La posición de la muestra quedará libre al iniciar el préstamo. La institución destino
+            podrá asignarle una posición en su propio biobanco.
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || almacenesActivos.length === 0}>
-              {isSubmitting ? 'Registrando...' : 'Registrar Traslado'}
+            <Button type="submit" disabled={isSubmitting || institucionsConBiobanco.length === 0}>
+              {isSubmitting ? 'Registrando...' : 'Iniciar Préstamo'}
             </Button>
           </DialogFooter>
         </form>

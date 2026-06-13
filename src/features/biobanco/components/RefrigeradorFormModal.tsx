@@ -18,7 +18,7 @@ import { Refrigerador } from '@/types/api'
 import { AlertCircle } from 'lucide-react'
 
 const refrigeradorSchema = z.object({
-  codigo: z.string().min(1, 'El código es obligatorio').max(50, 'Máximo 50 caracteres'),
+  codigo: z.string().max(50, 'Máximo 50 caracteres').optional(),
   nombre: z.string().min(1, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres'),
   marca: z.string().max(50, 'Máximo 50 caracteres').optional(),
   modelo: z.string().max(50, 'Máximo 50 caracteres').optional(),
@@ -82,6 +82,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
     try {
       const submitData = {
         ...data,
+        codigo: data.codigo || '',
         marca: data.marca || '',
         modelo: data.modelo || '',
       }
@@ -118,14 +119,17 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="codigo">Código *</Label>
+              <Label htmlFor="codigo">Código</Label>
               <Input
                 id="codigo"
                 {...register('codigo')}
                 sanitize="codigo"
-                placeholder="REF-001"
-                disabled={isEditing} // No permitir cambiar código en edición
+                placeholder="Auto: REF-0001"
+                disabled={isEditing}
               />
+              {!isEditing && (
+                <p className="text-[11px] text-muted-foreground">Dejar vacío para auto-generar</p>
+              )}
               {errors.codigo && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="h-3 w-3" strokeWidth={1.75} />

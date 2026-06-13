@@ -2,9 +2,9 @@ import { useState, useMemo, Fragment } from 'react'
 import {
   Plus, Edit, Trash2, Search, TestTube, AlertCircle,
   Paperclip, ArrowRightFromLine, History, FlaskConical,
-  ChevronDown, ChevronUp, MapPinOff, ClipboardList,
+  ChevronDown, ChevronUp, MapPinOff, ClipboardList, X,
 } from 'lucide-react'
-import { useGetMuestras, useDeleteMuestra, useGetAllTraslados } from '../hooks/useBiobanco'
+import { useGetMuestras, useDeleteMuestra, useGetAllTraslados, useCancelarPrestamo } from '../hooks/useBiobanco'
 import { MuestraFormModal } from './MuestraFormModal'
 import { TrasladarMuestraModal } from './TrasladarMuestraModal'
 import { HistorialTrasladosModal } from './HistorialTrasladosModal'
@@ -39,12 +39,12 @@ import { MuestraDetalleDTO } from '@/types/api'
 
 // ── Traslado helpers ──────────────────────────────────────────────────────────
 
-type EstadoActivo = 'TRASLADADA' | 'RECIBIDA' | 'EN_DEVOLUCION'
-interface TrasladoInfo { almacenNombre: string; estado: EstadoActivo }
+type EstadoActivo = 'ENVIADA' | 'RECIBIDA' | 'EN_DEVOLUCION'
+interface TrasladoInfo { idTraslado: number; institucionNombre: string; estado: EstadoActivo }
 
 function activeBadge(estado: EstadoActivo) {
   switch (estado) {
-    case 'TRASLADADA':    return { label: 'En tránsito',   cls: 'border-amber-500/40  text-amber-700  dark:text-amber-400  bg-amber-500/10'  }
+    case 'ENVIADA':       return { label: 'En tránsito',   cls: 'border-amber-500/40  text-amber-700  dark:text-amber-400  bg-amber-500/10'  }
     case 'RECIBIDA':      return { label: 'Recibida',      cls: 'border-blue-500/40   text-blue-700   dark:text-blue-400   bg-blue-500/10'   }
     case 'EN_DEVOLUCION': return { label: 'En devolución', cls: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
   }
@@ -52,7 +52,7 @@ function activeBadge(estado: EstadoActivo) {
 
 function activeCardBorder(estado: EstadoActivo) {
   switch (estado) {
-    case 'TRASLADADA':    return 'border-amber-500/40'
+    case 'ENVIADA':       return 'border-amber-500/40'
     case 'RECIBIDA':      return 'border-blue-500/40'
     case 'EN_DEVOLUCION': return 'border-orange-500/40'
   }
@@ -60,7 +60,7 @@ function activeCardBorder(estado: EstadoActivo) {
 
 function activeBox(estado: EstadoActivo) {
   switch (estado) {
-    case 'TRASLADADA':    return { wrap: 'bg-amber-500/10  border-amber-500/20',  title: 'text-amber-700  dark:text-amber-300',  body: 'text-amber-600  dark:text-amber-400'  }
+    case 'ENVIADA':       return { wrap: 'bg-amber-500/10  border-amber-500/20',  title: 'text-amber-700  dark:text-amber-300',  body: 'text-amber-600  dark:text-amber-400'  }
     case 'RECIBIDA':      return { wrap: 'bg-blue-500/10   border-blue-500/20',   title: 'text-blue-700   dark:text-blue-300',   body: 'text-blue-600   dark:text-blue-400'   }
     case 'EN_DEVOLUCION': return { wrap: 'bg-orange-500/10 border-orange-500/20', title: 'text-orange-700 dark:text-orange-300', body: 'text-orange-600 dark:text-orange-400' }
   }
@@ -73,7 +73,8 @@ interface SharedActions {
   userUuid: string
   canUpload: boolean
   onEdit: (m: MuestraDetalleDTO) => void
-  onTraslado: (m: MuestraDetalleDTO) => void
+  onTrasladoClick: (m: MuestraDetalleDTO) => void
+  onCancelarEnvio: (idTraslado: number) => void
   onHistorial: (m: MuestraDetalleDTO) => void
   onDocumentos: (id: number) => void
   onResultados: (m: MuestraDetalleDTO) => void
@@ -82,29 +83,74 @@ interface SharedActions {
 
 function MuestraFooter({
   muestra,
-  esTrasladada,
+  trasladoInfo,
   actions,
 }: {
   muestra: MuestraDetalleDTO
-  esTrasladada: boolean
+  trasladoInfo: TrasladoInfo | undefined
   actions: SharedActions
 }) {
+  const esTrasladada = !!trasladoInfo
+  const isPrestada = muestra.estadoMuestra === 'PRESTADA'
+  const puedeEnviar = !esTrasladada && actions.isAdmin
+  const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.isAdmin
+
   return (
     <CardFooter className="flex flex-wrap gap-2 pt-3 border-t mt-auto">
-      <Button variant="outline" size="sm" onClick={() => actions.onEdit(muestra)} className="flex-1">
+      <Button
+        variant="outline" size="sm"
+        onClick={() => actions.onEdit(muestra)}
+        className="flex-1"
+        disabled={isPrestada}
+        title={isPrestada ? 'No se puede editar una muestra en tránsito' : undefined}
+      >
         <Edit className="mr-1 h-3 w-3" />
         Editar
       </Button>
 
-      {!esTrasladada && actions.isAdmin && (
+      {puedeEnviar && (
         <Button
           variant="outline" size="sm"
-          onClick={() => actions.onTraslado(muestra)}
+          onClick={() => actions.onTrasladoClick(muestra)}
           className="text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
           title="Trasladar a institución externa"
         >
           <ArrowRightFromLine className="h-3 w-3" />
         </Button>
+      )}
+
+      {puedeCancel && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline" size="sm"
+              className="text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+              title="Cancelar envío — devolver muestra al biobanco"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Cancelar el envío de {muestra.etiqueta}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                La muestra <strong>{muestra.etiqueta}</strong> está en tránsito hacia{' '}
+                <strong>{trasladoInfo!.institucionNombre}</strong>. Al cancelar, el préstamo quedará
+                anulado y la muestra regresará a estado <strong>Sin Posición</strong> en tu institución.
+                Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Mantener envío</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => actions.onCancelarEnvio(trasladoInfo!.idTraslado)}
+                className="bg-rose-600 text-white hover:bg-rose-700"
+              >
+                Sí, cancelar envío
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
 
       <Button variant="outline" size="sm" onClick={() => actions.onHistorial(muestra)} title="Historial de traslados">
@@ -129,7 +175,8 @@ function MuestraFooter({
           <Button
             variant="outline" size="sm"
             className="text-destructive border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
-            title="Eliminar muestra"
+            title={isPrestada ? 'No se puede eliminar una muestra en tránsito' : 'Eliminar muestra'}
+            disabled={isPrestada}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -139,8 +186,9 @@ function MuestraFooter({
             <AlertDialogTitle>¿Eliminar muestra {muestra.etiqueta}?</AlertDialogTitle>
             <AlertDialogDescription>
               La muestra <strong>{muestra.etiqueta}</strong>
-              {muestra.paciente ? ` del paciente ${muestra.paciente.nombreCompleto}` : ''} será
-              eliminada permanentemente y su posición en la caja quedará libre.
+              {muestra.paciente ? ` del participante ${muestra.paciente.nombreCompleto}` : ''} será
+              eliminada permanentemente junto con sus alícuotas, estudios e historial.
+              Para eliminarla, ninguna alícuota debe tener posición en caja asignada.
               Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -171,7 +219,6 @@ interface PadreCardProps {
 }
 
 function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, actions }: PadreCardProps) {
-  const esTrasladada = !!trasladoInfo
   const badge = trasladoInfo ? activeBadge(trasladoInfo.estado) : null
   const box   = trasladoInfo ? activeBox(trasladoInfo.estado) : null
 
@@ -227,7 +274,7 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
           </div>
 
           <div className="text-sm">
-            <span className="font-medium">Paciente:</span>
+            <span className="font-medium">Participante:</span>
             <p className="text-muted-foreground truncate">
               {muestra.paciente ? `${muestra.paciente.folio} — ${muestra.paciente.nombreCompleto}` : '—'}
             </p>
@@ -236,7 +283,7 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
           {trasladoInfo ? (
             <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
               <span className={`font-medium ${box!.title}`}>Ubicación actual:</span>
-              <p className={`text-xs mt-0.5 ${box!.body}`}>{trasladoInfo.almacenNombre}</p>
+              <p className={`text-xs mt-0.5 ${box!.body}`}>{trasladoInfo.institucionNombre}</p>
             </div>
           ) : muestra.ubicacion ? (
             <div className="text-sm">
@@ -267,7 +314,7 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
           )}
         </CardContent>
 
-        <MuestraFooter muestra={muestra} esTrasladada={esTrasladada} actions={actions} />
+        <MuestraFooter muestra={muestra} trasladoInfo={trasladoInfo} actions={actions} />
       </Card>
 
       {/* Botón toggle circular — mitad dentro / mitad fuera del borde derecho, centrado */}
@@ -364,7 +411,7 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
         </div>
 
         <div className="text-sm">
-          <span className="font-medium">Paciente:</span>
+          <span className="font-medium">Participante:</span>
           <p className="text-muted-foreground truncate">
             {muestra.paciente ? `${muestra.paciente.folio} — ${muestra.paciente.nombreCompleto}` : '—'}
           </p>
@@ -373,7 +420,7 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
         {trasladoInfo ? (
           <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
             <span className={`font-medium ${box!.title}`}>Ubicación actual:</span>
-            <p className={`text-xs mt-0.5 ${box!.body}`}>{trasladoInfo.almacenNombre}</p>
+            <p className={`text-xs mt-0.5 ${box!.body}`}>{trasladoInfo.institucionNombre}</p>
           </div>
         ) : muestra.ubicacion ? (
           <div className="text-sm">
@@ -397,7 +444,7 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
         </div>
       </CardContent>
 
-      <MuestraFooter muestra={muestra} esTrasladada={esTrasladada} actions={actions} />
+      <MuestraFooter muestra={muestra} trasladoInfo={trasladoInfo} actions={actions} />
     </Card>
   )
 }
@@ -415,19 +462,25 @@ export function MuestrasTab() {
   const [editingMuestra, setEditingMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [docMuestraId, setDocMuestraId] = useState<number | null>(null)
   const [trasladandoMuestra, setTrasladandoMuestra] = useState<MuestraDetalleDTO | null>(null)
+  const [pendingTraslado, setPendingTraslado] = useState<MuestraDetalleDTO | null>(null)
   const [historialMuestra, setHistorialMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [resultadosMuestra, setResultadosMuestra] = useState<MuestraDetalleDTO | null>(null)
 
   const { data: muestras, isLoading } = useGetMuestras()
   const { data: traslados = [] } = useGetAllTraslados()
   const deleteMuestraMutation = useDeleteMuestra()
+  const cancelarPrestamoMutation = useCancelarPrestamo()
 
   const trasladosActivos = useMemo(() => {
-    const ESTADOS_ACTIVOS: EstadoActivo[] = ['TRASLADADA', 'RECIBIDA', 'EN_DEVOLUCION']
+    const ESTADOS_ACTIVOS: EstadoActivo[] = ['ENVIADA', 'RECIBIDA', 'EN_DEVOLUCION']
     const map = new Map<number, TrasladoInfo>()
     traslados.forEach((t) => {
       if ((ESTADOS_ACTIVOS as string[]).includes(t.estado)) {
-        map.set(t.muestra.id, { almacenNombre: t.almacen.nombre, estado: t.estado as EstadoActivo })
+        map.set(t.muestra.id, {
+          idTraslado: t.id,
+          institucionNombre: t.institucionDestino.nombre,
+          estado: t.estado as EstadoActivo,
+        })
       }
     })
     return map
@@ -480,12 +533,25 @@ export function MuestrasTab() {
   const handleDelete = async (id: number) => { await deleteMuestraMutation.mutateAsync(id) }
   const handleModalClose = () => { setIsMuestraModalOpen(false); setEditingMuestra(null) }
 
+  const handleTrasladoClick = (m: MuestraDetalleDTO) => setPendingTraslado(m)
+  const handleConfirmTraslado = () => {
+    if (pendingTraslado) { setTrasladandoMuestra(pendingTraslado); setPendingTraslado(null) }
+  }
+
+  const handleCancelarEnvio = async (idTraslado: number) => {
+    await cancelarPrestamoMutation.mutateAsync({
+      idTraslado,
+      data: { uuidUsuario: userUuid, motivo: 'Cancelación desde el panel de muestras' },
+    })
+  }
+
   const actions: SharedActions = {
     isAdmin,
     userUuid,
     canUpload: canUploadMuestra,
     onEdit: handleEdit,
-    onTraslado: setTrasladandoMuestra,
+    onTrasladoClick: handleTrasladoClick,
+    onCancelarEnvio: handleCancelarEnvio,
     onHistorial: setHistorialMuestra,
     onDocumentos: setDocMuestraId,
     onResultados: setResultadosMuestra,
@@ -525,7 +591,7 @@ export function MuestrasTab() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por etiqueta, paciente, tipo..."
+            placeholder="Buscar por etiqueta, participante, tipo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -597,6 +663,30 @@ export function MuestrasTab() {
         onOpenChange={handleModalClose}
         muestra={editingMuestra}
       />
+      {/* Confirmación antes de abrir el modal de traslado */}
+      <AlertDialog open={pendingTraslado !== null} onOpenChange={(open) => !open && setPendingTraslado(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Iniciar traslado de {pendingTraslado?.etiqueta}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a trasladar la muestra <strong>{pendingTraslado?.etiqueta}</strong> a otra institución.
+              Al confirmar el traslado, la muestra quedará en estado <strong>En tránsito</strong> y su
+              posición actual en caja se liberará automáticamente.
+              ¿Deseas continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmTraslado}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+            >
+              Sí, iniciar traslado
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <TrasladarMuestraModal
         open={trasladandoMuestra !== null}
         onOpenChange={(open) => !open && setTrasladandoMuestra(null)}

@@ -7,7 +7,7 @@ import { AlertCircle } from 'lucide-react'
 import { RefrigeradoresTab } from '../components/RefrigeradoresTab'
 import { CajasTab } from '../components/CajasTab'
 import { MuestrasTab } from '../components/MuestrasTab'
-import { AlmacenesTab } from '../components/AlmacenesTab'
+import { PrestamosTab } from '../components/PrestamosTab'
 import { TipoMuestraAdminTab } from '../components/TipoMuestraAdminTab'
 import { TipoEstudioMuestraAdminTab } from '../components/TipoEstudioMuestraAdminTab'
 
@@ -19,13 +19,14 @@ export default function BiobancoPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Biobanco"
-          subtitle="Refrigeradores criogénicos · pisos · cajas · posiciones · traslados."
+          subtitle="Refrigeradores criogénicos · pisos · cajas · posiciones · préstamos entre instituciones."
         />
 
         <Alert>
           <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
           <AlertDescription>
-            Sistema de almacenamiento criogénico jerárquico: Refrigerador → Piso → Caja → Muestra. Las muestras pueden trasladarse a instituciones externas registradas (INMEGEN, INSP, hospitales, laboratorios).
+            Sistema de almacenamiento criogénico jerárquico: Refrigerador → Piso → Caja → Muestra.
+            Las muestras pertenecen a la institución que las recolecta y pueden prestarse a otras instituciones con biobanco.
           </AlertDescription>
         </Alert>
 
@@ -36,7 +37,7 @@ export default function BiobancoPage() {
             <TabsTrigger value="muestras">Muestras</TabsTrigger>
             <TabsTrigger value="tipos-muestra">Tipos de Muestra</TabsTrigger>
             <TabsTrigger value="est-muestras">Est. Muestras</TabsTrigger>
-            <TabsTrigger value="almacenes">Instituciones</TabsTrigger>
+            <TabsTrigger value="prestamos">Préstamos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="refrigeradores" className="space-y-4">
@@ -59,8 +60,8 @@ export default function BiobancoPage() {
             <TipoEstudioMuestraAdminTab />
           </TabsContent>
 
-          <TabsContent value="almacenes" className="space-y-4">
-            <AlmacenesTab />
+          <TabsContent value="prestamos" className="space-y-4">
+            <PrestamosTab />
           </TabsContent>
         </Tabs>
       </div>
