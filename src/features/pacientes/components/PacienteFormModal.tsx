@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -20,8 +21,14 @@ import {
 } from '@/components/ui/select'
 import { pacienteFormSchema, type PacienteFormData } from '../schemas/paciente.schema'
 import { useCreatePaciente, useUpdatePaciente } from '../hooks/useCreatePaciente'
-import type { Paciente, PacienteRequestDTO } from '@/types/api'
-import { BirthDatePicker } from '@/components/ui/date-time-picker'
+import {
+  TIPO_RECLUTAMIENTO_LABELS,
+  ESTADO_CONTACTO_LABELS,
+  MEDIO_CONTACTO_LABELS,
+  type Paciente,
+  type PacienteRequestDTO,
+} from '@/types/api'
+import { BirthDatePicker, DatePicker } from '@/components/ui/date-time-picker'
 
 interface PacienteFormModalProps {
   open: boolean
@@ -34,6 +41,21 @@ const SEXO_OPTIONS = [
   { value: 'F', label: 'Femenino' },
 ] as const
 
+const TIPO_RECLUTAMIENTO_OPTIONS = (
+  Object.entries(TIPO_RECLUTAMIENTO_LABELS) as [keyof typeof TIPO_RECLUTAMIENTO_LABELS, string][]
+).map(([value, label]) => ({ value, label }))
+
+const ESTADO_CONTACTO_OPTIONS = (
+  Object.entries(ESTADO_CONTACTO_LABELS) as [keyof typeof ESTADO_CONTACTO_LABELS, string][]
+).map(([value, label]) => ({ value, label }))
+
+// "OTRO" se excluye intencionalmente de las opciones seleccionables: el medio
+// de contacto debe quedar siempre claramente identificado para fines de seguimiento.
+const MEDIO_CONTACTO_OPTIONS = (
+  Object.entries(MEDIO_CONTACTO_LABELS) as [keyof typeof MEDIO_CONTACTO_LABELS, string][]
+).filter(([value]) => value !== 'OTRO')
+  .map(([value, label]) => ({ value, label }))
+
 const DEFAULT_VALUES: PacienteFormData = {
   folio: '',
   nombre: '',
@@ -43,23 +65,32 @@ const DEFAULT_VALUES: PacienteFormData = {
   telefono: '',
   fechaNacimiento: '',
   sexo: 'M',
+  tipoReclutamiento: 'NUEVO',
+  estadoContacto: null,
+  medioContacto: null,
+  observaciones: '',
+  fechaContacto: '',
 }
+
+
 
 export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteFormModalProps) {
   const isEdit = !!paciente
   const createMutation = useCreatePaciente()
   const updateMutation = useUpdatePaciente()
-
   const {
     register,
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<PacienteFormData>({
     resolver: zodResolver(pacienteFormSchema),
     defaultValues: DEFAULT_VALUES,
   })
+
+  const tipoReclutamiento = watch('tipoReclutamiento')
 
   useEffect(() => {
     if (open) {
@@ -73,6 +104,12 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
           telefono: paciente.persona.telefono ?? '',
           fechaNacimiento: paciente.persona.fechaNacimiento?.slice(0, 10) ?? '',
           sexo: paciente.persona.sexo ?? 'M',
+          tipoReclutamiento: paciente.reclutamiento?.tipoReclutamiento ?? 'NUEVO',
+
+          estadoContacto: paciente.reclutamiento?.estadoContacto ?? null,
+          medioContacto: paciente.reclutamiento?.medioContacto ?? null,
+          observaciones: paciente.reclutamiento?.observaciones ?? '',
+          fechaContacto: paciente.reclutamiento?.fechaContacto?.slice(0, 10) ?? '',
         })
       } else {
         reset(DEFAULT_VALUES)
@@ -92,6 +129,13 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
         fechaNacimiento: formData.fechaNacimiento,
         sexo: formData.sexo,
       },
+      reclutamiento: {
+        tipoReclutamiento: formData.tipoReclutamiento,
+        estadoContacto: formData.tipoReclutamiento === 'RETORNO' ? formData.estadoContacto || undefined : undefined,
+        medioContacto: formData.medioContacto || undefined,
+        observaciones: formData.observaciones || undefined,
+        fechaContacto: formData.fechaContacto || undefined,
+      },
     }
 
     if (isEdit && paciente) {
@@ -110,11 +154,148 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="text-[16px] font-semibold text-[var(--imss-ink-900)]">
-            {isEdit ? 'Editar paciente' : 'Registrar nuevo paciente'}
+            {isEdit ? 'Editar participante' : 'Registrar nuevo participante'}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-1">
+          {/* Sección: Clasificación de reclutamiento (primero, define el origen del registro) */}
+          <div className="space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
+              Clasificación de reclutamiento
+            </p>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* Tipo de reclutamiento */}
+              <div className="space-y-1.5">
+                <Label className="text-[13px]">
+                  Tipo <span className="text-red-500">*</span>
+                </Label>
+                <Controller
+                  name="tipoReclutamiento"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-9 text-[13px]">
+                        <SelectValue placeholder="Seleccione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIPO_RECLUTAMIENTO_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value} className="text-[13px]">
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.tipoReclutamiento && (
+                  <p className="text-[11px] text-[var(--status-danger-fg)]">
+                    {errors.tipoReclutamiento.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Estado de contacto — solo para RETORNO */}
+              {tipoReclutamiento === 'RETORNO' && (
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">
+                    Resultado del contacto <span className="text-red-500">*</span>
+                  </Label>
+                  <Controller
+                    name="estadoContacto"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger className="h-9 text-[13px]">
+                          <SelectValue placeholder="Seleccione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ESTADO_CONTACTO_OPTIONS.map((o) => (
+                            <SelectItem key={o.value} value={o.value} className="text-[13px]">
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.estadoContacto && (
+                    <p className="text-[11px] text-[var(--status-danger-fg)]">
+                      {errors.estadoContacto.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Medio de contacto */}
+              <div className="space-y-1.5">
+                <Label className="text-[13px]">
+                  Medio de contacto
+                </Label>
+                <Controller
+                  name="medioContacto"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-9 text-[13px]">
+                        <SelectValue placeholder="Seleccione (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MEDIO_CONTACTO_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value} className="text-[13px]">
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              {/* Fecha de contacto */}
+              <div className="space-y-1.5">
+                <Label className="text-[13px]">
+                  Fecha de contacto
+                </Label>
+                <Controller
+                  name="fechaContacto"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      placeholder="DD/MM/AAAA"
+                      className="h-9 text-[13px]"
+                      maxDate={new Date()}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Observaciones — ancho completo */}
+            <div className="space-y-1.5">
+              <Label htmlFor="observaciones" className="text-[13px]">
+                Observaciones
+              </Label>
+              <Textarea
+                id="observaciones"
+                {...register('observaciones')}
+                sanitize="descripcion"
+                placeholder="Notas sobre el reclutamiento o contacto del participante…"
+                className="min-h-[72px] text-[13px]"
+              />
+              {errors.observaciones && (
+                <p className="text-[11px] text-[var(--status-danger-fg)]">
+                  {errors.observaciones.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-[var(--imss-ink-100)]" />
+
           {/* Sección: Datos del expediente */}
           <div className="space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
@@ -123,15 +304,25 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
 
             <div className="space-y-1.5">
               <Label htmlFor="folio" className="text-[13px]">
-                Folio <span className="text-red-500">*</span>
+                Folio
               </Label>
               <Input
                 id="folio"
                 {...register('folio')}
                 sanitize="folio"
-                placeholder="ej. C-00184"
-                className="h-9 font-mono text-[13px]"
+                placeholder="Déjelo en blanco para generarlo automáticamente (ej. COH-26-00001)"
+                className="h-9 font-mono text-[13px] uppercase placeholder:normal-case placeholder:font-sans"
+                style={{ textTransform: 'uppercase' }}
+                onInput={(e) => {
+                  const input = e.currentTarget
+                  const pos = input.selectionStart
+                  input.value = input.value.toUpperCase()
+                  if (pos !== null) input.setSelectionRange(pos, pos)
+                }}
               />
+              <p className="text-[11px] text-[var(--imss-ink-300)]">
+                Opcional: solo si el participante ya cuenta con un folio de seguimiento previo. Si se deja vacío, el sistema generará uno automáticamente (formato COH-AA-NNNNN).
+              </p>
               {errors.folio && (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
                   {errors.folio.message}
@@ -285,7 +476,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 id="email"
                 type="email"
                 {...register('email')}
-                placeholder="ej. paciente@correo.com"
+                placeholder="ej. participante@correo.com"
                 className="h-9 text-[13px]"
               />
               {errors.email && (
@@ -317,7 +508,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                   : 'Registrando...'
                 : isEdit
                   ? 'Guardar cambios'
-                  : 'Registrar paciente'}
+                  : 'Registrar participante'}
             </Button>
           </DialogFooter>
         </form>

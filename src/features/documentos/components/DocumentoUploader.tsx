@@ -97,7 +97,7 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
       return
     }
     if (props.entidad === 'paciente' && !props.pacienteUUID) {
-      toast.error('No se puede subir: UUID del paciente no disponible')
+      toast.error('No se puede subir: UUID del participante no disponible')
       return
     }
     if (props.entidad === 'muestra' && !props.muestraId) {

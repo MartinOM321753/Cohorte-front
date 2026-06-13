@@ -11,10 +11,10 @@ export function useCreatePaciente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success('Paciente registrado correctamente')
+      toast.success('Participante registrado correctamente')
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Error al registrar el paciente')
+      toast.error(error?.response?.data?.message ?? 'Error al registrar el participante')
     },
   })
 }
@@ -28,10 +28,10 @@ export function useUpdatePaciente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success('Paciente actualizado correctamente')
+      toast.success('Participante actualizado correctamente')
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Error al actualizar el paciente')
+      toast.error(error?.response?.data?.message ?? 'Error al actualizar el participante')
     },
   })
 }
@@ -44,10 +44,10 @@ export function useDeletePaciente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success('Paciente eliminado correctamente')
+      toast.success('Participante eliminado correctamente')
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Error al eliminar el paciente')
+      toast.error(error?.response?.data?.message ?? 'Error al eliminar el participante')
     },
   })
 }
@@ -60,10 +60,10 @@ export function useToggleActivoPaciente() {
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success(updated.activo ? 'Paciente activado' : 'Paciente desactivado')
+      toast.success(updated.activo ? 'Participante activado' : 'Participante desactivado')
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Error al cambiar estado del paciente')
+      toast.error(error?.response?.data?.message ?? 'Error al cambiar estado del participante')
     },
   })
 }

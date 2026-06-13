@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Lock, Mail } from 'lucide-react'
+import { Check, ChevronsUpDown, Lock, Mail } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -21,11 +21,99 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { cn } from '@/lib/utils'
 import { usuarioSchema, type UsuarioFormData } from '../schemas/usuario.schema'
 import { type Usuario, ROL_LABELS } from '../types/usuario.types'
 import { useCreateUsuario, useUpdateUsuario } from '../hooks/useMutateUsuario'
 import { useGetRoles } from '../hooks/useGetRoles'
+import { useGetInstitucionesActivas } from '@/features/instituciones/hooks/useInstituciones'
 import { BirthDatePicker } from '@/components/ui/date-time-picker'
+
+// ── Combobox buscable de instituciones (carga completa + filtro cliente) ─────
+// Solo se muestran nombre y tipo; el valor real enviado es el UUID (oculto).
+
+interface ComboboxProps {
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+  placeholder?: string
+  searchPlaceholder?: string
+  emptyText?: string
+  disabled?: boolean
+  hasError?: boolean
+}
+
+function Combobox({
+  value,
+  onChange,
+  options,
+  placeholder = 'Selecciona…',
+  searchPlaceholder = 'Buscar…',
+  emptyText = 'Sin resultados',
+  disabled = false,
+  hasError = false,
+}: ComboboxProps) {
+  const [open, setOpen] = useState(false)
+  const selected = options.find(o => o.value === value)
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn(
+            'w-full justify-between font-normal h-9 text-[13px]',
+            !selected && 'text-muted-foreground',
+            hasError && 'border-destructive',
+          )}
+        >
+          <span className="truncate">{selected ? selected.label : placeholder}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} className="h-9" />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
+              {options.map(o => (
+                <CommandItem
+                  key={o.value}
+                  value={o.label}
+                  onSelect={() => {
+                    onChange(o.value)
+                    setOpen(false)
+                  }}
+                >
+                  <Check className={cn('mr-2 h-4 w-4', value === o.value ? 'opacity-100' : 'opacity-0')} />
+                  {o.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 interface UsuarioFormModalProps {
   open: boolean
@@ -33,10 +121,21 @@ interface UsuarioFormModalProps {
   usuario?: Usuario | null
   /**
    * Cuando se provee, el campo de rol se pre-selecciona con este nombre
-   * (e.g. "ENCARGADO") y queda bloqueado para el usuario.
+   * (e.g. "ADMINISTRADOR") y queda bloqueado para el usuario.
    * Solo aplica en creación — al editar siempre se permite cambiar el rol.
    */
   lockedRolNombre?: string
+  /**
+   * Cuando se provee, el campo de institución se pre-selecciona con este UUID
+   * y queda bloqueado (solo lectura). Solo aplica en creación.
+   * Útil al crear un admin provisional desde el formulario de institución.
+   */
+  lockedInstitucionUuid?: string
+  /**
+   * Callback opcional que se invoca con el usuario recién creado.
+   * Permite que el componente padre reaccione (ej. auto-seleccionar el UUID en un combobox).
+   */
+  onUsuarioCreado?: (usuario: Usuario) => void
 }
 
 const SEXO_OPTIONS = [
@@ -44,11 +143,23 @@ const SEXO_OPTIONS = [
   { value: 'F', label: 'Femenino' },
 ] as const
 
-export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre }: UsuarioFormModalProps) {
+export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre, lockedInstitucionUuid, onUsuarioCreado }: UsuarioFormModalProps) {
   const isEdit = !!usuario
   const createMutation = useCreateUsuario()
   const updateMutation = useUpdateUsuario()
   const { data: roles = [], isLoading: rolesLoading } = useGetRoles()
+  const { data: instituciones = [], isLoading: institucionesLoading } = useGetInstitucionesActivas()
+
+  // Combobox de instituciones: solo nombre + tipo visibles, el valor real es el UUID
+  const institucionOptions = instituciones.map((inst) => ({
+    value: inst.uuid,
+    label: inst.tipoInstitucion ? `${inst.nombre} · ${inst.tipoInstitucion.nombre}` : inst.nombre,
+  }))
+
+  // Institución bloqueada (solo creación desde modal de institución)
+  const lockedInstitucion = (lockedInstitucionUuid && !isEdit)
+    ? instituciones.find(i => i.uuid === lockedInstitucionUuid) ?? null
+    : null
 
   // UUID del rol que debe quedar bloqueado (solo aplica en creación)
   const lockedRol = (!isEdit && lockedRolNombre)
@@ -66,6 +177,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre 
     resolver: zodResolver(usuarioSchema),
     defaultValues: {
       rolUuid: '',
+      institucionUuid: '',
       persona: {
         nombre: '',
         apellidoPaterno: '',
@@ -83,6 +195,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre 
       if (usuario) {
         reset({
           rolUuid: usuario.rol?.uuid ?? '',
+          institucionUuid: usuario.institucion?.uuid ?? '',
           persona: {
             nombre: usuario.persona.nombre,
             apellidoPaterno: usuario.persona.apellidoPaterno,
@@ -96,6 +209,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre 
       } else {
         reset({
           rolUuid: '',
+          institucionUuid: '',
           persona: {
             nombre: '',
             apellidoPaterno: '',
@@ -122,9 +236,17 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre 
     }
   }, [lockedRol, open, setValue])
 
+  // Pre-set institución bloqueada cuando las instituciones terminen de cargar
+  useEffect(() => {
+    if (lockedInstitucionUuid && !isEdit && open) {
+      setValue('institucionUuid', lockedInstitucionUuid)
+    }
+  }, [lockedInstitucionUuid, isEdit, open, setValue])
+
   const onSubmit = async (formData: UsuarioFormData) => {
     const payload = {
       rolUuid: formData.rolUuid,
+      institucionUuid: formData.institucionUuid,
       persona: {
         nombre: formData.persona.nombre,
         apellidoPaterno: formData.persona.apellidoPaterno,
@@ -138,11 +260,12 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre 
 
     if (isEdit && usuario) {
       await updateMutation.mutateAsync({ id: usuario.id, data: payload })
+      onOpenChange(false)
     } else {
-      await createMutation.mutateAsync(payload)
+      const created = await createMutation.mutateAsync(payload)
+      onUsuarioCreado?.(created)
+      onOpenChange(false)
     }
-
-    onOpenChange(false)
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending || isSubmitting
@@ -217,6 +340,51 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre 
               {errors.rolUuid && (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
                   {errors.rolUuid.message}
+                </p>
+              )}
+            </div>
+
+            {/* Institución */}
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">
+                Institución <span className="text-red-500">*</span>
+              </Label>
+              {lockedInstitucion ? (
+                /* ── Institución bloqueada (alta de admin desde formulario de institución) ── */
+                <div className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 h-9">
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-[13px] flex-1 truncate">{lockedInstitucion.nombre}</span>
+                  <Badge variant="secondary" className="text-[11px]">Provisional</Badge>
+                  <Controller
+                    name="institucionUuid"
+                    control={control}
+                    render={({ field }) => (
+                      <input type="hidden" {...field} value={lockedInstitucionUuid} />
+                    )}
+                  />
+                </div>
+              ) : (
+                /* ── Combobox normal ── */
+                <Controller
+                  name="institucionUuid"
+                  control={control}
+                  render={({ field }) => (
+                    <Combobox
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      options={institucionOptions}
+                      disabled={institucionesLoading}
+                      placeholder={institucionesLoading ? 'Cargando instituciones…' : 'Seleccione una institución'}
+                      searchPlaceholder="Buscar institución por nombre…"
+                      emptyText="Sin instituciones activas"
+                      hasError={!!errors.institucionUuid}
+                    />
+                  )}
+                />
+              )}
+              {errors.institucionUuid && (
+                <p className="text-[11px] text-[var(--status-danger-fg)]">
+                  {errors.institucionUuid.message}
                 </p>
               )}
             </div>

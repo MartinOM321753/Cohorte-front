@@ -268,7 +268,7 @@ export function ResultadosExamenTab() {
             <div className="text-xs text-muted-foreground">
               {selectedPaciente
                 ? `${selectedPaciente.folio} — ${selectedPaciente.persona.nombre} ${selectedPaciente.persona.apellidoPaterno}`
-                : 'Selecciona un paciente en el formulario para ver sus resultados.'}
+                : 'Selecciona un participante en el formulario para ver sus resultados.'}
             </div>
           </div>
           {watchedPacienteUUID && (
@@ -282,7 +282,7 @@ export function ResultadosExamenTab() {
           {!watchedPacienteUUID ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-sm text-muted-foreground">
               <ClipboardList className="h-8 w-8 opacity-25" />
-              <span>Elige un paciente en el formulario para ver su historial.</span>
+              <span>Elige un participante en el formulario para ver su historial.</span>
             </div>
           ) : isLoadingResultados ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -367,7 +367,7 @@ export function ResultadosExamenTab() {
                         colSpan={5}
                         className="py-8 text-center text-sm text-muted-foreground"
                       >
-                        Sin resultados para este paciente
+                        Sin resultados para este participante
                       </TableCell>
                     </TableRow>
                   )}
@@ -396,7 +396,7 @@ export function ResultadosExamenTab() {
           <input type="hidden" {...register('usuarioRegistroUUID')} />
 
           {/* Paciente */}
-          <FormField label="Paciente" required error={errors.pacienteUUID?.message}>
+          <FormField label="Participante" required error={errors.pacienteUUID?.message}>
             <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
               <PopoverTrigger asChild>
                 <Button
@@ -414,11 +414,11 @@ export function ResultadosExamenTab() {
                         )
                         return p
                           ? `${p.folio} — ${p.persona.nombre} ${p.persona.apellidoPaterno}`
-                          : 'Paciente seleccionado'
+                          : 'Participante seleccionado'
                       })()
                     : isLoadingPacientes
                       ? 'Cargando…'
-                      : 'Buscar paciente…'}
+                      : 'Buscar participante…'}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -426,7 +426,7 @@ export function ResultadosExamenTab() {
                 <Command>
                   <CommandInput placeholder="Buscar por folio o nombre…" />
                   <CommandList>
-                    <CommandEmpty>No se encontró el paciente.</CommandEmpty>
+                    <CommandEmpty>No se encontró el participante.</CommandEmpty>
                     <CommandGroup>
                       {pacientes.map((p) => (
                         <CommandItem

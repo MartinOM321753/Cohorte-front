@@ -28,6 +28,10 @@ export const usuarioSchema = z.object({
     .string({ required_error: 'Seleccione un rol' })
     .trim()
     .min(1, 'Seleccione un rol'),
+  institucionUuid: z
+    .string({ required_error: 'Seleccione una institución' })
+    .trim()
+    .min(1, 'Seleccione una institución'),
   persona: personaSchema,
 })
 

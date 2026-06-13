@@ -24,7 +24,7 @@ export function MatrizCobertura({ data, tipoNames, selBucket, selTipoId, tipoWor
           Matriz de cobertura
         </div>
         <div className="mt-0.5 text-[13px] font-medium text-foreground">
-          Paciente × {tipoWord} (primeros {Math.min(data.length, MAX_ROWS)} por menor cobertura)
+          Participante × {tipoWord} (primeros {Math.min(data.length, MAX_ROWS)} por menor cobertura)
         </div>
         {/* Leyenda */}
         <div className="mt-2 flex items-center gap-4 text-[11px]">
@@ -54,7 +54,7 @@ export function MatrizCobertura({ data, tipoNames, selBucket, selTipoId, tipoWor
                 <tr>
                   {/* Sticky: nombre + folio */}
                   <th className="sticky left-0 z-20 bg-background border-b border-r border-border px-3 py-2 text-left font-medium text-muted-foreground min-w-[140px]">
-                    Paciente
+                    Participante
                   </th>
                   {tipoIds.map((tid, i) => {
                     const isDim = selTipoId !== null && selTipoId !== tid

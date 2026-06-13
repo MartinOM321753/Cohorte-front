@@ -28,7 +28,7 @@ export function DistribucionHistograma({ data, selected, onSelect }: Props) {
           Distribución de completitud
         </div>
         <div className="mt-0.5 text-[13px] font-medium text-foreground">
-          Pacientes por número de tipos cubiertos
+          Participantes por número de tipos cubiertos
         </div>
         <div className="mt-1 text-[12px] text-muted-foreground">
           Clic en una barra para ver quiénes están en ese grupo

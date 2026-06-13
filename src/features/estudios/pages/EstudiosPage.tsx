@@ -13,7 +13,7 @@ export default function EstudiosPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Estudios médicos"
-          subtitle="Registro y gestión de estudios médicos especializados por paciente."
+          subtitle="Registro y gestión de estudios médicos especializados por participante."
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

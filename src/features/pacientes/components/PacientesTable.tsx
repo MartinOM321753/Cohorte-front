@@ -42,7 +42,7 @@ export function PacientesTable({
   const columns: ColumnDef<Paciente>[] = [
     {
       id: 'nombre',
-      header: 'Colaborador',
+      header: 'Participante',
       cell: ({ row }) => {
         const p = row.original
         return (
@@ -110,7 +110,7 @@ export function PacientesTable({
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
-            title="Editar paciente"
+            title="Editar participante"
             onClick={() => onEdit(row.original)}
           >
             <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -133,7 +133,7 @@ export function PacientesTable({
                 ? 'text-[var(--imss-ink-300)] hover:text-[var(--status-danger-fg)]'
                 : 'text-[var(--imss-ink-300)] hover:text-[var(--status-success-fg)]',
             ].join(' ')}
-            title={row.original.activo ? 'Desactivar paciente' : 'Activar paciente'}
+            title={row.original.activo ? 'Desactivar participante' : 'Activar participante'}
             onClick={() => onToggleActivo(row.original)}
           >
             {row.original.activo

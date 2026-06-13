@@ -466,7 +466,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           const duration = getCitaDurationMinutes(cita);
           const endDate = new Date(startDate.getTime() + duration * 60_000);
 
-          const paciente = cita.paciente?.nombreCompleto || "Sin paciente";
+          const paciente = cita.paciente?.nombreCompleto || "Sin participante";
           const usuario = cita.usuarioAgenda?.nombreCompleto;
 
           const estadoKey = String(cita.estadoCita ?? "")
@@ -878,7 +878,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
 
             setPendingDrop({
               citaUuid: cita.uuid,
-              pacienteNombre: cita.paciente?.nombreCompleto ?? "Paciente",
+              pacienteNombre: cita.paciente?.nombreCompleto ?? "Participante",
               startAtLocal: newStart.format("YYYY-MM-DDTHH:mm"),
               durationMinutes: Math.max(15, newEnd.diff(newStart, "minute")),
               displayStart: formatDateTime(newStart),

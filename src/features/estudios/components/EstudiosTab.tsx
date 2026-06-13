@@ -124,7 +124,7 @@ export function EstudiosTab() {
                 <TableRow>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead>Paciente</TableHead>
+                  <TableHead>Participante</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -183,7 +183,7 @@ export function EstudiosTab() {
           <input type="hidden" {...register('pacienteUUID')} />
           <input type="hidden" {...register('usuarioRealizaUUID')} />
 
-          <FormField label="Paciente" required error={errors.pacienteUUID?.message}>
+          <FormField label="Participante" required error={errors.pacienteUUID?.message}>
             <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
               <PopoverTrigger asChild>
                 <Button
@@ -199,11 +199,11 @@ export function EstudiosTab() {
                         const selected = pacientes.find((p) => getPacienteUUID(p) === watchedPacienteUUID)
                         return selected
                           ? `${selected.folio} — ${selected.persona.nombre} ${selected.persona.apellidoPaterno}${selected.persona.apellidoMaterno ? ' ' + selected.persona.apellidoMaterno : ''}`
-                          : 'Paciente seleccionado'
+                          : 'Participante seleccionado'
                       })()
                     : isLoadingPacientes
                       ? 'Cargando…'
-                      : 'Buscar paciente…'}
+                      : 'Buscar participante…'}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -211,7 +211,7 @@ export function EstudiosTab() {
                 <Command>
                   <CommandInput placeholder="Buscar por folio o nombre…" />
                   <CommandList>
-                    <CommandEmpty>No se encontró el paciente.</CommandEmpty>
+                    <CommandEmpty>No se encontró el participante.</CommandEmpty>
                     <CommandGroup>
                       {pacientes.map((p) => (
                         <CommandItem

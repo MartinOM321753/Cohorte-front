@@ -22,7 +22,7 @@ export const examenSchema = z.object({
 export type ExamenFormData = z.infer<typeof examenSchema>
 
 export const resultadoExamenSchema = z.object({
-  pacienteUUID: z.string().min(1, 'Seleccione un paciente'),
+  pacienteUUID: z.string().min(1, 'Seleccione un participante'),
   usuarioRegistroUUID: z.string().min(1),
   idExamen: z.number().min(1, 'Seleccione un examen'),
   valorObtenido: z

@@ -77,6 +77,7 @@ import type {
   ResultadoEstudioResponse,
   ParametroEstudio,
 } from '@/types/api'
+import { ESTADO_CONTACTO_LABELS, MEDIO_CONTACTO_LABELS } from '@/types/api'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Small helpers
@@ -2274,7 +2275,7 @@ export default function ExpedientePacientePage() {
   if (isError || !paciente) {
     return (
       <div className="flex flex-col items-center gap-4 p-12 text-center">
-        <p className="text-[15px] font-medium text-[var(--imss-ink-900)]">Paciente no encontrado</p>
+        <p className="text-[15px] font-medium text-[var(--imss-ink-900)]">Participante no encontrado</p>
         <Button variant="outline" onClick={() => navigate('/pacientes')}>Regresar</Button>
       </div>
     )
@@ -2286,7 +2287,7 @@ export default function ExpedientePacientePage() {
     <div className="flex flex-col gap-5 p-6">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-[12px] text-[var(--imss-ink-300)]">
-        <Link to="/pacientes" className="hover:text-[var(--imss-ink-900)]">Pacientes</Link>
+        <Link to="/pacientes" className="hover:text-[var(--imss-ink-900)]">Participantes</Link>
         <span>›</span>
         <span className="text-[var(--imss-ink-900)] font-medium">Expediente</span>
       </nav>
@@ -2411,6 +2412,55 @@ export default function ExpedientePacientePage() {
               ))}
             </div>
           </SectionCard>
+
+          {/* Reclutamiento */}
+          {paciente.reclutamiento && (
+            <SectionCard title="Reclutamiento">
+              <div className="px-4 pb-3 pt-1">
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+                  paciente.reclutamiento.tipoReclutamiento === 'RETORNO'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-[var(--status-info-bg)] text-[var(--status-info-fg)]'
+                )}>
+                  {paciente.reclutamiento.tipoReclutamiento === 'RETORNO' ? 'Retorno' : 'Nuevo'}
+                </span>
+              </div>
+              <div className="divide-y divide-[var(--imss-ink-100)] px-4">
+                {[
+                  { label: 'Institución', value: paciente.reclutamiento.institucionReclutamiento?.nombre },
+                  { label: 'Estado de contacto',
+                    value: paciente.reclutamiento.estadoContacto
+                      ? ESTADO_CONTACTO_LABELS[paciente.reclutamiento.estadoContacto]
+                      : undefined },
+                  { label: 'Medio de contacto',
+                    value: paciente.reclutamiento.medioContacto
+                      ? MEDIO_CONTACTO_LABELS[paciente.reclutamiento.medioContacto]
+                      : undefined },
+                  { label: 'Fecha de contacto',
+                    value: paciente.reclutamiento.fechaContacto
+                      ? formatDate(paciente.reclutamiento.fechaContacto, 'dd/MM/yyyy')
+                      : undefined },
+                  { label: 'Reclutó', value: paciente.reclutamiento.usuarioRecluta?.nombreCompleto },
+                ].map(row => (
+                  <div key={row.label} className="flex items-center justify-between py-2.5">
+                    <span className="text-[12px] text-[var(--imss-ink-300)]">{row.label}</span>
+                    <span className="text-[13px] font-medium text-[var(--imss-ink-900)] text-right">
+                      {row.value || '—'}
+                    </span>
+                  </div>
+                ))}
+                {paciente.reclutamiento.observaciones && (
+                  <div className="py-2.5">
+                    <span className="text-[12px] text-[var(--imss-ink-300)]">Observaciones</span>
+                    <p className="mt-1 text-[13px] text-[var(--imss-ink-900)]">
+                      {paciente.reclutamiento.observaciones}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          )}
 
           {/* Somatometría */}
           <SomatometriaCard

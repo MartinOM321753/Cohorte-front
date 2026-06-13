@@ -52,7 +52,7 @@ export function CoverturaTiles({
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
       <Tile
-        label="Pacientes activos"
+        label="Participantes activos"
         value={pacientesActivos}
         sub="Total en seguimiento"
         isLoading={isLoading}
@@ -74,7 +74,7 @@ export function CoverturaTiles({
       <Tile
         label="Sin ningún registro"
         value={cero}
-        sub={`pacientes sin ningún ${tipoWord}`}
+        sub={`participantes sin ningún ${tipoWord}`}
         highlight={cero > 0 ? 'danger' : 'success'}
         isLoading={isLoading}
       />

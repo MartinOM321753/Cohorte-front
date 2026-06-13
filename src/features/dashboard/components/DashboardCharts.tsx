@@ -312,7 +312,7 @@ export function SomatometriaGlobalCharts() {
             </div>
             {!isLoading && hasData && (
               <div className="text-[12px] text-muted-foreground mt-0.5">
-                {data.length} medición{data.length !== 1 ? 'es' : ''} · todos los pacientes
+                {data.length} medición{data.length !== 1 ? 'es' : ''} · todos los participantes
               </div>
             )}
           </div>
@@ -416,7 +416,7 @@ export function ExamenesGlobalCharts() {
           Resultados de exámenes de laboratorio
         </div>
         <div className="mt-0.5 text-[13px] font-medium text-foreground">
-          Distribución global · todos los pacientes
+          Distribución global · todos los participantes
         </div>
         {!isLoading && hasData && (
           <div className="text-[12px] text-muted-foreground">
@@ -754,7 +754,7 @@ export function FeatureKPI({ stats, isLoading }: { stats?: DashboardStatsMinimal
     >
       <CardContent className="p-6 flex flex-col justify-between h-full min-h-[140px]">
         <div className="text-[11px] font-semibold uppercase tracking-[0.06em] opacity-70">
-          Pacientes activos
+          Participantes activos
         </div>
         <div>
           <div

@@ -212,7 +212,7 @@ export function CitaIlamyEventForm({
 
   const onSubmit = (data: CitaFormData) => {
     if (!isEditing && !data.pacienteUUID) {
-      setError('pacienteUUID', { message: 'Paciente obligatorio' })
+      setError('pacienteUUID', { message: 'Participante obligatorio' })
       return
     }
 
@@ -274,7 +274,7 @@ export function CitaIlamyEventForm({
           <DialogDescription className="text-[13px] text-[var(--imss-ink-300)]">
             {isEditing
               ? 'Actualiza el estado, fecha u observaciones de la cita.'
-              : 'Selecciona el paciente, la fecha y la duración.'}
+              : 'Selecciona el participante, la fecha y la duración.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -285,7 +285,7 @@ export function CitaIlamyEventForm({
             <div className="rounded-md border border-[var(--imss-ink-100)] px-3 py-2 space-y-2.5">
               <div className="flex flex-col gap-0.5">
                 <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--imss-ink-300)]">
-                  Paciente
+                  Participante
                 </span>
                 <span className="text-[13px] text-[var(--imss-ink-900)]">
                   {cita?.paciente?.nombreCompleto || '—'}
@@ -295,7 +295,7 @@ export function CitaIlamyEventForm({
           ) : (
             <div className="space-y-1.5">
               <Label className="text-[13px]">
-                Paciente <span className="text-red-500">*</span>
+                Participante <span className="text-red-500">*</span>
               </Label>
               <Popover open={openPaciente} onOpenChange={setOpenPaciente} >
                 <PopoverTrigger asChild>
@@ -311,7 +311,7 @@ export function CitaIlamyEventForm({
                             const found = pacientes.find(
                               (p: any) => getPacienteUUID(p) === watchedPacienteUUID,
                             )
-                            if (!found) return 'Paciente seleccionado'
+                            if (!found) return 'Participante seleccionado'
                             const nombre = found.persona
                               ? [
                                   found.persona.nombre,
@@ -320,10 +320,10 @@ export function CitaIlamyEventForm({
                                 ]
                                   .filter(Boolean)
                                   .join(' ')
-                              : found.nombreCompleto ?? 'Paciente'
+                              : found.nombreCompleto ?? 'Participante'
                             return `${found.folio ?? ''} — ${nombre}`.trim()
                           })()
-                        : 'Buscar paciente…'}
+                        : 'Buscar participante…'}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -334,9 +334,9 @@ export function CitaIlamyEventForm({
                       value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
                     }
                   >
-                    <CommandInput placeholder="Buscar paciente…" />
+                    <CommandInput placeholder="Buscar participante…" />
                     <CommandList className="max-h-64">
-                      <CommandEmpty>No se encontró el paciente.</CommandEmpty>
+                      <CommandEmpty>No se encontró el participante.</CommandEmpty>
                       <CommandGroup>
                         {pacientes.map((p: any) => {
                           const uuid = getPacienteUUID(p)
@@ -348,7 +348,7 @@ export function CitaIlamyEventForm({
                               ]
                                 .filter(Boolean)
                                 .join(' ')
-                            : p.nombreCompleto ?? 'Paciente'
+                            : p.nombreCompleto ?? 'Participante'
                           return (
                             <CommandItem
                               key={uuid || p.folio}

@@ -13,7 +13,7 @@ export default function ExamenesPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Exámenes de laboratorio"
-          subtitle="Catálogo de exámenes y registro de resultados por paciente."
+          subtitle="Catálogo de exámenes y registro de resultados por participante."
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -80,7 +80,7 @@ function todayString(): string {
 // ──────────────────────────────────────────────────────────
 function buildResultadosSchema(parametros: ParametroEstudio[]) {
   const fields: Record<string, z.ZodTypeAny> = {
-    pacienteUUID: z.string().min(1, 'Seleccione un paciente'),
+    pacienteUUID: z.string().min(1, 'Seleccione un participante'),
     idTipoEstudio: z.number().min(1, 'Seleccione una plantilla'),
     fechaEstudio: z.string()
       .min(1, 'La fecha es requerida')
@@ -459,11 +459,11 @@ export function LlenadoEstudioTab() {
       <Card className="lg:col-span-3">
         <div className="flex items-center justify-between gap-3 border-b p-4">
           <div className="space-y-0.5">
-            <div className="text-sm font-medium">Historial del paciente</div>
+            <div className="text-sm font-medium">Historial del participante</div>
             <div className="text-xs text-muted-foreground">
               {selectedPacienteUUID
                 ? `Estudios de ${selectedPaciente?.persona.nombre ?? '…'} ${selectedPaciente?.persona.apellidoPaterno ?? ''}`
-                : 'Seleccione un paciente para ver su historial.'}
+                : 'Seleccione un participante para ver su historial.'}
             </div>
           </div>
           {selectedPacienteUUID && (
@@ -475,7 +475,7 @@ export function LlenadoEstudioTab() {
           {!selectedPacienteUUID ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
               <ClipboardList className="h-8 w-8 opacity-30" strokeWidth={1.25} />
-              Selecciona un paciente en el formulario.
+              Selecciona un participante en el formulario.
             </div>
           ) : isLoadingHistorial ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -483,7 +483,7 @@ export function LlenadoEstudioTab() {
             </div>
           ) : (historial ?? []).length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              Sin estudios registrados para este paciente.
+              Sin estudios registrados para este participante.
             </div>
           ) : (
             <Table>
@@ -559,7 +559,7 @@ export function LlenadoEstudioTab() {
 
         <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4 p-4">
           {/* Paciente */}
-          <FormField label="Paciente" required error={errors.pacienteUUID?.message as string}>
+          <FormField label="Participante" required error={errors.pacienteUUID?.message as string}>
             <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
               <PopoverTrigger asChild>
                 <Button
@@ -575,7 +575,7 @@ export function LlenadoEstudioTab() {
                       ? `${selectedPaciente.folio} — ${selectedPaciente.persona.nombre} ${selectedPaciente.persona.apellidoPaterno}`
                       : isLoadingPacientes
                         ? 'Cargando…'
-                        : 'Buscar paciente…'}
+                        : 'Buscar participante…'}
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -584,7 +584,7 @@ export function LlenadoEstudioTab() {
                 <Command>
                   <CommandInput placeholder="Buscar por folio o nombre…" />
                   <CommandList>
-                    <CommandEmpty>No se encontró el paciente.</CommandEmpty>
+                    <CommandEmpty>No se encontró el participante.</CommandEmpty>
                     <CommandGroup>
                       {pacientes.map((p) => {
                         const uuid = getPacienteUUID(p)

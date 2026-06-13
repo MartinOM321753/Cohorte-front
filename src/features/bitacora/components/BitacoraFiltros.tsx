@@ -183,7 +183,7 @@ export function BitacoraFiltros(props: Props) {
             <div className="flex flex-col gap-1.5 min-w-[160px]">
               <Label className="text-[12px] text-[var(--imss-ink-400)]">Entidad</Label>
               <Input
-                placeholder="Ej. Paciente, Usuario…"
+                placeholder="Ej. Participante, Usuario…"
                 value={entidad}
                 onChange={(e) => setEntidad(e.target.value)}
                 className="h-9 text-[13px]"

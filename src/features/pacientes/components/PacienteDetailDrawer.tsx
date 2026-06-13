@@ -243,7 +243,7 @@ export function PacienteDetailDrawer({
             onClick={() => { onOpenChange(false); onEdit(paciente) }}
           >
             <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Editar paciente
+            Editar participante
           </Button>
           <Button
             variant="outline"

@@ -33,11 +33,11 @@ export default function CitasPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Citas"
-          subtitle="Gestión de agenda clínica y registro inmediato de pacientes."
+          subtitle="Gestión de agenda clínica y registro inmediato de participantes."
           actions={
             <>
               <Button variant="secondary" onClick={() => setIsPacienteFormOpen(true)}>
-                Registrar paciente
+                Registrar participante
               </Button>
               <Button
                 type="button"
@@ -58,7 +58,7 @@ export default function CitasPage() {
                 strokeWidth={1.75}
               />
               <Input
-                placeholder="Buscar paciente, usuario o estado…"
+                placeholder="Buscar participante, usuario o estado…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-9 pl-10"

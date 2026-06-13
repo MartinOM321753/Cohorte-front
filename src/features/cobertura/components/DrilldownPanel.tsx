@@ -28,8 +28,8 @@ export function DrilldownPanel({
     : 'Prioridad de captura'
 
   const title = hasSelection
-    ? `${data.length} paciente${data.length !== 1 ? 's' : ''}`
-    : 'Pacientes con menor cobertura'
+    ? `${data.length} participante${data.length !== 1 ? 's' : ''}`
+    : 'Participantes con menor cobertura'
 
   return (
     <Card className="border border-border shadow-none overflow-hidden">
@@ -60,8 +60,8 @@ export function DrilldownPanel({
             <Users className="h-8 w-8 text-[var(--status-success-fg)] opacity-60" />
             <p className="text-sm text-[var(--status-success-fg)] font-medium text-center px-4">
               {hasSelection && selTipoNombre
-                ? `Todos los pacientes tienen este ${tipoWord} registrado.`
-                : 'No hay pacientes en este grupo.'}
+                ? `Todos los participantes tienen este ${tipoWord} registrado.`
+                : 'No hay participantes en este grupo.'}
             </p>
           </div>
         ) : (

@@ -14,6 +14,12 @@ export interface UsuarioRol {
   nombre: string
 }
 
+/** Institución resumida tal como la devuelve el backend dentro del usuario */
+export interface UsuarioInstitucionResumen {
+  uuid: string
+  nombre: string
+}
+
 export interface Usuario {
   id: number
   UUID: string
@@ -21,11 +27,13 @@ export interface Usuario {
   activo: boolean
   persona: UsuarioPersona
   rol: UsuarioRol
+  institucion?: UsuarioInstitucionResumen | null
 }
 
 export interface UsuarioRequestDTO {
   // username ya no se envía: el backend lo genera automáticamente
   rolUuid: string
+  institucionUuid: string
   persona: {
     nombre: string
     apellidoPaterno: string
@@ -49,7 +57,7 @@ export const ROL_LABELS: Record<string, string> = {
   MEDICO: 'Médico',
   LABORATORISTA: 'Laboratorista',
   RECEPCIONISTA: 'Recepcionista',
-  PACIENTE: 'Paciente',
+  PACIENTE: 'Participante',
   ENCARGADO: 'Encargado de Almacén',
 }
 

@@ -68,8 +68,8 @@ export default function PacientesPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
-        title="Colaboradores"
-        subtitle="Registro de pacientes incluidos en la cohorte"
+        title="Participantes"
+        subtitle="Registro de participantes incluidos en la cohorte"
         actions={
           <>
             <Button
@@ -85,7 +85,7 @@ export default function PacientesPage() {
               className="gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px] h-9"
             >
               <UserRoundPlus className="h-4 w-4" strokeWidth={1.75} />
-              Registrar paciente
+              Registrar participante
             </Button>
           </>
         }
@@ -110,7 +110,7 @@ export default function PacientesPage() {
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--imss-ink-300)]">
             <UserRound className="h-3.5 w-3.5" strokeWidth={1.75} />
             <span>
-              {filtered.length} de {pacientesArray.length} paciente
+              {filtered.length} de {pacientesArray.length} participante
               {pacientesArray.length !== 1 ? 's' : ''}
             </span>
           </div>

@@ -1,3 +1,5 @@
+import type { SpringPage } from '@/types/api'
+
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
 export type TipoEventoAcceso = 'LOGIN' | 'LOGOUT' | 'LOGIN_FALLIDO'
@@ -47,15 +49,7 @@ export interface BitacoraAccionItem {
 
 // ── Paginación (Spring Page) ──────────────────────────────────────────────────
 
-export interface PageResponse<T> {
-  content:          T[]
-  totalElements:    number
-  totalPages:       number
-  number:           number   // página actual (0-indexed)
-  size:             number
-  first:            boolean
-  last:             boolean
-}
+export type PageResponse<T> = SpringPage<T>
 
 // ── Filtros ───────────────────────────────────────────────────────────────────
 

@@ -19,7 +19,7 @@ export function CoberturaBarras({ data, selectedId, onSelect, tipoWord }: Props)
           Cobertura por {tipoWord}
         </div>
         <div className="mt-0.5 text-[13px] font-medium text-foreground">
-          Pacientes con {tipoWord} registrado
+          Participantes con {tipoWord} registrado
         </div>
         <div className="mt-1 text-[12px] text-muted-foreground">
           Clic en una fila para ver quiénes faltan
