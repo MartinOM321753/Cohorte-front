@@ -20,17 +20,16 @@ const CatalogosPage    = lazy(() => import('@/features/catalogos/pages/Catalogos
 const ConfiguracionPage= lazy(() => import('@/features/configuracion/pages/ConfiguracionPage'))
 const CitasPage        = lazy(() => import('@/features/citas/pages/CitasPage'))
 const UsuariosPage     = lazy(() => import('@/features/usuarios/pages/UsuariosPage'))
+const InstitucionesPage= lazy(() => import('@/features/instituciones/pages/InstitucionesPage'))
 const PerfilPage       = lazy(() => import('@/features/perfil/pages/PerfilPage'))
-const BitacoraPage     = lazy(() => import('@/features/bitacora/pages/BitacoraPage'))
+const BitacoraAccesosPage  = lazy(() => import('@/features/bitacora/pages/BitacoraAccesosPage'))
+const BitacoraAccionesPage = lazy(() => import('@/features/bitacora/pages/BitacoraAccionesPage'))
 const EncargadoPage    = lazy(() => import('@/features/biobanco/pages/EncargadoPage'))
 const CoberturaPage    = lazy(() => import('@/features/cobertura/pages/CoberturaPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage     = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
-import type { UserRole } from '@/stores/authStore'
-
-/** Roles that belong to the main clinical/admin area (not ENCARGADO) */
-const CLINICAL_ROLES: UserRole[] = ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE']
+import { CLINICAL_ROLES, rolesFor } from '@/config/featureRoles'
 
 function LoadingFallback() {
   return (
@@ -82,7 +81,7 @@ export function AppRouter() {
           <Route
             path="/mis-muestras"
             element={
-              <ProtectedRoute requiredRoles={['ENCARGADO']}>
+              <ProtectedRoute requiredRoles={rolesFor('misMuestras')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <EncargadoPage />
                 </Suspense>
@@ -104,7 +103,7 @@ export function AppRouter() {
           <Route
             path="/pacientes"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'RECEPCIONISTA']}>
+              <ProtectedRoute requiredRoles={rolesFor('pacientes')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <PacientesPage />
                 </Suspense>
@@ -125,7 +124,7 @@ export function AppRouter() {
           <Route
             path="/estudios"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'RECEPCIONISTA']}>
+              <ProtectedRoute requiredRoles={rolesFor('estudios')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <EstudiosPage />
                 </Suspense>
@@ -135,7 +134,7 @@ export function AppRouter() {
           <Route
             path="/examenes"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO', 'LABORATORISTA']}>
+              <ProtectedRoute requiredRoles={rolesFor('examenes')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <ExamenesPage />
                 </Suspense>
@@ -145,7 +144,7 @@ export function AppRouter() {
           <Route
             path="/biobanco"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO']}>
+              <ProtectedRoute requiredRoles={rolesFor('biobanco')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <BiobancoPage />
                 </Suspense>
@@ -155,7 +154,7 @@ export function AppRouter() {
           <Route
             path="/citas"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA']}>
+              <ProtectedRoute requiredRoles={rolesFor('citas')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <CitasPage />
                 </Suspense>
@@ -165,7 +164,7 @@ export function AppRouter() {
           <Route
             path="/cobertura"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR', 'MEDICO']}>
+              <ProtectedRoute requiredRoles={rolesFor('cobertura')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <CoberturaPage />
                 </Suspense>
@@ -175,7 +174,7 @@ export function AppRouter() {
           <Route
             path="/catalogos"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+              <ProtectedRoute requiredRoles={rolesFor('catalogos')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <CatalogosPage />
                 </Suspense>
@@ -185,7 +184,7 @@ export function AppRouter() {
           <Route
             path="/configuracion"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+              <ProtectedRoute requiredRoles={rolesFor('configuracion')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <ConfiguracionPage />
                 </Suspense>
@@ -195,9 +194,19 @@ export function AppRouter() {
           <Route
             path="/usuarios"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+              <ProtectedRoute requiredRoles={rolesFor('usuarios')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <UsuariosPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/instituciones"
+            element={
+              <ProtectedRoute requiredRoles={rolesFor('instituciones')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <InstitucionesPage />
                 </Suspense>
               </ProtectedRoute>
             }
@@ -210,12 +219,23 @@ export function AppRouter() {
               </Suspense>
             }
           />
+          <Route path="/bitacora" element={<Navigate to="/bitacora/accesos" replace />} />
           <Route
-            path="/bitacora"
+            path="/bitacora/accesos"
             element={
-              <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+              <ProtectedRoute requiredRoles={rolesFor('bitacoraAccesos')}>
                 <Suspense fallback={<LoadingFallback />}>
-                  <BitacoraPage />
+                  <BitacoraAccesosPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bitacora/acciones"
+            element={
+              <ProtectedRoute requiredRoles={rolesFor('bitacoraAcciones')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <BitacoraAccionesPage />
                 </Suspense>
               </ProtectedRoute>
             }

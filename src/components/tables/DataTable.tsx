@@ -6,6 +6,7 @@ import {
   getSortedRowModel,
   type ColumnDef,
   type ColumnFiltersState,
+  type PaginationState,
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table'
@@ -20,24 +21,61 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   isLoading?: boolean
   pageSize?: number
+  /**
+   * Activa paginación server-side: la tabla deja de paginar localmente y delega
+   * el control de página al consumidor (p. ej. consumiendo un endpoint /paginado).
+   * Requiere `pagination`, `onPaginationChange` y `pageCount`.
+   */
+  manualPagination?: boolean
+  pagination?: PaginationState
+  onPaginationChange?: (pagination: PaginationState) => void
+  pageCount?: number
+  /** Total de registros reportado por el backend (paginación server-side). */
+  totalElements?: number
 }
 
-export function DataTable<TData, TValue>({ columns, data, isLoading = false, pageSize = 10 }: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  isLoading = false,
+  pageSize = 10,
+  manualPagination = false,
+  pagination,
+  onPaginationChange,
+  pageCount,
+  totalElements,
+}: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({ pageIndex: 0, pageSize })
+
+  const paginationState = manualPagination ? pagination ?? internalPagination : internalPagination
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    state: { sorting, columnFilters },
-    initialState: { pagination: { pageSize } },
+    manualPagination,
+    pageCount: manualPagination ? pageCount : undefined,
+    onPaginationChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(paginationState) : updater
+      if (manualPagination) {
+        onPaginationChange?.(next)
+      } else {
+        setInternalPagination(next)
+      }
+    },
+    state: { sorting, columnFilters, pagination: paginationState },
   })
+
+  const totalLabel = manualPagination && totalElements !== undefined
+    ? totalElements
+    : table.getFilteredRowModel().rows.length
 
   if (isLoading) {
     return (
@@ -94,7 +132,7 @@ export function DataTable<TData, TValue>({ columns, data, isLoading = false, pag
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="text-xs font-mono text-muted-foreground">{table.getFilteredRowModel().rows.length} registro(s)</div>
+        <div className="text-xs font-mono text-muted-foreground">{totalLabel} registro(s)</div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
             <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />

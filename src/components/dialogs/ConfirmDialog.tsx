@@ -52,7 +52,7 @@ export function ConfirmDialog({
               <div className="text-sm text-muted-foreground">
                 {usesPacienteCopy ? (
                   <>
-                    ¿Eliminar al paciente{' '}
+                    ¿Eliminar al participante{' '}
                     <span className="font-mono">{pacienteFolio}</span>
                     {' · '}
                     <span className="font-medium">{pacienteNombre}</span>? Esta

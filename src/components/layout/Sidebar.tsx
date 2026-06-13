@@ -4,6 +4,7 @@ import cohorteLogo from '../../assets/logo.png'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore, type UserRole } from '@/stores/authStore'
+import { rolesFor } from '@/config/featureRoles'
 import { Button } from '@/components/ui/button'
 import {
   CalendarDays,
@@ -13,9 +14,11 @@ import {
   ChevronUp,
   ClipboardList,
   Database,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Microscope,
+  Network,
   PieChart,
   Settings,
   Stethoscope,
@@ -33,67 +36,93 @@ interface NavItem {
   href: string
   icon: ElementType
   roles?: UserRole[]
+  /**
+   * Módulo del sistema (ver ModuloSistema en backend) que la institución del
+   * usuario debe tener habilitado para ver este ítem. Los ítems sin `modulo`
+   * (Inicio, Mi perfil, etc.) no están sujetos a esta puerta — sólo a roles.
+   */
+  modulo?: string
   group: 'Clínico' | 'Biobanco' | 'Sistema'
 }
 
 const navItems: NavItem[] = [
-  { label: 'Inicio', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE'], group: 'Clínico' },
-  { label: 'Colaboradores', href: '/pacientes', icon: UserRound, roles: ['ADMINISTRADOR', 'RECEPCIONISTA'], group: 'Clínico' },
-  { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, roles: ['ADMINISTRADOR', 'RECEPCIONISTA'], group: 'Clínico' },
+  { label: 'Inicio', href: '/dashboard', icon: LayoutDashboard, roles: rolesFor('dashboard'), group: 'Clínico' },
+  { label: 'Participantes', href: '/pacientes', icon: UserRound, roles: rolesFor('pacientes'), modulo: 'PARTICIPANTES', group: 'Clínico' },
+  { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, roles: rolesFor('estudios'), modulo: 'ESTUDIOS_MEDICOS', group: 'Clínico' },
   {
     label: 'Exámenes',
     href: '/examenes',
     icon: Microscope,
-    roles: ['ADMINISTRADOR', 'MEDICO', 'LABORATORISTA'],
+    roles: rolesFor('examenes'),
+    modulo: 'EXAMENES',
     group: 'Clínico',
   },
   {
     label: 'Citas',
     href: '/citas',
     icon: CalendarDays,
-    roles: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA'],
+    roles: rolesFor('citas'),
+    modulo: 'CITAS',
     group: 'Clínico',
   },
   {
     label: 'Cobertura',
     href: '/cobertura',
     icon: PieChart,
-    roles: ['ADMINISTRADOR', 'MEDICO'],
+    roles: rolesFor('cobertura'),
+    modulo: 'COBERTURA',
     group: 'Clínico',
   },
   {
     label: 'Biobanco',
     href: '/biobanco',
     icon: TestTube2,
-    roles: ['ADMINISTRADOR', 'MEDICO'],
+    roles: rolesFor('biobanco'),
+    modulo: 'BIOBANCO',
     group: 'Biobanco',
   },
   {
     label: 'Usuarios',
     href: '/usuarios',
     icon: UsersRound,
-    roles: ['ADMINISTRADOR'],
+    roles: rolesFor('usuarios'),
+    group: 'Sistema',
+  },
+  {
+    label: 'Instituciones',
+    href: '/instituciones',
+    icon: Network,
+    roles: rolesFor('instituciones'),
     group: 'Sistema',
   },
   {
     label: 'Catálogos',
     href: '/catalogos',
     icon: Database,
-    roles: ['ADMINISTRADOR'],
+    roles: rolesFor('catalogos'),
     group: 'Sistema',
   },
   {
-    label: 'Bitácora',
-    href: '/bitacora',
+    label: 'Bitácora Accesos',
+    href: '/bitacora/accesos',
+    icon: KeyRound,
+    roles: rolesFor('bitacoraAccesos'),
+    modulo: 'BITACORA_ACCESOS',
+    group: 'Sistema',
+  },
+  {
+    label: 'Bitácora Acciones',
+    href: '/bitacora/acciones',
     icon: ClipboardList,
-    roles: ['ADMINISTRADOR'],
+    roles: rolesFor('bitacoraAcciones'),
+    modulo: 'BITACORA_ACCIONES',
     group: 'Sistema',
   },
   {
     label: 'Configuración',
     href: '/configuracion',
     icon: Settings,
-    roles: ['ADMINISTRADOR'],
+    roles: rolesFor('configuracion'),
     group: 'Sistema',
   },
   {
@@ -212,7 +241,7 @@ function EncargadoAlmacenesSection({ uuid, collapsed }: { uuid: string; collapse
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
-  const { user, logout, hasRole } = useAuthStore()
+  const { user, logout, hasRole, modulosHabilitados } = useAuthStore()
   const isEncargado = hasRole('ENCARGADO')
 
   const userRoleLabel = useMemo(() => {
@@ -225,11 +254,17 @@ export function Sidebar() {
 
   const filteredNavItems = useMemo(() => {
     return navItems.filter((item) => {
-      if (!item.roles) return true
-      if (!user) return false
-      return hasRole(item.roles)
+      if (item.roles) {
+        if (!user) return false
+        if (!hasRole(item.roles)) return false
+      }
+      // Usa `modulosHabilitados` (el array primitivo) como dep para que el useMemo
+      // se recalcule cuando lleguen los módulos del servidor tras el login.
+      // `hasModulo` es una referencia estable que nunca cambia — no sirve como dep.
+      if (item.modulo && !modulosHabilitados.includes(item.modulo)) return false
+      return true
     })
-  }, [hasRole, user])
+  }, [modulosHabilitados, hasRole, user])
 
   const groupedNavItems = useMemo(() => {
     return filteredNavItems.reduce<Record<NavItem['group'], NavItem[]>>(
@@ -355,7 +390,10 @@ export function Sidebar() {
               <div className="truncate text-[13px] font-medium" style={{ color: 'var(--sidebar-fg)' }}>
                 {user.nombreCompleto || user.username}
               </div>
-              <div className="truncate text-[11px]" style={{ color: 'var(--sidebar-muted)' }}>{userRoleLabel}</div>
+              <div className="truncate text-[11px]" style={{ color: 'var(--sidebar-muted)' }}>
+                {userRoleLabel}
+                {user.institucion?.nombre ? ` · ${user.institucion.nombre}` : ''}
+              </div>
             </div>
             <Button
               variant="ghost"

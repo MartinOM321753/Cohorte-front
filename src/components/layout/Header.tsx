@@ -14,7 +14,7 @@ import {
 
 const routeLabels: Record<string, string> = {
   dashboard: 'Inicio',
-  pacientes: 'Colaboradores',
+  pacientes: 'Participantes',
   estudios: 'Estudios médicos',
   citas: 'Citas',
   biobanco: 'Biobanco',
@@ -76,7 +76,7 @@ export function Header() {
   const commandItems = useMemo(
     () => [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Pacientes', href: '/pacientes', icon: UserRound },
+      { label: 'Participantes', href: '/pacientes', icon: UserRound },
       { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope },
       { label: 'Citas', href: '/citas', icon: CalendarDays },
       { label: 'Biobanco', href: '/biobanco', icon: TestTube2 },
@@ -115,7 +115,7 @@ export function Header() {
           aria-label="Buscar"
         >
           <Search className="h-3.5 w-3.5" strokeWidth={1.75} />
-          <span className="flex-1 truncate">Buscar paciente, folio, estudio…</span>
+          <span className="flex-1 truncate">Buscar participante, folio, estudio…</span>
           <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
             Ctrl K
           </kbd>
@@ -132,7 +132,7 @@ export function Header() {
         className="sm:max-w-[560px]"
         showCloseButton={false}
       >
-        <CommandInput placeholder="Buscar paciente, folio, estudio…" />
+        <CommandInput placeholder="Buscar participante, folio, estudio…" />
         <CommandList>
           <CommandEmpty>No hay resultados.</CommandEmpty>
           <CommandGroup heading="Navegación">
