@@ -1,0 +1,140 @@
+import api from '@/lib/axiosInstance'
+import {
+  ApiResponse,
+  Institucion,
+  InstitucionRequestDTO,
+  InstitucionPaginadoResponse,
+  InstitucionModuloPermiso,
+  ModuloSistema,
+  TipoInstitucionCatalogo,
+  TipoInstitucionRequestDTO,
+} from '@/types/api'
+
+const BASE = '/instituciones'
+const TIPOS_BASE = '/catalogos/tipos-institucion'
+
+// ============================================
+// CATÁLOGO DE TIPOS DE INSTITUCIÓN (para el select del formulario y su administración)
+// ============================================
+
+export async function getTiposInstitucionActivas() {
+  const response = await api.get<ApiResponse<TipoInstitucionCatalogo[]>>(TIPOS_BASE)
+  return response.data.data
+}
+
+/** Lista completa de tipos (activos e inactivos) — sólo para la pantalla de administración. */
+export async function getTiposInstitucionTodas() {
+  const response = await api.get<ApiResponse<TipoInstitucionCatalogo[]>>(`${TIPOS_BASE}/todas`)
+  return response.data.data
+}
+
+export async function createTipoInstitucion(data: TipoInstitucionRequestDTO) {
+  const response = await api.post<ApiResponse<TipoInstitucionCatalogo>>(TIPOS_BASE, data)
+  return response.data.data
+}
+
+export async function updateTipoInstitucion(id: number, data: TipoInstitucionRequestDTO) {
+  const response = await api.put<ApiResponse<TipoInstitucionCatalogo>>(`${TIPOS_BASE}/${id}`, data)
+  return response.data.data
+}
+
+export async function toggleTipoInstitucion(id: number) {
+  const response = await api.patch<ApiResponse<TipoInstitucionCatalogo>>(`${TIPOS_BASE}/${id}/toggle`)
+  return response.data.data
+}
+
+// ============================================
+// CATÁLOGO DE INSTITUCIONES
+// ============================================
+
+export async function getInstitucionesGestionables(): Promise<number[]> {
+  const response = await api.get<ApiResponse<number[]>>(`${BASE}/gestionables`)
+  return response.data.data
+}
+
+export async function getInstitucionesPaginado(page = 0, size = 10) {
+  const response = await api.get<ApiResponse<InstitucionPaginadoResponse>>(`${BASE}/paginado`, {
+    params: { page, size },
+  })
+  return response.data.data
+}
+
+export async function searchInstituciones(q: string, soloActivas = true, page = 0, size = 10) {
+  const response = await api.get<ApiResponse<InstitucionPaginadoResponse>>(`${BASE}/buscar`, {
+    params: { q, soloActivas, page, size },
+  })
+  return response.data.data
+}
+
+export async function getInstitucionesActivas() {
+  const response = await api.get<ApiResponse<Institucion[]>>(`${BASE}/activas`)
+  return response.data.data
+}
+
+export async function getInstitucionesRaices() {
+  const response = await api.get<ApiResponse<Institucion[]>>(`${BASE}/raices`)
+  return response.data.data
+}
+
+export async function getInstitucionesHijas(id: number) {
+  const response = await api.get<ApiResponse<Institucion[]>>(`${BASE}/${id}/hijas`)
+  return response.data.data
+}
+
+export async function getInstitucionById(id: number) {
+  const response = await api.get<ApiResponse<Institucion>>(`${BASE}/${id}`)
+  return response.data.data
+}
+
+export async function getInstitucionByUuid(uuid: string) {
+  const response = await api.get<ApiResponse<Institucion>>(`${BASE}/uuid/${uuid}`)
+  return response.data.data
+}
+
+export async function createInstitucion(data: InstitucionRequestDTO) {
+  const response = await api.post<ApiResponse<Institucion>>(BASE, data)
+  return response.data.data
+}
+
+export async function updateInstitucion(id: number, data: InstitucionRequestDTO) {
+  const response = await api.put<ApiResponse<Institucion>>(`${BASE}/${id}`, data)
+  return response.data.data
+}
+
+export async function toggleInstitucion(id: number) {
+  const response = await api.patch<ApiResponse<Institucion>>(`${BASE}/${id}/toggle`)
+  return response.data.data
+}
+
+// ============================================
+// MÓDULOS HABILITADOS DE LA INSTITUCIÓN ACTUAL
+// ============================================
+
+/** Devuelve los nombres de los módulos del sistema habilitados para la institución del usuario autenticado. */
+export async function getModulosHabilitadosActual() {
+  const response = await api.get<ApiResponse<string[]>>(`${BASE}/actual/modulos`)
+  return response.data.data
+}
+
+// ============================================
+// PERMISOS DE MÓDULO POR INSTITUCIÓN (estilo ERP — gestionados por la institución ancestra)
+// ============================================
+
+/** Lista los permisos de módulo (otorgados o revocados, con auditoría) de una institución. */
+export async function getModulosDeInstitucion(idInstitucion: number) {
+  const response = await api.get<ApiResponse<InstitucionModuloPermiso[]>>(`${BASE}/${idInstitucion}/modulos`)
+  return response.data.data
+}
+
+/**
+ * Otorga o revoca el acceso de una institución a un módulo del sistema.
+ * `idOtorgante` debe ser una institución ancestra (padre directo o de nivel superior) de `idInstitucion`
+ * — el backend valida la jerarquía y rechaza la operación si no se cumple.
+ */
+export async function otorgarModuloInstitucion(
+  idInstitucion: number,
+  data: { modulo: ModuloSistema; habilitado: boolean; idOtorgante: number },
+) {
+  const response = await api.put<ApiResponse<InstitucionModuloPermiso>>(`${BASE}/${idInstitucion}/modulos`, data)
+  return response.data.data
+}
