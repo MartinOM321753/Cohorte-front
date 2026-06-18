@@ -608,6 +608,10 @@ export interface MuestraDetalleDTO {
   alicuotasGeneradas?: number | null
   /** Estado actual de la muestra en el biobanco */
   estadoMuestra?: EstadoMuestra | null
+  idInstitucion?: number
+  nombreInstitucion?: string
+  idInstitucionActual?: number
+  nombreInstitucionActual?: string
 }
 
 // ============================================
@@ -696,6 +700,7 @@ export interface EstudioMuestraResponse {
   unidadConsumida?: string | null
   resultados: ResultadoEstudioMuestraResponse[]
   cantidadResultados: number
+  idInstitucionCreadora?: number | null
 }
 
 export interface HistorialCambioMuestraResponse {
@@ -737,6 +742,7 @@ export interface Refrigerador {
   modelo: string
   pisos: PisoRefrigerador[]
   activo: boolean
+  totalPisos: number
 }
 
 export interface RefrigeradorRequestDTO {
@@ -986,6 +992,7 @@ export interface TrasladoMuestra {
     unidad: string
     estadoMuestra?: EstadoMuestra | null
     esAlicuota?: boolean
+    posicionLabel?: string | null
   }
   institucionOrigen: InstitucionTrasladoResumen
   institucionDestino: InstitucionTrasladoResumen
@@ -1014,6 +1021,7 @@ export interface DevolucionRequestDTO {
 
 export interface ConfirmarRecepcionRequestDTO {
   uuidConfirma: string
+  idPosicionCaja?: number
 }
 
 export interface CancelarPrestamoRequestDTO {
@@ -1024,6 +1032,19 @@ export interface CancelarPrestamoRequestDTO {
 export interface IniciarDevolucionRequestDTO {
   uuidInicia: string
   observaciones?: string
+  idsAlicuotasDevolver?: number[]
+}
+
+export interface GenerarAlicuotasRequest {
+  idTipoMuestra: number
+  idTuboMuestra: number
+}
+
+export interface MuestraTipoInstitucionResponse {
+  id: number
+  tipoMuestra: TipoMuestraResumen
+  tuboMuestra: TuboMuestraResumen
+  nombreInstitucion: string
 }
 
 // ============================================
@@ -1088,4 +1109,65 @@ export interface SpringPage<T> {
   size: number
   first: boolean
   last: boolean
+}
+
+// ============================================
+// CONFIGURACIÓN DE ETIQUETAS (IMPRESIÓN)
+// ============================================
+export type TipoCodigo = 'DATAMATRIX' | 'CODE_128' | 'QR_CODE'
+export type DisposicionEtiqueta = 'NOMBRE_CODIGO_ETIQUETA' | 'CODIGO_NOMBRE_ETIQUETA' | 'CODIGO_ETIQUETA' | 'NOMBRE_ETIQUETA_CODIGO'
+
+export interface ConfiguracionEtiquetaResponse {
+  id: number
+  nombre: string
+  predeterminada: boolean
+  anchoMm: number
+  altoMm: number
+  dpi: number
+  etiquetasPorFila: number
+  margenIzquierdoMm: number
+  margenSuperiorMm: number
+  tipoCodigo: TipoCodigo
+  moduloCodigo: number
+  tamanoFuenteNombre: number
+  tamanoFuenteEtiqueta: number
+  espaciadoNombre: number
+  espaciadoCodigo: number
+  espaciadoEtiqueta: number
+  mostrarNombre: boolean
+  mostrarCodigo: boolean
+  mostrarEtiqueta: boolean
+  disposicion: DisposicionEtiqueta
+  activo: boolean
+  fechaCreacion: string
+  fechaActualizacion: string
+  anchoDots: number
+  altoDots: number
+}
+
+export interface ConfiguracionEtiquetaRequest {
+  nombre: string
+  predeterminada?: boolean
+  anchoMm: number
+  altoMm: number
+  dpi: number
+  etiquetasPorFila: number
+  margenIzquierdoMm: number
+  margenSuperiorMm: number
+  tipoCodigo: TipoCodigo
+  moduloCodigo: number
+  tamanoFuenteNombre: number
+  tamanoFuenteEtiqueta: number
+  espaciadoNombre: number
+  espaciadoCodigo: number
+  espaciadoEtiqueta: number
+  mostrarNombre: boolean
+  mostrarCodigo: boolean
+  mostrarEtiqueta: boolean
+  disposicion: DisposicionEtiqueta
+}
+
+export interface OpcionesEtiqueta {
+  tiposCodigo: TipoCodigo[]
+  disposiciones: DisposicionEtiqueta[]
 }
