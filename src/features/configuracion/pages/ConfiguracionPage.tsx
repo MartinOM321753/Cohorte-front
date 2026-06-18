@@ -24,6 +24,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { AlertCircle, Pencil, Plus, PowerOff, Power } from 'lucide-react'
+import EtiquetasConfigPanel from '../components/EtiquetasConfigPanel'
 import { useGetAllUnidades, useCreateUnidad, useUpdateUnidad, useToggleUnidad } from '@/features/catalogos/hooks/useUnidades'
 import { UnidadMedida } from '@/types/api'
 
@@ -285,6 +286,11 @@ export default function ConfiguracionPage() {
 
         {/* ── Unidades de medida ── */}
         <UnidadesPanel />
+
+        <Separator />
+
+        {/* ── Configuración de etiquetas ── */}
+        <EtiquetasConfigPanel />
 
         <Separator />
 
