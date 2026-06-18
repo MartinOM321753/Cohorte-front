@@ -18,6 +18,8 @@ import {
   DevolucionRequestDTO,
   ConfirmarRecepcionRequestDTO,
   IniciarDevolucionRequestDTO,
+  GenerarAlicuotasRequest,
+  MuestraTipoInstitucionResponse,
   CancelarPrestamoRequestDTO,
   SpringPage,
   TipoMuestra,
@@ -323,6 +325,24 @@ export async function cancelarPrestamo(idTraslado: number, data: CancelarPrestam
   return response.data.data
 }
 
+/** Alícuotas de la muestra padre del traslado que están en la institución destino */
+export async function getAlicuotasEnDestino(idTraslado: number) {
+  const response = await api.get<ApiResponse<MuestraDetalleDTO[]>>(`/almacenamiento/traslados/${idTraslado}/alicuotas-en-destino`)
+  return response.data.data
+}
+
+/** Generar alícuotas en institución receptora */
+export async function generarAlicuotasEnReceptora(idMuestra: number, data: GenerarAlicuotasRequest) {
+  const response = await api.post<ApiResponse<MuestraDetalleDTO[]>>(`/almacenamiento/muestras/${idMuestra}/generar-alicuotas`, data)
+  return response.data.data
+}
+
+/** Obtener tipo+tubo asignado por mi institución a una muestra recibida */
+export async function getTipoInstitucion(idMuestra: number) {
+  const response = await api.get<ApiResponse<MuestraTipoInstitucionResponse | null>>(`/almacenamiento/muestras/${idMuestra}/tipo-institucion`)
+  return response.data.data
+}
+
 export async function getUsuariosByRol(roleName: string) {
   const response = await api.get<ApiResponse<Usuario[]>>(`/users/rol/${roleName}`)
   return response.data.data
@@ -470,5 +490,56 @@ export async function deleteEstudioMuestra(id: number) {
 
 export async function getHistorialMuestra(idMuestra: number) {
   const response = await api.get<ApiResponse<HistorialCambioMuestraResponse[]>>(`/muestras/${idMuestra}/historial`)
+  return response.data.data
+}
+
+// ============================================
+// IMPRESIÓN ZPL (Zebra)
+// ============================================
+
+export async function getZplEtiqueta(idMuestra: number, configuracionId?: number): Promise<string> {
+  const response = await api.get<ApiResponse<string>>(`/almacenamiento/muestras/${idMuestra}/etiqueta/zpl`, {
+    params: configuracionId ? { configuracionId } : undefined,
+  })
+  return response.data.data
+}
+
+export async function getZplAlicuotas(idMuestraPadre: number, configuracionId?: number): Promise<string[]> {
+  const response = await api.get<ApiResponse<string[]>>(`/almacenamiento/muestras/${idMuestraPadre}/alicuotas/etiquetas/zpl`, {
+    params: configuracionId ? { configuracionId } : undefined,
+  })
+  return response.data.data
+}
+
+export async function listarImpresoras(): Promise<string[]> {
+  const response = await api.get<ApiResponse<string[]>>('/almacenamiento/muestras/impresoras')
+  return response.data.data
+}
+
+export async function imprimirEtiqueta(idMuestra: number, impresora: string, configuracionId?: number): Promise<void> {
+  const params: Record<string, string | number> = { impresora }
+  if (configuracionId) params.configuracionId = configuracionId
+  await api.post(`/almacenamiento/muestras/${idMuestra}/etiqueta/imprimir`, null, { params })
+}
+
+export async function imprimirAlicuotas(idMuestraPadre: number, impresora: string, configuracionId?: number): Promise<number> {
+  const params: Record<string, string | number> = { impresora }
+  if (configuracionId) params.configuracionId = configuracionId
+  const response = await api.post<ApiResponse<number>>(
+    `/almacenamiento/muestras/${idMuestraPadre}/alicuotas/etiquetas/imprimir`,
+    null,
+    { params }
+  )
+  return response.data.data
+}
+
+export async function imprimirLoteCompleto(idMuestraPadre: number, impresora: string, configuracionId?: number): Promise<number> {
+  const params: Record<string, string | number> = { impresora }
+  if (configuracionId) params.configuracionId = configuracionId
+  const response = await api.post<ApiResponse<number>>(
+    `/almacenamiento/muestras/${idMuestraPadre}/lote-completo/imprimir`,
+    null,
+    { params }
+  )
   return response.data.data
 }

@@ -43,6 +43,9 @@ import {
   iniciarDevolucion,
   confirmarDevolucion,
   cancelarPrestamo,
+  getAlicuotasEnDestino,
+  generarAlicuotasEnReceptora,
+  getTipoInstitucion,
   getUsuariosByRol,
   getTiposMuestra,
   getTiposMuestraActivos,
@@ -52,6 +55,12 @@ import {
   addTuboMuestra,
   updateTuboMuestra,
   deleteTuboMuestra,
+  getZplEtiqueta,
+  getZplAlicuotas,
+  listarImpresoras,
+  imprimirEtiqueta,
+  imprimirAlicuotas,
+  imprimirLoteCompleto,
 } from '../api/biobanco.api'
 import {
   RefrigeradorRequestDTO,
@@ -66,6 +75,7 @@ import {
   ConfirmarRecepcionRequestDTO,
   IniciarDevolucionRequestDTO,
   CancelarPrestamoRequestDTO,
+  GenerarAlicuotasRequest,
   TipoMuestraRequestDTO,
   TuboMuestraRequestDTO,
 } from '@/types/api'
@@ -516,6 +526,7 @@ export function useAsignarPosicionMuestra() {
       queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       queryClient.invalidateQueries({ queryKey: ['posiciones'] })
       queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados'] })
       toast.success('Posición asignada exitosamente')
     },
     onError: (error: any) => {
@@ -692,6 +703,44 @@ export function useGetUsuariosByRol(roleName: string, options?: { enabled?: bool
   })
 }
 
+// ============================================
+// HOOKS PARA PRÉSTAMOS — RECEPCIÓN/DEVOLUCIÓN EXTENDIDOS
+// ============================================
+
+export function useGetAlicuotasEnDestino(idTraslado: number, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['alicuotas-en-destino', idTraslado],
+    queryFn: () => getAlicuotasEnDestino(idTraslado),
+    enabled: (options?.enabled ?? true) && !!idTraslado,
+  })
+}
+
+export function useGenerarAlicuotasEnReceptora() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ idMuestra, data }: { idMuestra: number; data: GenerarAlicuotasRequest }) =>
+      generarAlicuotasEnReceptora(idMuestra, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+      toast.success('Alícuotas generadas exitosamente.')
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Error al generar alícuotas'
+      toast.error(message)
+    },
+  })
+}
+
+export function useGetTipoInstitucion(idMuestra: number, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['tipo-institucion', idMuestra],
+    queryFn: () => getTipoInstitucion(idMuestra),
+    enabled: (options?.enabled ?? true) && !!idMuestra,
+  })
+}
+
 /**
  * @deprecated El rol ENCARGADO ya no está vinculado a almacenes específicos.
  * Retorna siempre una lista vacía. Mantenido por compatibilidad con Sidebar.
@@ -811,6 +860,66 @@ export function useDeleteTuboMuestra() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al eliminar el tubo')
+    },
+  })
+}
+
+// ============================================
+// HOOKS PARA IMPRESIÓN ZPL (Zebra)
+// ============================================
+
+export function useGetZplEtiqueta() {
+  return useMutation({
+    mutationFn: (idMuestra: number) => getZplEtiqueta(idMuestra),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al generar etiqueta ZPL')
+    },
+  })
+}
+
+export function useGetZplAlicuotas() {
+  return useMutation({
+    mutationFn: (idMuestraPadre: number) => getZplAlicuotas(idMuestraPadre),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al generar etiquetas ZPL')
+    },
+  })
+}
+
+export function useListarImpresoras() {
+  return useQuery({
+    queryKey: ['impresoras'],
+    queryFn: listarImpresoras,
+    staleTime: 30000,
+  })
+}
+
+export function useImprimirEtiqueta() {
+  return useMutation({
+    mutationFn: ({ idMuestra, impresora, configuracionId }: { idMuestra: number; impresora: string; configuracionId?: number }) =>
+      imprimirEtiqueta(idMuestra, impresora, configuracionId),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al imprimir etiqueta')
+    },
+  })
+}
+
+export function useImprimirAlicuotas() {
+  return useMutation({
+    mutationFn: ({ idMuestraPadre, impresora, configuracionId }: { idMuestraPadre: number; impresora: string; configuracionId?: number }) =>
+      imprimirAlicuotas(idMuestraPadre, impresora, configuracionId),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al imprimir etiquetas')
+    },
+  })
+}
+
+export function useImprimirLoteCompleto() {
+  return useMutation({
+    mutationFn: ({ idMuestraPadre, impresora, configuracionId }: { idMuestraPadre: number; impresora: string; configuracionId?: number }) =>
+      imprimirLoteCompleto(idMuestraPadre, impresora, configuracionId),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al imprimir lote')
     },
   })
 }
