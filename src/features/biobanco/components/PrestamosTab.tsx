@@ -2,21 +2,25 @@ import { useState } from 'react'
 import {
   ArrowRightFromLine, ArrowLeftFromLine, Building2, ArrowRight,
   AlertCircle, PackageCheck, RotateCcw, CheckCircle2, Clock,
-  RefreshCw, FlaskConical, XCircle,
+  RefreshCw, FlaskConical, XCircle, MapPin,
 } from 'lucide-react'
 import {
   useGetAllTraslados,
   useConfirmarRecepcion,
   useIniciarDevolucion,
   useConfirmarDevolucion,
+  useGetAlicuotasEnDestino,
+  useAsignarPosicionMuestra,
 } from '../hooks/useBiobanco'
+import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TrasladoMuestra } from '@/types/api'
+import { TrasladoMuestra, MuestraDetalleDTO } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDate } from '@/lib/utils'
 
@@ -60,9 +64,20 @@ interface PrestamoCardProps {
   onConfirmAction: () => void
   onCancelAction: () => void
   isPending: boolean
+  // Recepción con posición
+  posicionCajaId: number | null
+  posicionLabel: string
+  onOpenPosicionModal: () => void
+  onClearPosicion: () => void
+  // Devolución con alícuotas
+  alicuotasEnDestino: MuestraDetalleDTO[]
+  selectedAlicuotaIds: Set<number>
+  onToggleAlicuota: (id: number) => void
+  onSelectAllAlicuotas: () => void
+  onDeselectAllAlicuotas: () => void
 }
 
-type ActionType = 'recepcion' | 'devolucion' | 'confirmar-devolucion'
+type ActionType = 'recepcion' | 'devolucion' | 'confirmar-devolucion' | 'asignar-posicion'
 
 function PrestamoCard({
   traslado,
@@ -75,6 +90,15 @@ function PrestamoCard({
   onConfirmAction,
   onCancelAction,
   isPending,
+  posicionCajaId,
+  posicionLabel,
+  onOpenPosicionModal,
+  onClearPosicion,
+  alicuotasEnDestino,
+  selectedAlicuotaIds,
+  onToggleAlicuota,
+  onSelectAllAlicuotas,
+  onDeselectAllAlicuotas,
 }: PrestamoCardProps) {
   const badge = estadoBadge(traslado.estado)
   const isOrigen  = traslado.institucionOrigen.id  === myInstitucionId
@@ -143,6 +167,15 @@ function PrestamoCard({
           </div>
         )}
 
+        {/* Posición asignada */}
+        {traslado.muestra.posicionLabel && (
+          <div className="flex items-center gap-1.5 text-xs">
+            <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+            <span className="font-medium text-foreground">Posición:</span>{' '}
+            <Badge variant="outline" className="text-[10px]">{traslado.muestra.posicionLabel}</Badge>
+          </div>
+        )}
+
         {/* Botones de acción */}
         {!isActionTarget && (
           <div className="flex flex-wrap gap-2 pt-1">
@@ -156,13 +189,22 @@ function PrestamoCard({
               </Button>
             )}
             {traslado.estado === 'RECIBIDA' && isDestino && (
-              <Button
-                size="sm" variant="outline" className="h-7 text-xs"
-                onClick={() => onAction(traslado.id, 'devolucion')}
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Iniciar devolución
-              </Button>
+              <>
+                <Button
+                  size="sm" variant="outline" className="h-7 text-xs"
+                  onClick={() => onAction(traslado.id, 'asignar-posicion')}
+                >
+                  <MapPin className="h-3 w-3 mr-1" />
+                  {traslado.muestra.posicionLabel ? 'Actualizar posición' : 'Asignar posición'}
+                </Button>
+                <Button
+                  size="sm" variant="outline" className="h-7 text-xs"
+                  onClick={() => onAction(traslado.id, 'devolucion')}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Iniciar devolución
+                </Button>
+              </>
             )}
             {traslado.estado === 'EN_DEVOLUCION' && isOrigen && (
               <Button
@@ -182,11 +224,89 @@ function PrestamoCard({
             <p className="text-xs font-medium">
               {actionType === 'recepcion'
                 ? '¿Confirmar que la muestra fue recibida físicamente?'
+                : actionType === 'asignar-posicion'
+                ? 'Asignar posición en caja a la muestra recibida'
                 : actionType === 'devolucion'
                 ? 'Iniciar proceso de devolución'
                 : 'Confirmar retorno físico de la muestra'}
             </p>
-            {actionType !== 'recepcion' && (
+
+            {/* Asignar posición post-recepción */}
+            {actionType === 'asignar-posicion' && (
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  Selecciona la posición en caja
+                </Label>
+                {posicionCajaId ? (
+                  <div className="flex items-center gap-2 text-xs">
+                    <Badge variant="outline" className="text-xs">{posicionLabel}</Badge>
+                    <Button size="sm" variant="ghost" className="h-5 text-[10px] px-1" onClick={onClearPosicion}>
+                      Cambiar
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onOpenPosicionModal}>
+                    <MapPin className="h-3 w-3 mr-1" />
+                    Seleccionar posición en caja
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Recepción: selector de posición opcional */}
+            {actionType === 'recepcion' && (
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  Asignar posición (opcional)
+                </Label>
+                {posicionCajaId ? (
+                  <div className="flex items-center gap-2 text-xs">
+                    <Badge variant="outline" className="text-xs">{posicionLabel}</Badge>
+                    <Button size="sm" variant="ghost" className="h-5 text-[10px] px-1" onClick={onClearPosicion}>
+                      Quitar
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onOpenPosicionModal}>
+                    <MapPin className="h-3 w-3 mr-1" />
+                    Seleccionar posición en caja
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Devolución: selección de alícuotas */}
+            {actionType === 'devolucion' && alicuotasEnDestino.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs">Alícuotas a devolver junto con la muestra padre</Label>
+                <div className="flex gap-2 mb-1">
+                  <Button size="sm" variant="ghost" className="h-5 text-[10px] px-1" onClick={onSelectAllAlicuotas}>
+                    Todas
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-5 text-[10px] px-1" onClick={onDeselectAllAlicuotas}>
+                    Ninguna
+                  </Button>
+                </div>
+                <div className="max-h-32 overflow-y-auto space-y-1 rounded border p-2">
+                  {alicuotasEnDestino.map((ali) => (
+                    <label key={ali.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5">
+                      <Checkbox
+                        checked={selectedAlicuotaIds.has(ali.id)}
+                        onCheckedChange={() => onToggleAlicuota(ali.id)}
+                      />
+                      <span className="font-mono">{ali.etiqueta}</span>
+                      <span className="text-muted-foreground">
+                        {ali.estadoMuestra === 'EN_BIOBANCO' ? 'En biobanco' : 'Sin posición'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {actionType !== 'recepcion' && actionType !== 'asignar-posicion' && (
               <div className="space-y-1">
                 <Label className="text-xs">Observaciones (opcional)</Label>
                 <Textarea
@@ -222,22 +342,40 @@ export function PrestamosTab() {
   const [actionType, setActionType]             = useState<ActionType | null>(null)
   const [obsText, setObsText]                   = useState('')
 
+  // Recepción: posición opcional
+  const [posicionCajaId, setPosicionCajaId]   = useState<number | null>(null)
+  const [posicionLabel, setPosicionLabel]       = useState('')
+  const [showPosicionModal, setShowPosicionModal] = useState(false)
+
+  // Devolución: alícuotas
+  const [selectedAlicuotaIds, setSelectedAlicuotaIds] = useState<Set<number>>(new Set())
+
   const { data: traslados = [], isLoading, refetch } = useGetAllTraslados()
   const confirmarRecepcionMutation  = useConfirmarRecepcion()
   const iniciarDevolucionMutation   = useIniciarDevolucion()
   const confirmarDevolucionMutation = useConfirmarDevolucion()
+  const asignarPosicionMutation     = useAsignarPosicionMuestra()
+
+  const { data: alicuotasEnDestino = [] } = useGetAlicuotasEnDestino(
+    actionTrasladoId ?? 0,
+    { enabled: actionType === 'devolucion' && !!actionTrasladoId }
+  )
 
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
 
   const isPending =
     confirmarRecepcionMutation.isPending ||
     iniciarDevolucionMutation.isPending ||
-    confirmarDevolucionMutation.isPending
+    confirmarDevolucionMutation.isPending ||
+    asignarPosicionMutation.isPending
 
   const handleAction = (id: number, type: ActionType) => {
     setActionTrasladoId(id)
     setActionType(type)
     setObsText('')
+    setPosicionCajaId(null)
+    setPosicionLabel('')
+    setSelectedAlicuotaIds(new Set())
   }
 
   const handleConfirmAction = async () => {
@@ -246,12 +384,28 @@ export function PrestamosTab() {
       if (actionType === 'recepcion') {
         await confirmarRecepcionMutation.mutateAsync({
           idTraslado: actionTrasladoId,
-          data: { uuidConfirma: userUuid },
+          data: {
+            uuidConfirma: userUuid,
+            idPosicionCaja: posicionCajaId ?? undefined,
+          },
         })
       } else if (actionType === 'devolucion') {
+        const idsDevolver = selectedAlicuotaIds.size > 0 ? Array.from(selectedAlicuotaIds) : undefined
         await iniciarDevolucionMutation.mutateAsync({
           idTraslado: actionTrasladoId,
-          data: { uuidInicia: userUuid, observaciones: obsText || undefined },
+          data: {
+            uuidInicia: userUuid,
+            observaciones: obsText || undefined,
+            idsAlicuotasDevolver: idsDevolver,
+          },
+        })
+      } else if (actionType === 'asignar-posicion') {
+        if (!posicionCajaId) return
+        const traslado = traslados.find((t) => t.id === actionTrasladoId)
+        if (!traslado) return
+        await asignarPosicionMutation.mutateAsync({
+          id: traslado.muestra.id,
+          data: { idPosicionCaja: posicionCajaId },
         })
       } else if (actionType === 'confirmar-devolucion') {
         await confirmarDevolucionMutation.mutateAsync({
@@ -267,6 +421,17 @@ export function PrestamosTab() {
     setActionTrasladoId(null)
     setActionType(null)
     setObsText('')
+    setPosicionCajaId(null)
+    setPosicionLabel('')
+    setSelectedAlicuotaIds(new Set())
+  }
+
+  const toggleAlicuota = (id: number) => {
+    setSelectedAlicuotaIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
   // Clasificar préstamos
@@ -293,6 +458,15 @@ export function PrestamosTab() {
     onConfirmAction: handleConfirmAction,
     onCancelAction: handleCancelAction,
     isPending,
+    posicionCajaId,
+    posicionLabel,
+    onOpenPosicionModal: () => setShowPosicionModal(true),
+    onClearPosicion: () => { setPosicionCajaId(null); setPosicionLabel('') },
+    alicuotasEnDestino,
+    selectedAlicuotaIds,
+    onToggleAlicuota: toggleAlicuota,
+    onSelectAllAlicuotas: () => setSelectedAlicuotaIds(new Set(alicuotasEnDestino.map((a) => a.id))),
+    onDeselectAllAlicuotas: () => setSelectedAlicuotaIds(new Set()),
   })
 
   return (
@@ -379,6 +553,15 @@ export function PrestamosTab() {
           )}
         </TabsContent>
       </Tabs>
+
+      <SeleccionPosicionCajaModal
+        open={showPosicionModal}
+        onOpenChange={setShowPosicionModal}
+        onConfirm={({ idPosicionCaja, cajaLabel }) => {
+          setPosicionCajaId(idPosicionCaja)
+          setPosicionLabel(cajaLabel)
+        }}
+      />
     </div>
   )
 }
