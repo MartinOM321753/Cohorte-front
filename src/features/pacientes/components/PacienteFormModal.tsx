@@ -310,7 +310,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 id="folio"
                 {...register('folio')}
                 sanitize="folio"
-                placeholder="Déjelo en blanco para generarlo automáticamente (ej. COH-26-00001)"
+                placeholder="Déjelo en blanco para generarlo automáticamente (ej. C-012600001)"
                 className="h-9 font-mono text-[13px] uppercase placeholder:normal-case placeholder:font-sans"
                 style={{ textTransform: 'uppercase' }}
                 onInput={(e) => {
