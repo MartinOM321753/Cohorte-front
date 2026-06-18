@@ -132,8 +132,7 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
   const almacenesActivos = almacenes.filter((a) => a.activo)
 
   return (
-    <Card>
-      <CardContent className="pt-4 space-y-3">
+    <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Nombre <span className="text-destructive">*</span></Label>
@@ -145,7 +144,7 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Nº alícuotas</Label>
           <Input
@@ -160,18 +159,17 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
           <Label>Volumen alícuota</Label>
           <Input type="number" min={0} step="0.01" value={volumen} onChange={(e) => setVolumen(e.target.value)} placeholder="Ej: 1.5" />
         </div>
-        <div className="space-y-1.5">
-          <Label>Unidad</Label>
-          <UnidadSelect
-            value={unidad}
-            onChange={setUnidad}
-            compact
-            placeholder="Selecciona..."
-          />
-        </div>
       </div>
 
-      {/* Destino sugerido — combobox de instituciones ──────────────── */}
+      <div className="space-y-1.5">
+        <Label>Unidad</Label>
+        <UnidadSelect
+          value={unidad}
+          onChange={setUnidad}
+          placeholder="Selecciona unidad..."
+        />
+      </div>
+
       <div className="space-y-1.5">
         <Label>Destino sugerido</Label>
         <Popover open={openDestino} onOpenChange={setOpenDestino} modal>
@@ -195,7 +193,6 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
               <CommandList>
                 <CommandEmpty>No se encontraron instituciones</CommandEmpty>
                 <CommandGroup>
-                  {/* Opción "Sin destino específico" */}
                   <CommandItem
                     value="__ninguno__"
                     onSelect={() => { setDestino(''); setOpenDestino(false) }}
@@ -251,8 +248,7 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
           {loading ? 'Guardando...' : initial ? 'Actualizar tubo' : 'Agregar tubo'}
         </Button>
       </div>
-      </CardContent>
-    </Card>
+    </div>
   )
 }
 
@@ -327,7 +323,7 @@ function TuboRow({ tubo, onDelete, deletePending }: TuboRowProps) {
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar tubo</DialogTitle>
           </DialogHeader>
@@ -496,7 +492,7 @@ function TipoCard({ tipo }: TipoCardProps) {
 
       {/* Diálogo agregar tubo */}
       <Dialog open={addTuboOpen} onOpenChange={setAddTuboOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Agregar tubo a "{tipo.nombre}"</DialogTitle>
           </DialogHeader>

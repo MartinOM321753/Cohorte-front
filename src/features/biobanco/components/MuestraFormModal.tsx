@@ -385,27 +385,31 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                                     : 'border-transparent bg-muted/30 hover:bg-muted/60'
                               }`}
                             >
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
+                              <div className="flex items-start gap-2 min-w-0">
+                                <div className="mt-0.5 shrink-0">
                                   {isSelected
-                                    ? <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                                    : <div className="h-3.5 w-3.5 shrink-0" />}
-                                  <span className="font-medium">{tb.nombre}</span>
-                                  {tb.prefijoCodigo && (
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tb.prefijoCodigo}</Badge>
-                                  )}
+                                    ? <Check className="h-3.5 w-3.5 text-primary" />
+                                    : <div className="h-3.5 w-3.5" />}
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  {tb.numeroAlicuotas === 0 ? (
-                                    <span className="italic">Tubo directo</span>
-                                  ) : (
-                                    <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                      → {tb.numeroAlicuotas} alícuota{tb.numeroAlicuotas !== 1 ? 's' : ''}
-                                    </span>
-                                  )}
-                                  {tb.volumenAlicuota != null && (
-                                    <span>{tb.volumenAlicuota} {tb.unidadVolumen ?? ''}</span>
-                                  )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-medium">{tb.nombre}</span>
+                                    {tb.prefijoCodigo && (
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">{tb.prefijoCodigo}</Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                                    {tb.numeroAlicuotas === 0 ? (
+                                      <span className="italic">Tubo directo</span>
+                                    ) : (
+                                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                        → {tb.numeroAlicuotas} alícuota{tb.numeroAlicuotas !== 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                    {tb.volumenAlicuota != null && (
+                                      <span>{tb.volumenAlicuota} {tb.unidadVolumen ?? ''}</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </button>

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 
 import type { MuestraDetalleDTO, EstudioMuestraResponse } from '@/types/api'
+import { useAuthStore } from '@/stores/authStore'
 import {
   useGetEstudiosByMuestra,
 } from '../hooks/useEstudiosMuestra'
@@ -47,10 +48,12 @@ function EstudioItem({
   estudio,
   muestra,
   isPrestada,
+  myInstitucionId,
 }: {
   estudio: EstudioMuestraResponse
   muestra: MuestraDetalleDTO
   isPrestada: boolean
+  myInstitucionId?: number
 }) {
   const [expanded, setExpanded] = useState(false)
   const [editando, setEditando] = useState(false)
@@ -58,6 +61,8 @@ function EstudioItem({
   const resultados = estudio.resultados ?? []
   const fechaEstudio = formatLocalDate(estudio.fechaEstudio)
   const fechaRegistro = estudio.fechaRegistro ? formatDateTime(estudio.fechaRegistro) : null
+  const esMiEstudio = myInstitucionId != null && estudio.idInstitucionCreadora === myInstitucionId
+  const puedeEditar = !isPrestada && esMiEstudio
 
   return (
     <div className="border rounded-md overflow-hidden">
@@ -71,6 +76,11 @@ function EstudioItem({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium truncate">{estudio.tipoEstudioMuestra?.nombre ?? '—'}</span>
             <Badge variant="outline" className="text-xs shrink-0">{fechaEstudio}</Badge>
+            {!esMiEstudio && (
+              <Badge variant="outline" className="text-[10px] border-purple-500/40 text-purple-600 dark:text-purple-400 bg-purple-500/10">
+                Externa
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {estudio.usuarioRealiza?.nombreCompleto ?? '—'}
@@ -85,7 +95,7 @@ function EstudioItem({
             </p>
           )}
         </div>
-        {!isPrestada && (
+        {puedeEditar && (
           <button
             className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
             title="Editar estudio"
@@ -142,8 +152,11 @@ interface Props {
 function EstudiosTab({ muestra }: { muestra: MuestraDetalleDTO }) {
   const { data: estudios = [], isLoading, isError } = useGetEstudiosByMuestra(muestra.id)
   const [registrando, setRegistrando] = useState(false)
+  const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
 
   const isPrestada = muestra.estadoMuestra === 'PRESTADA'
+  const esTenedorActual = myInstitucionId != null && muestra.idInstitucionActual === myInstitucionId
+  const puedeRegistrar = esTenedorActual && !isPrestada
 
   return (
     <div className="space-y-4">
@@ -163,14 +176,14 @@ function EstudiosTab({ muestra }: { muestra: MuestraDetalleDTO }) {
           size="sm"
           className="gap-1 h-7 text-xs"
           onClick={() => setRegistrando(v => !v)}
-          disabled={isPrestada}
+          disabled={!puedeRegistrar}
         >
           {registrando ? 'Cancelar' : <><Plus className="h-3 w-3" /> Registrar estudio</>}
         </Button>
       </div>
 
       {/* Formulario de registro */}
-      {registrando && !isPrestada && (
+      {registrando && puedeRegistrar && (
         <LlenadoEstudioMuestraForm
           muestra={muestra}
           onSuccess={() => setRegistrando(false)}
@@ -204,7 +217,7 @@ function EstudiosTab({ muestra }: { muestra: MuestraDetalleDTO }) {
       {!isLoading && !isError && estudios.length > 0 && (
         <div className="space-y-2">
           {estudios.map(e => (
-            <EstudioItem key={e.id} estudio={e} muestra={muestra} isPrestada={isPrestada} />
+            <EstudioItem key={e.id} estudio={e} muestra={muestra} isPrestada={isPrestada} myInstitucionId={myInstitucionId} />
           ))}
         </div>
       )}
