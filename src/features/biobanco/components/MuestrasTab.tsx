@@ -2,15 +2,18 @@ import { useState, useMemo, Fragment } from 'react'
 import {
   Plus, Edit, Trash2, Search, TestTube, AlertCircle,
   Paperclip, ArrowRightFromLine, History, FlaskConical,
-  ChevronDown, ChevronUp, MapPinOff, ClipboardList, X,
+  ChevronDown, ChevronUp, MapPinOff, ClipboardList, X, Printer, Tag,
 } from 'lucide-react'
-import { useGetMuestras, useDeleteMuestra, useGetAllTraslados, useCancelarPrestamo } from '../hooks/useBiobanco'
+import { useGetMuestras, useDeleteMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto } from '../hooks/useBiobanco'
+import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
 import { MuestraFormModal } from './MuestraFormModal'
+import { GenerarAlicuotasModal } from './GenerarAlicuotasModal'
 import { TrasladarMuestraModal } from './TrasladarMuestraModal'
 import { HistorialTrasladosModal } from './HistorialTrasladosModal'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
 import { EstudiosMuestraPanel } from './EstudiosMuestraPanel'
 import { useAuthStore } from '@/stores/authStore'
+import { toast } from 'sonner'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,28 +75,43 @@ interface SharedActions {
   isAdmin: boolean
   userUuid: string
   canUpload: boolean
+  myInstitucionId?: number
   onEdit: (m: MuestraDetalleDTO) => void
   onTrasladoClick: (m: MuestraDetalleDTO) => void
   onCancelarEnvio: (idTraslado: number) => void
   onHistorial: (m: MuestraDetalleDTO) => void
   onDocumentos: (id: number) => void
   onResultados: (m: MuestraDetalleDTO) => void
+  onGenerarAlicuotas: (m: MuestraDetalleDTO) => void
   onDelete: (id: number) => void
+  onPrintEtiqueta: (id: number) => void
+  onPrintAlicuotas: (id: number) => void
+  onPrintLoteCompleto: (id: number) => void
 }
 
 function MuestraFooter({
   muestra,
   trasladoInfo,
   actions,
+  numAlicuotas = 0,
 }: {
   muestra: MuestraDetalleDTO
   trasladoInfo: TrasladoInfo | undefined
   actions: SharedActions
+  numAlicuotas?: number
 }) {
   const esTrasladada = !!trasladoInfo
   const isPrestada = muestra.estadoMuestra === 'PRESTADA'
-  const puedeEnviar = !esTrasladada && actions.isAdmin
+  const noEsMia = muestra.idInstitucion != null
+    && actions.myInstitucionId != null
+    && muestra.idInstitucion !== actions.myInstitucionId
+  const noEnMiPosesion = muestra.idInstitucionActual != null
+    && actions.myInstitucionId != null
+    && muestra.idInstitucionActual !== actions.myInstitucionId
+  const noEditable = isPrestada || noEsMia || noEnMiPosesion
+  const puedeEnviar = !esTrasladada && !noEnMiPosesion && actions.isAdmin
   const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.isAdmin
+  const esPadre = muestra.idMuestraPadre == null
 
   return (
     <CardFooter className="flex flex-wrap gap-2 pt-3 border-t mt-auto">
@@ -101,12 +119,24 @@ function MuestraFooter({
         variant="outline" size="sm"
         onClick={() => actions.onEdit(muestra)}
         className="flex-1"
-        disabled={isPrestada}
-        title={isPrestada ? 'No se puede editar una muestra en tránsito' : undefined}
+        disabled={noEditable}
+        title={noEnMiPosesion ? 'Muestra fuera de este biobanco' : isPrestada ? 'No se puede editar una muestra en tránsito' : noEsMia ? 'Solo la institución propietaria puede editar' : undefined}
       >
         <Edit className="mr-1 h-3 w-3" />
         Editar
       </Button>
+
+      {esPadre && !noEnMiPosesion && !isPrestada && numAlicuotas === 0 && (
+        <Button
+          variant="outline" size="sm"
+          onClick={() => actions.onGenerarAlicuotas(muestra)}
+          className="text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10"
+          title="Generar alícuotas"
+        >
+          <FlaskConical className="h-3 w-3 mr-1" />
+          Alícuotas
+        </Button>
+      )}
 
       {puedeEnviar && (
         <Button
@@ -170,13 +200,34 @@ function MuestraFooter({
         <Paperclip className="h-3 w-3" />
       </Button>
 
+      <Button
+        variant="outline" size="sm"
+        onClick={() => actions.onPrintEtiqueta(muestra.id)}
+        title="Imprimir etiqueta"
+        className="text-sky-600 dark:text-sky-400 border-sky-500/30 hover:bg-sky-500/10"
+      >
+        <Printer className="h-3 w-3" />
+      </Button>
+
+      {esPadre && numAlicuotas > 0 && (
+        <Button
+          variant="outline" size="sm"
+          onClick={() => actions.onPrintLoteCompleto(muestra.id)}
+          title="Imprimir padre + todas las alícuotas"
+          className="text-sky-600 dark:text-sky-400 border-sky-500/30 hover:bg-sky-500/10"
+        >
+          <Printer className="h-3 w-3 mr-1" />
+          Todo
+        </Button>
+      )}
+
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button
             variant="outline" size="sm"
             className="text-destructive border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
-            title={isPrestada ? 'No se puede eliminar una muestra en tránsito' : 'Eliminar muestra'}
-            disabled={isPrestada}
+            title={noEnMiPosesion ? 'Muestra fuera de este biobanco' : isPrestada ? 'No se puede eliminar una muestra en tránsito' : noEsMia ? 'Solo la institución propietaria puede eliminar' : 'Eliminar muestra'}
+            disabled={noEditable}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -221,10 +272,18 @@ interface PadreCardProps {
 function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, actions }: PadreCardProps) {
   const badge = trasladoInfo ? activeBadge(trasladoInfo.estado) : null
   const box   = trasladoInfo ? activeBox(trasladoInfo.estado) : null
+  const esRecibida = muestra.idInstitucionActual === actions.myInstitucionId
+    && muestra.idInstitucion != null
+    && muestra.idInstitucion !== actions.myInstitucionId
+  const noEnMiPosesion = muestra.idInstitucionActual != null
+    && actions.myInstitucionId != null
+    && muestra.idInstitucionActual !== actions.myInstitucionId
+  const esMia = muestra.idInstitucion != null
+    && muestra.idInstitucion === actions.myInstitucionId
 
   return (
     <div className="relative h-full">
-      <Card className={`h-full flex flex-col ${trasladoInfo ? activeCardBorder(trasladoInfo.estado) : ''}`}>
+      <Card className={`h-full flex flex-col ${noEnMiPosesion ? 'opacity-60' : ''} ${trasladoInfo ? activeCardBorder(trasladoInfo.estado) : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -249,15 +308,38 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
                 )}
               </div>
             </div>
-            {trasladoInfo ? (
-              <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs shrink-0`}>
-                {badge!.label}
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="border-green-500/40 text-green-700 dark:text-green-400 bg-green-500/10 text-xs shrink-0">
-                En biobanco
-              </Badge>
-            )}
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              {noEnMiPosesion && esMia ? (
+                <Badge variant="outline" className="border-gray-500/40 text-gray-600 dark:text-gray-400 bg-gray-500/10 text-xs">
+                  Fuera
+                </Badge>
+              ) : noEnMiPosesion && !esMia ? (
+                <Badge variant="outline" className="border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10 text-xs">
+                  Devuelta
+                </Badge>
+              ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
+                <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
+                  {badge!.label}
+                </Badge>
+              ) : trasladoInfo && trasladoInfo.estado === 'EN_DEVOLUCION' ? (
+                <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
+                  {badge!.label}
+                </Badge>
+              ) : muestra.ubicacion ? (
+                <Badge variant="outline" className="border-green-500/40 text-green-700 dark:text-green-400 bg-green-500/10 text-xs">
+                  En biobanco
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/10 text-xs">
+                  Sin ubicación
+                </Badge>
+              )}
+              {esRecibida && !noEnMiPosesion && (
+                <Badge variant="outline" className="border-purple-500/40 text-purple-700 dark:text-purple-400 bg-purple-500/10 text-xs">
+                  Externa
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
 
@@ -280,10 +362,22 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
             </p>
           </div>
 
-          {trasladoInfo ? (
+          {noEnMiPosesion ? (
+            <div className={`text-sm rounded-md border px-2 py-1.5 ${esMia ? 'border-gray-300/40 bg-gray-500/5' : 'border-blue-300/40 bg-blue-500/5'}`}>
+              <span className={`font-medium ${esMia ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>Ubicación:</span>
+              <p className={`text-xs mt-0.5 ${esMia ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                En biobanco de {muestra.nombreInstitucionActual ?? 'otra institución'}
+              </p>
+            </div>
+          ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
             <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
-              <span className={`font-medium ${box!.title}`}>Ubicación actual:</span>
-              <p className={`text-xs mt-0.5 ${box!.body}`}>{trasladoInfo.institucionNombre}</p>
+              <span className={`font-medium ${box!.title}`}>En tránsito:</span>
+              <p className={`text-xs mt-0.5 ${box!.body}`}>Pendiente de recepción</p>
+            </div>
+          ) : trasladoInfo && trasladoInfo.estado === 'EN_DEVOLUCION' ? (
+            <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
+              <span className={`font-medium ${box!.title}`}>Devolución:</span>
+              <p className={`text-xs mt-0.5 ${box!.body}`}>En proceso de devolución</p>
             </div>
           ) : muestra.ubicacion ? (
             <div className="text-sm">
@@ -294,7 +388,6 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
               </p>
             </div>
           ) : (
-            /* Placeholder de ubicación para mantener altura uniforme */
             <div className="text-sm invisible select-none" aria-hidden>
               <span className="font-medium">Ubicación:</span>
               <p className="text-xs">—</p>
@@ -314,7 +407,7 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
           )}
         </CardContent>
 
-        <MuestraFooter muestra={muestra} trasladoInfo={trasladoInfo} actions={actions} />
+        <MuestraFooter muestra={muestra} trasladoInfo={trasladoInfo} actions={actions} numAlicuotas={numAlicuotas} />
       </Card>
 
       {/* Botón toggle circular — mitad dentro / mitad fuera del borde derecho, centrado */}
@@ -354,11 +447,17 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
   const esTrasladada = !!trasladoInfo
   const badge  = trasladoInfo ? activeBadge(trasladoInfo.estado) : null
   const box    = trasladoInfo ? activeBox(trasladoInfo.estado) : null
-  const sinUbicacion = !muestra.ubicacion && !esTrasladada
+  const noEnMiPosesion = muestra.idInstitucionActual != null
+    && actions.myInstitucionId != null
+    && muestra.idInstitucionActual !== actions.myInstitucionId
+  const sinUbicacion = !muestra.ubicacion && !esTrasladada && !noEnMiPosesion
+  const esPrestada = muestra.idInstitucion != null
+    && actions.myInstitucionId != null
+    && muestra.idInstitucion !== actions.myInstitucionId
 
   return (
     <Card className={`
-      h-full flex flex-col border border-dashed opacity-80
+      h-full flex flex-col border border-dashed ${noEnMiPosesion ? 'opacity-50' : 'opacity-80'}
       ${trasladoInfo ? activeCardBorder(trasladoInfo.estado) : 'border-muted-foreground/40'}
       bg-muted/20
     `}>
@@ -382,19 +481,34 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
               )}
             </div>
           </div>
-          {trasladoInfo ? (
-            <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs shrink-0`}>
-              {badge!.label}
-            </Badge>
-          ) : sinUbicacion ? (
-            <Badge variant="outline" className="border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/10 text-xs shrink-0">
-              Sin ubicación
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="border-green-400 text-green-700 bg-green-50 text-xs shrink-0">
-              En biobanco
-            </Badge>
-          )}
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {noEnMiPosesion ? (
+              <Badge variant="outline" className="border-gray-500/40 text-gray-600 dark:text-gray-400 bg-gray-500/10 text-xs">
+                Fuera
+              </Badge>
+            ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
+              <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
+                {badge!.label}
+              </Badge>
+            ) : trasladoInfo && trasladoInfo.estado === 'EN_DEVOLUCION' ? (
+              <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
+                {badge!.label}
+              </Badge>
+            ) : sinUbicacion ? (
+              <Badge variant="outline" className="border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/10 text-xs">
+                Sin ubicación
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-green-400 text-green-700 bg-green-50 text-xs">
+                En biobanco
+              </Badge>
+            )}
+            {esPrestada && !noEnMiPosesion && (
+              <Badge variant="outline" className="border-purple-500/40 text-purple-700 dark:text-purple-400 bg-purple-500/10 text-xs">
+                Externa
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
 
@@ -417,10 +531,22 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
           </p>
         </div>
 
-        {trasladoInfo ? (
+        {noEnMiPosesion ? (
+          <div className="text-sm rounded-md border border-gray-300/40 bg-gray-500/5 px-2 py-1.5">
+            <span className="font-medium text-gray-500 dark:text-gray-400">Ubicación:</span>
+            <p className="text-xs mt-0.5 text-gray-500 dark:text-gray-400">
+              {trasladoInfo ? trasladoInfo.institucionNombre : 'Fuera de este biobanco'}
+            </p>
+          </div>
+        ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
           <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
-            <span className={`font-medium ${box!.title}`}>Ubicación actual:</span>
-            <p className={`text-xs mt-0.5 ${box!.body}`}>{trasladoInfo.institucionNombre}</p>
+            <span className={`font-medium ${box!.title}`}>En tránsito:</span>
+            <p className={`text-xs mt-0.5 ${box!.body}`}>Pendiente de recepción</p>
+          </div>
+        ) : trasladoInfo && trasladoInfo.estado === 'EN_DEVOLUCION' ? (
+          <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
+            <span className={`font-medium ${box!.title}`}>Devolución:</span>
+            <p className={`text-xs mt-0.5 ${box!.body}`}>En proceso de devolución</p>
           </div>
         ) : muestra.ubicacion ? (
           <div className="text-sm">
@@ -453,6 +579,7 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
 
 export function MuestrasTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+  const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
   const isAdmin = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
   const canUploadMuestra = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'LABORATORISTA']))
 
@@ -465,11 +592,32 @@ export function MuestrasTab() {
   const [pendingTraslado, setPendingTraslado] = useState<MuestraDetalleDTO | null>(null)
   const [historialMuestra, setHistorialMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [resultadosMuestra, setResultadosMuestra] = useState<MuestraDetalleDTO | null>(null)
+  const [generarAlicuotasMuestra, setGenerarAlicuotasMuestra] = useState<MuestraDetalleDTO | null>(null)
 
   const { data: muestras, isLoading } = useGetMuestras()
   const { data: traslados = [] } = useGetAllTraslados()
+  const { data: tiposActivos = [] } = useGetTiposMuestraActivos()
   const deleteMuestraMutation = useDeleteMuestra()
   const cancelarPrestamoMutation = useCancelarPrestamo()
+  const { data: impresoras = [] } = useListarImpresoras()
+  const { data: configuracionesEtiqueta = [] } = useGetConfiguracionesActivas()
+  const imprimirEtiquetaMut = useImprimirEtiqueta()
+  const imprimirAlicuotasMut = useImprimirAlicuotas()
+  const imprimirLoteMut = useImprimirLoteCompleto()
+
+  const [selectedPrinter, setSelectedPrinter] = useState<string>(() =>
+    localStorage.getItem('zebra-printer-name') ?? ''
+  )
+  const handleSelectPrinter = (val: string) => {
+    setSelectedPrinter(val)
+    localStorage.setItem('zebra-printer-name', val)
+  }
+
+  const configPredeterminada = configuracionesEtiqueta.find((c) => c.predeterminada)
+  const [selectedConfigId, setSelectedConfigId] = useState<number | undefined>(undefined)
+  const resolvedConfigId = selectedConfigId ?? configPredeterminada?.id
+
+  const hayTiposConTubos = tiposActivos.some((t) => t.tubos.some((tb) => tb.activo))
 
   const trasladosActivos = useMemo(() => {
     const ESTADOS_ACTIVOS: EstadoActivo[] = ['ENVIADA', 'RECIBIDA', 'EN_DEVOLUCION']
@@ -486,19 +634,22 @@ export function MuestrasTab() {
     return map
   }, [traslados])
 
-  // Separar padres de alícuotas
+  // Separar padres de alícuotas — alícuotas cuyo padre no está visible se tratan como cards independientes
   const { padres, alicuotasByPadre } = useMemo(() => {
     const all = muestras ?? []
     const padresArr: MuestraDetalleDTO[] = []
     const byPadre = new Map<number, MuestraDetalleDTO[]>()
+    const padreIds = new Set(all.filter((m) => m.idMuestraPadre == null).map((m) => m.id))
 
     all.forEach((m) => {
       if (m.idMuestraPadre == null) {
         padresArr.push(m)
-      } else {
+      } else if (padreIds.has(m.idMuestraPadre)) {
         const hijos = byPadre.get(m.idMuestraPadre) ?? []
         hijos.push(m)
         byPadre.set(m.idMuestraPadre, hijos)
+      } else {
+        padresArr.push(m)
       }
     })
 
@@ -545,17 +696,61 @@ export function MuestrasTab() {
     })
   }
 
+  const handlePrintEtiqueta = async (id: number) => {
+    const imp = selectedPrinter || impresoras[0]
+    if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
+    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
+    try {
+      await imprimirEtiquetaMut.mutateAsync({ idMuestra: id, impresora: imp, configuracionId: resolvedConfigId })
+      toast.success('Etiqueta enviada a la impresora')
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Error al imprimir'
+      toast.error(msg)
+    }
+  }
+
+  const handlePrintAlicuotas = async (id: number) => {
+    const imp = selectedPrinter || impresoras[0]
+    if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
+    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
+    try {
+      const total = await imprimirAlicuotasMut.mutateAsync({ idMuestraPadre: id, impresora: imp, configuracionId: resolvedConfigId })
+      toast.success(`${total} etiqueta(s) enviada(s) a la impresora`)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Error al imprimir'
+      toast.error(msg)
+    }
+  }
+
+  const handlePrintLoteCompleto = async (id: number) => {
+    const imp = selectedPrinter || impresoras[0]
+    if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
+    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
+    try {
+      const total = await imprimirLoteMut.mutateAsync({ idMuestraPadre: id, impresora: imp, configuracionId: resolvedConfigId })
+      toast.success(`${total} etiqueta(s) enviada(s) a la impresora (padre + alícuotas)`)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Error al imprimir lote'
+      toast.error(msg)
+    }
+  }
+
   const actions: SharedActions = {
     isAdmin,
     userUuid,
     canUpload: canUploadMuestra,
+    myInstitucionId,
     onEdit: handleEdit,
     onTrasladoClick: handleTrasladoClick,
     onCancelarEnvio: handleCancelarEnvio,
     onHistorial: setHistorialMuestra,
     onDocumentos: setDocMuestraId,
     onResultados: setResultadosMuestra,
+    onGenerarAlicuotas: setGenerarAlicuotasMuestra,
     onDelete: handleDelete,
+    onPrintEtiqueta: handlePrintEtiqueta,
+    onPrintAlicuotas: handlePrintAlicuotas,
+    onPrintLoteCompleto: handlePrintLoteCompleto,
   }
 
   if (isLoading) {
@@ -573,11 +768,59 @@ export function MuestrasTab() {
           <h2 className="text-2xl font-bold">Muestras Biológicas</h2>
           <p className="text-muted-foreground">Gestiona el registro, ubicación y traslados de muestras</p>
         </div>
-        <Button onClick={() => setIsMuestraModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Muestra
-        </Button>
+        <div className="flex items-center gap-3">
+          {configuracionesEtiqueta.length > 0 && (
+            <div className="flex items-center gap-1.5 border rounded-md px-2 py-1.5 text-sm">
+              <Tag className="h-4 w-4 text-violet-600 shrink-0" />
+              <select
+                className="bg-transparent outline-none cursor-pointer max-w-[180px] truncate"
+                value={resolvedConfigId ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSelectedConfigId(val ? Number(val) : undefined)
+                }}
+              >
+                {configuracionesEtiqueta.map((cfg) => (
+                  <option key={cfg.id} value={cfg.id}>
+                    {cfg.nombre}{cfg.predeterminada ? ' *' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {impresoras.length > 0 && (
+            <div className="flex items-center gap-1.5 border rounded-md px-2 py-1.5 text-sm">
+              <Printer className="h-4 w-4 text-sky-600 shrink-0" />
+              <select
+                className="bg-transparent outline-none cursor-pointer max-w-[180px] truncate"
+                value={selectedPrinter || impresoras[0]}
+                onChange={(e) => handleSelectPrinter(e.target.value)}
+              >
+                {impresoras.map((imp) => (
+                  <option key={imp} value={imp}>{imp}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <Button
+            onClick={() => setIsMuestraModalOpen(true)}
+            disabled={!hayTiposConTubos}
+            title={!hayTiposConTubos ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Muestra
+          </Button>
+        </div>
       </div>
+
+      {!hayTiposConTubos && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No hay tipos de muestra con tubos configurados. Ve a la pestaña <strong>Tipos de Muestra</strong> y crea al menos un tipo con un tubo activo para poder registrar muestras.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Alert>
         <TestTube className="h-4 w-4" />
@@ -612,7 +855,11 @@ export function MuestrasTab() {
                 : 'Intenta con otros términos de búsqueda.'}
             </p>
             {padres.length === 0 && (
-              <Button onClick={() => setIsMuestraModalOpen(true)}>
+              <Button
+                onClick={() => setIsMuestraModalOpen(true)}
+                disabled={!hayTiposConTubos}
+                title={!hayTiposConTubos ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Registrar Primera Muestra
               </Button>
@@ -628,23 +875,31 @@ export function MuestrasTab() {
          */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPadres.map((muestra) => {
+            const esAlicuotaHuerfana = muestra.idMuestraPadre != null
             const alicuotas  = alicuotasByPadre.get(muestra.id) ?? []
             const isExpanded = expandedIds.has(muestra.id)
 
             return (
               <Fragment key={muestra.id}>
-                {/* Celda 1: muestra padre */}
-                <PadreCard
-                  muestra={muestra}
-                  numAlicuotas={alicuotas.length}
-                  trasladoInfo={trasladosActivos.get(muestra.id)}
-                  isExpanded={isExpanded}
-                  onToggle={() => toggleExpanded(muestra.id)}
-                  actions={actions}
-                />
+                {esAlicuotaHuerfana ? (
+                  <AlicuotaCard
+                    muestra={muestra}
+                    trasladoInfo={trasladosActivos.get(muestra.id)}
+                    actions={actions}
+                  />
+                ) : (
+                  <PadreCard
+                    muestra={muestra}
+                    numAlicuotas={alicuotas.length}
+                    trasladoInfo={trasladosActivos.get(muestra.id)}
+                    isExpanded={isExpanded}
+                    onToggle={() => toggleExpanded(muestra.id)}
+                    actions={actions}
+                  />
+                )}
 
                 {/* Celdas adicionales: alícuotas — fluyen en el mismo grid */}
-                {isExpanded && alicuotas.map((ali) => (
+                {!esAlicuotaHuerfana && isExpanded && alicuotas.map((ali) => (
                   <AlicuotaCard
                     key={ali.id}
                     muestra={ali}
@@ -662,6 +917,11 @@ export function MuestrasTab() {
         open={isMuestraModalOpen}
         onOpenChange={handleModalClose}
         muestra={editingMuestra}
+      />
+      <GenerarAlicuotasModal
+        open={generarAlicuotasMuestra !== null}
+        onOpenChange={(open) => !open && setGenerarAlicuotasMuestra(null)}
+        muestra={generarAlicuotasMuestra}
       />
       {/* Confirmación antes de abrir el modal de traslado */}
       <AlertDialog open={pendingTraslado !== null} onOpenChange={(open) => !open && setPendingTraslado(null)}>
