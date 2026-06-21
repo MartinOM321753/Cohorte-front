@@ -11,6 +11,8 @@ import {
   uploadParaPaciente,
   deleteDocumento,
   getDocumentoUrl,
+  imprimirEtiquetaDocumento,
+  listarImpresorasDocumentos,
 } from '../api/documentos.api'
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
@@ -162,7 +164,33 @@ export function useDocumentoUrl(id: number, options?: { enabled?: boolean }) {
     queryKey: ['documentos', 'url', id],
     queryFn: () => getDocumentoUrl(id),
     enabled: (options?.enabled ?? true) && id > 0,
-    staleTime: 50 * 60 * 1000, // 50 min — URLs duran 60 min por defecto
+    staleTime: 50 * 60 * 1000,
     gcTime: 55 * 60 * 1000,
+  })
+}
+
+// ─── Impresión de etiquetas ──────────────────────────────────────────────────
+
+export function useListarImpresorasDocumentos() {
+  return useQuery({
+    queryKey: ['documentos', 'impresoras'],
+    queryFn: listarImpresorasDocumentos,
+    staleTime: 60_000,
+  })
+}
+
+export function useImprimirEtiquetaDocumento() {
+  return useMutation({
+    mutationFn: ({
+      idDocumento,
+      impresora,
+      configuracionId,
+    }: {
+      idDocumento: number
+      impresora: string
+      configuracionId?: number
+    }) => imprimirEtiquetaDocumento(idDocumento, impresora, configuracionId),
+    onSuccess: () => toast.success('Etiqueta enviada a la impresora'),
+    onError: () => toast.error('No se pudo imprimir la etiqueta'),
   })
 }

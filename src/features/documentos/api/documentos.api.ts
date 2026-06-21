@@ -159,6 +159,67 @@ export async function downloadDocumentoBlob(
   }
 }
 
+// ─── Impresión de etiquetas ──────────────────────────────────────────────────
+
+export async function getZplEtiquetaDocumento(
+  idDocumento: number,
+  configuracionId?: number,
+): Promise<string> {
+  const params = configuracionId ? { configuracionId } : undefined
+  const res = await api.get<string>(`/documentos/${idDocumento}/etiqueta/zpl`, { params })
+  return res.data
+}
+
+export async function imprimirEtiquetaDocumento(
+  idDocumento: number,
+  impresora: string,
+  configuracionId?: number,
+): Promise<void> {
+  const params: Record<string, string | number> = { impresora }
+  if (configuracionId) params.configuracionId = configuracionId
+  await api.post(`/documentos/${idDocumento}/etiqueta/imprimir`, null, { params })
+}
+
+export async function listarImpresorasDocumentos(): Promise<string[]> {
+  const res = await api.get<ApiResponse<string[]>>('/documentos/impresoras')
+  return res.data.data
+}
+
+// ─── Visualización por etiqueta (escaneo QR/barcode) ────────────────────────
+
+export interface DocumentoAccessTokenResponse {
+  token: string
+  expiresAt: string
+  idDocumento: number
+}
+
+export interface DocumentoEtiquetaInfo {
+  id: number
+  nombreOriginal: string
+  mimeType: string
+  etiqueta: string
+  tipoEntidad: string
+  fechaSubida: string
+}
+
+export async function generarTokenAcceso(etiqueta: string): Promise<DocumentoAccessTokenResponse> {
+  const res = await api.post<ApiResponse<DocumentoAccessTokenResponse>>(
+    `/documentos/etiqueta/${encodeURIComponent(etiqueta)}/token`,
+  )
+  return res.data.data
+}
+
+export async function getInfoPorEtiqueta(etiqueta: string): Promise<DocumentoEtiquetaInfo> {
+  const res = await api.get<ApiResponse<DocumentoEtiquetaInfo>>(
+    `/documentos/etiqueta/${encodeURIComponent(etiqueta)}/info`,
+  )
+  return res.data.data
+}
+
+export function buildDocumentoViewUrl(token: string): string {
+  return `/api/documentos/ver/${token}`
+}
+
 // ─── Eliminación ──────────────────────────────────────────────────────────────
 
 export async function deleteDocumento(id: number): Promise<void> {

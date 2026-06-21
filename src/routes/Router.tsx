@@ -26,6 +26,7 @@ const BitacoraAccesosPage  = lazy(() => import('@/features/bitacora/pages/Bitaco
 const BitacoraAccionesPage = lazy(() => import('@/features/bitacora/pages/BitacoraAccionesPage'))
 const EncargadoPage    = lazy(() => import('@/features/biobanco/pages/EncargadoPage'))
 const CoberturaPage    = lazy(() => import('@/features/cobertura/pages/CoberturaPage'))
+const DocumentoViewPage = lazy(() => import('@/features/documentos/pages/DocumentoViewPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage     = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
@@ -62,6 +63,18 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <CambiarContrasenaPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Visualización de documento por etiqueta (escaneo QR/barcode) — fuera de AppLayout */}
+        <Route
+          path="/documento/:etiqueta"
+          element={
+            <ProtectedRoute requiredRoles={['ADMINISTRADOR']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <DocumentoViewPage />
+              </Suspense>
             </ProtectedRoute>
           }
         />

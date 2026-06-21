@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, FileText, Image, FileArchive, Trash2, AlertCircle, Eye, Lock } from 'lucide-react'
+import { Download, FileText, Image, FileArchive, Trash2, AlertCircle, Eye, Lock, Printer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
@@ -12,9 +12,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { DocumentoResponseDTO } from '@/types/api'
-import { useDeleteDocumento } from '../hooks/useDocumentos'
+import { useDeleteDocumento, useListarImpresorasDocumentos, useImprimirEtiquetaDocumento } from '../hooks/useDocumentos'
+import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
 import { downloadDocumentoBlob } from '../api/documentos.api'
 import { toast } from 'sonner'
 
@@ -101,7 +110,15 @@ export function DocumentoList({
 }: DocumentoListProps) {
   const [confirmDelete, setConfirmDelete] = useState<DocumentoResponseDTO | null>(null)
   const [downloading, setDownloading] = useState<number | null>(null)
+  const [printDoc, setPrintDoc] = useState<DocumentoResponseDTO | null>(null)
+  const [selectedPrinter, setSelectedPrinter] = useState(() =>
+    localStorage.getItem('zebra-printer-name') ?? ''
+  )
+  const [selectedConfig, setSelectedConfig] = useState<string>('')
   const deleteMutation = useDeleteDocumento()
+  const { data: impresoras } = useListarImpresorasDocumentos()
+  const { data: configuraciones } = useGetConfiguracionesActivas()
+  const printMutation = useImprimirEtiquetaDocumento()
 
   function handleDelete() {
     if (!confirmDelete) return
@@ -120,6 +137,19 @@ export function DocumentoList({
     setDownloading(doc.id)
     await handleSecureView(doc)
     setDownloading(null)
+  }
+
+  function handlePrint() {
+    if (!printDoc || !selectedPrinter) return
+    localStorage.setItem('zebra-printer-name', selectedPrinter)
+    printMutation.mutate(
+      {
+        idDocumento: printDoc.id,
+        impresora: selectedPrinter,
+        configuracionId: selectedConfig ? Number(selectedConfig) : undefined,
+      },
+      { onSuccess: () => setPrintDoc(null) },
+    )
   }
 
   // ─── Estados ───────────────────────────────────────────────────────────────
@@ -174,6 +204,11 @@ export function DocumentoList({
                   {doc.nombreOriginal}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
+                  {doc.etiqueta && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+                      {doc.etiqueta}
+                    </Badge>
+                  )}
                   {doc.tamanioBytes != null && (
                     <span className="text-xs text-muted-foreground">
                       {formatBytes(doc.tamanioBytes)}
@@ -243,6 +278,18 @@ export function DocumentoList({
                   </span>
                 )}
 
+                {doc.etiqueta && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-[var(--imss-green-600)]"
+                    onClick={() => setPrintDoc(doc)}
+                    title="Imprimir etiqueta"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                )}
+
                 {canDelete && (
                   <Button
                     variant="ghost"
@@ -283,6 +330,70 @@ export function DocumentoList({
               {deleteMutation.isPending ? (
                 <><Spinner className="mr-2 h-4 w-4" />Eliminando…</>
               ) : 'Eliminar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal imprimir etiqueta */}
+      <Dialog open={!!printDoc} onOpenChange={(open) => !open && setPrintDoc(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Imprimir etiqueta</DialogTitle>
+            <DialogDescription>
+              Etiqueta:{' '}
+              <span className="font-mono font-semibold">{printDoc?.etiqueta}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[12px] text-muted-foreground">Impresora</Label>
+              <Select value={selectedPrinter} onValueChange={setSelectedPrinter}>
+                <SelectTrigger className="h-9 text-[13px]">
+                  <SelectValue placeholder="Seleccionar impresora" />
+                </SelectTrigger>
+                <SelectContent>
+                  {impresoras?.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[12px] text-muted-foreground">Configuración de etiqueta</Label>
+              <Select
+                value={selectedConfig || '__default__'}
+                onValueChange={(v) => setSelectedConfig(v === '__default__' ? '' : v)}
+              >
+                <SelectTrigger className="h-9 text-[13px]">
+                  <SelectValue placeholder="Predeterminada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">Predeterminada</SelectItem>
+                  {configuraciones?.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrintDoc(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handlePrint}
+              disabled={!selectedPrinter || printMutation.isPending}
+              className="gap-1.5 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)]"
+            >
+              {printMutation.isPending ? (
+                <><Spinner className="mr-2 h-4 w-4" />Imprimiendo…</>
+              ) : (
+                <><Printer className="h-4 w-4" />Imprimir</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

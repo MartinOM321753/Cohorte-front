@@ -472,12 +472,9 @@ export interface DocumentoResponseDTO {
   fechaSubida: string
   subidoPorUUID: string | null
   tipoEntidad: string | null
-  /**
-   * El backend indica si el usuario autenticado puede descargar/visualizar
-   * el contenido del archivo. Si es false, los botones de acción se ocultan.
-   */
+  /** Código único imprimible del documento, formato D{YY}-{II}-{T}-{FOLIO}.{EXT} */
+  etiqueta: string | null
   puedeDescargar: boolean
-  /** URL firmada temporal de MinIO para descargar/visualizar el archivo */
   url: string | null
 }
 
@@ -734,15 +731,25 @@ export interface PosicionPiso {
   ocupada: boolean
 }
 
+export interface PisoResumen {
+  id: number
+  numeroPiso: string
+  totalPosiciones: number
+  posicionesOcupadas: number
+  posicionesLibres: number
+  porcentajeUso: number
+}
+
 export interface Refrigerador {
   id: number
   codigo: string
   nombre: string
   marca: string
   modelo: string
-  pisos: PisoRefrigerador[]
   activo: boolean
   totalPisos: number
+  /** Resumen de ocupación por piso (id, numeroPiso, totalPosiciones, posicionesLibres, porcentajeUso) */
+  pisos: PisoResumen[]
 }
 
 export interface RefrigeradorRequestDTO {
@@ -1170,4 +1177,37 @@ export interface ConfiguracionEtiquetaRequest {
 export interface OpcionesEtiqueta {
   tiposCodigo: TipoCodigo[]
   disposiciones: DisposicionEtiqueta[]
+}
+
+// ─── Configuración de Horario de Citas ──────────────────────────────────────
+
+export interface ConfiguracionHorarioResponse {
+  id: number
+  nombre: string
+  horaInicio: number
+  horaFin: number
+  lunes: boolean
+  martes: boolean
+  miercoles: boolean
+  jueves: boolean
+  viernes: boolean
+  sabado: boolean
+  domingo: boolean
+  activa: boolean
+  fechaCreacion: string
+  fechaActualizacion: string
+}
+
+export interface ConfiguracionHorarioRequest {
+  nombre: string
+  horaInicio: number
+  horaFin: number
+  lunes: boolean
+  martes: boolean
+  miercoles: boolean
+  jueves: boolean
+  viernes: boolean
+  sabado: boolean
+  domingo: boolean
+  activa?: boolean
 }
