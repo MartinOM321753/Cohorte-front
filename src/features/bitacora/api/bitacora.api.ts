@@ -5,8 +5,21 @@ import type {
   FiltrosAcceso,
   FiltrosAcciones,
   PageResponse,
+  UsuarioBitacora,
 } from '../types/bitacora.types'
 import type { ApiResponse as APIResponse } from '@/types/api'
+
+// ── Usuarios con registros ────────────────────────────────────────────────────
+
+export async function getUsuariosConAccesos(): Promise<UsuarioBitacora[]> {
+  const res = await api.get<APIResponse<UsuarioBitacora[]>>('/bitacora/accesos/usuarios')
+  return res.data.data as UsuarioBitacora[]
+}
+
+export async function getUsuariosConAcciones(): Promise<UsuarioBitacora[]> {
+  const res = await api.get<APIResponse<UsuarioBitacora[]>>('/bitacora/acciones/usuarios')
+  return res.data.data as UsuarioBitacora[]
+}
 
 // ── Accesos ───────────────────────────────────────────────────────────────────
 

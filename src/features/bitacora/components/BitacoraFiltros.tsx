@@ -21,6 +21,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import type { TipoEventoAcceso, TipoAccion } from '../types/bitacora.types'
 import { TIPO_EVENTO_LABELS, TIPO_ACCION_LABELS } from '../types/bitacora.types'
+import { useGetUsuariosConAccesos, useGetUsuariosConAcciones } from '../hooks/useGetUsuariosBitacora'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,11 @@ export function BitacoraFiltros(props: Props) {
   const [tipoAccion, setTipoAccion] = useState<TipoAccion | ''>('')
   const [entidad, setEntidad] = useState('')
 
+  const { data: usuariosAccesos } = useGetUsuariosConAccesos()
+  const { data: usuariosAcciones } = useGetUsuariosConAcciones()
+
+  const usuarios = props.tipo === 'accesos' ? usuariosAccesos : usuariosAcciones
+
   function handleApply() {
     if (props.tipo === 'accesos') {
       props.onApply({ desde, hasta, usuarioUuid: usuarioUuid.trim(), tipoEvento })
@@ -130,15 +136,25 @@ export function BitacoraFiltros(props: Props) {
           <DatePickerField label="Hasta" value={hasta} onChange={setHasta} />
         </div>
 
-        {/* UUID / username de usuario */}
-        <div className="flex flex-col gap-1.5 min-w-[200px]">
-          <Label className="text-[12px] text-[var(--imss-ink-400)]">UUID de usuario</Label>
-          <Input
-            placeholder="xxxxxxxx-xxxx-xxxx"
-            value={usuarioUuid}
-            onChange={(e) => setUsuarioUuid(e.target.value)}
-            className="h-9 text-[13px]"
-          />
+        {/* Selector de usuario */}
+        <div className="flex flex-col gap-1.5 min-w-[240px]">
+          <Label className="text-[12px] text-[var(--imss-ink-400)]">Usuario</Label>
+          <Select
+            value={usuarioUuid === '' ? '__all__' : usuarioUuid}
+            onValueChange={(v) => setUsuarioUuid(v === '__all__' ? '' : v)}
+          >
+            <SelectTrigger className="h-9 text-[13px]">
+              <SelectValue placeholder="Todos los usuarios" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos los usuarios</SelectItem>
+              {usuarios?.map((u) => (
+                <SelectItem key={u.uuid} value={u.uuid}>
+                  {u.nombre} {u.apellidoPaterno} — {u.rol}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Selector específico por tipo */}

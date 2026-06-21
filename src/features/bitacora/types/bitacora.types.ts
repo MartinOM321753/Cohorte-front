@@ -72,6 +72,15 @@ export interface FiltrosAcciones {
   size:        number
 }
 
+// ── Usuario para filtro ──────────────────────────────────────────────────────
+
+export interface UsuarioBitacora {
+  uuid:            string
+  nombre:          string
+  apellidoPaterno: string
+  rol:             string
+}
+
 // ── Labels ────────────────────────────────────────────────────────────────────
 
 export const TIPO_EVENTO_LABELS: Record<TipoEventoAcceso, string> = {

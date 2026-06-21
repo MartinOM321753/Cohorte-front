@@ -180,18 +180,21 @@ export function BitacoraAccionesTable({ data, isLoading, page, onPageChange }: P
                       </td>
 
                       {/* Endpoint */}
-                      <td className="px-3 py-2.5 max-w-[200px]">
+                      <td className="px-3 py-2.5 max-w-[250px]">
                         {row.endpoint ? (
-                          <span className="inline-flex items-center gap-1">
+                          <div className="flex items-center gap-1 max-w-[230px]">
                             {row.metodoHttp && (
-                              <span className="rounded bg-[var(--imss-green-100)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--imss-green-700)]">
+                              <span className="shrink-0 rounded bg-[var(--imss-green-100)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--imss-green-700)]">
                                 {row.metodoHttp}
                               </span>
                             )}
-                            <span className="truncate font-mono text-[12px] text-[var(--imss-ink-500)]">
+                            <span
+                              className="block truncate font-mono text-[12px] text-[var(--imss-ink-500)]"
+                              title={row.endpoint}
+                            >
                               {row.endpoint}
                             </span>
-                          </span>
+                          </div>
                         ) : (
                           <span className="text-[var(--imss-ink-200)]">—</span>
                         )}
