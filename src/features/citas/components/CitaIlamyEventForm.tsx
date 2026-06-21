@@ -10,6 +10,7 @@ import type { Cita } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
 import { useCreateCita, useUpdateCita } from '../hooks/useCitas'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import { citaFormSchema, ESTADOS_CITA, type CitaFormData } from '../schemas/cita.schema'
 import { getCitaDurationMinutes, getCitaStartDate } from '../lib/citaUtils'
 
@@ -125,6 +126,7 @@ export function CitaIlamyEventForm({
   const currentUserUuid = user?.uuid ?? ''
   const timezone = useMemo(() => safeTimeZone(), [])
 
+  const { data: horarioActivo, isLoading: horarioLoading } = useGetConfiguracionHorarioActiva()
   const createCita = useCreateCita()
   const updateCita = useUpdateCita()
 
@@ -183,6 +185,14 @@ export function CitaIlamyEventForm({
     }
     if (guardFiredRef.current) return
 
+    if (!horarioLoading && horarioActivo === null) {
+      guardFiredRef.current = true
+      toast.warning('No hay un horario de citas configurado. Contacta al administrador.')
+      onClose()
+      return
+    }
+    if (horarioLoading) return
+
     const start = selectedEvent?.start
     if (!start) return
 
@@ -190,13 +200,25 @@ export function CitaIlamyEventForm({
     const startDayjs = dayjs.isDayjs(start)
       ? (start as dayjs.Dayjs)
       : dayjs(start as string | Date)
-    const dow = startDayjs.day() // 0=Dom, 6=Sáb
-    const isWeekend = dow === 0 || dow === 6
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const targetDay = dayNames[startDayjs.day()]
+    const businessDays = horarioActivo
+      ? [
+          horarioActivo.lunes && 'monday',
+          horarioActivo.martes && 'tuesday',
+          horarioActivo.miercoles && 'wednesday',
+          horarioActivo.jueves && 'thursday',
+          horarioActivo.viernes && 'friday',
+          horarioActivo.sabado && 'saturday',
+          horarioActivo.domingo && 'sunday',
+        ].filter(Boolean)
+      : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+    const isDayDisabled = !businessDays.includes(targetDay)
     const isPastSlot = startDayjs.isBefore(dayjs())
 
-    if (isWeekend) {
+    if (isDayDisabled) {
       guardFiredRef.current = true
-      toast.warning('No es posible agendar citas los sábados o domingos.')
+      toast.warning('No es posible agendar citas en un día no habilitado.')
       onClose()
       return
     }
@@ -206,7 +228,7 @@ export function CitaIlamyEventForm({
       toast.warning('No es posible agendar citas en fechas u horas pasadas.')
       onClose()
     }
-  }, [open, isEditing, selectedEvent, onClose])
+  }, [open, isEditing, selectedEvent, onClose, horarioActivo, horarioLoading])
 
   // ─── Submit ──────────────────────────────────────────────────────────────────
 
@@ -428,8 +450,20 @@ export function CitaIlamyEventForm({
                 onChange={(v) => setValue('fechaCita', v)}
                 disabled={isPast}
                 minDate={isEditing ? undefined : new Date()}
-                minHour={8}
-                maxHour={17}
+                minHour={horarioActivo?.horaInicio ?? 8}
+                maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+                disabledDaysOfWeek={(() => {
+                  if (!horarioActivo) return [0, 6]
+                  const disabled: number[] = []
+                  if (!horarioActivo.domingo) disabled.push(0)
+                  if (!horarioActivo.lunes) disabled.push(1)
+                  if (!horarioActivo.martes) disabled.push(2)
+                  if (!horarioActivo.miercoles) disabled.push(3)
+                  if (!horarioActivo.jueves) disabled.push(4)
+                  if (!horarioActivo.viernes) disabled.push(5)
+                  if (!horarioActivo.sabado) disabled.push(6)
+                  return disabled
+                })()}
               />
               {errors.fechaCita ? (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">

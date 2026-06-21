@@ -239,6 +239,7 @@ export function DateTimePicker({
   minHour = 8,
   /** Hora máxima del rango (inclusive, solo el :00). Por defecto 17 = 17:00. */
   maxHour = 17,
+  disabledDaysOfWeek,
   className,
 }: {
   value?: string;
@@ -251,6 +252,8 @@ export function DateTimePicker({
   minDate?: Date;
   minHour?: number;
   maxHour?: number;
+  /** Días de la semana a deshabilitar (0=domingo, 1=lunes, … 6=sábado). */
+  disabledDaysOfWeek?: number[];
   className?: string;
 }) {
   const parsed = useMemo(() => parseLocalDateTime(value), [value]);
@@ -293,12 +296,16 @@ export function DateTimePicker({
 
   // Matcher de fechas deshabilitadas
   const disabledDays = useMemo(() => {
-    if (minDate && maxDateTime)
-      return [{ before: minDate }, { after: maxDateTime }];
-    if (minDate) return { before: minDate };
-    if (maxDateTime) return { after: maxDateTime };
-    return undefined;
-  }, [minDate, maxDateTime]);
+    const matchers: any[] = [];
+    if (minDate) matchers.push({ before: minDate });
+    if (maxDateTime) matchers.push({ after: maxDateTime });
+    if (disabledDaysOfWeek?.length) {
+      matchers.push({ dayOfWeek: disabledDaysOfWeek });
+    }
+    if (matchers.length === 0) return undefined;
+    if (matchers.length === 1) return matchers[0];
+    return matchers;
+  }, [minDate, maxDateTime, disabledDaysOfWeek]);
 
   return (
     <div className={cn("grid grid-cols-[1fr_auto] gap-2", className)}>

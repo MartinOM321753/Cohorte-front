@@ -9,14 +9,16 @@ import {
   type CalendarEvent,
   type CalendarView,
   type Translations,
+  type WeekDays,
 } from "@ilamy/calendar";
 import { toast } from "sonner";
-import { CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 dayjs.extend(isoWeek);
 
 import type { Cita } from "@/types/api";
 import { useUpdateCita } from "../hooks/useCitas";
+import { useGetConfiguracionHorarioActiva } from "@/features/configuracion/hooks/useHorarios";
 import { CitaIlamyEventForm } from "./CitaIlamyEventForm";
 import { getCitaDurationMinutes, getCitaStartDate } from "../lib/citaUtils";
 import { Button } from "@/components/ui/button";
@@ -188,12 +190,6 @@ function CitasCalendarHeader() {
 
 // ─── Helpers de validación ─────────────────────────────────────────────────────
 
-/** Retorna true si el dayjs dado cae en sábado o domingo. */
-function isWeekend(d: dayjs.Dayjs): boolean {
-  const dow = d.day(); // 0=Dom, 6=Sáb
-  return dow === 0 || dow === 6;
-}
-
 /** Retorna true si el dayjs dado está en el pasado (estrictamente antes de ahora). */
 function isPastDateTime(d: dayjs.Dayjs): boolean {
   return d.isBefore(dayjs());
@@ -334,6 +330,32 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
   const [calendarDate, setCalendarDate] = useState<dayjs.Dayjs>(dayjs());
   const [calendarView, setCalendarView] = useState<CalendarView>("week");
 
+  // Configuración de horario activa
+  const { data: horarioActivo, isLoading: horarioLoading } = useGetConfiguracionHorarioActiva();
+  const noConfig = !horarioLoading && horarioActivo == null;
+  const businessStart = horarioActivo?.horaInicio ?? 8;
+  const businessEnd = horarioActivo?.horaFin ?? 17;
+
+  const businessDaysOfWeek = useMemo<WeekDays[]>(() => {
+    if (!horarioActivo) return ["monday", "tuesday", "wednesday", "thursday", "friday"];
+    const days: WeekDays[] = [];
+    if (horarioActivo.lunes) days.push("monday");
+    if (horarioActivo.martes) days.push("tuesday");
+    if (horarioActivo.miercoles) days.push("wednesday");
+    if (horarioActivo.jueves) days.push("thursday");
+    if (horarioActivo.viernes) days.push("friday");
+    if (horarioActivo.sabado) days.push("saturday");
+    if (horarioActivo.domingo) days.push("sunday");
+    return days;
+  }, [horarioActivo]);
+
+  const hiddenDaysComputed = useMemo<WeekDays[]>(() => {
+    const allDays: WeekDays[] = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    return allDays.filter((d) => !businessDaysOfWeek.includes(d));
+  }, [businessDaysOfWeek]);
+
+  const visibleHours = businessEnd - businessStart;
+
   /**
    * Contador que se incrementa cuando un drop es rechazado.
    * Al cambiar, el useMemo de `events` genera una nueva referencia de array.
@@ -346,14 +368,13 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     const wrapper = calendarWrapperRef.current;
     if (!wrapper) return;
 
-    const VISIBLE_HOURS = 9; // 08:00 – 17:00
-    const HEADER_APPROX_HEIGHT = 96; // header custom + barra de días
+    const HEADER_APPROX_HEIGHT = 96;
 
     const observer = new ResizeObserver(([entry]) => {
       const totalH = entry.contentRect.height;
       const cellH = Math.max(
         80,
-        Math.floor((totalH - HEADER_APPROX_HEIGHT) / VISIBLE_HOURS),
+        Math.floor((totalH - HEADER_APPROX_HEIGHT) / visibleHours),
       );
       const cal = wrapper.querySelector(
         '[data-testid="ilamy-calendar"]',
@@ -365,7 +386,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
 
     observer.observe(wrapper);
     return () => observer.disconnect();
-  }, []);
+  }, [visibleHours]);
 
   // ── Inyección dinámica de CSS para bloquear slots pasados ──────────────────
   useEffect(() => {
@@ -378,18 +399,17 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
         el.id = STYLE_ID;
         document.head.appendChild(el);
       }
-      el.textContent = buildPastBlockCSS(dayjs(), calendarDate, calendarView);
+      el.textContent = buildPastBlockCSS(dayjs(), calendarDate, calendarView, businessStart, businessEnd);
     }
 
-    inject(); // inmediato
-    const timer = setInterval(inject, 60_000); // refresca cada minuto
+    inject();
+    const timer = setInterval(inject, 60_000);
 
     return () => {
       clearInterval(timer);
-      // Limpiamos el style al desmontar
       document.getElementById(STYLE_ID)?.remove();
     };
-  }, [calendarDate, calendarView]);
+  }, [calendarDate, calendarView, businessStart, businessEnd]);
   const translations = useMemo<Translations>(
     () => ({
       ...defaultTranslations,
@@ -522,8 +542,28 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     [citas, eventsRevision],
   );
 
+  // CSS dinámico para atenuar días no laborales en el mini-calendario del año
+  // El grid del mini-cal tiene orden: [dom(1), lun(2), mar(3), mié(4), jue(5), vie(6), sáb(7)]
+  const hiddenDaysMiniCSS = useMemo(() => {
+    const dayToNth: Record<WeekDays, string> = {
+      sunday: "7n+1",
+      monday: "7n+2",
+      tuesday: "7n+3",
+      wednesday: "7n+4",
+      thursday: "7n+5",
+      friday: "7n+6",
+      saturday: "7n",
+    };
+    const selectors = hiddenDaysComputed
+      .map((d) => `[data-testid$="-mini"] > :nth-child(${dayToNth[d]})`)
+      .join(",\n  ");
+    if (!selectors) return "";
+    return `${selectors} { opacity: 0.35; }`;
+  }, [hiddenDaysComputed]);
+
   return (
     <>
+      {hiddenDaysMiniCSS && <style>{hiddenDaysMiniCSS}</style>}
       <style>{`
   [data-testid="ilamy-calendar"] {
     --calendar-time-col: 84px;
@@ -662,15 +702,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     cursor: pointer !important;
   }
 
-  /* Atenuar columnas de domingo (1ª) y sábado (7ª) en el mini-calendario.
-     El array interno de la librería es [dom,lun,mar,mié,jue,vie,sáb] (7 items)
-     seguido de 42 botones de días → total 49 hijos directos del grid.
-     nth-child(7n+1) apunta a: col1-header(dom), fila1-dom, fila2-dom …
-     nth-child(7n)   apunta a: col7-header(sáb), fila1-sáb, fila2-sáb …    */
-  [data-testid$="-mini"] > :nth-child(7n+1),
-  [data-testid$="-mini"] > :nth-child(7n) {
-    opacity: 0.35;
-  }
+  /* Atenuación de días no laborales en mini-calendario: inyectada dinámicamente */
 
   /* ── Iniciales de días en español para el mini-calendario del año ──────────
      La librería hardcodea [S,M,T,W,T,F,S] (inglés). Las cabeceras son los 7
@@ -797,6 +829,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
         style={{ height: "calc(100vh)" }}
       >
         <IlamyCalendar
+          key={`cal-${businessStart}-${businessEnd}-${businessDaysOfWeek.join(",")}`}
           events={events}
           translations={translations}
           locale="es"
@@ -810,25 +843,17 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
             </span>
           )}
           dayMaxEvents={4}
-          disableDragAndDrop={false}
-          disableEventClick={false}
-          disableCellClick={false}
+          disableDragAndDrop={noConfig}
+          disableEventClick={noConfig}
+          disableCellClick={noConfig}
           stickyViewHeader
           /* ── Header distribuido en todo el ancho ── */
           headerComponent={<CitasCalendarHeader />}
-          /* ── Ocultar sábado y domingo de la vista semana ── */
-          hiddenDays={["saturday", "sunday"]}
-          /* ── Horario clínico: 08:00 – 17:00, solo Lun–Vie ── */
+          hiddenDays={hiddenDaysComputed}
           businessHours={{
-            daysOfWeek: [
-              "monday",
-              "tuesday",
-              "wednesday",
-              "thursday",
-              "friday",
-            ],
-            startTime: 8,
-            endTime: 17,
+            daysOfWeek: businessDaysOfWeek,
+            startTime: businessStart,
+            endTime: businessEnd,
           }}
           /* Oculta (y bloquea) horas fuera del horario clínico */
           hideNonBusinessHours
@@ -867,12 +892,12 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
               return;
             }
 
-            // Bloquear drag hacia fin de semana
-            if (isWeekend(newStart)) {
-              toast.error(
-                "No puedes reprogramar una cita a un sábado o domingo.",
-              );
-              setEventsRevision((v) => v + 1); // revierte la posición visual
+            // Bloquear drag hacia días no laborales
+            const dayNames: WeekDays[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+            const targetDay = dayNames[newStart.day()];
+            if (!businessDaysOfWeek.includes(targetDay)) {
+              toast.error("No puedes reprogramar una cita a un día no habilitado.");
+              setEventsRevision((v) => v + 1);
               return;
             }
 
@@ -891,6 +916,19 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
             Cargando citas…
           </div>
         ) : null}
+        {!isLoading && noConfig && (
+          <div className="absolute inset-0 z-50 grid place-items-center bg-card/90 backdrop-blur-sm rounded-[10px]">
+            <div className="text-center space-y-2 max-w-sm px-4">
+              <Clock className="h-10 w-10 mx-auto text-muted-foreground/60" />
+              <p className="text-sm font-medium text-muted-foreground">
+                No hay un horario de citas configurado
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Para agendar citas, un administrador debe crear y activar una configuración de horario desde la sección de Configuración.
+              </p>
+            </div>
+          </div>
+        )}
         {/* ── Confirmación de drag & drop ── */}
         <AlertDialog
           open={!!pendingDrop}
