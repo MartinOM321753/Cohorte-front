@@ -90,7 +90,7 @@ export function PosicionPisoSelectorModal({
             Seleccionar Posición — {pisoLabel}
           </DialogTitle>
           <DialogDescription>
-            Selecciona una posición libre (verde) para asignar la caja. Las posiciones grises están ocupadas.
+            Selecciona una posición disponible para asignar la caja. Las posiciones grises están ocupadas.
           </DialogDescription>
         </DialogHeader>
 
@@ -184,8 +184,8 @@ export function PosicionPisoSelectorModal({
                                       isOcupada
                                         ? 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50'
                                         : isSelected
-                                        ? 'bg-blue-500 border-blue-600 text-white cursor-pointer ring-2 ring-blue-300'
-                                        : 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100 cursor-pointer',
+                                        ? 'bg-primary border-primary text-primary-foreground cursor-pointer ring-2 ring-primary/30'
+                                        : 'bg-accent border-border text-accent-foreground hover:bg-accent/80 cursor-pointer',
                                     )}
                                   >
                                     {fila}{col}
@@ -204,24 +204,24 @@ export function PosicionPisoSelectorModal({
               {/* Legend */}
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-green-50 border border-green-300 inline-block" />
-                  Libre
+                  <span className="w-3 h-3 rounded bg-accent border border-border inline-block" />
+                  Disponible
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded bg-muted border border-border inline-block opacity-50" />
                   Ocupada
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-blue-500 border border-blue-600 inline-block" />
+                  <span className="w-3 h-3 rounded bg-primary border border-primary inline-block" />
                   Seleccionada
                 </span>
               </div>
 
               {/* Selected position info */}
               {selectedPosicion && (
-                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0" />
-                  <p className="text-sm text-blue-800">
+                <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-md">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  <p className="text-sm text-foreground">
                     Posición seleccionada: Fila <strong>{selectedPosicion.fila}</strong>, Columna{' '}
                     <strong>{selectedPosicion.columna}</strong>, Altura{' '}
                     <strong>{selectedPosicion.altura}</strong>

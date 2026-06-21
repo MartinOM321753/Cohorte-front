@@ -148,8 +148,8 @@ export function CajasTab() {
 
                 {caja.ubicacionPiso ? (
                   <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                    <span className="text-blue-700 text-xs leading-snug">{caja.ubicacionPiso}</span>
+                    <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <span className="text-foreground text-xs leading-snug">{caja.ubicacionPiso}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">

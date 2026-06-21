@@ -6,6 +6,7 @@ import { PisosFormModal } from './PisosFormModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Thermometer } from 'lucide-react'
 import {
@@ -119,10 +120,41 @@ export function RefrigeradoresTab() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm">
-                  <Layers className="h-4 w-4" />
-                  <span className="font-medium">Pisos:</span>
-                  <span>{refrigerador.pisos?.length ?? 0}</span>
+                {/* ── Pisos con desglose de ocupación ─────────────────── */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Layers className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Pisos:</span>
+                    <span>{refrigerador.totalPisos}</span>
+                  </div>
+
+                  {refrigerador.pisos && refrigerador.pisos.length > 0 && (
+                    <div className="space-y-1.5 pl-6">
+                      {refrigerador.pisos.map((piso) => (
+                        <div key={piso.id} className="space-y-0.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-medium text-foreground">Piso {piso.numeroPiso}</span>
+                            <span className="text-muted-foreground tabular-nums">
+                              {piso.posicionesOcupadas}/{piso.totalPosiciones}
+                              <span className="ml-1 text-[10px]">({piso.porcentajeUso.toFixed(0)}%)</span>
+                            </span>
+                          </div>
+                          <Progress
+                            value={piso.porcentajeUso}
+                            className="h-1.5"
+                          />
+                          <div className="flex justify-between text-[10px] text-muted-foreground">
+                            <span>{piso.posicionesLibres} libres</span>
+                            <span>{piso.posicionesOcupadas} ocupadas</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {refrigerador.totalPisos === 0 && (
+                    <p className="pl-6 text-xs text-muted-foreground italic">Sin pisos — haz clic en "Gestionar Pisos"</p>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">
