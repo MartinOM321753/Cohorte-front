@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Plus, Edit, MapPin, Phone, User, AlertCircle, CheckCircle2, XCircle, Search, Network, ShieldCheck, Tag } from 'lucide-react'
-import { useGetInstitucionesPaginado, useGetInstitucionesGestionables, useSearchInstituciones, useToggleInstitucion } from '../hooks/useInstituciones'
+import { Plus, Edit, MapPin, Phone, User, AlertCircle, CheckCircle2, XCircle, Search, Network, ShieldCheck, Tag, Users } from 'lucide-react'
+import { useGetInstitucionesPaginado, useGetInstitucionesGestionables, useGetInstitucionesGestionablesEstado, useSearchInstituciones, useToggleInstitucion } from '../hooks/useInstituciones'
 import { InstitucionFormModal } from './InstitucionFormModal'
 import { InstitucionModulosModal } from './InstitucionModulosModal'
+import { PermisosAccesoPacientesModal } from './PermisosAccesoPacientesModal'
 import { TiposInstitucionModal } from './TiposInstitucionModal'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,8 @@ export function InstitucionesTab() {
   const [editingInstitucion, setEditingInstitucion] = useState<Institucion | null>(null)
   const [modulosInstitucion, setModulosInstitucion] = useState<Institucion | null>(null)
   const [isModulosOpen, setIsModulosOpen] = useState(false)
+  const [permisosInstitucion, setPermisosInstitucion] = useState<Institucion | null>(null)
+  const [isPermisosOpen, setIsPermisosOpen] = useState(false)
   const [isTiposOpen, setIsTiposOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
@@ -46,6 +49,8 @@ export function InstitucionesTab() {
   // IDs de instituciones que el usuario puede gestionar (encargado directo o ancestral + bootstrap)
   const { data: idsGestionables } = useGetInstitucionesGestionables()
   const gestionablesSet = useMemo(() => new Set(idsGestionables ?? []), [idsGestionables])
+  const { data: idsGestionablesEstado } = useGetInstitucionesGestionablesEstado()
+  const gestionablesEstadoSet = useMemo(() => new Set(idsGestionablesEstado ?? []), [idsGestionablesEstado])
 
   const instituciones = useMemo(() => data?.content ?? [], [data])
   const totalPages = data?.totalPages ?? 0
@@ -63,6 +68,16 @@ export function InstitucionesTab() {
   const handleModulosClose = () => {
     setIsModulosOpen(false)
     setModulosInstitucion(null)
+  }
+
+  const handleOpenPermisos = (institucion: Institucion) => {
+    setPermisosInstitucion(institucion)
+    setIsPermisosOpen(true)
+  }
+
+  const handlePermisosClose = () => {
+    setIsPermisosOpen(false)
+    setPermisosInstitucion(null)
   }
 
   const handleToggle = async (id: number) => {
@@ -250,13 +265,23 @@ export function InstitucionesTab() {
                       <ShieldCheck className="h-4 w-4" />
                     </Button>
 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenPermisos(institucion)}
+                      disabled={!gestionablesSet.has(institucion.id)}
+                      title="Permisos de acceso a pacientes para instituciones hijas"
+                    >
+                      <Users className="h-4 w-4" />
+                    </Button>
+
                     {institucion.activo ? (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={!gestionablesSet.has(institucion.id)}
+                            disabled={!gestionablesEstadoSet.has(institucion.id)}
                             className="text-destructive border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
                             title="Desactivar institución"
                           >
@@ -268,7 +293,7 @@ export function InstitucionesTab() {
                             <AlertDialogTitle>¿Desactivar institución?</AlertDialogTitle>
                             <AlertDialogDescription>
                               La institución <strong>{institucion.nombre}</strong> quedará inactiva y no podrá operar en
-                              el sistema. Su historial se conserva y puede reactivarse más adelante.
+                              el sistema. Todos sus usuarios perderán el acceso. Su historial se conserva y puede reactivarse más adelante.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -288,7 +313,7 @@ export function InstitucionesTab() {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={!gestionablesSet.has(institucion.id)}
+                            disabled={!gestionablesEstadoSet.has(institucion.id)}
                             className="text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800"
                             title="Activar institución"
                           >
@@ -347,6 +372,12 @@ export function InstitucionesTab() {
         open={isModulosOpen}
         onOpenChange={(open) => { if (!open) handleModulosClose(); else setIsModulosOpen(true) }}
         institucion={modulosInstitucion}
+      />
+
+      <PermisosAccesoPacientesModal
+        open={isPermisosOpen}
+        onOpenChange={(open) => { if (!open) handlePermisosClose(); else setIsPermisosOpen(true) }}
+        institucion={permisosInstitucion}
       />
 
       <TiposInstitucionModal open={isTiposOpen} onOpenChange={setIsTiposOpen} />

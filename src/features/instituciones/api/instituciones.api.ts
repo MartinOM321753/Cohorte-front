@@ -6,6 +6,7 @@ import {
   InstitucionPaginadoResponse,
   InstitucionModuloPermiso,
   ModuloSistema,
+  PermisoAccesoPacientes,
   TipoInstitucionCatalogo,
   TipoInstitucionRequestDTO,
 } from '@/types/api'
@@ -49,6 +50,11 @@ export async function toggleTipoInstitucion(id: number) {
 
 export async function getInstitucionesGestionables(): Promise<number[]> {
   const response = await api.get<ApiResponse<number[]>>(`${BASE}/gestionables`)
+  return response.data.data
+}
+
+export async function getInstitucionesGestionablesEstado(): Promise<number[]> {
+  const response = await api.get<ApiResponse<number[]>>(`${BASE}/gestionables-estado`)
   return response.data.data
 }
 
@@ -136,5 +142,41 @@ export async function otorgarModuloInstitucion(
   data: { modulo: ModuloSistema; habilitado: boolean; idOtorgante: number },
 ) {
   const response = await api.put<ApiResponse<InstitucionModuloPermiso>>(`${BASE}/${idInstitucion}/modulos`, data)
+  return response.data.data
+}
+
+// ============================================
+// PERMISOS DE ACCESO A PACIENTES (institución padre habilita ver sus pacientes a una hija)
+// ============================================
+
+/** Permisos que esta institución ha otorgado a otras (habilitados e históricos). */
+export async function getPermisosAccesoPacientesOtorgados(idInstitucion: number) {
+  const response = await api.get<ApiResponse<PermisoAccesoPacientes[]>>(
+    `${BASE}/${idInstitucion}/permisos-pacientes/otorgados`,
+  )
+  return response.data.data
+}
+
+/** Permisos activos que esta institución ha recibido de otras (ancestras). */
+export async function getPermisosAccesoPacientesRecibidos(idInstitucion: number) {
+  const response = await api.get<ApiResponse<PermisoAccesoPacientes[]>>(
+    `${BASE}/${idInstitucion}/permisos-pacientes/recibidos`,
+  )
+  return response.data.data
+}
+
+/** Otorga (o reactiva) el acceso de `idInstitucionRecibe` a los pacientes de `idInstitucion`. */
+export async function otorgarPermisoAccesoPacientes(idInstitucion: number, idInstitucionRecibe: number) {
+  const response = await api.post<ApiResponse<PermisoAccesoPacientes>>(
+    `${BASE}/${idInstitucion}/permisos-pacientes/otorgar/${idInstitucionRecibe}`,
+  )
+  return response.data.data
+}
+
+/** Revoca el acceso previamente otorgado a `idInstitucionRecibe`. */
+export async function revocarPermisoAccesoPacientes(idInstitucion: number, idInstitucionRecibe: number) {
+  const response = await api.delete<ApiResponse<PermisoAccesoPacientes>>(
+    `${BASE}/${idInstitucion}/permisos-pacientes/revocar/${idInstitucionRecibe}`,
+  )
   return response.data.data
 }

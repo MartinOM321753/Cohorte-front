@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import {
   getInstitucionesPaginado,
   getInstitucionesGestionables,
+  getInstitucionesGestionablesEstado,
   searchInstituciones,
   getInstitucionesActivas,
   getInstitucionesRaices,
@@ -19,8 +20,13 @@ import {
   toggleTipoInstitucion,
   getModulosDeInstitucion,
   otorgarModuloInstitucion,
+  getPermisosAccesoPacientesOtorgados,
+  getPermisosAccesoPacientesRecibidos,
+  otorgarPermisoAccesoPacientes,
+  revocarPermisoAccesoPacientes,
 } from '../api/instituciones.api'
 import { InstitucionRequestDTO, ModuloSistema, TipoInstitucionRequestDTO } from '@/types/api'
+import { useAuthStore } from '@/stores/authStore'
 
 // ============================================
 // QUERIES
@@ -30,6 +36,13 @@ export function useGetInstitucionesGestionables() {
   return useQuery({
     queryKey: ['instituciones', 'gestionables'],
     queryFn: () => getInstitucionesGestionables(),
+  })
+}
+
+export function useGetInstitucionesGestionablesEstado() {
+  return useQuery({
+    queryKey: ['instituciones', 'gestionables-estado'],
+    queryFn: () => getInstitucionesGestionablesEstado(),
   })
 }
 
@@ -230,10 +243,67 @@ export function useOtorgarModuloInstitucion(idInstitucion: number | null) {
       otorgarModuloInstitucion(idInstitucion as number, data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['instituciones', 'modulos', idInstitucion] })
+      const authState = useAuthStore.getState()
+      if (authState.user?.institucion?.id === idInstitucion) {
+        const nextModulos = variables.habilitado
+          ? Array.from(new Set([...authState.modulosHabilitados, variables.modulo]))
+          : authState.modulosHabilitados.filter((modulo) => modulo !== variables.modulo)
+        useAuthStore.setState({ modulosHabilitados: nextModulos })
+      }
       toast.success(variables.habilitado ? 'Módulo habilitado exitosamente' : 'Módulo deshabilitado exitosamente')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al actualizar el permiso del módulo')
+    },
+  })
+}
+
+// ============================================
+// PERMISOS DE ACCESO A PACIENTES (institución padre habilita ver sus pacientes a una hija)
+// ============================================
+
+export function useGetPermisosAccesoPacientesOtorgados(idInstitucion: number | null) {
+  return useQuery({
+    queryKey: ['instituciones', 'permisos-pacientes', 'otorgados', idInstitucion],
+    queryFn: () => getPermisosAccesoPacientesOtorgados(idInstitucion as number),
+    enabled: idInstitucion != null,
+  })
+}
+
+export function useGetPermisosAccesoPacientesRecibidos(idInstitucion: number | null) {
+  return useQuery({
+    queryKey: ['instituciones', 'permisos-pacientes', 'recibidos', idInstitucion],
+    queryFn: () => getPermisosAccesoPacientesRecibidos(idInstitucion as number),
+    enabled: idInstitucion != null,
+  })
+}
+
+export function useOtorgarPermisoAccesoPacientes(idInstitucion: number | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (idInstitucionRecibe: number) =>
+      otorgarPermisoAccesoPacientes(idInstitucion as number, idInstitucionRecibe),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instituciones', 'permisos-pacientes', 'otorgados', idInstitucion] })
+      toast.success('Permiso otorgado: la institución hija ya puede ver estos pacientes')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al otorgar el permiso')
+    },
+  })
+}
+
+export function useRevocarPermisoAccesoPacientes(idInstitucion: number | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (idInstitucionRecibe: number) =>
+      revocarPermisoAccesoPacientes(idInstitucion as number, idInstitucionRecibe),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instituciones', 'permisos-pacientes', 'otorgados', idInstitucion] })
+      toast.success('Permiso revocado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al revocar el permiso')
     },
   })
 }
