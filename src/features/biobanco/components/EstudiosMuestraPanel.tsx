@@ -47,12 +47,10 @@ function formatDateTime(iso: string) {
 function EstudioItem({
   estudio,
   muestra,
-  isPrestada,
   myInstitucionId,
 }: {
   estudio: EstudioMuestraResponse
   muestra: MuestraDetalleDTO
-  isPrestada: boolean
   myInstitucionId?: number
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -62,7 +60,7 @@ function EstudioItem({
   const fechaEstudio = formatLocalDate(estudio.fechaEstudio)
   const fechaRegistro = estudio.fechaRegistro ? formatDateTime(estudio.fechaRegistro) : null
   const esMiEstudio = myInstitucionId != null && estudio.idInstitucionCreadora === myInstitucionId
-  const puedeEditar = !isPrestada && esMiEstudio
+  const puedeEditar = esMiEstudio
 
   return (
     <div className="border rounded-md overflow-hidden">
@@ -165,7 +163,7 @@ function EstudiosTab({ muestra }: { muestra: MuestraDetalleDTO }) {
         <Alert variant="destructive" className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 [&>svg]:text-amber-600">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            La muestra está en préstamo. No se pueden registrar ni editar estudios mientras esté en tránsito.
+            La muestra está en préstamo. No se pueden registrar nuevos estudios mientras esté en tránsito.
           </AlertDescription>
         </Alert>
       )}
@@ -217,7 +215,7 @@ function EstudiosTab({ muestra }: { muestra: MuestraDetalleDTO }) {
       {!isLoading && !isError && estudios.length > 0 && (
         <div className="space-y-2">
           {estudios.map(e => (
-            <EstudioItem key={e.id} estudio={e} muestra={muestra} isPrestada={isPrestada} myInstitucionId={myInstitucionId} />
+            <EstudioItem key={e.id} estudio={e} muestra={muestra} myInstitucionId={myInstitucionId} />
           ))}
         </div>
       )}

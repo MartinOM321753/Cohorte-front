@@ -26,14 +26,16 @@ import { formatDate } from '@/lib/utils'
 
 // ── Helpers de estado ─────────────────────────────────────────────────────────
 
-function estadoBadge(estado: TrasladoMuestra['estado']) {
+function estadoBadge(estado: TrasladoMuestra['estado'], isOrigen?: boolean) {
   switch (estado) {
     case 'ENVIADA':
       return { label: 'Enviada',       cls: 'border-amber-500/40  text-amber-700  dark:text-amber-400  bg-amber-500/10'  }
     case 'RECIBIDA':
       return { label: 'Recibida',      cls: 'border-blue-500/40   text-blue-700   dark:text-blue-400   bg-blue-500/10'   }
     case 'EN_DEVOLUCION':
-      return { label: 'En devolución', cls: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
+      return isOrigen
+        ? { label: 'Por recibir',    cls: 'border-teal-500/40   text-teal-700   dark:text-teal-400   bg-teal-500/10'   }
+        : { label: 'En devolución',  cls: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
     case 'DEVUELTA':
       return { label: 'Devuelta',      cls: 'border-green-500/40  text-green-700  dark:text-green-400  bg-green-500/10'  }
     case 'CANCELADO':
@@ -100,9 +102,9 @@ function PrestamoCard({
   onSelectAllAlicuotas,
   onDeselectAllAlicuotas,
 }: PrestamoCardProps) {
-  const badge = estadoBadge(traslado.estado)
   const isOrigen  = traslado.institucionOrigen.id  === myInstitucionId
   const isDestino = traslado.institucionDestino.id === myInstitucionId
+  const badge = estadoBadge(traslado.estado, isOrigen)
   const isActionTarget = actionTrasladoId === traslado.id
 
   return (
@@ -435,9 +437,11 @@ export function PrestamosTab() {
   }
 
   // Clasificar préstamos
+  const activos    = traslados.filter((t) => t.estado !== 'DEVUELTA' && t.estado !== 'CANCELADO')
   const enviados   = traslados.filter((t) => t.estado === 'ENVIADA'  && t.institucionOrigen.id  === myInstitucionId)
-  const recibidos  = traslados.filter((t) => t.institucionDestino.id === myInstitucionId && t.estado !== 'DEVUELTA')
-  const todos      = traslados
+  const recibidos  = traslados.filter((t) => t.institucionDestino.id === myInstitucionId && t.estado !== 'DEVUELTA' && t.estado !== 'CANCELADO')
+  const devueltos  = traslados.filter((t) => t.estado === 'DEVUELTA')
+  const cancelados = traslados.filter((t) => t.estado === 'CANCELADO')
 
   if (isLoading) {
     return (
@@ -484,10 +488,10 @@ export function PrestamosTab() {
         </Button>
       </div>
 
-      <Tabs defaultValue="todos" className="w-full">
-        <TabsList>
-          <TabsTrigger value="todos">
-            Todos activos {todos.length > 0 && `(${todos.length})`}
+      <Tabs defaultValue="activos" className="w-full">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="activos">
+            Todos activos {activos.length > 0 && `(${activos.length})`}
           </TabsTrigger>
           <TabsTrigger value="enviados">
             <ArrowRightFromLine className="h-3.5 w-3.5 mr-1" />
@@ -497,11 +501,19 @@ export function PrestamosTab() {
             <ArrowLeftFromLine className="h-3.5 w-3.5 mr-1" />
             Recibidos {recibidos.length > 0 && `(${recibidos.length})`}
           </TabsTrigger>
+          <TabsTrigger value="devueltos">
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+            Devueltos {devueltos.length > 0 && `(${devueltos.length})`}
+          </TabsTrigger>
+          <TabsTrigger value="cancelados">
+            <XCircle className="h-3.5 w-3.5 mr-1" />
+            Cancelados {cancelados.length > 0 && `(${cancelados.length})`}
+          </TabsTrigger>
         </TabsList>
 
         {/* Todos activos */}
-        <TabsContent value="todos" className="space-y-4 mt-4">
-          {todos.length === 0 ? (
+        <TabsContent value="activos" className="space-y-4 mt-4">
+          {activos.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8">
                 <AlertCircle className="h-10 w-10 text-muted-foreground mb-3" />
@@ -512,7 +524,7 @@ export function PrestamosTab() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {todos.map((t) => <PrestamoCard key={t.id} {...cardProps(t)} />)}
+              {activos.map((t) => <PrestamoCard key={t.id} {...cardProps(t)} />)}
             </div>
           )}
         </TabsContent>
@@ -549,6 +561,42 @@ export function PrestamosTab() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recibidos.map((t) => <PrestamoCard key={t.id} {...cardProps(t)} />)}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Devueltos */}
+        <TabsContent value="devueltos" className="space-y-4 mt-4">
+          {devueltos.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-8">
+                <CheckCircle2 className="h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-muted-foreground text-center">
+                  No hay préstamos devueltos.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {devueltos.map((t) => <PrestamoCard key={t.id} {...cardProps(t)} />)}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Cancelados */}
+        <TabsContent value="cancelados" className="space-y-4 mt-4">
+          {cancelados.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-8">
+                <XCircle className="h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-muted-foreground text-center">
+                  No hay préstamos cancelados.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {cancelados.map((t) => <PrestamoCard key={t.id} {...cardProps(t)} />)}
             </div>
           )}
         </TabsContent>

@@ -214,6 +214,7 @@ function buildPastBlockCSS(
   view: CalendarView,
   businessStart = 8,
   businessEnd = 17,
+  visibleDays: WeekDays[] = ["monday", "tuesday", "wednesday", "thursday", "friday"],
 ): string {
   const OVERLAY = `
     content: '';
@@ -278,10 +279,13 @@ function buildPastBlockCSS(
     if (!isCurrentWeek) return ""; // Semana futura → sin bloqueo
 
     // ── Semana actual ──────────────────────────────────────────────────────────
-    // Con hiddenDays=['saturday','sunday'] y firstDayOfWeek='monday':
-    //   :nth-child(1)=Lun, :nth-child(2)=Mar, ..., :nth-child(5)=Vie
-    // isoWeekday(): 1=Lun ... 5=Vie (sáb/dom no aparecen)
-    const todayCol = now.isoWeekday(); // 1–5
+    // Las columnas visibles dependen de visibleDays (ordenados lun→dom).
+    // todayCol = posición 1-based de hoy en las columnas visibles.
+    const isoToWeekDay: WeekDays[] = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    const orderedVisible = isoToWeekDay.filter((d) => visibleDays.includes(d));
+    const todayDayName = isoToWeekDay[now.isoWeekday() - 1];
+    const todayCol = orderedVisible.indexOf(todayDayName) + 1;
+    if (todayCol === 0) return ""; // hoy es un día oculto
 
     let css = `[data-testid="vertical-grid-body"] > * { position: relative; }`;
 
@@ -399,7 +403,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
         el.id = STYLE_ID;
         document.head.appendChild(el);
       }
-      el.textContent = buildPastBlockCSS(dayjs(), calendarDate, calendarView, businessStart, businessEnd);
+      el.textContent = buildPastBlockCSS(dayjs(), calendarDate, calendarView, businessStart, businessEnd, businessDaysOfWeek);
     }
 
     inject();
@@ -409,7 +413,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
       clearInterval(timer);
       document.getElementById(STYLE_ID)?.remove();
     };
-  }, [calendarDate, calendarView, businessStart, businessEnd]);
+  }, [calendarDate, calendarView, businessStart, businessEnd, businessDaysOfWeek]);
   const translations = useMemo<Translations>(
     () => ({
       ...defaultTranslations,
@@ -542,28 +546,42 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     [citas, eventsRevision],
   );
 
-  // CSS dinámico para atenuar días no laborales en el mini-calendario del año
-  // El grid del mini-cal tiene orden: [dom(1), lun(2), mar(3), mié(4), jue(5), vie(6), sáb(7)]
-  const hiddenDaysMiniCSS = useMemo(() => {
-    const dayToNth: Record<WeekDays, string> = {
-      sunday: "7n+1",
-      monday: "7n+2",
-      tuesday: "7n+3",
-      wednesday: "7n+4",
-      thursday: "7n+5",
-      friday: "7n+6",
-      saturday: "7n",
+  // CSS dinámico para atenuar días no laborales en mini-calendario (año) y vista mes
+  const hiddenDaysCSS = useMemo(() => {
+    if (hiddenDaysComputed.length === 0) return "";
+    let css = "";
+
+    // ── Mini-calendario (año): orden [dom(1), lun(2), mar(3), mié(4), jue(5), vie(6), sáb(7)]
+    const dayToNthMini: Record<WeekDays, string> = {
+      sunday: "7n+1", monday: "7n+2", tuesday: "7n+3", wednesday: "7n+4",
+      thursday: "7n+5", friday: "7n+6", saturday: "7n",
     };
-    const selectors = hiddenDaysComputed
-      .map((d) => `[data-testid$="-mini"] > :nth-child(${dayToNth[d]})`)
-      .join(",\n  ");
-    if (!selectors) return "";
-    return `${selectors} { opacity: 0.35; }`;
+    const miniSelectors = hiddenDaysComputed
+      .map((d) => `[data-testid$="-mini"] > :nth-child(${dayToNthMini[d]})`)
+      .join(",\n");
+    css += `${miniSelectors} { opacity: 0.35; }\n`;
+
+    // ── Vista mes: con firstDayOfWeek="monday", posiciones 1-7 = Lun-Dom
+    // Header usa data-testid="month-header", body usa horizontal-grid-body > div (filas) > div (celdas)
+    const dayToMonthCol: Record<WeekDays, number> = {
+      monday: 1, tuesday: 2, wednesday: 3, thursday: 4,
+      friday: 5, saturday: 6, sunday: 7,
+    };
+    const monthHeaderSel = hiddenDaysComputed
+      .map((d) => `[data-testid="month-header"] > :nth-child(${dayToMonthCol[d]})`)
+      .join(",\n");
+    const monthBodySel = hiddenDaysComputed
+      .map((d) => `[data-testid="horizontal-grid-body"] [class*="flex"][class*="w-full"] > :nth-child(${dayToMonthCol[d]})`)
+      .join(",\n");
+    css += `${monthHeaderSel} { opacity: 0.4; }\n`;
+    css += `${monthBodySel} { opacity: 0.4; background: hsl(var(--muted) / 0.3) !important; }\n`;
+
+    return css;
   }, [hiddenDaysComputed]);
 
   return (
     <>
-      {hiddenDaysMiniCSS && <style>{hiddenDaysMiniCSS}</style>}
+      {hiddenDaysCSS && <style>{hiddenDaysCSS}</style>}
       <style>{`
   [data-testid="ilamy-calendar"] {
     --calendar-time-col: 84px;

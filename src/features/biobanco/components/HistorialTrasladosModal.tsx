@@ -30,14 +30,16 @@ interface HistorialTrasladosModalProps {
   muestra: MuestraDetalleDTO | null
 }
 
-function estadoBadge(estado: TrasladoMuestra['estado']) {
+function estadoBadge(estado: TrasladoMuestra['estado'], isOrigen?: boolean) {
   switch (estado) {
     case 'ENVIADA':
       return { label: 'En tránsito',   className: 'border-amber-500/40  text-amber-700  dark:text-amber-400  bg-amber-500/10'  }
     case 'RECIBIDA':
       return { label: 'Recibida',      className: 'border-blue-500/40   text-blue-700   dark:text-blue-400   bg-blue-500/10'   }
     case 'EN_DEVOLUCION':
-      return { label: 'En devolución', className: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
+      return isOrigen
+        ? { label: 'Por recibir',    className: 'border-teal-500/40   text-teal-700   dark:text-teal-400   bg-teal-500/10'   }
+        : { label: 'En devolución',  className: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
     case 'DEVUELTA':
       return { label: 'Devuelta',      className: 'border-green-500/40  text-green-700  dark:text-green-400  bg-green-500/10'  }
     case 'CANCELADO':
@@ -144,9 +146,9 @@ export function HistorialTrasladosModal({ open, onOpenChange, muestra }: Histori
         ) : (
           <div className="space-y-3">
             {historial.map((traslado) => {
-              const badge = estadoBadge(traslado.estado)
               const isOrigen  = traslado.institucionOrigen.id  === myInstitucionId
               const isDestino = traslado.institucionDestino.id === myInstitucionId
+              const badge = estadoBadge(traslado.estado, isOrigen)
 
               return (
                 <div

@@ -3,6 +3,7 @@ import {
   Plus, Edit, Trash2, Search, TestTube, AlertCircle,
   Paperclip, ArrowRightFromLine, History, FlaskConical,
   ChevronDown, ChevronUp, MapPinOff, ClipboardList, X, Printer, Tag,
+  EyeOff, Eye,
 } from 'lucide-react'
 import { useGetMuestras, useDeleteMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto } from '../hooks/useBiobanco'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
@@ -43,29 +44,41 @@ import { MuestraDetalleDTO } from '@/types/api'
 // ── Traslado helpers ──────────────────────────────────────────────────────────
 
 type EstadoActivo = 'ENVIADA' | 'RECIBIDA' | 'EN_DEVOLUCION'
-interface TrasladoInfo { idTraslado: number; institucionNombre: string; estado: EstadoActivo }
+interface TrasladoInfo {
+  idTraslado: number
+  institucionNombre: string
+  estado: EstadoActivo
+  institucionOrigenId: number
+  institucionDestinoId: number
+}
 
-function activeBadge(estado: EstadoActivo) {
+function activeBadge(estado: EstadoActivo, isOrigen?: boolean) {
   switch (estado) {
     case 'ENVIADA':       return { label: 'En tránsito',   cls: 'border-amber-500/40  text-amber-700  dark:text-amber-400  bg-amber-500/10'  }
     case 'RECIBIDA':      return { label: 'Recibida',      cls: 'border-blue-500/40   text-blue-700   dark:text-blue-400   bg-blue-500/10'   }
-    case 'EN_DEVOLUCION': return { label: 'En devolución', cls: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
+    case 'EN_DEVOLUCION':
+      return isOrigen
+        ? { label: 'Por recibir',    cls: 'border-teal-500/40   text-teal-700   dark:text-teal-400   bg-teal-500/10'   }
+        : { label: 'En devolución',  cls: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
   }
 }
 
-function activeCardBorder(estado: EstadoActivo) {
+function activeCardBorder(estado: EstadoActivo, isOrigen?: boolean) {
   switch (estado) {
     case 'ENVIADA':       return 'border-amber-500/40'
     case 'RECIBIDA':      return 'border-blue-500/40'
-    case 'EN_DEVOLUCION': return 'border-orange-500/40'
+    case 'EN_DEVOLUCION': return isOrigen ? 'border-teal-500/40' : 'border-orange-500/40'
   }
 }
 
-function activeBox(estado: EstadoActivo) {
+function activeBox(estado: EstadoActivo, isOrigen?: boolean) {
   switch (estado) {
     case 'ENVIADA':       return { wrap: 'bg-amber-500/10  border-amber-500/20',  title: 'text-amber-700  dark:text-amber-300',  body: 'text-amber-600  dark:text-amber-400'  }
     case 'RECIBIDA':      return { wrap: 'bg-blue-500/10   border-blue-500/20',   title: 'text-blue-700   dark:text-blue-300',   body: 'text-blue-600   dark:text-blue-400'   }
-    case 'EN_DEVOLUCION': return { wrap: 'bg-orange-500/10 border-orange-500/20', title: 'text-orange-700 dark:text-orange-300', body: 'text-orange-600 dark:text-orange-400' }
+    case 'EN_DEVOLUCION':
+      return isOrigen
+        ? { wrap: 'bg-teal-500/10   border-teal-500/20',   title: 'text-teal-700   dark:text-teal-300',   body: 'text-teal-600   dark:text-teal-400'   }
+        : { wrap: 'bg-orange-500/10 border-orange-500/20', title: 'text-orange-700 dark:text-orange-300', body: 'text-orange-600 dark:text-orange-400' }
   }
 }
 
@@ -78,7 +91,7 @@ interface SharedActions {
   myInstitucionId?: number
   onEdit: (m: MuestraDetalleDTO) => void
   onTrasladoClick: (m: MuestraDetalleDTO) => void
-  onCancelarEnvio: (idTraslado: number) => void
+  onCancelarEnvio: (idTraslado: number, motivo: string) => void
   onHistorial: (m: MuestraDetalleDTO) => void
   onDocumentos: (id: number) => void
   onResultados: (m: MuestraDetalleDTO) => void
@@ -100,6 +113,7 @@ function MuestraFooter({
   actions: SharedActions
   numAlicuotas?: number
 }) {
+  const [cancelMotivo, setCancelMotivo] = useState('')
   const esTrasladada = !!trasladoInfo
   const isPrestada = muestra.estadoMuestra === 'PRESTADA'
   const noEsMia = muestra.idInstitucion != null
@@ -170,11 +184,22 @@ function MuestraFooter({
                 Esta acción no se puede deshacer.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <div className="space-y-1.5 py-2">
+              <label className="text-xs font-medium">Motivo de la cancelación</label>
+              <Input
+                placeholder="Motivo (máx. 100 caracteres)"
+                maxLength={100}
+                value={cancelMotivo}
+                onChange={(e) => setCancelMotivo(e.target.value)}
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{cancelMotivo.length}/100</p>
+            </div>
             <AlertDialogFooter>
-              <AlertDialogCancel>Mantener envío</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setCancelMotivo('')}>Mantener envío</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => actions.onCancelarEnvio(trasladoInfo!.idTraslado)}
+                onClick={() => { actions.onCancelarEnvio(trasladoInfo!.idTraslado, cancelMotivo.trim()); setCancelMotivo('') }}
                 className="bg-rose-600 text-white hover:bg-rose-700"
+                disabled={!cancelMotivo.trim()}
               >
                 Sí, cancelar envío
               </AlertDialogAction>
@@ -270,11 +295,9 @@ interface PadreCardProps {
 }
 
 function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, actions }: PadreCardProps) {
-  const badge = trasladoInfo ? activeBadge(trasladoInfo.estado) : null
-  const box   = trasladoInfo ? activeBox(trasladoInfo.estado) : null
-  const esRecibida = muestra.idInstitucionActual === actions.myInstitucionId
-    && muestra.idInstitucion != null
-    && muestra.idInstitucion !== actions.myInstitucionId
+  const isOrigen = trasladoInfo ? trasladoInfo.institucionOrigenId === actions.myInstitucionId : undefined
+  const badge = trasladoInfo ? activeBadge(trasladoInfo.estado, isOrigen) : null
+  const box   = trasladoInfo ? activeBox(trasladoInfo.estado, isOrigen) : null
   const noEnMiPosesion = muestra.idInstitucionActual != null
     && actions.myInstitucionId != null
     && muestra.idInstitucionActual !== actions.myInstitucionId
@@ -283,7 +306,7 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
 
   return (
     <div className="relative h-full">
-      <Card className={`h-full flex flex-col ${noEnMiPosesion ? 'opacity-60' : ''} ${trasladoInfo ? activeCardBorder(trasladoInfo.estado) : ''}`}>
+      <Card className={`h-full flex flex-col ${noEnMiPosesion ? 'opacity-60' : ''} ${trasladoInfo ? activeCardBorder(trasladoInfo.estado, isOrigen) : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -309,21 +332,21 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
               </div>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
-              {noEnMiPosesion && esMia ? (
-                <Badge variant="outline" className="border-gray-500/40 text-gray-600 dark:text-gray-400 bg-gray-500/10 text-xs">
-                  Fuera
-                </Badge>
-              ) : noEnMiPosesion && !esMia ? (
-                <Badge variant="outline" className="border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10 text-xs">
-                  Devuelta
-                </Badge>
-              ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
+              {trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
                 <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
                   {badge!.label}
                 </Badge>
               ) : trasladoInfo && trasladoInfo.estado === 'EN_DEVOLUCION' ? (
                 <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
                   {badge!.label}
+                </Badge>
+              ) : noEnMiPosesion && esMia ? (
+                <Badge variant="outline" className="border-gray-500/40 text-gray-600 dark:text-gray-400 bg-gray-500/10 text-xs">
+                  Fuera
+                </Badge>
+              ) : noEnMiPosesion && !esMia ? (
+                <Badge variant="outline" className="border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10 text-xs">
+                  Devuelta
                 </Badge>
               ) : muestra.ubicacion ? (
                 <Badge variant="outline" className="border-green-500/40 text-green-700 dark:text-green-400 bg-green-500/10 text-xs">
@@ -334,7 +357,7 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
                   Sin ubicación
                 </Badge>
               )}
-              {esRecibida && !noEnMiPosesion && (
+              {!esMia && muestra.idInstitucion != null && (
                 <Badge variant="outline" className="border-purple-500/40 text-purple-700 dark:text-purple-400 bg-purple-500/10 text-xs">
                   Externa
                 </Badge>
@@ -362,22 +385,22 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
             </p>
           </div>
 
-          {noEnMiPosesion ? (
-            <div className={`text-sm rounded-md border px-2 py-1.5 ${esMia ? 'border-gray-300/40 bg-gray-500/5' : 'border-blue-300/40 bg-blue-500/5'}`}>
-              <span className={`font-medium ${esMia ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>Ubicación:</span>
-              <p className={`text-xs mt-0.5 ${esMia ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                En biobanco de {muestra.nombreInstitucionActual ?? 'otra institución'}
-              </p>
-            </div>
-          ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
+          {trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
             <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
               <span className={`font-medium ${box!.title}`}>En tránsito:</span>
               <p className={`text-xs mt-0.5 ${box!.body}`}>Pendiente de recepción</p>
             </div>
           ) : trasladoInfo && trasladoInfo.estado === 'EN_DEVOLUCION' ? (
             <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
-              <span className={`font-medium ${box!.title}`}>Devolución:</span>
-              <p className={`text-xs mt-0.5 ${box!.body}`}>En proceso de devolución</p>
+              <span className={`font-medium ${box!.title}`}>{isOrigen ? 'Por recibir:' : 'Devolución:'}</span>
+              <p className={`text-xs mt-0.5 ${box!.body}`}>{isOrigen ? 'Pendiente de recepción' : 'En proceso de devolución'}</p>
+            </div>
+          ) : noEnMiPosesion ? (
+            <div className={`text-sm rounded-md border px-2 py-1.5 ${esMia ? 'border-gray-300/40 bg-gray-500/5' : 'border-blue-300/40 bg-blue-500/5'}`}>
+              <span className={`font-medium ${esMia ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>Ubicación:</span>
+              <p className={`text-xs mt-0.5 ${esMia ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                En biobanco de {muestra.nombreInstitucionActual ?? 'otra institución'}
+              </p>
             </div>
           ) : muestra.ubicacion ? (
             <div className="text-sm">
@@ -445,8 +468,9 @@ interface AlicuotaCardProps {
 
 function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
   const esTrasladada = !!trasladoInfo
-  const badge  = trasladoInfo ? activeBadge(trasladoInfo.estado) : null
-  const box    = trasladoInfo ? activeBox(trasladoInfo.estado) : null
+  const isOrigen = trasladoInfo ? trasladoInfo.institucionOrigenId === actions.myInstitucionId : undefined
+  const badge  = trasladoInfo ? activeBadge(trasladoInfo.estado, isOrigen) : null
+  const box    = trasladoInfo ? activeBox(trasladoInfo.estado, isOrigen) : null
   const noEnMiPosesion = muestra.idInstitucionActual != null
     && actions.myInstitucionId != null
     && muestra.idInstitucionActual !== actions.myInstitucionId
@@ -458,7 +482,7 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
   return (
     <Card className={`
       h-full flex flex-col border border-dashed ${noEnMiPosesion ? 'opacity-50' : 'opacity-80'}
-      ${trasladoInfo ? activeCardBorder(trasladoInfo.estado) : 'border-muted-foreground/40'}
+      ${trasladoInfo ? activeCardBorder(trasladoInfo.estado, isOrigen) : 'border-muted-foreground/40'}
       bg-muted/20
     `}>
       <CardHeader className="pb-2">
@@ -482,17 +506,21 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
             </div>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            {noEnMiPosesion ? (
-              <Badge variant="outline" className="border-gray-500/40 text-gray-600 dark:text-gray-400 bg-gray-500/10 text-xs">
-                Fuera
-              </Badge>
-            ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
+            {trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
               <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
                 {badge!.label}
               </Badge>
             ) : trasladoInfo && trasladoInfo.estado === 'EN_DEVOLUCION' ? (
               <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
                 {badge!.label}
+              </Badge>
+            ) : noEnMiPosesion && !esPrestada ? (
+              <Badge variant="outline" className="border-gray-500/40 text-gray-600 dark:text-gray-400 bg-gray-500/10 text-xs">
+                Fuera
+              </Badge>
+            ) : noEnMiPosesion && esPrestada ? (
+              <Badge variant="outline" className="border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10 text-xs">
+                Devuelta
               </Badge>
             ) : sinUbicacion ? (
               <Badge variant="outline" className="border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/10 text-xs">
@@ -503,7 +531,7 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
                 En biobanco
               </Badge>
             )}
-            {esPrestada && !noEnMiPosesion && (
+            {esPrestada && (
               <Badge variant="outline" className="border-purple-500/40 text-purple-700 dark:text-purple-400 bg-purple-500/10 text-xs">
                 Externa
               </Badge>
@@ -531,22 +559,22 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
           </p>
         </div>
 
-        {noEnMiPosesion ? (
-          <div className="text-sm rounded-md border border-gray-300/40 bg-gray-500/5 px-2 py-1.5">
-            <span className="font-medium text-gray-500 dark:text-gray-400">Ubicación:</span>
-            <p className="text-xs mt-0.5 text-gray-500 dark:text-gray-400">
-              {trasladoInfo ? trasladoInfo.institucionNombre : 'Fuera de este biobanco'}
-            </p>
-          </div>
-        ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
+        {trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
           <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
             <span className={`font-medium ${box!.title}`}>En tránsito:</span>
             <p className={`text-xs mt-0.5 ${box!.body}`}>Pendiente de recepción</p>
           </div>
         ) : trasladoInfo && trasladoInfo.estado === 'EN_DEVOLUCION' ? (
           <div className={`text-sm rounded-md border px-2 py-1.5 ${box!.wrap}`}>
-            <span className={`font-medium ${box!.title}`}>Devolución:</span>
-            <p className={`text-xs mt-0.5 ${box!.body}`}>En proceso de devolución</p>
+            <span className={`font-medium ${box!.title}`}>{isOrigen ? 'Por recibir:' : 'Devolución:'}</span>
+            <p className={`text-xs mt-0.5 ${box!.body}`}>{isOrigen ? 'Pendiente de recepción' : 'En proceso de devolución'}</p>
+          </div>
+        ) : noEnMiPosesion ? (
+          <div className={`text-sm rounded-md border px-2 py-1.5 ${!esPrestada ? 'border-gray-300/40 bg-gray-500/5' : 'border-blue-300/40 bg-blue-500/5'}`}>
+            <span className={`font-medium ${!esPrestada ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>Ubicación:</span>
+            <p className={`text-xs mt-0.5 ${!esPrestada ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
+              En biobanco de {muestra.nombreInstitucionActual ?? 'otra institución'}
+            </p>
           </div>
         ) : muestra.ubicacion ? (
           <div className="text-sm">
@@ -593,10 +621,11 @@ export function MuestrasTab() {
   const [historialMuestra, setHistorialMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [resultadosMuestra, setResultadosMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [generarAlicuotasMuestra, setGenerarAlicuotasMuestra] = useState<MuestraDetalleDTO | null>(null)
+  const [hideDevueltasHuerfanas, setHideDevueltasHuerfanas] = useState(true)
 
   const { data: muestras, isLoading } = useGetMuestras()
   const { data: traslados = [] } = useGetAllTraslados()
-  const { data: tiposActivos = [] } = useGetTiposMuestraActivos()
+  const { data: tiposActivos = [], isLoading: isLoadingTiposMuestra } = useGetTiposMuestraActivos()
   const deleteMuestraMutation = useDeleteMuestra()
   const cancelarPrestamoMutation = useCancelarPrestamo()
   const { data: impresoras = [] } = useListarImpresoras()
@@ -618,6 +647,7 @@ export function MuestrasTab() {
   const resolvedConfigId = selectedConfigId ?? configPredeterminada?.id
 
   const hayTiposConTubos = tiposActivos.some((t) => t.tubos.some((tb) => tb.activo))
+  const puedeCrearMuestra = !isLoadingTiposMuestra && hayTiposConTubos
 
   const trasladosActivos = useMemo(() => {
     const ESTADOS_ACTIVOS: EstadoActivo[] = ['ENVIADA', 'RECIBIDA', 'EN_DEVOLUCION']
@@ -628,6 +658,8 @@ export function MuestrasTab() {
           idTraslado: t.id,
           institucionNombre: t.institucionDestino.nombre,
           estado: t.estado as EstadoActivo,
+          institucionOrigenId: t.institucionOrigen.id,
+          institucionDestinoId: t.institucionDestino.id,
         })
       }
     })
@@ -660,7 +692,21 @@ export function MuestrasTab() {
     return { padres: padresArr, alicuotasByPadre: byPadre }
   }, [muestras])
 
+  const huerfanasDevueltasCount = useMemo(() => {
+    return padres.filter((m) => {
+      if (m.idMuestraPadre == null) return false
+      const esExterna = m.idInstitucion != null && m.idInstitucion !== myInstitucionId
+      const fueraDeMiBiobanco = m.idInstitucionActual != null && m.idInstitucionActual !== myInstitucionId
+      return esExterna && fueraDeMiBiobanco
+    }).length
+  }, [padres, myInstitucionId])
+
   const filteredPadres = padres.filter((m) => {
+    if (hideDevueltasHuerfanas && m.idMuestraPadre != null) {
+      const esExterna = m.idInstitucion != null && m.idInstitucion !== myInstitucionId
+      const fueraDeMiBiobanco = m.idInstitucionActual != null && m.idInstitucionActual !== myInstitucionId
+      if (esExterna && fueraDeMiBiobanco) return false
+    }
     const term = searchTerm.toLowerCase()
     if (!term) return true
     const pacienteStr = m.paciente ? `${m.paciente.folio} ${m.paciente.nombreCompleto}` : ''
@@ -689,10 +735,10 @@ export function MuestrasTab() {
     if (pendingTraslado) { setTrasladandoMuestra(pendingTraslado); setPendingTraslado(null) }
   }
 
-  const handleCancelarEnvio = async (idTraslado: number) => {
+  const handleCancelarEnvio = async (idTraslado: number, motivo: string) => {
     await cancelarPrestamoMutation.mutateAsync({
       idTraslado,
-      data: { uuidUsuario: userUuid, motivo: 'Cancelación desde el panel de muestras' },
+      data: { uuidUsuario: userUuid, motivo: motivo || 'Cancelación desde el panel de muestras' },
     })
   }
 
@@ -804,16 +850,16 @@ export function MuestrasTab() {
           )}
           <Button
             onClick={() => setIsMuestraModalOpen(true)}
-            disabled={!hayTiposConTubos}
-            title={!hayTiposConTubos ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}
+            disabled={!puedeCrearMuestra}
+            title={!puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Nueva Muestra
+            {isLoadingTiposMuestra ? 'Cargando...' : 'Nueva Muestra'}
           </Button>
         </div>
       </div>
 
-      {!hayTiposConTubos && (
+      {!isLoadingTiposMuestra && !hayTiposConTubos && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -830,7 +876,7 @@ export function MuestrasTab() {
         </AlertDescription>
       </Alert>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -840,6 +886,20 @@ export function MuestrasTab() {
             className="pl-10"
           />
         </div>
+        {huerfanasDevueltasCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHideDevueltasHuerfanas((prev) => !prev)}
+            className={`text-xs ${hideDevueltasHuerfanas ? 'text-muted-foreground' : 'text-blue-600 dark:text-blue-400 border-blue-500/30'}`}
+            title={hideDevueltasHuerfanas
+              ? `Mostrar ${huerfanasDevueltasCount} alícuota(s) huérfana(s) devuelta(s)`
+              : 'Ocultar alícuotas huérfanas devueltas'}
+          >
+            {hideDevueltasHuerfanas ? <Eye className="h-3.5 w-3.5 mr-1" /> : <EyeOff className="h-3.5 w-3.5 mr-1" />}
+            {hideDevueltasHuerfanas ? `Mostrar devueltas (${huerfanasDevueltasCount})` : 'Ocultar devueltas'}
+          </Button>
+        )}
       </div>
 
       {filteredPadres.length === 0 ? (
@@ -857,11 +917,11 @@ export function MuestrasTab() {
             {padres.length === 0 && (
               <Button
                 onClick={() => setIsMuestraModalOpen(true)}
-                disabled={!hayTiposConTubos}
-                title={!hayTiposConTubos ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
+                disabled={!puedeCrearMuestra}
+                title={!puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Registrar Primera Muestra
+                {isLoadingTiposMuestra ? 'Cargando...' : 'Registrar Primera Muestra'}
               </Button>
             )}
           </CardContent>

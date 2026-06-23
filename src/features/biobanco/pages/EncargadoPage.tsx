@@ -28,14 +28,16 @@ import {
 import { TrasladoMuestra } from '@/types/api'
 import { formatDate } from '@/lib/utils'
 
-function estadoBadge(estado: TrasladoMuestra['estado']) {
+function estadoBadge(estado: TrasladoMuestra['estado'], isOrigen?: boolean) {
   switch (estado) {
     case 'ENVIADA':
       return { label: 'En tránsito',   className: 'border-amber-400 text-amber-700 bg-amber-100' }
     case 'RECIBIDA':
       return { label: 'Recibida',      className: 'border-blue-400 text-blue-700 bg-blue-100' }
     case 'EN_DEVOLUCION':
-      return { label: 'En devolución', className: 'border-orange-400 text-orange-700 bg-orange-100' }
+      return isOrigen
+        ? { label: 'Por recibir',    className: 'border-teal-400 text-teal-700 bg-teal-100' }
+        : { label: 'En devolución',  className: 'border-orange-400 text-orange-700 bg-orange-100' }
     case 'DEVUELTA':
       return { label: 'Devuelta',      className: 'border-green-400 text-green-700 bg-green-100' }
     case 'CANCELADO':
@@ -129,9 +131,9 @@ export default function EncargadoPage() {
         ) : (
           <div className="space-y-3">
             {activas.map((traslado) => {
-              const badge     = estadoBadge(traslado.estado)
               const isDestino = traslado.institucionDestino.id === myInstitucionId
               const isOrigen  = traslado.institucionOrigen.id  === myInstitucionId
+              const badge     = estadoBadge(traslado.estado, isOrigen)
 
               return (
                 <Card key={traslado.id}>

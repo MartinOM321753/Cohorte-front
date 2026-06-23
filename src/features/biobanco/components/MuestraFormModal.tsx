@@ -123,7 +123,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
   useEffect(() => {
     if (open && user?.uuid) {
-      setValue('usuarioRecolectaUUID', user.uuid)
+      setValue('usuarioRecolectaUUID', user.uuid, { shouldValidate: true })
     }
   }, [open, user, setValue])
 
@@ -280,7 +280,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
               <input id="fechaRecoleccion" type="hidden" {...register('fechaRecoleccion')} />
               <DateTimePicker
                 value={watchedFechaRecoleccion}
-                onChange={(v) => setValue('fechaRecoleccion', v)}
+                onChange={(v) => setValue('fechaRecoleccion', v, { shouldValidate: true })}
                 maxDateTime={new Date()}
               />
               {errors.fechaRecoleccion && (
@@ -538,7 +538,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                             key={getPacienteUUID(p)}
                             value={`${p.folio} ${p.persona.nombre} ${p.persona.apellidoPaterno} ${p.persona.apellidoMaterno ?? ''}`}
                             onSelect={() => {
-                              setValue('pacienteUUID', getPacienteUUID(p))
+                              setValue('pacienteUUID', getPacienteUUID(p), { shouldValidate: true })
                               setOpenPaciente(false)
                             }}
                           >
@@ -599,7 +599,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                     size="sm"
                     onClick={() => {
                       setPosicionLabel('')
-                      setValue('idPosicionCaja', 0)
+                      setValue('idPosicionCaja', 0, { shouldValidate: true })
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -662,7 +662,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         open={showPosicionModal}
         onOpenChange={setShowPosicionModal}
         onConfirm={({ idPosicionCaja, cajaLabel }) => {
-          setValue('idPosicionCaja', idPosicionCaja)
+          setValue('idPosicionCaja', idPosicionCaja, { shouldValidate: true })
           setPosicionLabel(cajaLabel)
           setShowPosicionModal(false)
         }}
