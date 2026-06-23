@@ -71,13 +71,13 @@ export async function getGeolocation(): Promise<{
  */
 export async function loginUser(
   credentials: LoginRequest,
-  coords: { latitud: number; longitud: number; precisionM: number },
+  coords: { latitud: number; longitud: number; precisionM: number } | null,
 ): Promise<{ user: UserData; mustChangePassword: boolean }> {
   const loginPayload: LoginRequest = {
     ...credentials,
-    latitud: coords.latitud,
-    longitud: coords.longitud,
-    precisionM: coords.precisionM,
+    latitud: coords?.latitud ?? null,
+    longitud: coords?.longitud ?? null,
+    precisionM: coords?.precisionM ?? null,
   }
 
   await axiosInstance.post('/auth/login', loginPayload)

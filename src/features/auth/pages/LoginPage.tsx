@@ -2,6 +2,13 @@
 import * as React from "react";
 import cohorteWatermark from "../../../assets/cohorte-watermark.png";
 import cohorteLogo from "../../../assets/logo.png";
+import logoAsociacion from "../../../assets/ASOCIACIÓN.png";
+import logoGenomica from "../../../assets/GENOMICA.png";
+import logoImss from "../../../assets/IMSS.png";
+import logoInprfm from "../../../assets/INPRFM.png";
+import logoInsp from "../../../assets/INSP.png";
+import logoNutricion from "../../../assets/NUTRICIÓN.png";
+import logoUnam from "../../../assets/UNAM.png";
 import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,10 +23,7 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ShieldCheck,
   AlertCircle,
-  MapPin,
-  MapPinOff,
 } from "lucide-react";
 
 type GeoStatus = "requesting" | "granted" | "denied" | "unavailable";
@@ -48,6 +52,37 @@ function ImssShield({ size = 68 }: { size?: number }) {
         flexShrink: 0,
       }}
     />
+  );
+}
+
+// ── Logos de instituciones colaboradoras ──────────────────────────────────────
+const COLLABORATORS = [
+  { src: logoImss, name: "Instituto Mexicano del Seguro Social (IMSS)", url: "https://www.imss.gob.mx" },
+  { src: logoUnam, name: "Universidad Nacional Autónoma de México (UNAM)", url: "https://www.unam.mx" },
+  { src: logoInsp, name: "Instituto Nacional de Salud Pública (INSP)", url: "https://www.insp.mx" },
+  { src: logoInprfm, name: "Instituto Nacional de Psiquiatría Ramón de la Fuente Muñiz (INPRFM)", url: "https://www.inprf.gob.mx" },
+  { src: logoGenomica, name: "Instituto Nacional de Medicina Genómica (INMEGEN)", url: "https://www.inmegen.gob.mx" },
+  { src: logoNutricion, name: "Instituto Nacional de Ciencias Médicas y Nutrición Salvador Zubirán (INCMNSZ)", url: "https://www.incmnsz.mx" },
+  { src: logoAsociacion, name: "Asociación Mexicana de Diabetes en Morelos, A.C.", url: "https://amdiabetes.org" },
+];
+
+function CollaboratorLogos() {
+  return (
+    <div className="collab-logos">
+      {COLLABORATORS.map((c, i) => (
+        <a
+          key={i}
+          href={c.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={c.name}
+          aria-label={c.name}
+          className="collab-logo-link"
+        >
+          <img className="collab-logo-img" src={c.src} alt={c.name} />
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -83,7 +118,7 @@ export default function LoginPage() {
   const [submitBtnHover, setSubmitBtnHover] = useState(false);
 
   // ── Geolocalización obligatoria ──────────────────────────────────────────
-  const [geoStatus, setGeoStatus] = useState<GeoStatus>("requesting");
+  const [, setGeoStatus] = useState<GeoStatus>("requesting");
   const [coords, setCoords] = useState<{
     latitud: number;
     longitud: number;
@@ -135,10 +170,6 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate, hasRole]);
 
   const onSubmit = async (data: LoginFormData) => {
-    if (!coords) {
-      toast.error("Se requiere permiso de ubicación para acceder al sistema.");
-      return;
-    }
     setIsLoading(true);
     try {
       const response = await loginUser(data, coords);
@@ -166,21 +197,81 @@ export default function LoginPage() {
 
   return (
     <div
+      className="login-grid"
       style={{
         minHeight: "100vh",
-        display: "grid",
-        gridTemplateColumns: "1.05fr 1fr",
         background: "#ffffff",
         fontFamily: "'Inter', system-ui, sans-serif",
         color: "#0d1411",
       }}
     >
+      <style>{`
+        .login-grid {
+          display: grid;
+          grid-template-columns: 1.05fr 1fr;
+        }
+        .login-aside {
+          padding: 56px 64px;
+        }
+        .login-section {
+          padding: 56px 80px;
+        }
+        .collab-logos {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          padding-top: 14px;
+          margin-top: 32px;
+          border-top: 1px solid #dbe1de;
+        }
+        .collab-logo-link {
+          display: inline-flex;
+          flex-shrink: 0;
+        }
+        .collab-logo-img {
+          height: 48px;
+          width: 48px;
+          object-fit: contain;
+          opacity: 0.92;
+          flex-shrink: 0;
+          transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        .collab-logo-link:hover .collab-logo-img {
+          opacity: 1;
+          transform: scale(1.06);
+        }
+        @media (max-width: 900px) {
+          .login-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr;
+          }
+          .login-aside {
+            padding: 40px 24px;
+            min-height: 320px;
+          }
+          .login-section {
+            padding: 40px 24px;
+          }
+          .collab-logo-img {
+            height: 34px;
+            width: 34px;
+          }
+        }
+        @media (max-width: 480px) {
+          .collab-logos {
+            justify-content: center;
+            gap: 18px;
+          }
+        }
+      `}</style>
       {/* ============== LEFT — INSTITUTIONAL PANEL ============== */}
       <aside
+        className="login-aside"
         style={{
           background: "#1e4e3a",
           color: "#ffffff",
-          padding: "56px 64px",
           display: "flex",
           flexDirection: "column",
           position: "relative",
@@ -260,78 +351,40 @@ export default function LoginPage() {
             <span
               style={{ fontStyle: "italic", fontWeight: 400, color: "#d4a866" }}
             >
-              Etapa 2026-2027
+              2000 - 2026
             </span>
           </h1>
         </div>
 
-        {/* Texto institucional fijo al fondo del panel */}
-        <p
+        {/* Línea divisoria, siempre al fondo del panel */}
+        <hr
           style={{
-            position: "absolute",
-            bottom: 56,
-            left: 64,
-            right: 64,
-            margin: 0,
-            fontSize: 18,
-            lineHeight: 1.55,
-            color: "rgba(255,255,255,0.78)",
+            marginTop: "auto",
+            marginBottom: 0,
+            border: 0,
+            borderTop: "1px solid rgba(255,255,255,0.2)",
           }}
-        >
-          Participantes, estudios médicos y biobanco criogénico en una sola
-          plataforma institucional.
-        </p>
-        <hr style={{
-            position: "absolute",
-            bottom: 56,
-            left: 64,
-            right: 64,
-            margin: 0,
-            fontSize: 14,
-            lineHeight: 1.55,
-            color: "rgba(255,255,255,0.78)",
-            
-          }}></hr>
-
+        />
       </aside>
 
       {/* ============== RIGHT — FORM ============== */}
       <section
+        className="login-section"
         style={{
-          padding: "56px 80px",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
           background: "#ffffff",
           position: "relative",
         }}
       >
-        {/* Tiny meta strip top-right */}
         <div
           style={{
-            position: "absolute",
-            top: 24,
-            right: 32,
+            flex: 1,
             display: "flex",
-            alignItems: "center",
-            gap: 14,
-            fontSize: 12,
-            color: "#7d8782",
-            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            flexDirection: "column",
+            justifyContent: "center",
           }}
         >
-          <span>imss.gob.mx</span>
-          <span
-            style={{
-              width: 4,
-              height: 4,
-              borderRadius: 9999,
-              background: "#dbe1de",
-            }}
-          />
-          <span>Conexión segura · TLS 1.3</span>
-        </div>
-
         <div style={{ maxWidth: 420, width: "100%" }}>
           {/* Numbered section eyebrow */}
           <div
@@ -486,16 +539,12 @@ export default function LoginPage() {
               </a>
             </div>
 
-            {/* Banner de geolocalización */}
-            <GeoBanner
-              status={geoStatus}
-              precisionM={coords?.precisionM ?? null}
-            />
+            {/* Banner de geolocalización oculto por ahora: la ubicación no se usa todavía */}
 
             {/* Submit */}
             <button
               type="submit"
-              disabled={isLoading || geoStatus !== "granted"}
+              disabled={isLoading}
               onMouseEnter={() => setSubmitBtnHover(true)}
               onMouseLeave={() => setSubmitBtnHover(false)}
               style={{
@@ -506,24 +555,18 @@ export default function LoginPage() {
                 width: "100%",
                 height: 52,
                 padding: "0 20px",
-                background:
-                  geoStatus !== "granted"
-                    ? "#9ca3af"
-                    : isLoading
-                      ? "#143a2c"
-                      : submitBtnHover
-                        ? "#1a4332"
-                        : "#1e4e3a",
+                background: isLoading
+                  ? "#143a2c"
+                  : submitBtnHover
+                    ? "#1a4332"
+                    : "#1e4e3a",
                 color: "#ffffff",
                 fontSize: 15,
                 fontWeight: 600,
                 letterSpacing: "-0.005em",
                 border: 0,
                 borderRadius: 6,
-                cursor:
-                  isLoading || geoStatus !== "granted"
-                    ? "not-allowed"
-                    : "pointer",
+                cursor: isLoading ? "not-allowed" : "pointer",
                 fontFamily: "inherit",
                 opacity: isLoading ? 0.85 : 1,
               }}
@@ -547,169 +590,29 @@ export default function LoginPage() {
             style={{
               marginTop: 32,
               paddingTop: 20,
-              borderTop: "1px solid #dbe1de",
+              borderTop: "1px solid #fff", /*dbe1de */
               display: "flex",
               alignItems: "center",
               gap: 10,
               fontSize: 11,
-              color: "#7d8782",
+              color: "#fff", /*#7d8782*/
               fontFamily: "'JetBrains Mono', ui-monospace, monospace",
               letterSpacing: "0.04em",
             }}
           >
-            <ShieldCheck
+            {/* <ShieldCheck
               size={14}
               strokeWidth={1.5}
               style={{ color: "#1e4e3a" }}
-            />
-            ACCESO RESTRINGIDO · Todas las acciones se registran en bitácora
-            institucional.
+            /> */}
+            {/* ACCESO RESTRINGIDO · Todas las acciones se registran en bitácora
+            institucional. */}
           </div>
         </div>
+        </div>
+
+        <CollaboratorLogos />
       </section>
-    </div>
-  );
-}
-
-// =========================================================================
-// GeoBanner — muestra el estado del permiso de geolocalización.
-// Bloquea visualmente el acceso cuando el permiso no ha sido otorgado.
-// =========================================================================
-function GeoBanner({
-  status,
-  precisionM,
-}: {
-  status: GeoStatus;
-  precisionM: number | null;
-}) {
-  if (status === "granted") {
-    // Clasificar la calidad de la señal según el margen de error
-    const quality =
-      precisionM === null
-        ? null
-        : precisionM <= 10
-          ? {
-              label: "GPS · Alta precisión",
-              color: "#166534",
-              bg: "#f0fdf4",
-              border: "#bbf7d0",
-            }
-          : precisionM <= 100
-            ? {
-                label: "WiFi · Buena precisión",
-                color: "#166534",
-                bg: "#f0fdf4",
-                border: "#bbf7d0",
-              }
-            : precisionM <= 2000
-              ? {
-                  label: "Red móvil · Precisión moderada",
-                  color: "#713f12",
-                  bg: "#fefce8",
-                  border: "#fef08a",
-                }
-              : {
-                  label: "IP del proveedor · Baja precisión",
-                  color: "#9a3412",
-                  bg: "#fff7ed",
-                  border: "#fed7aa",
-                };
-
-    return (
-      <div
-        style={{
-          padding: "10px 14px",
-          borderRadius: 6,
-          background: quality?.bg ?? "#f0fdf4",
-          border: `1px solid ${quality?.border ?? "#bbf7d0"}`,
-          marginBottom: 16,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 12,
-            color: quality?.color ?? "#166534",
-            fontWeight: 600,
-          }}
-        >
-          <MapPin size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-          Ubicación obtenida — acceso permitido
-        </div>
-        {precisionM !== null && (
-          <div
-            style={{
-              marginTop: 3,
-              fontSize: 11,
-              color: quality?.color,
-              opacity: 0.85,
-            }}
-          >
-            {quality?.label} · ±{precisionM.toLocaleString()} m de margen de
-            error
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (status === "requesting") {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "10px 14px",
-          borderRadius: 6,
-          background: "#fffbeb",
-          border: "1px solid #fde68a",
-          marginBottom: 16,
-          fontSize: 12,
-          color: "#92400e",
-          fontWeight: 500,
-        }}
-      >
-        <Spinner className="h-3.5 w-3.5" />
-        Obteniendo ubicación… Por favor acepte el permiso en el navegador.
-      </div>
-    );
-  }
-
-  // denied | unavailable
-  return (
-    <div
-      style={{
-        padding: "12px 14px",
-        borderRadius: 6,
-        background: "#fef2f2",
-        border: "1px solid #fecaca",
-        marginBottom: 16,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 13,
-          color: "#991b1b",
-          fontWeight: 600,
-          marginBottom: 6,
-        }}
-      >
-        <MapPinOff size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-        {status === "unavailable"
-          ? "Geolocalización no disponible en este dispositivo."
-          : "Permiso de ubicación denegado — acceso bloqueado."}
-      </div>
-      <p style={{ margin: 0, fontSize: 12, color: "#7f1d1d", lineHeight: 1.5 }}>
-        {status === "unavailable"
-          ? "Este sistema requiere un dispositivo con soporte de geolocalización para registrar su acceso."
-          : "Para acceder al sistema debe conceder permiso de ubicación. Haga clic en el ícono de candado o ubicación en la barra de direcciones de su navegador, seleccione «Permitir» y recargue la página."}
-      </p>
     </div>
   );
 }

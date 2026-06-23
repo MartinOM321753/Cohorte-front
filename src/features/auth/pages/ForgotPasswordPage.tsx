@@ -127,7 +127,7 @@ export default function ForgotPasswordPage() {
             <Mail size={26} strokeWidth={1.75} color="#1e4e3a" />
           </div>
           <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: '#7d8782' }}>
-            Sistema Cohorte · IMSS
+            Cohorte de Trabajadores de la salud
           </p>
         </div>
 
