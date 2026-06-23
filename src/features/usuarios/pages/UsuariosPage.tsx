@@ -17,14 +17,15 @@ import { useGetUsuarios } from '../hooks/useGetUsuarios'
 import { UsuariosTable } from '../components/UsuariosTable'
 import { UsuarioFormModal } from '../components/UsuarioFormModal'
 import { UsuarioDetailDrawer } from '../components/UsuarioDetailDrawer'
-import { useToggleActivo } from '../hooks/useMutateUsuario'
+import { useReenviarInvitacion, useToggleActivo } from '../hooks/useMutateUsuario'
 import { useAuthStore } from '@/stores/authStore'
 import type { Usuario } from '../types/usuario.types'
 
 export default function UsuariosPage() {
   const { data: usuarios = [], isLoading } = useGetUsuarios()
   const toggleActivoMutation = useToggleActivo()
-  const { user, logout } = useAuthStore()
+  const reenviarInvitacionMutation = useReenviarInvitacion()
+  const { user } = useAuthStore()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -32,6 +33,7 @@ export default function UsuariosPage() {
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null)
   const [usuarioToEdit, setUsuarioToEdit] = useState<Usuario | null>(null)
   const [usuarioToToggle, setUsuarioToToggle] = useState<Usuario | null>(null)
+  const [reenviandoInvitacionUuid, setReenviandoInvitacionUuid] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const q = searchTerm.toLowerCase().trim()
@@ -75,24 +77,20 @@ export default function UsuariosPage() {
   }
 
   function handleToggleActivo(usuario: Usuario) {
+    if (usuario.UUID === user?.uuid) return
     setUsuarioToToggle(usuario)
+  }
+
+  function handleReenviarInvitacion(usuario: Usuario) {
+    setReenviandoInvitacionUuid(usuario.UUID)
+    reenviarInvitacionMutation.mutate(usuario.UUID, {
+      onSettled: () => setReenviandoInvitacionUuid(null),
+    })
   }
 
   function confirmToggle() {
     if (!usuarioToToggle) return
-
-    // Detectar si el admin se está desactivando a sí mismo
-    const desactivandoSiMismo =
-      usuarioToToggle.activo && usuarioToToggle.UUID === user?.uuid
-
     toggleActivoMutation.mutate(usuarioToToggle.id, {
-      onSuccess: () => {
-        if (desactivandoSiMismo) {
-          // Nos desactivamos a nosotros mismos → la sesión ya no es válida
-          logout()
-          window.location.replace('/login')
-        }
-      },
       onSettled: () => setUsuarioToToggle(null),
     })
   }
@@ -100,7 +98,7 @@ export default function UsuariosPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
-        title="Gestión de usuarios"
+        title="Gestion de usuarios"
         subtitle="Administra las cuentas y roles de acceso al sistema"
         actions={
           <Button
@@ -113,7 +111,6 @@ export default function UsuariosPage() {
         }
       />
 
-      {/* Barra de búsqueda y resumen */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full max-w-[340px]">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--imss-ink-300)]" strokeWidth={1.75} />
@@ -135,23 +132,24 @@ export default function UsuariosPage() {
         )}
       </div>
 
-      {/* Tabla */}
       <UsuariosTable
         data={filtered}
         isLoading={isLoading}
         onView={handleView}
         onEdit={handleEdit}
         onToggleActivo={handleToggleActivo}
+        onReenviarInvitacion={handleReenviarInvitacion}
+        reenviandoInvitacionUuid={reenviandoInvitacionUuid}
+        currentInstitucionId={user?.institucion?.id}
+        currentUserUuid={user?.uuid}
       />
 
-      {/* Modal de creación / edición */}
       <UsuarioFormModal
         open={isFormOpen}
         onOpenChange={handleFormClose}
         usuario={usuarioToEdit}
       />
 
-      {/* Drawer de detalle */}
       <UsuarioDetailDrawer
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
@@ -159,7 +157,6 @@ export default function UsuariosPage() {
         onEdit={handleEdit}
       />
 
-      {/* Confirmación de activar / desactivar */}
       <AlertDialog
         open={!!usuarioToToggle}
         onOpenChange={(open) => { if (!open) setUsuarioToToggle(null) }}
@@ -171,8 +168,8 @@ export default function UsuariosPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {usuarioToToggle?.activo
-                ? `¿Desactivar a ${usuarioToToggle.persona.nombre} ${usuarioToToggle.persona.apellidoPaterno}? No podrá iniciar sesión ni realizar solicitudes.`
-                : `¿Activar a ${usuarioToToggle?.persona.nombre} ${usuarioToToggle?.persona.apellidoPaterno}? Recuperará acceso al sistema.`
+                ? `Desactivar a ${usuarioToToggle.persona.nombre} ${usuarioToToggle.persona.apellidoPaterno}? No podra iniciar sesion ni realizar solicitudes.`
+                : `Activar a ${usuarioToToggle?.persona.nombre} ${usuarioToToggle?.persona.apellidoPaterno}? Recuperara acceso al sistema.`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -189,8 +186,8 @@ export default function UsuariosPage() {
               }
             >
               {toggleActivoMutation.isPending
-                ? 'Procesando…'
-                : usuarioToToggle?.activo ? 'Sí, desactivar' : 'Sí, activar'
+                ? 'Procesando...'
+                : usuarioToToggle?.activo ? 'Si, desactivar' : 'Si, activar'
               }
             </AlertDialogAction>
           </AlertDialogFooter>

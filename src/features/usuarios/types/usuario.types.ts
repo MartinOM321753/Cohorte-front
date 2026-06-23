@@ -16,6 +16,7 @@ export interface UsuarioRol {
 
 /** Institución resumida tal como la devuelve el backend dentro del usuario */
 export interface UsuarioInstitucionResumen {
+  id?: number
   uuid: string
   nombre: string
 }
@@ -25,6 +26,7 @@ export interface Usuario {
   UUID: string
   username: string
   activo: boolean
+  debeResetear?: boolean
   persona: UsuarioPersona
   rol: UsuarioRol
   institucion?: UsuarioInstitucionResumen | null
@@ -41,7 +43,7 @@ export interface UsuarioRequestDTO {
     fechaNacimiento: string
     sexo: 'M' | 'F'
     telefono?: string
-    email: string   // requerido: la contraseña generada se envía aquí
+    email: string   // requerido: se usa para enviar la invitacion/reset inicial
   }
 }
 

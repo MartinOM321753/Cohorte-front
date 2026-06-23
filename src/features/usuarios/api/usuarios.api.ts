@@ -33,6 +33,11 @@ export const toggleActivoUsuario = async (id: number): Promise<Usuario> => {
   return res.data.data
 }
 
+export const reenviarInvitacionUsuario = async (uuid: string): Promise<Usuario> => {
+  const res = await axiosInstance.post<ApiResponse<Usuario>>(`/users/${uuid}/reenviar-invitacion`)
+  return res.data.data
+}
+
 /** Devuelve todos los usuarios activos (GET /users/activos). */
 export const getUsuariosActivos = async (): Promise<Usuario[]> => {
   const res = await axiosInstance.get<ApiResponse<Usuario[]>>('/users/activos')

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createUsuario, updateUsuario, toggleActivoUsuario } from '../api/usuarios.api'
+import { createUsuario, updateUsuario, toggleActivoUsuario, reenviarInvitacionUsuario } from '../api/usuarios.api'
 import { USUARIOS_QUERY_KEY } from './useGetUsuarios'
 import type { UsuarioRequestDTO } from '../types/usuario.types'
 
@@ -43,6 +43,20 @@ export function useToggleActivo() {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message ?? 'Error al cambiar el estado del usuario')
+    },
+  })
+}
+
+export function useReenviarInvitacion() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (uuid: string) => reenviarInvitacionUsuario(uuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USUARIOS_QUERY_KEY })
+      toast.success('Invitacion reenviada correctamente')
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message ?? 'Error al reenviar la invitacion')
     },
   })
 }

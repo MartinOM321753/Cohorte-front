@@ -79,6 +79,11 @@ export function UsuarioDetailDrawer({
                 Inactivo
               </span>
             )}
+            {usuario.activo && usuario.debeResetear && (
+              <span className="inline-flex items-center rounded-full bg-[var(--status-warning-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--status-warning-fg)]">
+                Invitacion pendiente
+              </span>
+            )}
           </div>
         </SheetHeader>
 
@@ -125,6 +130,10 @@ export function UsuarioDetailDrawer({
             <div className="rounded-md border border-[var(--imss-ink-100)] px-3">
               <DetailRow label="Usuario" value={`@${usuario.username}`} />
               <DetailRow label="Rol asignado" value={rolNombre} />
+              <DetailRow
+                label="Acceso inicial"
+                value={usuario.debeResetear ? 'Pendiente de definir contrasena' : 'Contrasena definida'}
+              />
 
             </div>
           </section>
