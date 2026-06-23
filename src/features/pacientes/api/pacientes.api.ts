@@ -8,6 +8,7 @@ export async function getPacientes(params?: {
   page?: number
   size?: number
   buscar?: string
+  incluirJerarquia?: boolean
 }): Promise<Paciente[] | PaginatedResponse<Paciente>> {
   const response = await axiosInstance.get<ApiResponse<Paciente[]>>('/pacientes', { params })
   return response.data.data
@@ -74,6 +75,25 @@ export async function deletePaciente(id: number): Promise<void> {
 export async function toggleActivoPaciente(uuid: string): Promise<Paciente> {
   const response = await axiosInstance.patch<ApiResponse<Paciente>>(
     `/pacientes/uuid/${uuid}/toggle-activo`
+  )
+  return response.data.data
+}
+
+export interface ImportResultDTO {
+  totalFilas: number
+  exitosos: number
+  errores: number
+  duplicados: number
+  detalleErrores: { fila: number; folio: string; motivo: string }[]
+}
+
+export async function importarPacientes(archivo: File): Promise<ImportResultDTO> {
+  const formData = new FormData()
+  formData.append('archivo', archivo)
+  const response = await axiosInstance.post<ApiResponse<ImportResultDTO>>(
+    '/pacientes/importar',
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
   )
   return response.data.data
 }

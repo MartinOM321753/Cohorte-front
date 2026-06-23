@@ -13,13 +13,14 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useAuthStore } from '@/stores/authStore'
 import { changePasswordVoluntario } from '@/features/auth/api/auth.api'
+import { PASSWORD_REQUIREMENTS_TEXT, strongPasswordSchema } from '@/features/auth/schemas/password.schema'
 
 // ── Schema ──────────────────────────────────────────────────────────────────────
 
 const schema = z
   .object({
     passwordActual: z.string().min(1, 'Ingresa tu contraseña actual'),
-    nuevaPassword: z.string().min(6, 'Mínimo 6 caracteres').max(100),
+    nuevaPassword: z.string().pipe(strongPasswordSchema),
     confirmarPassword: z.string().min(1, 'Confirma tu nueva contraseña'),
   })
   .refine((d) => d.nuevaPassword === d.confirmarPassword, {
@@ -160,7 +161,7 @@ export default function PerfilPage() {
                   id="nuevaPassword"
                   type={showNueva ? 'text' : 'password'}
                   {...register('nuevaPassword')}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={PASSWORD_REQUIREMENTS_TEXT}
                   className="h-9 pr-10 text-[13px]"
                   autoComplete="new-password"
                 />

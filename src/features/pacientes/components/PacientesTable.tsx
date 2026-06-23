@@ -9,6 +9,7 @@ import type { Paciente } from '@/types/api'
 interface PacientesTableProps {
   data: Paciente[]
   isLoading?: boolean
+  incluirJerarquia?: boolean
   onView: (paciente: Paciente) => void
   onEdit: (paciente: Paciente) => void
   onToggleActivo: (paciente: Paciente) => void
@@ -34,6 +35,7 @@ function SexoBadge({ sexo }: { sexo: string | null | undefined }) {
 export function PacientesTable({
   data,
   isLoading,
+  incluirJerarquia,
   onView,
   onEdit,
   onToggleActivo,
@@ -60,6 +62,29 @@ export function PacientesTable({
       header: 'Sexo',
       cell: ({ row }) => <SexoBadge sexo={row.original.persona.sexo} />,
     },
+    ...(incluirJerarquia
+      ? [
+          {
+            id: 'institucion',
+            header: 'Institución',
+            cell: ({ row }: { row: { original: Paciente } }) => {
+              const p = row.original
+              return (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] text-[var(--imss-ink-500)]">
+                    {p.institucionNombre || '—'}
+                  </span>
+                  {p.propiaInstitucion === false && (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                      Externa
+                    </span>
+                  )}
+                </div>
+              )
+            },
+          } as ColumnDef<Paciente>,
+        ]
+      : []),
     {
       id: 'email',
       header: 'Correo',

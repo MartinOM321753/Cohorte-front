@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { pacienteFormSchema, type PacienteFormData } from '../schemas/paciente.schema'
+import { pacienteCreateSchema, pacienteEditSchema, type PacienteFormData } from '../schemas/paciente.schema'
 import { useCreatePaciente, useUpdatePaciente } from '../hooks/useCreatePaciente'
 import {
   TIPO_RECLUTAMIENTO_LABELS,
@@ -61,6 +61,7 @@ const DEFAULT_VALUES: PacienteFormData = {
   nombre: '',
   apellidoPaterno: '',
   apellidoMaterno: '',
+  curp: '',
   email: '',
   telefono: '',
   fechaNacimiento: '',
@@ -86,7 +87,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
     watch,
     formState: { errors, isSubmitting },
   } = useForm<PacienteFormData>({
-    resolver: zodResolver(pacienteFormSchema),
+    resolver: zodResolver(isEdit ? pacienteEditSchema : pacienteCreateSchema),
     defaultValues: DEFAULT_VALUES,
   })
 
@@ -100,6 +101,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
           nombre: paciente.persona.nombre,
           apellidoPaterno: paciente.persona.apellidoPaterno,
           apellidoMaterno: paciente.persona.apellidoMaterno ?? '',
+          curp: paciente.persona.curp ?? '',
           email: paciente.persona.email ?? '',
           telefono: paciente.persona.telefono ?? '',
           fechaNacimiento: paciente.persona.fechaNacimiento?.slice(0, 10) ?? '',
@@ -124,10 +126,11 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
         nombre: formData.nombre,
         apellidoPaterno: formData.apellidoPaterno,
         apellidoMaterno: formData.apellidoMaterno || undefined,
+        curp: formData.curp || undefined,
         email: formData.email || undefined,
         telefono: formData.telefono || undefined,
-        fechaNacimiento: formData.fechaNacimiento,
-        sexo: formData.sexo,
+        fechaNacimiento: formData.fechaNacimiento || undefined,
+        sexo: formData.sexo || undefined,
       },
       reclutamiento: {
         tipoReclutamiento: formData.tipoReclutamiento,
@@ -310,7 +313,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 id="folio"
                 {...register('folio')}
                 sanitize="folio"
-                placeholder="Déjelo en blanco para generarlo automáticamente (ej. C-012600001)"
+                placeholder="Déjelo en blanco para asignar automáticamente (ej. 000001)"
                 className="h-9 font-mono text-[13px] uppercase placeholder:normal-case placeholder:font-sans"
                 style={{ textTransform: 'uppercase' }}
                 onInput={(e) => {
@@ -321,7 +324,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 }}
               />
               <p className="text-[11px] text-[var(--imss-ink-300)]">
-                Opcional: solo si el participante ya cuenta con un folio de seguimiento previo. Si se deja vacío, el sistema generará uno automáticamente (formato COH-AA-NNNNN).
+                Opcional: solo si el participante ya cuenta con un folio de seguimiento previo. Si se deja vacío, el sistema asignará el siguiente folio numérico global disponible (formato 000001).
               </p>
               {errors.folio && (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
@@ -392,10 +395,41 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 />
               </div>
 
+              {/* CURP */}
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="curp" className="text-[13px]">
+                  CURP {isEdit && <span className="text-red-500">*</span>}
+                </Label>
+                <Input
+                  id="curp"
+                  {...register('curp')}
+                  placeholder="ej. GARC850101HDFRRL09"
+                  maxLength={18}
+                  className="h-9 font-mono text-[13px] uppercase"
+                  style={{ textTransform: 'uppercase' }}
+                  onInput={(e) => {
+                    const input = e.currentTarget
+                    const pos = input.selectionStart
+                    input.value = input.value.toUpperCase()
+                    if (pos !== null) input.setSelectionRange(pos, pos)
+                  }}
+                />
+                {!isEdit && (
+                  <p className="text-[11px] text-[var(--imss-ink-300)]">
+                    Opcional al registrar. Será obligatorio al editar el expediente.
+                  </p>
+                )}
+                {errors.curp && (
+                  <p className="text-[11px] text-[var(--status-danger-fg)]">
+                    {errors.curp.message}
+                  </p>
+                )}
+              </div>
+
               {/* Fecha de nacimiento */}
               <div className="space-y-1.5">
                 <Label className="text-[13px]">
-                  Fecha de nacimiento <span className="text-red-500">*</span>
+                  Fecha de nacimiento {isEdit ? <span className="text-red-500">*</span> : null}
                 </Label>
                 <Controller
                   name="fechaNacimiento"
@@ -419,7 +453,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
               {/* Sexo */}
               <div className="space-y-1.5">
                 <Label className="text-[13px]">
-                  Sexo <span className="text-red-500">*</span>
+                  Sexo {isEdit ? <span className="text-red-500">*</span> : null}
                 </Label>
                 <Controller
                   name="sexo"

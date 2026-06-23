@@ -1,10 +1,9 @@
 import { z } from 'zod'
 import { esMayorDeEdadConTolerancia } from '@/components/ui/date-time-picker'
 
-export const pacienteFormSchema = z.object({
-  // Opcional: si el participante ya contaba con un folio de seguimiento previo,
-  // el usuario lo captura aquí (se normaliza a MAYÚSCULAS/alfanumérico en backend);
-  // si se omite, el sistema genera uno automáticamente (formato COH-AA-NNNNN).
+const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/
+
+const basePacienteSchema = z.object({
   folio: z.string()
     .trim()
     .max(50, 'Máximo 50 caracteres')
@@ -28,16 +27,26 @@ export const pacienteFormSchema = z.object({
     .optional()
     .or(z.literal('')),
 
-  fechaNacimiento: z.string()
-    .min(1, 'La fecha de nacimiento es obligatoria')
-    .refine(
-      (date) => esMayorDeEdadConTolerancia(date),
-      'El participante debe ser mayor de 18 años (tolerancia de 3 meses)',
-    ),
+  curp: z.string()
+    .trim()
+    .transform((v) => v.toUpperCase())
+    .pipe(
+      z.string()
+        .regex(CURP_REGEX, 'El CURP no tiene un formato válido')
+        .or(z.literal('')),
+    )
+    .optional()
+    .or(z.literal('')),
 
-  sexo: z.enum(['M', 'F'], {
-    errorMap: () => ({ message: 'El sexo debe ser M o F' }),
-  }),
+  fechaNacimiento: z.string()
+    .optional()
+    .refine(
+      (date) => !date || esMayorDeEdadConTolerancia(date),
+      'El participante debe ser mayor de 18 años (tolerancia de 3 meses)',
+    )
+    .or(z.literal('')),
+
+  sexo: z.enum(['M', 'F']).optional().nullable(),
 
   telefono: z.string()
     .trim()
@@ -89,6 +98,8 @@ export const pacienteFormSchema = z.object({
     }, 'La fecha de contacto no puede ser una fecha futura')
     .or(z.literal('')),
 })
+
+export const pacienteCreateSchema = basePacienteSchema
   .superRefine((data, ctx) => {
     if (data.tipoReclutamiento === 'RETORNO' && !data.estadoContacto) {
       ctx.addIssue({
@@ -99,4 +110,38 @@ export const pacienteFormSchema = z.object({
     }
   })
 
-export type PacienteFormData = z.infer<typeof pacienteFormSchema>
+export const pacienteEditSchema = basePacienteSchema
+  .superRefine((data, ctx) => {
+    if (data.tipoReclutamiento === 'RETORNO' && !data.estadoContacto) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['estadoContacto'],
+        message: 'Seleccione el resultado del contacto para participantes de retorno',
+      })
+    }
+    if (!data.curp || data.curp === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['curp'],
+        message: 'El CURP es obligatorio para completar el expediente',
+      })
+    }
+    if (!data.fechaNacimiento) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fechaNacimiento'],
+        message: 'La fecha de nacimiento es obligatoria para completar el expediente',
+      })
+    }
+    if (!data.sexo) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sexo'],
+        message: 'El sexo es obligatorio para completar el expediente',
+      })
+    }
+  })
+
+export const pacienteFormSchema = pacienteCreateSchema
+
+export type PacienteFormData = z.infer<typeof basePacienteSchema>

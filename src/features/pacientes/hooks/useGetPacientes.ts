@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio } from '../api/pacientes.api'
 
 export function useGetPacientes(
-  params?: { buscar?: string; activos?: boolean },
+  params?: { buscar?: string; activos?: boolean; incluirJerarquia?: boolean },
   options?: { enabled?: boolean }
 ) {
   return useQuery({
@@ -13,6 +13,7 @@ export function useGetPacientes(
       }
       return await getPacientes({
         buscar: params?.buscar,
+        incluirJerarquia: params?.incluirJerarquia,
       })
     },
     enabled: options?.enabled ?? true,

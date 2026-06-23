@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { CalendarDays, Search, UserRound, UserRoundPlus } from 'lucide-react'
+import { Building2, CalendarDays, Search, Upload, UserRound, UserRoundPlus } from 'lucide-react'
 import { useGetPacientes } from '../hooks/useGetPacientes'
 import { useToggleActivoPaciente } from '../hooks/useCreatePaciente'
 import { PacientesTable } from '../components/PacientesTable'
 import { PacienteFormModal } from '../components/PacienteFormModal'
+import { PacienteImportModal } from '../components/PacienteImportModal'
 import { PacienteDetailDrawer } from '../components/PacienteDetailDrawer'
 import { CitaIlamyEventForm } from '@/features/citas/components/CitaIlamyEventForm'
 import { Button } from '@/components/ui/button'
@@ -13,7 +14,8 @@ import { getFullName } from '@/lib/utils'
 import type { Paciente } from '@/types/api'
 
 export default function PacientesPage() {
-  const { data: pacientes, isLoading } = useGetPacientes()
+  const [incluirJerarquia, setIncluirJerarquia] = useState(false)
+  const { data: pacientes, isLoading } = useGetPacientes({ incluirJerarquia })
   const toggleActivoMutation = useToggleActivoPaciente()
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -21,6 +23,7 @@ export default function PacientesPage() {
   const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null)
+  const [isImportOpen, setIsImportOpen] = useState(false)
   const [isCitaModalOpen, setIsCitaModalOpen] = useState(false)
   const [patientToSchedule, setPatientToSchedule] = useState<Paciente | null>(null)
 
@@ -74,6 +77,14 @@ export default function PacientesPage() {
           <>
             <Button
               variant="outline"
+              onClick={() => setIsImportOpen(true)}
+              className="gap-2 text-[13px] h-9"
+            >
+              <Upload className="h-4 w-4" strokeWidth={1.75} />
+              Importar
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => setIsCitaModalOpen(true)}
               className="gap-2 text-[13px] h-9"
             >
@@ -93,17 +104,34 @@ export default function PacientesPage() {
 
       {/* Barra de búsqueda y contador */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full max-w-[340px]">
-          <Search
-            className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--imss-ink-300)]"
-            strokeWidth={1.75}
-          />
-          <Input
-            placeholder="Buscar por nombre, folio o correo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-9 pl-8 text-[13px]"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative w-full max-w-[340px]">
+            <Search
+              className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--imss-ink-300)]"
+              strokeWidth={1.75}
+            />
+            <Input
+              placeholder="Buscar por nombre, folio o correo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9 pl-8 text-[13px]"
+            />
+          </div>
+          <Button
+            variant={incluirJerarquia ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setIncluirJerarquia(!incluirJerarquia)}
+            className={[
+              'gap-1.5 text-[12px] h-9 whitespace-nowrap',
+              incluirJerarquia
+                ? 'bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)]'
+                : '',
+            ].join(' ')}
+            title="Mostrar participantes de instituciones relacionadas"
+          >
+            <Building2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Jerarquía
+          </Button>
         </div>
 
         {!isLoading && (
@@ -121,6 +149,7 @@ export default function PacientesPage() {
       <PacientesTable
         data={filtered}
         isLoading={isLoading}
+        incluirJerarquia={incluirJerarquia}
         onView={handleView}
         onEdit={handleEdit}
         onToggleActivo={(p) => {
@@ -144,6 +173,12 @@ export default function PacientesPage() {
         paciente={selectedPaciente}
         onEdit={handleEdit}
         onSchedule={handleSchedule}
+      />
+
+      {/* Modal importar */}
+      <PacienteImportModal
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
       />
 
       {/* Modal agendar cita */}
