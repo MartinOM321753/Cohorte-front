@@ -11,14 +11,16 @@ import { DocumentoList } from './DocumentoList'
 import {
   useDocumentosEstudio,
   useDocumentosMuestra,
+  useDocumentosResultadoExamen,
 } from '../hooks/useDocumentos'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 type EntidadEstudio  = { entidad: 'estudio';  estudioId: number }
 type EntidadMuestra  = { entidad: 'muestra';  muestraId: number }
+type EntidadResultadoExamen = { entidad: 'resultadoExamen'; resultadoExamenId: number }
 
-type DocumentosDialogProps = (EntidadEstudio | EntidadMuestra) & {
+type DocumentosDialogProps = (EntidadEstudio | EntidadMuestra | EntidadResultadoExamen) & {
   open: boolean
   onOpenChange: (open: boolean) => void
   titulo: string
@@ -122,6 +124,53 @@ function MuestraDocumentos({
   )
 }
 
+// ─── Sub-panel para Resultado de Examen ──────────────────────────────────────
+
+function ResultadoExamenDocumentos({
+  resultadoExamenId,
+  usuarioUUID,
+  canDelete,
+  canUpload,
+}: {
+  resultadoExamenId: number
+  usuarioUUID: string
+  canDelete: boolean
+  canUpload: boolean
+}) {
+  const { data: docs = [], isLoading, isError } = useDocumentosResultadoExamen(resultadoExamenId, { enabled: resultadoExamenId > 0 })
+
+  return (
+    <div className="space-y-4">
+      {canUpload ? (
+        <DocumentoUploader
+          entidad="resultadoExamen"
+          resultadoExamenId={resultadoExamenId}
+          usuarioUUID={usuarioUUID}
+          accept="application/pdf,image/*"
+          showDescripcion
+        />
+      ) : (
+        <p className="text-xs text-muted-foreground italic">
+          Tu rol no tiene permisos para subir documentos a resultados de exámenes.
+        </p>
+      )}
+      <Separator />
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Archivos adjuntos ({docs.length})
+        </p>
+        <DocumentoList
+          documentos={docs}
+          isLoading={isLoading}
+          isError={isError}
+          canDelete={canDelete}
+          emptyMessage="Este resultado no tiene documentos adjuntos aún."
+        />
+      </div>
+    </div>
+  )
+}
+
 // ─── Dialog principal ─────────────────────────────────────────────────────────
 
 export function DocumentosDialog(props: DocumentosDialogProps) {
@@ -149,6 +198,14 @@ export function DocumentosDialog(props: DocumentosDialogProps) {
           {props.entidad === 'muestra' && (
             <MuestraDocumentos
               muestraId={props.muestraId}
+              usuarioUUID={usuarioUUID}
+              canDelete={canDelete}
+              canUpload={canUpload}
+            />
+          )}
+          {props.entidad === 'resultadoExamen' && (
+            <ResultadoExamenDocumentos
+              resultadoExamenId={props.resultadoExamenId}
               usuarioUUID={usuarioUUID}
               canDelete={canDelete}
               canUpload={canUpload}

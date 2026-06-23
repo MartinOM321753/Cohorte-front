@@ -64,6 +64,55 @@ export async function uploadParaMuestra(
   return res.data.data
 }
 
+export async function uploadParaResultadoExamen(
+  resultadoExamenId: number,
+  file: File,
+  usuarioUUID: string,
+  descripcion?: string,
+): Promise<DocumentoResponseDTO> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('usuarioUUID', usuarioUUID)
+  if (descripcion) form.append('descripcion', descripcion)
+
+  const res = await api.post<ApiResponse<DocumentoResponseDTO>>(
+    `/documentos/resultado-examen/${resultadoExamenId}`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return res.data.data
+}
+
+export async function crearDocumentoSinArchivo(
+  pacienteUUID: string,
+  usuarioUUID: string,
+  tipoDoc: TipoDocumentoPaciente = 'CUESTIONARIO',
+  descripcion?: string,
+): Promise<DocumentoResponseDTO> {
+  const params: Record<string, string> = { usuarioUUID, tipoDoc }
+  if (descripcion) params.descripcion = descripcion
+  const res = await api.post<ApiResponse<DocumentoResponseDTO>>(
+    `/documentos/paciente/${pacienteUUID}/sin-archivo`,
+    null,
+    { params },
+  )
+  return res.data.data
+}
+
+export async function adjuntarArchivo(
+  documentoId: number,
+  file: File,
+): Promise<DocumentoResponseDTO> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await api.post<ApiResponse<DocumentoResponseDTO>>(
+    `/documentos/${documentoId}/adjuntar`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return res.data.data
+}
+
 // ─── Consulta ─────────────────────────────────────────────────────────────────
 
 export async function getDocumentosByEstudio(estudioId: number): Promise<DocumentoResponseDTO[]> {
@@ -88,6 +137,11 @@ export async function getDocumentosByPacienteTipo(
 
 export async function getDocumentosByMuestra(muestraId: number): Promise<DocumentoResponseDTO[]> {
   const res = await api.get<ApiResponse<DocumentoResponseDTO[]>>(`/documentos/muestra/${muestraId}`)
+  return res.data.data
+}
+
+export async function getDocumentosByResultadoExamen(resultadoExamenId: number): Promise<DocumentoResponseDTO[]> {
+  const res = await api.get<ApiResponse<DocumentoResponseDTO[]>>(`/documentos/resultado-examen/${resultadoExamenId}`)
   return res.data.data
 }
 

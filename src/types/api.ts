@@ -20,6 +20,7 @@ export interface Persona {
   apellidoMaterno?: string
   fechaNacimiento?: string
   sexo?: 'M' | 'F'
+  curp?: string
   telefono?: string
   email?: string
 }
@@ -31,6 +32,7 @@ export interface PersonaResponseDTO {
   apellidoMaterno?: string
   fechaNacimiento?: string
   sexo?: 'M' | 'F'
+  curp?: string
   telefono?: string
   email?: string
 }
@@ -39,8 +41,9 @@ export interface PersonaRequestDTO {
   nombre: string
   apellidoPaterno: string
   apellidoMaterno?: string
-  fechaNacimiento: string
-  sexo: 'M' | 'F'
+  fechaNacimiento?: string
+  sexo?: 'M' | 'F'
+  curp?: string
   telefono?: string
   email?: string
 }
@@ -98,6 +101,9 @@ export interface Paciente {
   fechaActualizacion: string
   persona: PersonaResponseDTO
   reclutamiento?: ReclutamientoParticipanteResponseDTO | null
+  institucionId?: number
+  institucionNombre?: string
+  propiaInstitucion?: boolean
 }
 
 export interface PacienteRequestDTO {
@@ -461,7 +467,14 @@ export interface UnidadMedidaRequestDTO {
 // ============================================
 // DOCUMENTOS (almacenamiento MinIO)
 // ============================================
-export type TipoDocumentoPaciente = 'CONSENTIMIENTO' | 'GENERAL'
+export type TipoDocumentoPaciente =
+  | 'CONSENTIMIENTO'
+  | 'GENERAL'
+  | 'CUESTIONARIO'
+  | 'CUESTIONARIO_GENERAL'
+  | 'CUESTIONARIO_MINIMENTAL'
+  | 'CUESTIONARIO_AFLUENCIA_VERBAL'
+  | 'CUESTIONARIO_AGES'
 
 export interface DocumentoResponseDTO {
   id: number
@@ -475,6 +488,7 @@ export interface DocumentoResponseDTO {
   /** Código único imprimible del documento, formato D{YY}-{II}-{T}-{FOLIO}.{EXT} */
   etiqueta: string | null
   puedeDescargar: boolean
+  archivoSubido: boolean
   url: string | null
 }
 
@@ -955,6 +969,16 @@ export interface InstitucionModuloPermiso {
   idOtorgadoPor: number | null
   nombreOtorgadoPor: string | null
   fechaOtorgamiento: string | null
+}
+
+export interface PermisoAccesoPacientes {
+  id: number
+  institucionOtorgaId: number
+  institucionOtorgaNombre: string
+  institucionRecibeId: number
+  institucionRecibeNombre: string
+  habilitado: boolean
+  fechaOtorgamiento: string
 }
 
 export interface TipoInstitucionRequestDTO {

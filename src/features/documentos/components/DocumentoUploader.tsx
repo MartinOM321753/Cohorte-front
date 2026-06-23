@@ -11,6 +11,7 @@ import {
   useUploadDocumentoEstudio,
   useUploadDocumentoPaciente,
   useUploadDocumentoMuestra,
+  useUploadDocumentoResultadoExamen,
 } from '../hooks/useDocumentos'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -18,8 +19,9 @@ import {
 type EntidadEstudio  = { entidad: 'estudio';  estudioId: number }
 type EntidadPaciente = { entidad: 'paciente'; pacienteUUID: string; tipoDoc?: TipoDocumentoPaciente }
 type EntidadMuestra  = { entidad: 'muestra';  muestraId: number }
+type EntidadResultadoExamen = { entidad: 'resultadoExamen'; resultadoExamenId: number }
 
-type DocumentoUploaderProps = (EntidadEstudio | EntidadPaciente | EntidadMuestra) & {
+type DocumentoUploaderProps = (EntidadEstudio | EntidadPaciente | EntidadMuestra | EntidadResultadoExamen) & {
   /** UUID del usuario autenticado, se adjunta en el request */
   usuarioUUID: string
   /** Callback cuando el archivo se sube con éxito */
@@ -59,9 +61,12 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
   const muestraMutation  = useUploadDocumentoMuestra(
     props.entidad === 'muestra'  ? props.muestraId  : 0
   )
+  const resultadoExamenMutation = useUploadDocumentoResultadoExamen(
+    props.entidad === 'resultadoExamen' ? props.resultadoExamenId : 0
+  )
 
   const isPending =
-    estudioMutation.isPending || pacienteMutation.isPending || muestraMutation.isPending
+    estudioMutation.isPending || pacienteMutation.isPending || muestraMutation.isPending || resultadoExamenMutation.isPending
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -104,6 +109,10 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
       toast.error('No se puede subir: ID de la muestra no disponible')
       return
     }
+    if (props.entidad === 'resultadoExamen' && !props.resultadoExamenId) {
+      toast.error('No se puede subir: ID del resultado de examen no disponible')
+      return
+    }
 
     const desc = descripcion.trim() || undefined
 
@@ -127,8 +136,18 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
           },
         },
       )
-    } else {
+    } else if (props.entidad === 'muestra') {
       muestraMutation.mutate(
+        { file: selectedFile, usuarioUUID, descripcion: desc },
+        {
+          onSuccess: (doc) => {
+            handleClear()
+            onUploaded?.(doc)
+          },
+        },
+      )
+    } else {
+      resultadoExamenMutation.mutate(
         { file: selectedFile, usuarioUUID, descripcion: desc },
         {
           onSuccess: (doc) => {

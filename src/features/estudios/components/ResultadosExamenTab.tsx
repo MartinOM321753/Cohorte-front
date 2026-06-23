@@ -8,6 +8,7 @@ import {
   ChevronsUpDown,
   ClipboardList,
   Minus,
+  Paperclip,
   Pencil,
   TrendingDown,
   TrendingUp,
@@ -52,6 +53,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -124,8 +126,8 @@ export function ResultadosExamenTab() {
 
   const [openPaciente, setOpenPaciente] = useState(false)
   const [openExamen, setOpenExamen] = useState(false)
-  // id del resultado que se está editando (null = modo crear)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [docsResultadoId, setDocsResultadoId] = useState<number | null>(null)
 
   const { data: pacientesRaw, isLoading: isLoadingPacientes } = useGetPacientes({ activos: true })
   const { data: examenes, isLoading: isLoadingExamenes } = useGetExamenes()
@@ -343,20 +345,31 @@ export function ResultadosExamenTab() {
                           <RangeIndicator status={status} />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title={editingId === r.id ? 'Cancelar edición' : 'Editar resultado'}
-                            onClick={() =>
-                              editingId === r.id ? handleCancelEdit() : handleEditResultado(r)
-                            }
-                          >
-                            {editingId === r.id
-                              ? <X className="h-3.5 w-3.5" />
-                              : <Pencil className="h-3.5 w-3.5" />
-                            }
-                          </Button>
+                          <div className="flex items-center justify-end gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title="Documentos adjuntos"
+                              onClick={() => setDocsResultadoId(r.id)}
+                            >
+                              <Paperclip className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title={editingId === r.id ? 'Cancelar edición' : 'Editar resultado'}
+                              onClick={() =>
+                                editingId === r.id ? handleCancelEdit() : handleEditResultado(r)
+                              }
+                            >
+                              {editingId === r.id
+                                ? <X className="h-3.5 w-3.5" />
+                                : <Pencil className="h-3.5 w-3.5" />
+                              }
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
@@ -375,6 +388,7 @@ export function ResultadosExamenTab() {
               </Table>
             </>
           )}
+
         </div>
       </Card>
 
@@ -599,6 +613,19 @@ export function ResultadosExamenTab() {
           </div>
         </form>
       </Card>
+
+      {/* ── Modal de documentos del resultado ── */}
+      <DocumentosDialog
+        entidad="resultadoExamen"
+        resultadoExamenId={docsResultadoId ?? 0}
+        open={docsResultadoId != null}
+        onOpenChange={(open) => { if (!open) setDocsResultadoId(null) }}
+        titulo={`Documentos — Resultado #${docsResultadoId}`}
+        descripcion="Sube y consulta los documentos adjuntos de este resultado de examen."
+        usuarioUUID={userUuid}
+        canDelete
+        canUpload
+      />
     </div>
   )
 }

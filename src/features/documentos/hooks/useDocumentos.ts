@@ -6,9 +6,13 @@ import {
   getDocumentosByMuestra,
   getDocumentosByPaciente,
   getDocumentosByPacienteTipo,
+  getDocumentosByResultadoExamen,
   uploadParaEstudio,
   uploadParaMuestra,
   uploadParaPaciente,
+  uploadParaResultadoExamen,
+  crearDocumentoSinArchivo,
+  adjuntarArchivo,
   deleteDocumento,
   getDocumentoUrl,
   imprimirEtiquetaDocumento,
@@ -21,7 +25,8 @@ const KEYS = {
   estudio:       (id: number)                               => ['documentos', 'estudio', id]       as const,
   paciente:      (uuid: string)                             => ['documentos', 'paciente', uuid]     as const,
   pacienteTipo:  (uuid: string, tipo: TipoDocumentoPaciente) => ['documentos', 'paciente', uuid, tipo] as const,
-  muestra:       (id: number)                               => ['documentos', 'muestra', id]        as const,
+  muestra:          (id: number)                               => ['documentos', 'muestra', id]           as const,
+  resultadoExamen:  (id: number)                               => ['documentos', 'resultado-examen', id]  as const,
 }
 
 // ─── Consultas ────────────────────────────────────────────────────────────────
@@ -140,6 +145,71 @@ export function useUploadDocumentoMuestra(muestraId: number) {
       toast.success('Documento subido correctamente')
     },
     onError: () => toast.error('No se pudo subir el documento'),
+  })
+}
+
+export function useDocumentosResultadoExamen(resultadoExamenId: number, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: KEYS.resultadoExamen(resultadoExamenId),
+    queryFn: () => getDocumentosByResultadoExamen(resultadoExamenId),
+    enabled: (options?.enabled ?? true) && resultadoExamenId > 0,
+    staleTime: 30_000,
+    retry: retryPolicy,
+  })
+}
+
+export function useUploadDocumentoResultadoExamen(resultadoExamenId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      file,
+      usuarioUUID,
+      descripcion,
+    }: {
+      file: File
+      usuarioUUID: string
+      descripcion?: string
+    }) => uploadParaResultadoExamen(resultadoExamenId, file, usuarioUUID, descripcion),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.resultadoExamen(resultadoExamenId) })
+      toast.success('Documento subido correctamente')
+    },
+    onError: () => toast.error('No se pudo subir el documento'),
+  })
+}
+
+// ─── Creación sin archivo ────────────────────────────────────────────────────
+
+export function useCrearDocumentoSinArchivo(pacienteUUID: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      usuarioUUID,
+      tipoDoc,
+      descripcion,
+    }: {
+      usuarioUUID: string
+      tipoDoc?: TipoDocumentoPaciente
+      descripcion?: string
+    }) => crearDocumentoSinArchivo(pacienteUUID, usuarioUUID, tipoDoc, descripcion),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['documentos', 'paciente', pacienteUUID] })
+      toast.success('Registro creado — etiqueta generada')
+    },
+    onError: () => toast.error('No se pudo crear el registro'),
+  })
+}
+
+export function useAdjuntarArchivo() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ documentoId, file }: { documentoId: number; file: File }) =>
+      adjuntarArchivo(documentoId, file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['documentos'] })
+      toast.success('Archivo adjuntado correctamente')
+    },
+    onError: () => toast.error('No se pudo adjuntar el archivo'),
   })
 }
 

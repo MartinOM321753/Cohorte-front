@@ -7,7 +7,6 @@ import {
   ClipboardList,
   Download,
   Eye,
-  FileText,
   History,
   LayoutList,
   Paperclip,
@@ -52,9 +51,6 @@ import { useGetResultadosByPacienteUUID, useCountResultadosByPacienteUUID } from
 import { useCountMuestrasByPaciente } from '@/features/biobanco/hooks/useBiobanco'
 import { useDocumentosPacienteTipo } from '@/features/documentos/hooks/useDocumentos'
 
-// ── Feature APIs ───────────────────────────────────────────────────────────────
-import { downloadDocumentoBlob } from '@/features/documentos/api/documentos.api'
-
 // ── Feature components ─────────────────────────────────────────────────────────
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
 import { PacienteFormModal } from '../components/PacienteFormModal'
@@ -64,6 +60,8 @@ import {
   SomatometriaHistorialDialog,
 } from '@/features/somatometria/components/SomatometriaFormModal'
 import { DocumentoUploader } from '@/features/documentos/components/DocumentoUploader'
+import { DocumentoList } from '@/features/documentos/components/DocumentoList'
+import { CrearEtiquetaButton } from '@/features/documentos/components/CrearEtiquetaButton'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 import type {
@@ -2057,47 +2055,22 @@ function DocumentosCard({
   const canSee = useSectionAccess('documentos')
   const { hasRole } = useAuthStore()
   const canEdit = hasRole(['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA'])
-  const [dlBusy, setDlBusy] = useState<number | null>(null)
-  const [viewBusy, setViewBusy] = useState<number | null>(null)
+  const userUuid = useAuthStore((s) => s.user?.uuid) || ''
 
-  async function handleView(doc: DocumentoResponseDTO) {
-    if (!doc.puedeDescargar) {
-      const { toast } = await import('sonner')
-      toast.error('Tu rol no tiene permiso para visualizar este archivo')
-      return
-    }
-    setViewBusy(doc.id)
-    try {
-      const { objectUrl } = await downloadDocumentoBlob(doc.id, true)
-      window.open(objectUrl, '_blank')
-      // Revocar después de que el navegador haya tenido tiempo de cargar el blob
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000)
-    } catch (err: any) {
-      const { toast } = await import('sonner')
-      toast.error(err?.message ?? 'No se pudo abrir el archivo')
-    } finally {
-      setViewBusy(null)
-    }
-  }
-
-  async function handleDownload(doc: DocumentoResponseDTO) {
-    setDlBusy(doc.id)
-    try {
-      const { objectUrl, fileName } = await downloadDocumentoBlob(doc.id, false)
-      const a = window.document.createElement('a')
-      a.href = objectUrl
-      a.download = fileName
-      a.click()
-      URL.revokeObjectURL(objectUrl)
-    } catch (err: any) {
-      const { toast } = await import('sonner')
-      toast.error(err?.message ?? 'No se pudo descargar el archivo')
-    } finally {
-      setDlBusy(null)
-    }
-  }
   const { data: consentimientos = [], isLoading: loadingCons } = useDocumentosPacienteTipo(
     pacienteUUID, 'CONSENTIMIENTO', { enabled: canSee && !!pacienteUUID }
+  )
+  const { data: cuestGeneral = [], isLoading: loadingCuestG } = useDocumentosPacienteTipo(
+    pacienteUUID, 'CUESTIONARIO_GENERAL', { enabled: canSee && !!pacienteUUID }
+  )
+  const { data: cuestMinimental = [], isLoading: loadingCuestM } = useDocumentosPacienteTipo(
+    pacienteUUID, 'CUESTIONARIO_MINIMENTAL', { enabled: canSee && !!pacienteUUID }
+  )
+  const { data: cuestAfluencia = [], isLoading: loadingCuestA } = useDocumentosPacienteTipo(
+    pacienteUUID, 'CUESTIONARIO_AFLUENCIA_VERBAL', { enabled: canSee && !!pacienteUUID }
+  )
+  const { data: cuestAges = [], isLoading: loadingCuestG2 } = useDocumentosPacienteTipo(
+    pacienteUUID, 'CUESTIONARIO_AGES', { enabled: canSee && !!pacienteUUID }
   )
   const { data: generales = [], isLoading: loadingGen } = useDocumentosPacienteTipo(
     pacienteUUID, 'GENERAL', { enabled: canSee && !!pacienteUUID }
@@ -2105,87 +2078,59 @@ function DocumentosCard({
 
   if (!canSee) return null
 
-  const allDocs: DocumentoResponseDTO[] = [...consentimientos, ...generales]
-  const isLoading = loadingCons || loadingGen
-
-  function docIcon(mime: string | null) {
-    if (!mime) return <FileText className="h-4 w-4" strokeWidth={1.75} />
-    if (mime.includes('pdf')) return <FileText className="h-4 w-4 text-red-500" strokeWidth={1.75} />
-    if (mime.includes('image')) return <FileText className="h-4 w-4 text-blue-500" strokeWidth={1.75} />
-    return <FileText className="h-4 w-4" strokeWidth={1.75} />
-  }
-
-  function formatBytes(bytes?: number | null) {
-    if (!bytes) return ''
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  }
+  const allDocs: DocumentoResponseDTO[] = [
+    ...consentimientos, ...cuestGeneral, ...cuestMinimental, ...cuestAfluencia, ...cuestAges, ...generales,
+  ]
+  const isLoading = loadingCons || loadingCuestG || loadingCuestM || loadingCuestA || loadingCuestG2 || loadingGen
 
   return (
     <SectionCard
       title="Documentos del expediente"
       action={canEdit ? (
-        <button
-          className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
-          onClick={onSubir}
-          title="Subir documento"
-        >
-          <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </button>
+        <div className="flex items-center gap-1">
+          <CrearEtiquetaButton
+            pacienteUUID={pacienteUUID}
+            usuarioUUID={userUuid}
+            tipos={[
+              'CONSENTIMIENTO',
+              'CUESTIONARIO_GENERAL',
+              'CUESTIONARIO_MINIMENTAL',
+              'CUESTIONARIO_AFLUENCIA_VERBAL',
+              'CUESTIONARIO_AGES',
+            ]}
+            trigger={(open) => (
+              <button
+                className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
+                onClick={open}
+                title="Crear etiqueta sin archivo"
+              >
+                <ClipboardList className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Etiqueta
+              </button>
+            )}
+          />
+          <button
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
+            onClick={onSubir}
+            title="Subir documento"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </button>
+        </div>
       ) : undefined}
     >
       {isLoading ? (
         <div className="p-4 space-y-2">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
         </div>
-      ) : allDocs.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-8 text-[var(--imss-ink-300)]">
-          <ClipboardList className="h-8 w-8 opacity-30" strokeWidth={1.5} />
-          <p className="text-[13px]">Sin documentos registrados</p>
-        </div>
       ) : (
-        <div className="flex flex-col gap-2 p-4">
-          {allDocs.map((doc) => (
-            <div key={doc.id} className="flex items-center gap-3 rounded-md border border-[var(--border)] px-3 py-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--imss-green-50)] text-[var(--imss-green-700)] shrink-0">
-                {docIcon(doc.mimeType)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-[var(--imss-ink-900)]">{doc.nombreOriginal}</p>
-                <p className="text-[11px] text-[var(--imss-ink-300)]">
-                  {formatBytes(doc.tamanioBytes)}
-                  {doc.fechaSubida && ` · ${formatDate(doc.fechaSubida, 'dd/MM/yyyy')}`}
-                </p>
-              </div>
-              <button
-                onClick={() => handleView(doc)}
-                disabled={viewBusy === doc.id}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)] disabled:opacity-40"
-                title="Ver documento"
-              >
-                {viewBusy === doc.id ? (
-                  <Spinner className="h-3.5 w-3.5" />
-                ) : (
-                  <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
-                )}
-              </button>
-              {doc.puedeDescargar && (
-                <button
-                  onClick={() => handleDownload(doc)}
-                  disabled={dlBusy === doc.id}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)] disabled:opacity-40"
-                  title="Descargar documento"
-                >
-                  {dlBusy === doc.id ? (
-                    <Spinner className="h-3.5 w-3.5" />
-                  ) : (
-                    <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  )}
-                </button>
-              )}
-            </div>
-          ))}
+        <div className="p-4">
+          <DocumentoList
+            documentos={allDocs}
+            showTipoBadge
+            canDelete={false}
+            emptyMessage="Sin documentos registrados"
+          />
         </div>
       )}
     </SectionCard>
@@ -2237,6 +2182,10 @@ export default function ExpedientePacientePage() {
   const { data: citas = [] }    = useGetCitas({ pacienteUUID: uuid }, { enabled: canSeeCitas && !!uuid })
   const { data: estudios = [] } = useGetEstudiosByPaciente(canSeeEstudios ? uuid : null)
   const { data: docsC = [] }    = useDocumentosPacienteTipo(uuid, 'CONSENTIMIENTO', { enabled: canSeeDocs && !!uuid })
+  const { data: docsQ1 = [] }   = useDocumentosPacienteTipo(uuid, 'CUESTIONARIO_GENERAL', { enabled: canSeeDocs && !!uuid })
+  const { data: docsQ2 = [] }   = useDocumentosPacienteTipo(uuid, 'CUESTIONARIO_MINIMENTAL', { enabled: canSeeDocs && !!uuid })
+  const { data: docsQ3 = [] }   = useDocumentosPacienteTipo(uuid, 'CUESTIONARIO_AFLUENCIA_VERBAL', { enabled: canSeeDocs && !!uuid })
+  const { data: docsQ4 = [] }   = useDocumentosPacienteTipo(uuid, 'CUESTIONARIO_AGES', { enabled: canSeeDocs && !!uuid })
   const { data: docsG = [] }    = useDocumentosPacienteTipo(uuid, 'GENERAL',        { enabled: canSeeDocs && !!uuid })
   const { data: resultados = [] } = useGetResultadosByPacienteUUID(uuid || null)
 
@@ -2252,7 +2201,8 @@ export default function ExpedientePacientePage() {
 
   const citasCount    = Array.isArray(citas)    ? (citas as any[]).length    : 0
   const estudiosCount = Array.isArray(estudios) ? (estudios as any[]).length : 0
-  const docsCount     = (Array.isArray(docsC) ? docsC.length : 0) + (Array.isArray(docsG) ? docsG.length : 0)
+  const docsCount     = [docsC, docsQ1, docsQ2, docsQ3, docsQ4, docsG]
+    .reduce((acc, arr) => acc + (Array.isArray(arr) ? arr.length : 0), 0)
 
   // Sin UUID (acceso directo sin state, p.ej. refresh) → volver a la lista
   if (!uuid) {

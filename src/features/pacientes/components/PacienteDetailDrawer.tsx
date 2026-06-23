@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CalendarPlus, Pencil } from 'lucide-react'
 import { getFullName, formatDate } from '@/lib/utils'
-import type { Paciente } from '@/types/api'
+import type { Paciente, TipoDocumentoPaciente } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
 import { DocumentoUploader } from '@/features/documentos/components/DocumentoUploader'
 import { DocumentoList } from '@/features/documentos/components/DocumentoList'
+import { CrearEtiquetaButton } from '@/features/documentos/components/CrearEtiquetaButton'
 import {
   useDocumentosPacienteTipo,
 } from '@/features/documentos/hooks/useDocumentos'
@@ -47,16 +48,22 @@ function DocumentosPacientePanel({
   tipo,
   usuarioUUID,
   canDelete,
+  emptyMessage,
 }: {
   uuid: string
-  tipo: 'CONSENTIMIENTO' | 'GENERAL'
+  tipo: TipoDocumentoPaciente
   usuarioUUID: string
   canDelete: boolean
+  emptyMessage?: string
 }) {
   const { data: docs = [], isLoading, isError } = useDocumentosPacienteTipo(uuid, tipo, { enabled: !!uuid })
+  const permiteEtiquetaSinArchivo = tipo !== 'GENERAL'
 
   return (
     <div className="space-y-3">
+      {permiteEtiquetaSinArchivo && (
+        <CrearEtiquetaButton pacienteUUID={uuid} usuarioUUID={usuarioUUID} tipos={[tipo]} />
+      )}
       <DocumentoUploader
         entidad="paciente"
         pacienteUUID={uuid}
@@ -70,11 +77,7 @@ function DocumentosPacientePanel({
         isLoading={isLoading}
         isError={isError}
         canDelete={canDelete}
-        emptyMessage={
-          tipo === 'CONSENTIMIENTO'
-            ? 'Sin consentimientos registrados.'
-            : 'Sin documentos generales.'
-        }
+        emptyMessage={emptyMessage ?? 'Sin documentos registrados.'}
       />
     </div>
   )
@@ -160,6 +163,12 @@ export function PacienteDetailDrawer({
                 Consentimientos
               </TabsTrigger>
               <TabsTrigger
+                value="cuestionarios"
+                className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
+              >
+                Cuestionarios
+              </TabsTrigger>
+              <TabsTrigger
                 value="documentos"
                 className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
               >
@@ -185,6 +194,7 @@ export function PacienteDetailDrawer({
                         : null
                     }
                   />
+                  <DetailRow label="CURP" value={paciente.persona.curp} />
                   <DetailRow label="Correo electrónico" value={paciente.persona.email} />
                   <DetailRow label="Teléfono" value={paciente.persona.telefono} />
                 </div>
@@ -218,7 +228,32 @@ export function PacienteDetailDrawer({
                 tipo="CONSENTIMIENTO"
                 usuarioUUID={userUuid}
                 canDelete={isAdmin}
+                emptyMessage="Sin consentimientos registrados."
               />
+            </TabsContent>
+
+            {/* ── Tab Cuestionarios ── */}
+            <TabsContent value="cuestionarios" className="px-5 py-4 mt-0 space-y-5">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
+                Cuestionarios clínicos
+              </p>
+              {[
+                { tipo: 'CUESTIONARIO_GENERAL' as const, label: 'Cuestionario general de la Cohorte' },
+                { tipo: 'CUESTIONARIO_MINIMENTAL' as const, label: 'Minimental (>45 años)' },
+                { tipo: 'CUESTIONARIO_AFLUENCIA_VERBAL' as const, label: 'Afluencia verbal (>45 años)' },
+                { tipo: 'CUESTIONARIO_AGES' as const, label: 'AGES' },
+              ].map(({ tipo, label }) => (
+                <section key={tipo} className="space-y-2">
+                  <p className="text-[12px] font-medium text-[var(--imss-ink-700)]">{label}</p>
+                  <DocumentosPacientePanel
+                    uuid={uuid}
+                    tipo={tipo}
+                    usuarioUUID={userUuid}
+                    canDelete={isAdmin}
+                    emptyMessage="Sin registro."
+                  />
+                </section>
+              ))}
             </TabsContent>
 
             {/* ── Tab Documentos generales ── */}
@@ -231,6 +266,7 @@ export function PacienteDetailDrawer({
                 tipo="GENERAL"
                 usuarioUUID={userUuid}
                 canDelete={isAdmin}
+                emptyMessage="Sin documentos generales."
               />
             </TabsContent>
           </Tabs>

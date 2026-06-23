@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, FileText, Image, FileArchive, Trash2, AlertCircle, Eye, Lock, Printer } from 'lucide-react'
+import { Download, FileText, Image, FileArchive, Trash2, AlertCircle, Eye, Lock, Printer, ClipboardList, Upload } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
@@ -22,7 +22,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { DocumentoResponseDTO } from '@/types/api'
-import { useDeleteDocumento, useListarImpresorasDocumentos, useImprimirEtiquetaDocumento } from '../hooks/useDocumentos'
+import { useDeleteDocumento, useListarImpresorasDocumentos, useImprimirEtiquetaDocumento, useAdjuntarArchivo } from '../hooks/useDocumentos'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
 import { downloadDocumentoBlob } from '../api/documentos.api'
 import { toast } from 'sonner'
@@ -57,6 +57,18 @@ function FileIcon({ mimeType }: { mimeType: string | null }) {
 function isViewable(mimeType: string | null): boolean {
   if (!mimeType) return false
   return mimeType.startsWith('image/') || mimeType === 'application/pdf'
+}
+
+function tipoEntidadLabel(tipoEntidad: string | null): string | null {
+  switch (tipoEntidad) {
+    case 'PACIENTE_CONSENTIMIENTO': return 'Consentimiento'
+    case 'PACIENTE_CUESTIONARIO': return 'Cuestionario'
+    case 'PACIENTE_GENERAL': return 'General'
+    case 'ESTUDIO': return 'Estudio'
+    case 'MUESTRA': return 'Muestra'
+    case 'RESULTADO_EXAMEN': return 'Resultado de examen'
+    default: return null
+  }
 }
 
 // ─── Descarga autenticada ─────────────────────────────────────────────────────
@@ -94,6 +106,10 @@ interface DocumentoListProps {
   isLoading?: boolean
   isError?: boolean
   canDelete?: boolean
+  /** Permite adjuntar un archivo a registros creados como "solo etiqueta" (archivoSubido = false). Por defecto true. */
+  canUpload?: boolean
+  /** Muestra una insignia con el tipo de documento (útil cuando se combinan varias categorías en una sola lista). */
+  showTipoBadge?: boolean
   emptyMessage?: string
   className?: string
 }
@@ -105,11 +121,14 @@ export function DocumentoList({
   isLoading,
   isError,
   canDelete = false,
+  canUpload = true,
+  showTipoBadge = false,
   emptyMessage = 'Sin documentos adjuntos.',
   className,
 }: DocumentoListProps) {
   const [confirmDelete, setConfirmDelete] = useState<DocumentoResponseDTO | null>(null)
   const [downloading, setDownloading] = useState<number | null>(null)
+  const [adjuntando, setAdjuntando] = useState<number | null>(null)
   const [printDoc, setPrintDoc] = useState<DocumentoResponseDTO | null>(null)
   const [selectedPrinter, setSelectedPrinter] = useState(() =>
     localStorage.getItem('zebra-printer-name') ?? ''
@@ -119,6 +138,23 @@ export function DocumentoList({
   const { data: impresoras } = useListarImpresorasDocumentos()
   const { data: configuraciones } = useGetConfiguracionesActivas()
   const printMutation = useImprimirEtiquetaDocumento()
+  const adjuntarMutation = useAdjuntarArchivo()
+
+  function handleAdjuntar(doc: DocumentoResponseDTO) {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/pdf,image/*,.doc,.docx'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) return
+      setAdjuntando(doc.id)
+      adjuntarMutation.mutate(
+        { documentoId: doc.id, file },
+        { onSettled: () => setAdjuntando(null) },
+      )
+    }
+    input.click()
+  }
 
   function handleDelete() {
     if (!confirmDelete) return
@@ -195,21 +231,35 @@ export function DocumentoList({
             >
               {/* Icon — fixed 16 px column */}
               <div className="mt-0.5">
-                <FileIcon mimeType={doc.mimeType} />
+                {doc.archivoSubido ? (
+                  <FileIcon mimeType={doc.mimeType} />
+                ) : (
+                  <ClipboardList className="h-4 w-4 text-amber-500 shrink-0" />
+                )}
               </div>
 
               {/* Info — takes all remaining space; text wraps on long names */}
               <div className="min-w-0 space-y-0.5">
                 <p className="text-sm font-medium leading-snug break-all">
-                  {doc.nombreOriginal}
+                  {doc.archivoSubido ? doc.nombreOriginal : (doc.descripcion || 'Etiqueta sin archivo')}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
+                  {!doc.archivoSubido && (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                      Pendiente de archivo
+                    </span>
+                  )}
+                  {showTipoBadge && tipoEntidadLabel(doc.tipoEntidad) && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {tipoEntidadLabel(doc.tipoEntidad)}
+                    </Badge>
+                  )}
                   {doc.etiqueta && (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
                       {doc.etiqueta}
                     </Badge>
                   )}
-                  {doc.tamanioBytes != null && (
+                  {doc.archivoSubido && doc.tamanioBytes != null && (
                     <span className="text-xs text-muted-foreground">
                       {formatBytes(doc.tamanioBytes)}
                     </span>
@@ -219,20 +269,37 @@ export function DocumentoList({
                       {formatDate(doc.fechaSubida)}
                     </span>
                   )}
-                  {doc.mimeType && (
+                  {doc.archivoSubido && doc.mimeType && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                       {doc.mimeType.split('/').pop()?.toUpperCase()}
                     </Badge>
                   )}
                 </div>
-                {doc.descripcion && (
+                {doc.archivoSubido && doc.descripcion && (
                   <p className="text-xs text-muted-foreground break-words">{doc.descripcion}</p>
                 )}
               </div>
 
               {/* Actions — auto-sized, never compressed */}
               <div className="flex items-center gap-1 pt-0.5">
-                {doc.puedeDescargar ? (
+                {!doc.archivoSubido ? (
+                  canUpload && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                      title="Adjuntar archivo digitalizado"
+                      disabled={adjuntando === doc.id}
+                      onClick={() => handleAdjuntar(doc)}
+                    >
+                      {adjuntando === doc.id ? (
+                        <Spinner className="h-3.5 w-3.5" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  )
+                ) : doc.puedeDescargar ? (
                   <>
                     {/* Ver inline (PDFs e imágenes) */}
                     {isViewable(doc.mimeType) && (
