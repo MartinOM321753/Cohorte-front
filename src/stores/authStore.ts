@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import axiosInstance from '@/lib/axiosInstance'
+import { queryClient } from '@/lib/queryClient'
 import { getModulosHabilitadosActual } from '@/features/instituciones/api/instituciones.api'
 
 export type UserRole =
@@ -35,7 +36,7 @@ export interface AuthState {
   /** Módulos del sistema (BIOBANCO, EXAMENES, CITAS, etc.) habilitados para la institución del usuario. */
   modulosHabilitados: string[]
 
-  login: (data: { user: UserData; mustChangePassword?: boolean }) => boolean
+  login: (data: { user: UserData; mustChangePassword?: boolean }) => Promise<boolean>
   logout: () => void
   hasRole: (role: UserRole | UserRole[]) => boolean
   /** Indica si la institución del usuario tiene habilitado el módulo dado (ver ModuloSistema). */
@@ -65,12 +66,12 @@ function parseInstitucion(raw: any): InstitucionResumen | null {
   return { id, uuid, nombre }
 }
 
-async function loadModulosHabilitados(set: (partial: Partial<AuthState>) => void) {
+async function fetchModulosHabilitados(): Promise<string[]> {
   try {
     const modulos = await getModulosHabilitadosActual()
-    set({ modulosHabilitados: Array.isArray(modulos) ? modulos : [] })
+    return Array.isArray(modulos) ? modulos : []
   } catch {
-    set({ modulosHabilitados: [] })
+    return []
   }
 }
 
@@ -97,26 +98,39 @@ export const useAuthStore = create<AuthState>()(
   subscribeWithSelector((set, get) => ({
     ...initialState,
 
-    login: ({ user, mustChangePassword = false }) => {
+    login: async ({ user, mustChangePassword = false }) => {
       const normalizedRole = normalizeRoleName(user.rol)
       if (!normalizedRole) {
+        queryClient.clear()
         set({ ...initialState, isLoading: false })
         return false
       }
+
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: true,
+        mustChangePassword: false,
+        modulosHabilitados: [],
+      })
+
+      const modulosHabilitados = await fetchModulosHabilitados()
+      queryClient.clear()
 
       set({
         user: { ...user, rol: normalizedRole },
         isAuthenticated: true,
         isLoading: false,
         mustChangePassword,
+        modulosHabilitados,
       })
-      void loadModulosHabilitados(set)
       return true
     },
 
     logout: () => {
       // El backend lee la cookie httpOnly directamente — no hace falta pasar el token.
       axiosInstance.post('/auth/logout').catch(() => {})
+      queryClient.clear()
       set({ ...initialState, isLoading: false })
     },
 
@@ -165,9 +179,10 @@ export const useAuthStore = create<AuthState>()(
           institucion: parseInstitucion(dto?.institucion),
         }
 
-        get().login({ user, mustChangePassword: data?.mustChangePassword === true })
+        await get().login({ user, mustChangePassword: data?.mustChangePassword === true })
       } catch {
         // Sin cookie válida (no autenticado o sesión expirada)
+        queryClient.clear()
         set({ ...initialState, isLoading: false })
       }
     },

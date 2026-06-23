@@ -143,7 +143,7 @@ export default function LoginPage() {
     try {
       const response = await loginUser(data, coords);
       if (!response.user) throw new Error("Respuesta de servidor inválida");
-      const ok = login({ user: response.user, mustChangePassword: response.mustChangePassword });
+      const ok = await login({ user: response.user, mustChangePassword: response.mustChangePassword });
       if (!ok) throw new Error("Rol de usuario no reconocido");
       toast.success("Inicio de sesión exitoso");
       // Role-based redirect: ENCARGADO goes to their samples page

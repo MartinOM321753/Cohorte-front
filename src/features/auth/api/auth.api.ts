@@ -100,7 +100,11 @@ export async function loginUser(
 
   const institucionDto = dto?.institucion
   const institucion = institucionDto && (institucionDto.uuid || institucionDto.nombre)
-    ? { uuid: institucionDto.uuid || '', nombre: institucionDto.nombre || '' }
+    ? {
+        id: typeof institucionDto.id === 'number' ? institucionDto.id : undefined,
+        uuid: institucionDto.uuid || '',
+        nombre: institucionDto.nombre || '',
+      }
     : null
 
   const user: UserData = {

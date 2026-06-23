@@ -9,13 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/stores/authStore'
 import { changePasswordForced } from '../api/auth.api'
+import { PASSWORD_REQUIREMENTS_TEXT, strongPasswordSchema } from '../schemas/password.schema'
 
 const schema = z
   .object({
     nuevaPassword: z
       .string()
-      .min(6, 'Mínimo 6 caracteres')
-      .max(100, 'Máximo 100 caracteres'),
+      .pipe(strongPasswordSchema),
     confirmarPassword: z.string().min(1, 'Confirma tu contraseña'),
   })
   .refine((d) => d.nuevaPassword === d.confirmarPassword, {
@@ -106,7 +106,7 @@ export default function CambiarContrasenaPage() {
                     id="nuevaPassword"
                     type={showNueva ? 'text' : 'password'}
                     {...register('nuevaPassword')}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder={PASSWORD_REQUIREMENTS_TEXT}
                     className="h-10 pl-9 pr-10 text-[13px]"
                     autoComplete="new-password"
                   />

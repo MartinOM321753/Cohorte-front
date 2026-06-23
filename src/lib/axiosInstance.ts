@@ -5,6 +5,12 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localho
 
 let isForcingLogout = false
 
+const PUBLIC_AUTH_PATHS = ['/login', '/forgot-password', '/reset-password']
+
+function isPublicAuthPath(pathname: string) {
+  return PUBLIC_AUTH_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+}
+
 // Create axios instance
 //
 // Autenticación basada en cookie httpOnly: el backend emite la cookie de sesión
@@ -33,7 +39,7 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     const status = error.response?.status
 
-    if (status === 401 && !isForcingLogout) {
+    if (status === 401 && !isForcingLogout && !isPublicAuthPath(window.location.pathname)) {
       // Verificar que es realmente un error de autenticación de Spring Security,
       // no un error de negocio que el backend dejó pasar con 401 por descuido.
       // Spring Security devuelve 401 sin body estructurado o con error genérico.

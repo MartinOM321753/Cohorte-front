@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Lock, Eye, EyeOff, ShieldCheck, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 import { validateResetToken, resetPassword } from '../api/auth.api'
 import { Spinner } from '@/components/ui/spinner'
+import { PASSWORD_REQUIREMENTS_TEXT, strongPasswordSchema } from '../schemas/password.schema'
 
 // ── Schema ─────────────────────────────────────────────────────────────────────
 
@@ -13,8 +14,7 @@ const schema = z
   .object({
     nuevaPassword: z
       .string()
-      .min(6, 'La contraseña debe tener al menos 6 caracteres')
-      .max(100, 'Máximo 100 caracteres'),
+      .pipe(strongPasswordSchema),
     confirmarPassword: z.string().min(1, 'Confirma tu contraseña'),
   })
   .refine((d) => d.nuevaPassword === d.confirmarPassword, {
@@ -26,6 +26,18 @@ type FormData = z.infer<typeof schema>
 // ── Estados del token ──────────────────────────────────────────────────────────
 
 type TokenState = 'validating' | 'valid' | 'invalid' | 'expired'
+
+function normalizeErrorMessage(message: string) {
+  return message
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function tokenStateFromMessage(message: string): TokenState {
+  const normalized = normalizeErrorMessage(message)
+  return normalized.includes('expir') ? 'expired' : 'invalid'
+}
 
 // ── Componente ─────────────────────────────────────────────────────────────────
 
@@ -60,7 +72,7 @@ export default function ResetPasswordPage() {
       .catch((err: any) => {
         const msg: string = err?.response?.data?.message || ''
         setTokenError(msg || 'El enlace ha expirado o ya fue utilizado.')
-        setTokenState(msg.toLowerCase().includes('expir') ? 'expired' : 'invalid')
+        setTokenState(tokenStateFromMessage(msg))
       })
   }, [token])
 
@@ -71,8 +83,9 @@ export default function ResetPasswordPage() {
       setSuccess(true)
     } catch (err: any) {
       const msg: string = err?.response?.data?.message || err?.message || 'Error al actualizar la contraseña.'
-      if (msg.toLowerCase().includes('expir') || msg.toLowerCase().includes('válid')) {
-        setTokenState('expired')
+      const normalizedMsg = normalizeErrorMessage(msg)
+      if (normalizedMsg.includes('expir') || normalizedMsg.includes('valid') || normalizedMsg.includes('utiliz')) {
+        setTokenState(tokenStateFromMessage(msg))
         setTokenError(msg)
       } else {
         setError('nuevaPassword', { message: msg })
@@ -171,7 +184,7 @@ export default function ResetPasswordPage() {
               <Lock size={16} strokeWidth={1.5} color="#7d8782" />
               <input
                 type={showPass ? 'text' : 'password'}
-                placeholder="Mínimo 6 caracteres"
+                placeholder={PASSWORD_REQUIREMENTS_TEXT}
                 autoComplete="new-password"
                 autoFocus
                 {...register('nuevaPassword')}
