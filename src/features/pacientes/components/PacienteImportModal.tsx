@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -8,9 +8,9 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { importarPacientes, type ImportResultDTO } from '../api/pacientes.api'
+import { importarPacientes } from '../api/pacientes.api'
 import { toast } from 'sonner'
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, X } from 'lucide-react'
+import { Upload, FileSpreadsheet, Mail, X } from 'lucide-react'
 
 interface PacienteImportModalProps {
   open: boolean
@@ -31,31 +31,22 @@ const COLUMNAS = [
 
 export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalProps) {
   const [archivo, setArchivo] = useState<File | null>(null)
-  const [resultado, setResultado] = useState<ImportResultDTO | null>(null)
+  const [enviado, setEnviado] = useState(false)
   const [dragActive, setDragActive] = useState(false)
-  const queryClient = useQueryClient()
 
   const mutation = useMutation({
     mutationFn: (file: File) => importarPacientes(file),
-    onSuccess: (data) => {
-      setResultado(data)
-      queryClient.invalidateQueries({ queryKey: ['pacientes'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      if (data.exitosos > 0) {
-        toast.success(`${data.exitosos} participantes importados correctamente`)
-      }
-      if (data.errores > 0) {
-        toast.warning(`${data.errores} filas con errores`)
-      }
+    onSuccess: () => {
+      setEnviado(true)
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Error al importar el archivo')
+      toast.error(error?.response?.data?.message ?? 'Error al enviar el archivo')
     },
   })
 
   const handleClose = () => {
     setArchivo(null)
-    setResultado(null)
+    setEnviado(false)
     onOpenChange(false)
   }
 
@@ -65,7 +56,6 @@ export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalP
     const file = e.dataTransfer.files[0]
     if (file && validarArchivo(file)) {
       setArchivo(file)
-      setResultado(null)
     }
   }, [])
 
@@ -73,7 +63,6 @@ export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalP
     const file = e.target.files?.[0]
     if (file && validarArchivo(file)) {
       setArchivo(file)
-      setResultado(null)
     }
     e.target.value = ''
   }
@@ -127,7 +116,7 @@ export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalP
           </div>
 
           {/* Drop zone */}
-          {!resultado && (
+          {!enviado && (
             <div
               onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
               onDragLeave={() => setDragActive(false)}
@@ -178,49 +167,15 @@ export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalP
             </div>
           )}
 
-          {/* Resultados */}
-          {resultado && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-lg bg-green-50 p-3 text-center">
-                  <CheckCircle2 className="mx-auto h-5 w-5 text-green-600 mb-1" />
-                  <p className="text-[20px] font-bold text-green-700">{resultado.exitosos}</p>
-                  <p className="text-[11px] text-green-600">Importados</p>
-                </div>
-                <div className="rounded-lg bg-red-50 p-3 text-center">
-                  <AlertCircle className="mx-auto h-5 w-5 text-red-500 mb-1" />
-                  <p className="text-[20px] font-bold text-red-600">{resultado.errores}</p>
-                  <p className="text-[11px] text-red-500">Errores</p>
-                </div>
-                <div className="rounded-lg bg-amber-50 p-3 text-center">
-                  <AlertCircle className="mx-auto h-5 w-5 text-amber-500 mb-1" />
-                  <p className="text-[20px] font-bold text-amber-600">{resultado.duplicados}</p>
-                  <p className="text-[11px] text-amber-500">Duplicados</p>
-                </div>
-              </div>
-
-              {resultado.detalleErrores.length > 0 && (
-                <div className="max-h-[200px] overflow-y-auto rounded-lg border border-[var(--imss-ink-100)]">
-                  <table className="w-full text-[12px]">
-                    <thead className="sticky top-0 bg-[var(--imss-ink-50)]">
-                      <tr>
-                        <th className="px-3 py-1.5 text-left font-medium text-[var(--imss-ink-500)]">Fila</th>
-                        <th className="px-3 py-1.5 text-left font-medium text-[var(--imss-ink-500)]">Folio</th>
-                        <th className="px-3 py-1.5 text-left font-medium text-[var(--imss-ink-500)]">Motivo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {resultado.detalleErrores.map((err, i) => (
-                        <tr key={i} className="border-t border-[var(--imss-ink-50)]">
-                          <td className="px-3 py-1.5 font-mono">{err.fila}</td>
-                          <td className="px-3 py-1.5 font-mono">{err.folio || '—'}</td>
-                          <td className="px-3 py-1.5 text-red-600">{err.motivo}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          {/* Confirmación de envío — el procesamiento corre en segundo plano */}
+          {enviado && (
+            <div className="flex flex-col items-center gap-2 rounded-lg bg-green-50 p-8 text-center">
+              <Mail className="h-8 w-8 text-green-600" />
+              <p className="text-[14px] font-medium text-green-700">Archivo recibido</p>
+              <p className="text-[12px] text-green-600 max-w-[420px]">
+                Se está procesando en segundo plano. Te llegará un correo con el resumen
+                (importados, duplicados y errores) cuando termine.
+              </p>
             </div>
           )}
         </div>
@@ -232,16 +187,16 @@ export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalP
             onClick={handleClose}
             className="text-[13px]"
           >
-            {resultado ? 'Cerrar' : 'Cancelar'}
+            {enviado ? 'Cerrar' : 'Cancelar'}
           </Button>
-          {!resultado && (
+          {!enviado && (
             <Button
               type="button"
               disabled={!archivo || mutation.isPending}
               onClick={handleImportar}
               className="bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
             >
-              {mutation.isPending ? 'Importando...' : 'Importar'}
+              {mutation.isPending ? 'Enviando...' : 'Importar'}
             </Button>
           )}
         </DialogFooter>
