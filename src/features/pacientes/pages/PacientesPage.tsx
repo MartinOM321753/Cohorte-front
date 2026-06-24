@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Building2, CalendarDays, Search, Upload, UserRound, UserRoundPlus } from 'lucide-react'
-import { useGetPacientes } from '../hooks/useGetPacientes'
+import { useGetPacientesPaginados } from '../hooks/useGetPacientes'
 import { useToggleActivoPaciente } from '../hooks/useCreatePaciente'
 import { PacientesTable } from '../components/PacientesTable'
 import { PacienteFormModal } from '../components/PacienteFormModal'
@@ -10,15 +10,41 @@ import { CitaIlamyEventForm } from '@/features/citas/components/CitaIlamyEventFo
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { getFullName } from '@/lib/utils'
+import { useDebounce } from '@/hooks/useDebounce'
 import type { Paciente } from '@/types/api'
+import type { PaginationState } from '@tanstack/react-table'
+
+const PAGE_SIZE = 10
 
 export default function PacientesPage() {
   const [incluirJerarquia, setIncluirJerarquia] = useState(false)
-  const { data: pacientes, isLoading } = useGetPacientes({ incluirJerarquia })
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearch = useDebounce(searchTerm.trim(), 350)
+
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+  })
+
+  // Reset a página 0 cuando cambia la búsqueda
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+  }
+
+  const { data, isLoading } = useGetPacientesPaginados({
+    page: pagination.pageIndex,
+    size: pagination.pageSize,
+    buscar: debouncedSearch || undefined,
+    incluirJerarquia,
+  })
+
+  const pacientes = data?.content ?? []
+  const totalElements = data?.totalElements ?? 0
+  const totalPages = data?.totalPages ?? 0
+
   const toggleActivoMutation = useToggleActivoPaciente()
 
-  const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -26,22 +52,6 @@ export default function PacientesPage() {
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isCitaModalOpen, setIsCitaModalOpen] = useState(false)
   const [patientToSchedule, setPatientToSchedule] = useState<Paciente | null>(null)
-
-  const pacientesArray = useMemo(
-    () => (Array.isArray(pacientes) ? pacientes : []),
-    [pacientes]
-  )
-
-  const filtered = useMemo(() => {
-    const q = searchTerm.toLowerCase().trim()
-    if (!q) return pacientesArray
-    return pacientesArray.filter(
-      (p: Paciente) =>
-        getFullName(p.persona).toLowerCase().includes(q) ||
-        p.folio.toLowerCase().includes(q) ||
-        p.persona.email?.toLowerCase().includes(q)
-    )
-  }, [pacientesArray, searchTerm])
 
   function handleView(paciente: Paciente) {
     setSelectedPaciente(paciente)
@@ -66,6 +76,11 @@ export default function PacientesPage() {
   function handleOpenCreate() {
     setPacienteToEdit(null)
     setIsFormOpen(true)
+  }
+
+  function handleToggleJerarquia() {
+    setIncluirJerarquia(!incluirJerarquia)
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }))
   }
 
   return (
@@ -111,16 +126,16 @@ export default function PacientesPage() {
               strokeWidth={1.75}
             />
             <Input
-              placeholder="Buscar por nombre, folio o correo..."
+              placeholder="Buscar por nombre, folio, CURP o correo..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="h-9 pl-8 text-[13px]"
             />
           </div>
           <Button
             variant={incluirJerarquia ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setIncluirJerarquia(!incluirJerarquia)}
+            onClick={handleToggleJerarquia}
             className={[
               'gap-1.5 text-[12px] h-9 whitespace-nowrap',
               incluirJerarquia
@@ -138,8 +153,7 @@ export default function PacientesPage() {
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--imss-ink-300)]">
             <UserRound className="h-3.5 w-3.5" strokeWidth={1.75} />
             <span>
-              {filtered.length} de {pacientesArray.length} participante
-              {pacientesArray.length !== 1 ? 's' : ''}
+              {totalElements} participante{totalElements !== 1 ? 's' : ''}
             </span>
           </div>
         )}
@@ -147,7 +161,7 @@ export default function PacientesPage() {
 
       {/* Tabla */}
       <PacientesTable
-        data={filtered}
+        data={pacientes}
         isLoading={isLoading}
         incluirJerarquia={incluirJerarquia}
         onView={handleView}
@@ -157,6 +171,11 @@ export default function PacientesPage() {
           if (uuid) toggleActivoMutation.mutate(uuid)
         }}
         onSchedule={handleSchedule}
+        manualPagination
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        pageCount={totalPages}
+        totalElements={totalElements}
       />
 
       {/* Modal crear / editar */}

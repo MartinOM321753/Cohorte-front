@@ -2,28 +2,25 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
-import { AlertCircle, Check, ChevronsUpDown, Paperclip } from 'lucide-react'
+import { AlertCircle, Paperclip } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/authStore'
-import { EstudioListDTO, EstudioMedicoRequestDTO, Paciente } from '@/types/api'
+import { EstudioListDTO, EstudioMedicoRequestDTO } from '@/types/api'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
 import { estudioMedicoSchema, type EstudioMedicoFormData } from '../schemas/estudio.schema'
 import { useCreateEstudio, useGetEstudios, useGetTiposEstudio } from '../hooks/useEstudios'
-import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
+import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { DatePicker } from '@/components/ui/date-time-picker'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 
 const DEFAULT_VALUES: EstudioMedicoFormData = {
   pacienteUUID: '',
@@ -37,23 +34,13 @@ export function EstudiosTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
   const isAdmin   = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
   const canUploadEstudio = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'MEDICO']))
-  const [openPaciente, setOpenPaciente] = useState(false)
   const [docEstudioId, setDocEstudioId] = useState<number | null>(null)
 
   const { data: estudios, isLoading: isLoadingEstudios, isError: isErrorEstudios } = useGetEstudios()
   const { data: tiposEstudio, isLoading: isLoadingTipos } = useGetTiposEstudio()
-  const { data: pacientesRaw, isLoading: isLoadingPacientes } = useGetPacientes({ activos: true })
   const createMutation = useCreateEstudio()
 
   const tiposActivos = useMemo(() => (tiposEstudio || []).filter((t) => t.activo), [tiposEstudio])
-
-  const pacientes = useMemo(() => {
-    const arr = Array.isArray(pacientesRaw) ? pacientesRaw : ((pacientesRaw as any)?.data ?? [])
-    return Array.isArray(arr) ? (arr as Paciente[]) : []
-  }, [pacientesRaw])
-
-  const getPacienteUUID = (p: Paciente): string =>
-    p.UUID || (p as unknown as { uuid?: string }).uuid || ''
 
   const {
     register,
@@ -184,59 +171,10 @@ export function EstudiosTab() {
           <input type="hidden" {...register('usuarioRealizaUUID')} />
 
           <FormField label="Participante" required error={errors.pacienteUUID?.message}>
-            <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openPaciente}
-                  className="w-full justify-between"
-                  disabled={isLoadingPacientes}
-                >
-                  {watchedPacienteUUID
-                    ? (() => {
-                        const selected = pacientes.find((p) => getPacienteUUID(p) === watchedPacienteUUID)
-                        return selected
-                          ? `${selected.folio} — ${selected.persona.nombre} ${selected.persona.apellidoPaterno}${selected.persona.apellidoMaterno ? ' ' + selected.persona.apellidoMaterno : ''}`
-                          : 'Participante seleccionado'
-                      })()
-                    : isLoadingPacientes
-                      ? 'Cargando…'
-                      : 'Buscar participante…'}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar por folio o nombre…" />
-                  <CommandList>
-                    <CommandEmpty>No se encontró el participante.</CommandEmpty>
-                    <CommandGroup>
-                      {pacientes.map((p) => (
-                        <CommandItem
-                          key={getPacienteUUID(p)}
-                          value={`${p.folio} ${p.persona.nombre} ${p.persona.apellidoPaterno} ${p.persona.apellidoMaterno ?? ''}`}
-                          onSelect={() => {
-                            setValue('pacienteUUID', getPacienteUUID(p))
-                            setOpenPaciente(false)
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              'mr-2 h-4 w-4 shrink-0',
-                              watchedPacienteUUID === getPacienteUUID(p) ? 'opacity-100' : 'opacity-0'
-                            )}
-                          />
-                          {p.folio} — {p.persona.nombre} {p.persona.apellidoPaterno}
-                          {p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <PacienteSearchCombobox
+              value={watchedPacienteUUID}
+              onChange={(uuid) => setValue('pacienteUUID', uuid)}
+            />
           </FormField>
 
           <FormField label="Tipo de estudio" required error={errors.idTipoEstudio?.message}>

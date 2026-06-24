@@ -10,7 +10,6 @@ import { DocumentosDialog } from '@/features/documentos/components/DocumentosDia
 import {
   EstudioMedicoRequestDTO,
   ParametroEstudio,
-  Paciente,
   ResultadoEstudioRequestDTO,
 } from '@/types/api'
 import {
@@ -21,7 +20,7 @@ import {
   useGetTiposEstudio,
   useUpdateEstudio,
 } from '../hooks/useEstudios'
-import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
+import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -116,7 +115,6 @@ export function LlenadoEstudioTab() {
   const isAdmin  = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
   const canUploadEstudio = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'MEDICO']))
 
-  const [openPaciente, setOpenPaciente] = useState(false)
   const [openTipo, setOpenTipo] = useState(false)
   const [selectedPacienteUUID, setSelectedPacienteUUID] = useState('')
   const [selectedTipoId, setSelectedTipoId] = useState<number>(0)
@@ -128,7 +126,6 @@ export function LlenadoEstudioTab() {
   const [grupos, setGrupos] = useState<GrupoCaptura[]>([])
   const [gruposError, setGruposError] = useState<string | null>(null)
 
-  const { data: pacientesRaw, isLoading: isLoadingPacientes } = useGetPacientes({ activos: true })
   const { data: tipos, isLoading: isLoadingTipos } = useGetTiposEstudio()
   const { data: parametros, isLoading: isLoadingParams } = useGetParametrosByTipo(
     selectedTipoId > 0 ? selectedTipoId : null
@@ -169,11 +166,6 @@ export function LlenadoEstudioTab() {
 
   const watchedFecha = watch('fechaEstudio') as string
 
-  const pacientes = useMemo(() => {
-    const arr = Array.isArray(pacientesRaw) ? pacientesRaw : ((pacientesRaw as any)?.data ?? [])
-    return Array.isArray(arr) ? (arr as Paciente[]) : []
-  }, [pacientesRaw])
-
   const tiposActivos = useMemo(() => (tipos || []).filter((t) => t.activo), [tipos])
 
   // When editing a study whose tipo is inactive, include it in the selector
@@ -188,13 +180,7 @@ export function LlenadoEstudioTab() {
     return tiposActivos
   }, [tiposActivos, editingEstudioId, selectedTipoId, estudioEditar])
 
-  const getPacienteUUID = (p: Paciente): string =>
-    p.UUID || (p as unknown as { uuid?: string }).uuid || ''
-
-  const selectedPaciente = useMemo(
-    () => pacientes.find((p) => getPacienteUUID(p) === selectedPacienteUUID),
-    [pacientes, selectedPacienteUUID]
-  )
+  const [selectedPacienteNombre, setSelectedPacienteNombre] = useState('')
 
   // ── Pre-populate base fields when editing ──────────────
   useEffect(() => {
@@ -462,7 +448,7 @@ export function LlenadoEstudioTab() {
             <div className="text-sm font-medium">Historial del participante</div>
             <div className="text-xs text-muted-foreground">
               {selectedPacienteUUID
-                ? `Estudios de ${selectedPaciente?.persona.nombre ?? '…'} ${selectedPaciente?.persona.apellidoPaterno ?? ''}`
+                ? `Estudios de ${selectedPacienteNombre || '…'}`
                 : 'Seleccione un participante para ver su historial.'}
             </div>
           </div>
@@ -560,60 +546,18 @@ export function LlenadoEstudioTab() {
         <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4 p-4">
           {/* Paciente */}
           <FormField label="Participante" required error={errors.pacienteUUID?.message as string}>
-            <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openPaciente}
-                  className="w-full justify-between text-sm"
-                  disabled={isLoadingPacientes}
-                >
-                  <span className="truncate">
-                    {selectedPaciente
-                      ? `${selectedPaciente.folio} — ${selectedPaciente.persona.nombre} ${selectedPaciente.persona.apellidoPaterno}`
-                      : isLoadingPacientes
-                        ? 'Cargando…'
-                        : 'Buscar participante…'}
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar por folio o nombre…" />
-                  <CommandList>
-                    <CommandEmpty>No se encontró el participante.</CommandEmpty>
-                    <CommandGroup>
-                      {pacientes.map((p) => {
-                        const uuid = getPacienteUUID(p)
-                        return (
-                          <CommandItem
-                            key={uuid}
-                            value={`${p.folio} ${p.persona.nombre} ${p.persona.apellidoPaterno} ${p.persona.apellidoMaterno ?? ''}`}
-                            onSelect={() => {
-                              setSelectedPacienteUUID(uuid)
-                              setValue('pacienteUUID', uuid)
-                              setOpenPaciente(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                'mr-2 h-4 w-4 shrink-0',
-                                selectedPacienteUUID === uuid ? 'opacity-100' : 'opacity-0'
-                              )}
-                            />
-                            {p.folio} — {p.persona.nombre} {p.persona.apellidoPaterno}
-                            {p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}
-                          </CommandItem>
-                        )
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <PacienteSearchCombobox
+              value={selectedPacienteUUID}
+              onChange={(uuid) => {
+                setSelectedPacienteUUID(uuid)
+                setValue('pacienteUUID', uuid)
+              }}
+              onSelectPaciente={(p) => {
+                const nombre = [p.persona?.nombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
+                  .filter(Boolean).join(' ')
+                setSelectedPacienteNombre(nombre)
+              }}
+            />
           </FormField>
 
           {/* Plantilla — combobox con búsqueda */}

@@ -1,4 +1,4 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { CalendarPlus, Eye, FileText, Pencil, UserCheck, UserX } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { DataTable } from '@/components/tables/DataTable'
@@ -14,6 +14,11 @@ interface PacientesTableProps {
   onEdit: (paciente: Paciente) => void
   onToggleActivo: (paciente: Paciente) => void
   onSchedule: (paciente: Paciente) => void
+  manualPagination?: boolean
+  pagination?: PaginationState
+  onPaginationChange?: (pagination: PaginationState) => void
+  pageCount?: number
+  totalElements?: number
 }
 
 function SexoBadge({ sexo }: { sexo: string | null | undefined }) {
@@ -40,6 +45,11 @@ export function PacientesTable({
   onEdit,
   onToggleActivo,
   onSchedule,
+  manualPagination,
+  pagination,
+  onPaginationChange,
+  pageCount,
+  totalElements,
 }: PacientesTableProps) {
   const columns: ColumnDef<Paciente>[] = [
     {
@@ -171,5 +181,16 @@ export function PacientesTable({
     },
   ]
 
-  return <DataTable columns={columns} data={data} isLoading={isLoading} />
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      isLoading={isLoading}
+      manualPagination={manualPagination}
+      pagination={pagination}
+      onPaginationChange={onPaginationChange}
+      pageCount={pageCount}
+      totalElements={totalElements}
+    />
+  )
 }

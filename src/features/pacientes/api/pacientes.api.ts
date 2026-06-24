@@ -79,21 +79,39 @@ export async function toggleActivoPaciente(uuid: string): Promise<Paciente> {
   return response.data.data
 }
 
-export interface ImportResultDTO {
-  totalFilas: number
-  exitosos: number
-  errores: number
-  duplicados: number
-  detalleErrores: { fila: number; folio: string; motivo: string }[]
+export interface PacientesPaginados {
+  content: Paciente[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
 }
 
-export async function importarPacientes(archivo: File): Promise<ImportResultDTO> {
+export async function getPacientesPaginados(params: {
+  page?: number
+  size?: number
+  buscar?: string
+  incluirJerarquia?: boolean
+}): Promise<PacientesPaginados> {
+  const response = await axiosInstance.get<ApiResponse<PacientesPaginados>>(
+    '/pacientes/paginado',
+    { params }
+  )
+  return response.data.data
+}
+
+/**
+ * El backend procesa el archivo en segundo plano (ver PacienteController) y
+ * responde de inmediato — el resultado (exitosos/errores/duplicados) ya no
+ * llega en esta respuesta, se notifica por correo al terminar.
+ */
+export async function importarPacientes(archivo: File): Promise<string> {
   const formData = new FormData()
   formData.append('archivo', archivo)
-  const response = await axiosInstance.post<ApiResponse<ImportResultDTO>>(
+  const response = await axiosInstance.post<ApiResponse<null>>(
     '/pacientes/importar',
     formData,
     { headers: { 'Content-Type': 'multipart/form-data' } }
   )
-  return response.data.data
+  return response.data.message
 }

@@ -1,4 +1,4 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { Eye, MailCheck, Pencil, PowerOff, Power } from 'lucide-react'
 import { DataTable } from '@/components/tables/DataTable'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,11 @@ interface UsuariosTableProps {
   reenviandoInvitacionUuid?: string | null
   currentInstitucionId?: number
   currentUserUuid?: string
+  manualPagination?: boolean
+  pagination?: PaginationState
+  onPaginationChange?: (pagination: PaginationState) => void
+  pageCount?: number
+  totalElements?: number
 }
 
 export function UsuariosTable({
@@ -26,6 +31,11 @@ export function UsuariosTable({
   reenviandoInvitacionUuid,
   currentInstitucionId,
   currentUserUuid,
+  manualPagination,
+  pagination,
+  onPaginationChange,
+  pageCount,
+  totalElements,
 }: UsuariosTableProps) {
   const columns: ColumnDef<Usuario>[] = [
     {
@@ -151,5 +161,16 @@ export function UsuariosTable({
     },
   ]
 
-  return <DataTable columns={columns} data={data} isLoading={isLoading} />
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      isLoading={isLoading}
+      manualPagination={manualPagination}
+      pagination={pagination}
+      onPaginationChange={onPaginationChange}
+      pageCount={pageCount}
+      totalElements={totalElements}
+    />
+  )
 }

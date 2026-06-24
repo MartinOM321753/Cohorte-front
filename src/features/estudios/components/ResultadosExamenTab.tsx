@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/authStore'
-import { Paciente, ResultadoExamen, ResultadoExamenRequestDTO } from '@/types/api'
+import { ResultadoExamen, ResultadoExamenRequestDTO } from '@/types/api'
 import { resultadoExamenSchema, type ResultadoExamenFormData } from '../schemas/examen.schema'
 import {
   useGetExamenes,
@@ -24,7 +24,7 @@ import {
   useSaveResultadoExamen,
   useUpdateResultadoExamen,
 } from '../hooks/useExamenes'
-import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
+import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -56,10 +56,6 @@ import { cn } from '@/lib/utils'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-
-function getPacienteUUID(p: Paciente): string {
-  return p.UUID || (p as unknown as { uuid?: string }).uuid || ''
-}
 
 function getRangeStatus(
   resultado: ResultadoExamen,
@@ -124,12 +120,11 @@ const DEFAULT_VALUES: ResultadoExamenFormData = {
 export function ResultadosExamenTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
 
-  const [openPaciente, setOpenPaciente] = useState(false)
   const [openExamen, setOpenExamen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [docsResultadoId, setDocsResultadoId] = useState<number | null>(null)
-
-  const { data: pacientesRaw, isLoading: isLoadingPacientes } = useGetPacientes({ activos: true })
+  const [selectedPacienteLabel, setSelectedPacienteLabel] = useState<string | null>(null)
+  const [selectedPacienteSexo, setSelectedPacienteSexo] = useState<'M' | 'F' | null>(null)
   const { data: examenes, isLoading: isLoadingExamenes } = useGetExamenes()
   const saveMutation   = useSaveResultadoExamen()
   const updateMutation = useUpdateResultadoExamen()
@@ -154,11 +149,6 @@ export function ResultadosExamenTab() {
   const watchedIdExamen     = watch('idExamen')
   const watchedFecha        = watch('fechaResultado')
 
-  const pacientes = useMemo<Paciente[]>(() => {
-    const arr = Array.isArray(pacientesRaw) ? pacientesRaw : ((pacientesRaw as any)?.data ?? [])
-    return Array.isArray(arr) ? arr : []
-  }, [pacientesRaw])
-
   // Exámenes activos ordenados alfabéticamente
   const examenesActivos = useMemo(
     () =>
@@ -166,11 +156,6 @@ export function ResultadosExamenTab() {
         .filter((e) => e.activo)
         .sort((a, b) => a.nombreExamen.localeCompare(b.nombreExamen, 'es')),
     [examenes]
-  )
-
-  const selectedPaciente = useMemo(
-    () => pacientes.find((p) => getPacienteUUID(p) === watchedPacienteUUID),
-    [pacientes, watchedPacienteUUID]
   )
 
   const selectedExamen = useMemo(
@@ -194,11 +179,6 @@ export function ResultadosExamenTab() {
   )
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-
-  const handleSelectPaciente = (p: Paciente) => {
-    setValue('pacienteUUID', getPacienteUUID(p))
-    setOpenPaciente(false)
-  }
 
   /** Pre-llena el formulario con los valores del resultado a editar. */
   const handleEditResultado = (r: ResultadoExamen) => {
@@ -268,8 +248,8 @@ export function ResultadosExamenTab() {
               Historial de resultados
             </div>
             <div className="text-xs text-muted-foreground">
-              {selectedPaciente
-                ? `${selectedPaciente.folio} — ${selectedPaciente.persona.nombre} ${selectedPaciente.persona.apellidoPaterno}`
+              {selectedPacienteLabel
+                ? selectedPacienteLabel
                 : 'Selecciona un participante en el formulario para ver sus resultados.'}
             </div>
           </div>
@@ -298,11 +278,11 @@ export function ResultadosExamenTab() {
             </Alert>
           ) : (
             <>
-              {selectedPaciente?.persona.sexo && (
+              {selectedPacienteSexo && (
                 <p className="mb-3 text-xs text-muted-foreground">
                   Rangos de referencia aplicados:{' '}
                   <span className="font-medium">
-                    {selectedPaciente.persona.sexo === 'M' ? 'Hombres ♂' : 'Mujeres ♀'}
+                    {selectedPacienteSexo === 'M' ? 'Hombres ♂' : 'Mujeres ♀'}
                   </span>
                 </p>
               )}
@@ -320,7 +300,7 @@ export function ResultadosExamenTab() {
                   {sortedResultados.map((r) => {
                     const status = getRangeStatus(
                       r,
-                      selectedPaciente?.persona.sexo as 'M' | 'F' | undefined
+                      selectedPacienteSexo ?? undefined
                     )
                     return (
                       <TableRow
@@ -411,60 +391,16 @@ export function ResultadosExamenTab() {
 
           {/* Paciente */}
           <FormField label="Participante" required error={errors.pacienteUUID?.message}>
-            <Popover open={openPaciente} onOpenChange={setOpenPaciente}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openPaciente}
-                  className="w-full justify-between"
-                  disabled={isLoadingPacientes || isEditing}
-                >
-                  {watchedPacienteUUID
-                    ? (() => {
-                        const p = pacientes.find(
-                          (x) => getPacienteUUID(x) === watchedPacienteUUID
-                        )
-                        return p
-                          ? `${p.folio} — ${p.persona.nombre} ${p.persona.apellidoPaterno}`
-                          : 'Participante seleccionado'
-                      })()
-                    : isLoadingPacientes
-                      ? 'Cargando…'
-                      : 'Buscar participante…'}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar por folio o nombre…" />
-                  <CommandList>
-                    <CommandEmpty>No se encontró el participante.</CommandEmpty>
-                    <CommandGroup>
-                      {pacientes.map((p) => (
-                        <CommandItem
-                          key={getPacienteUUID(p)}
-                          value={`${p.folio} ${p.persona.nombre} ${p.persona.apellidoPaterno} ${p.persona.apellidoMaterno ?? ''}`}
-                          onSelect={() => handleSelectPaciente(p)}
-                        >
-                          <Check
-                            className={cn(
-                              'mr-2 h-4 w-4 shrink-0',
-                              watchedPacienteUUID === getPacienteUUID(p)
-                                ? 'opacity-100'
-                                : 'opacity-0'
-                            )}
-                          />
-                          {p.folio} — {p.persona.nombre} {p.persona.apellidoPaterno}
-                          {p.persona.apellidoMaterno ? ` ${p.persona.apellidoMaterno}` : ''}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <PacienteSearchCombobox
+              value={watchedPacienteUUID}
+              onChange={(uuid) => setValue('pacienteUUID', uuid)}
+              onSelectPaciente={(p) => {
+                const nombre = [p.persona?.nombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
+                setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
+                setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
+              }}
+              disabled={isEditing}
+            />
           </FormField>
 
           {/* Examen — Combobox con búsqueda en lugar de Select */}

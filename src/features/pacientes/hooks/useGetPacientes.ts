@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio } from '../api/pacientes.api'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio, getPacientesPaginados } from '../api/pacientes.api'
 
 export function useGetPacientes(
   params?: { buscar?: string; activos?: boolean; incluirJerarquia?: boolean },
@@ -41,5 +41,18 @@ export function useGetPacienteByFolio(folio: string) {
     queryKey: ['pacientes', folio],
     queryFn: () => getPacienteByFolio(folio),
     enabled: !!folio,
+  })
+}
+
+export function useGetPacientesPaginados(params: {
+  page: number
+  size: number
+  buscar?: string
+  incluirJerarquia?: boolean
+}) {
+  return useQuery({
+    queryKey: ['pacientes', 'paginado', params],
+    queryFn: () => getPacientesPaginados(params),
+    placeholderData: keepPreviousData,
   })
 }

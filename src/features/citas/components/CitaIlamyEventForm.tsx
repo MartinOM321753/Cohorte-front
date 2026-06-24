@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, ChevronsUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
 import type { CalendarEvent, EventFormProps } from '@ilamy/calendar'
 
 import type { Cita } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
-import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
+import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 import { useCreateCita, useUpdateCita } from '../hooks/useCitas'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import { citaFormSchema, ESTADOS_CITA, type CitaFormData } from '../schemas/cita.schema'
@@ -26,19 +25,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -46,7 +32,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
-import { cn } from '@/lib/utils'
 
 // ─── Utilidades ────────────────────────────────────────────────────────────────
 
@@ -61,10 +46,6 @@ function safeTimeZone(): string {
 function toLocalDateTimeInput(date: Date): string {
   const tzOffset = date.getTimezoneOffset() * 60000
   return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16)
-}
-
-function getPacienteUUID(p: any): string {
-  return p.UUID || p.uuid || ''
 }
 
 /**
@@ -130,15 +111,8 @@ export function CitaIlamyEventForm({
   const createCita = useCreateCita()
   const updateCita = useUpdateCita()
 
-  const [openPaciente, setOpenPaciente] = useState(false)
-
   // isEditing se calcula antes del hook para evitar la query innecesaria al editar
   const isEditingEarly = Boolean((selectedEvent?.data as any)?.cita?.uuid)
-
-  const { data: pacientesRaw } = useGetPacientes({ activos: true }, { enabled: open && !isEditingEarly })
-  const pacientes = Array.isArray(pacientesRaw)
-    ? pacientesRaw
-    : (pacientesRaw as any)?.data ?? []
 
   const defaults = useMemo(
     () => buildDefaults({ selectedEvent, initialPacienteUUID }),
@@ -319,85 +293,10 @@ export function CitaIlamyEventForm({
               <Label className="text-[13px]">
                 Participante <span className="text-red-500">*</span>
               </Label>
-              <Popover open={openPaciente} onOpenChange={setOpenPaciente} >
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between h-9 text-[13px]"
-                  >
-                    <span className="truncate">
-                      {watchedPacienteUUID
-                        ? (() => {
-                            const found = pacientes.find(
-                              (p: any) => getPacienteUUID(p) === watchedPacienteUUID,
-                            )
-                            if (!found) return 'Participante seleccionado'
-                            const nombre = found.persona
-                              ? [
-                                  found.persona.nombre,
-                                  found.persona.apellidoPaterno,
-                                  found.persona.apellidoMaterno,
-                                ]
-                                  .filter(Boolean)
-                                  .join(' ')
-                              : found.nombreCompleto ?? 'Participante'
-                            return `${found.folio ?? ''} — ${nombre}`.trim()
-                          })()
-                        : 'Buscar participante…'}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[min(96vw,400px)] p-0" align="start">
-                  <Command 
-                    filter={(value, search) =>
-                      value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                    }
-                  >
-                    <CommandInput placeholder="Buscar participante…" />
-                    <CommandList className="max-h-64">
-                      <CommandEmpty>No se encontró el participante.</CommandEmpty>
-                      <CommandGroup>
-                        {pacientes.map((p: any) => {
-                          const uuid = getPacienteUUID(p)
-                          const nombre = p.persona
-                            ? [
-                                p.persona.nombre,
-                                p.persona.apellidoPaterno,
-                                p.persona.apellidoMaterno,
-                              ]
-                                .filter(Boolean)
-                                .join(' ')
-                            : p.nombreCompleto ?? 'Participante'
-                          return (
-                            <CommandItem
-                              key={uuid || p.folio}
-                              value={`${p.folio ?? ''} ${nombre}`}
-                              onSelect={() => {
-                                setValue('pacienteUUID', uuid)
-                                setOpenPaciente(false)
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  'mr-2 h-4 w-4',
-                                  watchedPacienteUUID === uuid ? 'opacity-100' : 'opacity-0',
-                                )}
-                              />
-                              <span className="truncate text-[13px]">
-                                {`${p.folio ?? ''} — ${nombre}`.trim()}
-                              </span>
-                            </CommandItem>
-                          )
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              
-              </Popover>
+              <PacienteSearchCombobox
+                value={watchedPacienteUUID}
+                onChange={(uuid) => setValue('pacienteUUID', uuid)}
+              />
               {errors.pacienteUUID ? (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
                   {errors.pacienteUUID.message}

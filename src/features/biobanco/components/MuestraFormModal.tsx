@@ -15,16 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
 import {
   Select,
   SelectContent,
@@ -32,13 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { AlertCircle, ArrowRightFromLine, Check, ChevronsUpDown, FlaskConical, Info, Lock, MapPin, TestTube, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { AlertCircle, ArrowRightFromLine, Check, FlaskConical, Info, Lock, MapPin, TestTube, X } from 'lucide-react'
 
 import { useCreateMuestra, useUpdateMuestra, useGetMuestraById, useGetTiposMuestraActivos } from '../hooks/useBiobanco'
-import { useGetPacientes } from '@/features/pacientes/hooks/useGetPacientes'
+import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 import { useAuthStore } from '@/stores/authStore'
-import { MuestraDetalleDTO, Paciente } from '@/types/api'
+import { MuestraDetalleDTO } from '@/types/api'
 import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
 
@@ -67,7 +57,6 @@ const toLocalDateTimeInput = (date: Date): string => {
 
 export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormModalProps) {
   const isEditing = !!muestra
-  const [openPaciente, setOpenPaciente] = useState(false)
   const [showPosicionModal, setShowPosicionModal] = useState(false)
   const [posicionLabel, setPosicionLabel] = useState<string>('')
 
@@ -101,15 +90,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   const createMuestraMutation = useCreateMuestra()
   const updateMuestraMutation = useUpdateMuestra()
 
-  const { data: pacientesRaw } = useGetPacientes({ activos: true }, { enabled: open })
-  const pacientes = Array.isArray(pacientesRaw)
-    ? pacientesRaw
-    : (pacientesRaw as any)?.data ?? []
-
   const { data: freshMuestra } = useGetMuestraById(open && isEditing ? muestra!.id : 0)
-
-  const getPacienteUUID = (p: Paciente): string =>
-    p.UUID || (p as unknown as { uuid?: string }).uuid || ''
 
   const buildDefaultValues = (): MuestraFormData => ({
     valor: 0,
@@ -225,7 +206,6 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setPosicionLabel('')
-      setOpenPaciente(false)
       setShowPosicionModal(false)
       setSelectedTipoId(null)
       setSelectedTuboId(null)
@@ -486,76 +466,22 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
             <div className="space-y-2">
               <Label>Participante *</Label>
               {isEditing ? (
-                /* Solo lectura en edición — el participante es inmutable */
                 <div className="flex items-center gap-2 rounded-md bg-muted/50 border px-3 py-2">
                   <span className="text-sm font-medium">
-                    {(() => {
-                      const p = pacientes.find((p: Paciente) => getPacienteUUID(p) === watchedPacienteUUID)
-                      return p
-                        ? `${p.folio} — ${p.persona.nombre} ${p.persona.apellidoPaterno}${p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}`
-                        : watchedPacienteUUID || (freshMuestra?.paciente
-                            ? `${freshMuestra.paciente.folio} — ${freshMuestra.paciente.nombreCompleto}`
-                            : muestra?.paciente
-                              ? `${muestra.paciente.folio} — ${muestra.paciente.nombreCompleto}`
-                              : '—')
-                    })()}
+                    {freshMuestra?.paciente
+                      ? `${freshMuestra.paciente.folio} — ${freshMuestra.paciente.nombreCompleto}`
+                      : muestra?.paciente
+                        ? `${muestra.paciente.folio} — ${muestra.paciente.nombreCompleto}`
+                        : '—'}
                   </span>
                   <span className="ml-auto text-[10px] text-muted-foreground italic shrink-0">No editable</span>
                 </div>
               ) : (
-              <Popover open={openPaciente} onOpenChange={setOpenPaciente} modal={true}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openPaciente}
-                    className="w-full justify-between font-normal"
-                  >
-                    <span className="truncate">
-                      {watchedPacienteUUID
-                        ? (() => {
-                            const p = pacientes.find((p: Paciente) => getPacienteUUID(p) === watchedPacienteUUID)
-                            return p
-                              ? `${p.folio} — ${p.persona.nombre} ${p.persona.apellidoPaterno}${p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}`
-                              : watchedPacienteUUID
-                          })()
-                        : 'Buscar participante...'
-                      }
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-115 p-0">
-                  <Command filter={(value, search) =>
-                    value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-                  }>
-                    <CommandInput placeholder="Buscar por folio o nombre..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró el participante.</CommandEmpty>
-                      <CommandGroup>
-                        {pacientes.map((p: Paciente) => (
-                          <CommandItem
-                            key={getPacienteUUID(p)}
-                            value={`${p.folio} ${p.persona.nombre} ${p.persona.apellidoPaterno} ${p.persona.apellidoMaterno ?? ''}`}
-                            onSelect={() => {
-                              setValue('pacienteUUID', getPacienteUUID(p), { shouldValidate: true })
-                              setOpenPaciente(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                'mr-2 h-4 w-4 shrink-0',
-                                watchedPacienteUUID === getPacienteUUID(p) ? 'opacity-100' : 'opacity-0'
-                              )}
-                            />
-                            {p.folio} — {p.persona.nombre} {p.persona.apellidoPaterno}{p.persona.apellidoMaterno ? ' ' + p.persona.apellidoMaterno : ''}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                <PacienteSearchCombobox
+                  value={watchedPacienteUUID}
+                  onChange={(uuid) => setValue('pacienteUUID', uuid, { shouldValidate: true })}
+                  modal
+                />
               )}
               {!isEditing && errors.pacienteUUID && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">

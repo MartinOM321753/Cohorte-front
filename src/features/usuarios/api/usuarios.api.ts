@@ -13,6 +13,23 @@ export const getUsuarios = async (): Promise<Usuario[]> => {
   return res.data.data
 }
 
+export interface UsuariosPaginados {
+  content: Usuario[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+export const getUsuariosPaginados = async (params: {
+  page?: number
+  size?: number
+  buscar?: string
+}): Promise<UsuariosPaginados> => {
+  const res = await axiosInstance.get<ApiResponse<UsuariosPaginados>>('/users/paginado', { params })
+  return res.data.data
+}
+
 export const getUsuarioById = async (id: number): Promise<Usuario> => {
   const res = await axiosInstance.get<ApiResponse<Usuario>>(`/users/${id}`)
   return res.data.data

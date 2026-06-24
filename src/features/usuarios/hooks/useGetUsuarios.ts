@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { getUsuarios, getUsuarioById, getUsuariosActivos, getAdministradoresDisponibles } from '../api/usuarios.api'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { getUsuarios, getUsuarioById, getUsuariosActivos, getAdministradoresDisponibles, getUsuariosPaginados } from '../api/usuarios.api'
 import { useMemo } from 'react'
 
 export const USUARIOS_QUERY_KEY = ['usuarios'] as const
@@ -46,6 +46,18 @@ export function useGetEncargadosParaInstitucion(options?: { enabled?: boolean })
   )
 
   return { data, isLoading, isError }
+}
+
+export function useGetUsuariosPaginados(params: {
+  page: number
+  size: number
+  buscar?: string
+}) {
+  return useQuery({
+    queryKey: ['usuarios', 'paginado', params],
+    queryFn: () => getUsuariosPaginados(params),
+    placeholderData: keepPreviousData,
+  })
 }
 
 /**
