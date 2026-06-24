@@ -24,6 +24,8 @@ import {
   EyeOff,
   ArrowRight,
   AlertCircle,
+  MapPin,
+  MapPinOff,
 } from "lucide-react";
 
 type GeoStatus = "requesting" | "granted" | "denied" | "unavailable";
@@ -86,6 +88,59 @@ function CollaboratorLogos() {
   );
 }
 
+// ── Aviso de estado de geolocalización (no bloquea el login) ────────────────
+function GeoBanner({ status }: { status: GeoStatus }) {
+  const base: React.CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: "10px 12px",
+    borderRadius: 6,
+    fontSize: 12,
+    lineHeight: 1.5,
+    marginBottom: 20,
+  };
+
+  if (status === "requesting") {
+    return (
+      <div style={{ ...base, background: "#f0fdf4", color: "#1e4e3a" }}>
+        <MapPin size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
+        <span>Solicitando tu ubicación para registrarla en la bitácora…</span>
+      </div>
+    );
+  }
+
+  if (status === "granted") {
+    return (
+      <div style={{ ...base, background: "#f0fdf4", color: "#1e4e3a" }}>
+        <MapPin size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
+        <span>Ubicación capturada. Ya puedes iniciar sesión.</span>
+      </div>
+    );
+  }
+
+  if (status === "denied") {
+    return (
+      <div style={{ ...base, background: "#fef2f2", color: "#991b1b" }}>
+        <MapPinOff size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
+        <span>
+          Permiso de ubicación no concedido. Es obligatorio para iniciar sesión: concede el
+          permiso desde el ícono de candado o ubicación en la barra de direcciones y
+          recarga la página.
+        </span>
+      </div>
+    );
+  }
+
+  // unavailable
+  return (
+    <div style={{ ...base, background: "#fef2f2", color: "#991b1b" }}>
+      <MapPinOff size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span>Tu navegador no soporta geolocalización, así que no es posible iniciar sesión desde aquí.</span>
+    </div>
+  );
+}
+
 // ── Marca de agua circular centrada en el panel izquierdo ────────────────────
 function ShieldFiligree() {
   return (
@@ -117,8 +172,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitBtnHover, setSubmitBtnHover] = useState(false);
 
-  // ── Geolocalización obligatoria ──────────────────────────────────────────
-  const [, setGeoStatus] = useState<GeoStatus>("requesting");
+  // ── Geolocalización obligatoria (HTTPS ya permite el prompt nativo) ──────
+  const [geoStatus, setGeoStatus] = useState<GeoStatus>("requesting");
   const [coords, setCoords] = useState<{
     latitud: number;
     longitud: number;
@@ -170,6 +225,10 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate, hasRole]);
 
   const onSubmit = async (data: LoginFormData) => {
+    if (!coords) {
+      toast.error("Necesitamos tu ubicación para continuar. Concede el permiso desde el ícono de candado/ubicación en la barra de direcciones e intenta de nuevo.");
+      return;
+    }
     setIsLoading(true);
     try {
       const response = await loginUser(data, coords);
@@ -539,12 +598,12 @@ export default function LoginPage() {
               </a>
             </div>
 
-            {/* Banner de geolocalización oculto por ahora: la ubicación no se usa todavía */}
+            <GeoBanner status={geoStatus} />
 
             {/* Submit */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || geoStatus !== "granted"}
               onMouseEnter={() => setSubmitBtnHover(true)}
               onMouseLeave={() => setSubmitBtnHover(false)}
               style={{
@@ -555,20 +614,21 @@ export default function LoginPage() {
                 width: "100%",
                 height: 52,
                 padding: "0 20px",
-                background: isLoading
-                  ? "#143a2c"
-                  : submitBtnHover
-                    ? "#1a4332"
-                    : "#1e4e3a",
+                background:
+                  isLoading || geoStatus !== "granted"
+                    ? "#143a2c"
+                    : submitBtnHover
+                      ? "#1a4332"
+                      : "#1e4e3a",
                 color: "#ffffff",
                 fontSize: 15,
                 fontWeight: 600,
                 letterSpacing: "-0.005em",
                 border: 0,
                 borderRadius: 6,
-                cursor: isLoading ? "not-allowed" : "pointer",
+                cursor: isLoading || geoStatus !== "granted" ? "not-allowed" : "pointer",
                 fontFamily: "inherit",
-                opacity: isLoading ? 0.85 : 1,
+                opacity: isLoading || geoStatus !== "granted" ? 0.85 : 1,
               }}
             >
               {isLoading ? (
