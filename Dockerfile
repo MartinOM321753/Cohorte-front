@@ -21,8 +21,14 @@ RUN pnpm run build
 FROM nginx:alpine
 
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+# Dos plantillas: el entrypoint decide cual activar segun si ya existe el
+# certificado de Let's Encrypt (montado via volumen en /etc/letsencrypt).
+COPY nginx.http.conf /etc/nginx/templates/nginx.http.conf
+COPY nginx.ssl.conf /etc/nginx/templates/nginx.ssl.conf
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 80 443
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
