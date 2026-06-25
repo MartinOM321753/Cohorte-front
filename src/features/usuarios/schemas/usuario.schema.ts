@@ -3,6 +3,7 @@ import { esMayorDeEdadConTolerancia } from '@/components/ui/date-time-picker'
 
 const personaSchema = z.object({
   nombre: z.string().trim().min(1, 'El nombre es obligatorio'),
+  segundoNombre: z.string().trim().optional().or(z.literal('')),
   apellidoPaterno: z.string().trim().min(1, 'El apellido paterno es obligatorio'),
   apellidoMaterno: z.string().trim().optional(),
   fechaNacimiento: z.string()

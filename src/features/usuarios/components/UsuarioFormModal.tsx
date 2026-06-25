@@ -180,6 +180,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre,
       institucionUuid: '',
       persona: {
         nombre: '',
+        segundoNombre: '',
         apellidoPaterno: '',
         apellidoMaterno: '',
         fechaNacimiento: '',
@@ -198,6 +199,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre,
           institucionUuid: usuario.institucion?.uuid ?? '',
           persona: {
             nombre: usuario.persona.nombre,
+            segundoNombre: usuario.persona.segundoNombre ?? '',
             apellidoPaterno: usuario.persona.apellidoPaterno,
             apellidoMaterno: usuario.persona.apellidoMaterno ?? '',
             fechaNacimiento: usuario.persona.fechaNacimiento?.slice(0, 10) ?? '',
@@ -212,6 +214,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre,
           institucionUuid: '',
           persona: {
             nombre: '',
+            segundoNombre: '',
             apellidoPaterno: '',
             apellidoMaterno: '',
             fechaNacimiento: '',
@@ -249,6 +252,7 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre,
       institucionUuid: formData.institucionUuid,
       persona: {
         nombre: formData.persona.nombre,
+        segundoNombre: formData.persona.segundoNombre || undefined,
         apellidoPaterno: formData.persona.apellidoPaterno,
         apellidoMaterno: formData.persona.apellidoMaterno || undefined,
         fechaNacimiento: formData.persona.fechaNacimiento,
@@ -415,18 +419,37 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre,
               {/* Nombre */}
               <div className="space-y-1.5">
                 <Label htmlFor="nombre" className="text-[13px]">
-                  Nombre(s) <span className="text-red-500">*</span>
+                  Primer nombre <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="nombre"
                   {...register('persona.nombre')}
                   sanitize="nombre"
-                  placeholder="ej. Juan Carlos"
+                  placeholder="ej. Juan"
                   className="h-9 text-[13px]"
                 />
                 {errors.persona?.nombre && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
                     {errors.persona.nombre.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Segundo nombre */}
+              <div className="space-y-1.5">
+                <Label htmlFor="segundoNombre" className="text-[13px]">
+                  Segundo nombre
+                </Label>
+                <Input
+                  id="segundoNombre"
+                  {...register('persona.segundoNombre')}
+                  sanitize="nombre"
+                  placeholder="ej. Carlos"
+                  className="h-9 text-[13px]"
+                />
+                {errors.persona?.segundoNombre && (
+                  <p className="text-[11px] text-[var(--status-danger-fg)]">
+                    {errors.persona.segundoNombre.message}
                   </p>
                 )}
               </div>

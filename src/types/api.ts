@@ -16,6 +16,7 @@ export interface ApiResponse<T> {
 export interface Persona {
   id?: number
   nombre: string
+  segundoNombre?: string
   apellidoPaterno: string
   apellidoMaterno?: string
   fechaNacimiento?: string
@@ -28,6 +29,7 @@ export interface Persona {
 export interface PersonaResponseDTO {
   id?: number
   nombre: string
+  segundoNombre?: string
   apellidoPaterno: string
   apellidoMaterno?: string
   fechaNacimiento?: string
@@ -39,6 +41,7 @@ export interface PersonaResponseDTO {
 
 export interface PersonaRequestDTO {
   nombre: string
+  segundoNombre?: string
   apellidoPaterno: string
   apellidoMaterno?: string
   fechaNacimiento?: string

@@ -38,6 +38,7 @@ function getUUID(p: Paciente): string {
 function getLabel(p: Paciente): string {
   const nombre = [
     p.persona?.nombre,
+    p.persona?.segundoNombre,
     p.persona?.apellidoPaterno,
     p.persona?.apellidoMaterno,
   ]

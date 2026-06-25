@@ -1,6 +1,7 @@
 export interface UsuarioPersona {
   id?: number
   nombre: string
+  segundoNombre?: string | null
   apellidoPaterno: string
   apellidoMaterno?: string | null
   fechaNacimiento: string
@@ -38,6 +39,7 @@ export interface UsuarioRequestDTO {
   institucionUuid: string
   persona: {
     nombre: string
+    segundoNombre?: string
     apellidoPaterno: string
     apellidoMaterno?: string
     fechaNacimiento: string
@@ -64,7 +66,7 @@ export const ROL_LABELS: Record<string, string> = {
 }
 
 export function getNombreCompleto(persona: UsuarioPersona): string {
-  return [persona.nombre, persona.apellidoPaterno, persona.apellidoMaterno]
+  return [persona.nombre, persona.segundoNombre, persona.apellidoPaterno, persona.apellidoMaterno]
     .filter(Boolean)
     .join(' ')
 }

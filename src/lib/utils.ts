@@ -33,8 +33,8 @@ export function formatDateTime(date: string | Date): string {
  */
 export function getFullName(persona: Persona | null | undefined): string {
   if (!persona) return '-'
-  const { nombre, apellidoPaterno, apellidoMaterno } = persona
-  return [nombre, apellidoPaterno, apellidoMaterno].filter(Boolean).join(' ')
+  const { nombre, segundoNombre, apellidoPaterno, apellidoMaterno } = persona
+  return [nombre, segundoNombre, apellidoPaterno, apellidoMaterno].filter(Boolean).join(' ')
 }
 
 /**

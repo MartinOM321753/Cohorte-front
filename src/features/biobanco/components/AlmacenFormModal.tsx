@@ -160,7 +160,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
     if (!searchEncargado.trim()) return encargados
     const q = searchEncargado.toLowerCase()
     return encargados.filter(u => {
-      const nombre = `${u.persona.nombre} ${u.persona.apellidoPaterno} ${u.persona.apellidoMaterno ?? ''}`.toLowerCase()
+      const nombre = [u.persona.nombre, u.persona.segundoNombre, u.persona.apellidoPaterno, u.persona.apellidoMaterno].filter(Boolean).join(' ').toLowerCase()
       return nombre.includes(q) || u.username.toLowerCase().includes(q)
     })
   }, [encargados, searchEncargado])
@@ -448,7 +448,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
                 )}>
                   <div>
                     <p className="text-sm font-medium">
-                      {selectedEncargado.persona.nombre} {selectedEncargado.persona.apellidoPaterno}
+                      {[selectedEncargado.persona.nombre, selectedEncargado.persona.segundoNombre, selectedEncargado.persona.apellidoPaterno].filter(Boolean).join(' ')}
                     </p>
                     <p className="text-xs text-muted-foreground">@{selectedEncargado.username}</p>
                   </div>
@@ -491,7 +491,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
                         >
                           <div className="text-left">
                             <p className="font-medium">
-                              {u.persona.nombre} {u.persona.apellidoPaterno}
+                              {[u.persona.nombre, u.persona.segundoNombre, u.persona.apellidoPaterno].filter(Boolean).join(' ')}
                             </p>
                             <p className="text-xs text-muted-foreground">@{u.username}</p>
                           </div>

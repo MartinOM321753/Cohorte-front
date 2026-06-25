@@ -59,6 +59,7 @@ const MEDIO_CONTACTO_OPTIONS = (
 const DEFAULT_VALUES: PacienteFormData = {
   folio: '',
   nombre: '',
+  segundoNombre: '',
   apellidoPaterno: '',
   apellidoMaterno: '',
   curp: '',
@@ -99,6 +100,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
         reset({
           folio: paciente.folio,
           nombre: paciente.persona.nombre,
+          segundoNombre: paciente.persona.segundoNombre ?? '',
           apellidoPaterno: paciente.persona.apellidoPaterno,
           apellidoMaterno: paciente.persona.apellidoMaterno ?? '',
           curp: paciente.persona.curp ?? '',
@@ -124,6 +126,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
       folio: formData.folio,
       persona: {
         nombre: formData.nombre,
+        segundoNombre: formData.segundoNombre || undefined,
         apellidoPaterno: formData.apellidoPaterno,
         apellidoMaterno: formData.apellidoMaterno || undefined,
         curp: formData.curp || undefined,
@@ -346,18 +349,37 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
               {/* Nombre */}
               <div className="space-y-1.5">
                 <Label htmlFor="nombre" className="text-[13px]">
-                  Nombre(s) <span className="text-red-500">*</span>
+                  Primer nombre <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="nombre"
                   {...register('nombre')}
                   sanitize="nombre"
-                  placeholder="ej. Juan Carlos"
+                  placeholder="ej. Juan"
                   className="h-9 text-[13px]"
                 />
                 {errors.nombre && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">
                     {errors.nombre.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Segundo nombre */}
+              <div className="space-y-1.5">
+                <Label htmlFor="segundoNombre" className="text-[13px]">
+                  Segundo nombre
+                </Label>
+                <Input
+                  id="segundoNombre"
+                  {...register('segundoNombre')}
+                  sanitize="nombre"
+                  placeholder="ej. Carlos"
+                  className="h-9 text-[13px]"
+                />
+                {errors.segundoNombre && (
+                  <p className="text-[11px] text-[var(--status-danger-fg)]">
+                    {errors.segundoNombre.message}
                   </p>
                 )}
               </div>

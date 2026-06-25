@@ -222,7 +222,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
       ...encargadosDisponibles.map(u => ({
         value: u.UUID,
         label: u.persona
-          ? `${u.persona.nombre} ${u.persona.apellidoPaterno} (@${u.username})`
+          ? `${[u.persona.nombre, u.persona.segundoNombre, u.persona.apellidoPaterno].filter(Boolean).join(' ')} (@${u.username})`
           : `@${u.username}`,
       })),
     ],

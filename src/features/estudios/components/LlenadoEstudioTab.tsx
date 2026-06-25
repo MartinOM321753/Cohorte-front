@@ -553,7 +553,7 @@ export function LlenadoEstudioTab() {
                 setValue('pacienteUUID', uuid)
               }}
               onSelectPaciente={(p) => {
-                const nombre = [p.persona?.nombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
+                const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
                   .filter(Boolean).join(' ')
                 setSelectedPacienteNombre(nombre)
               }}

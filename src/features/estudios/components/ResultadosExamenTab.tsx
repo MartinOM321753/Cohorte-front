@@ -395,7 +395,7 @@ export function ResultadosExamenTab() {
               value={watchedPacienteUUID}
               onChange={(uuid) => setValue('pacienteUUID', uuid)}
               onSelectPaciente={(p) => {
-                const nombre = [p.persona?.nombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
+                const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
                 setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
                 setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
               }}

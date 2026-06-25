@@ -16,6 +16,12 @@ const basePacienteSchema = z.object({
     .min(1, 'El nombre es obligatorio')
     .min(2, 'El nombre debe tener al menos 2 caracteres'),
 
+  segundoNombre: z.string()
+    .trim()
+    .min(2, 'El segundo nombre debe tener al menos 2 caracteres')
+    .optional()
+    .or(z.literal('')),
+
   apellidoPaterno: z.string()
     .trim()
     .min(1, 'El apellido paterno es obligatorio')

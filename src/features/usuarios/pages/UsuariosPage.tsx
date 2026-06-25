@@ -177,8 +177,8 @@ export default function UsuariosPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {usuarioToToggle?.activo
-                ? `Desactivar a ${usuarioToToggle.persona.nombre} ${usuarioToToggle.persona.apellidoPaterno}? No podra iniciar sesion ni realizar solicitudes.`
-                : `Activar a ${usuarioToToggle?.persona.nombre} ${usuarioToToggle?.persona.apellidoPaterno}? Recuperara acceso al sistema.`
+                ? `Desactivar a ${[usuarioToToggle.persona.nombre, usuarioToToggle.persona.segundoNombre, usuarioToToggle.persona.apellidoPaterno].filter(Boolean).join(' ')}? No podra iniciar sesion ni realizar solicitudes.`
+                : `Activar a ${[usuarioToToggle?.persona.nombre, usuarioToToggle?.persona.segundoNombre, usuarioToToggle?.persona.apellidoPaterno].filter(Boolean).join(' ')}? Recuperara acceso al sistema.`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
