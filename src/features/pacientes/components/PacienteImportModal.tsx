@@ -19,7 +19,9 @@ interface PacienteImportModalProps {
 
 const COLUMNAS = [
   { nombre: 'folio', obligatorio: false, desc: 'Folio (vacío = auto)' },
-  { nombre: 'nombre', obligatorio: true, desc: 'Nombre(s)' },
+  { nombre: 'nombre', obligatorio: true, desc: 'Primer nombre' },
+  { nombre: 'segundoNombre', obligatorio: false, desc: 'Segundo nombre' },
+  { nombre: 'tercerNombre', obligatorio: false, desc: 'Tercer nombre (se une al segundo)' },
   { nombre: 'apellidoPaterno', obligatorio: true, desc: 'Apellido paterno' },
   { nombre: 'apellidoMaterno', obligatorio: false, desc: 'Apellido materno' },
   { nombre: 'curp', obligatorio: false, desc: 'CURP (18 caracteres)' },
