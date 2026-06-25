@@ -80,6 +80,11 @@ export async function loginUser(
     precisionM: coords?.precisionM ?? null,
   }
 
+  // Elimina cualquier cookie auth_token stale que haya sobrevivido un deploy
+  // anterior. La cookie es httpOnly → JS no puede borrarla directamente, pero
+  // /clear-session responde con Set-Cookie Max-Age=0 que la expira.
+  try { await axiosInstance.post('/auth/clear-session') } catch { /* ignorar */ }
+
   await axiosInstance.post('/auth/login', loginPayload)
 
   const meResponse = await axiosInstance.get<ApiResponse<{ user: any; mustChangePassword: boolean }>>('/auth/me')
