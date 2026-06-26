@@ -229,12 +229,24 @@ export async function imprimirEtiquetaDocumento(
   impresora: string,
   configuracionId?: number,
 ): Promise<void> {
-  const params: Record<string, string | number> = { impresora }
-  if (configuracionId) params.configuracionId = configuracionId
-  await api.post(`/documentos/${idDocumento}/etiqueta/imprimir`, null, { params })
+  const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
+
+  if (await isAgentAvailable()) {
+    const zpl = await getZplEtiquetaDocumento(idDocumento, configuracionId)
+    await imprimirLocal(impresora, zpl)
+  } else {
+    const params: Record<string, string | number> = { impresora }
+    if (configuracionId) params.configuracionId = configuracionId
+    await api.post(`/documentos/${idDocumento}/etiqueta/imprimir`, null, { params })
+  }
 }
 
 export async function listarImpresorasDocumentos(): Promise<string[]> {
+  const { isAgentAvailable, listarImpresorasLocal } = await import('@/lib/printAgent')
+
+  if (await isAgentAvailable()) {
+    return listarImpresorasLocal()
+  }
   const res = await api.get<ApiResponse<string[]>>('/documentos/impresoras')
   return res.data.data
 }

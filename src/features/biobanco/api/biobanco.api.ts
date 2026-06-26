@@ -512,17 +512,38 @@ export async function getZplAlicuotas(idMuestraPadre: number, configuracionId?: 
 }
 
 export async function listarImpresoras(): Promise<string[]> {
+  const { isAgentAvailable, listarImpresorasLocal } = await import('@/lib/printAgent')
+
+  if (await isAgentAvailable()) {
+    return listarImpresorasLocal()
+  }
   const response = await api.get<ApiResponse<string[]>>('/almacenamiento/muestras/impresoras')
   return response.data.data
 }
 
 export async function imprimirEtiqueta(idMuestra: number, impresora: string, configuracionId?: number): Promise<void> {
-  const params: Record<string, string | number> = { impresora }
-  if (configuracionId) params.configuracionId = configuracionId
-  await api.post(`/almacenamiento/muestras/${idMuestra}/etiqueta/imprimir`, null, { params })
+  const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
+
+  if (await isAgentAvailable()) {
+    const zpl = await getZplEtiqueta(idMuestra, configuracionId)
+    await imprimirLocal(impresora, zpl)
+  } else {
+    const params: Record<string, string | number> = { impresora }
+    if (configuracionId) params.configuracionId = configuracionId
+    await api.post(`/almacenamiento/muestras/${idMuestra}/etiqueta/imprimir`, null, { params })
+  }
 }
 
 export async function imprimirAlicuotas(idMuestraPadre: number, impresora: string, configuracionId?: number): Promise<number> {
+  const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
+
+  if (await isAgentAvailable()) {
+    const zpls = await getZplAlicuotas(idMuestraPadre, configuracionId)
+    for (const zpl of zpls) {
+      await imprimirLocal(impresora, zpl)
+    }
+    return zpls.length
+  }
   const params: Record<string, string | number> = { impresora }
   if (configuracionId) params.configuracionId = configuracionId
   const response = await api.post<ApiResponse<number>>(
@@ -534,6 +555,17 @@ export async function imprimirAlicuotas(idMuestraPadre: number, impresora: strin
 }
 
 export async function imprimirLoteCompleto(idMuestraPadre: number, impresora: string, configuracionId?: number): Promise<number> {
+  const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
+
+  if (await isAgentAvailable()) {
+    const zplPadre = await getZplEtiqueta(idMuestraPadre, configuracionId)
+    const zplsAlicuotas = await getZplAlicuotas(idMuestraPadre, configuracionId)
+    await imprimirLocal(impresora, zplPadre)
+    for (const zpl of zplsAlicuotas) {
+      await imprimirLocal(impresora, zpl)
+    }
+    return 1 + zplsAlicuotas.length
+  }
   const params: Record<string, string | number> = { impresora }
   if (configuracionId) params.configuracionId = configuracionId
   const response = await api.post<ApiResponse<number>>(
