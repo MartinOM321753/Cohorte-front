@@ -29,7 +29,7 @@ export function useGetEstudios() {
 }
 
 /**
- * Get estudio mÃ©dico by ID
+ * Get estudio médico by ID
  */
 export function useGetEstudioById(id: number | null) {
   return useQuery({
@@ -197,7 +197,7 @@ export function useCreateParametroEstudio() {
 }
 
 /**
- * Update a parÃ¡metro de estudio
+ * Update a parámetro de estudio
  */
 export function useUpdateParametroEstudio(id: number) {
   const queryClient = useQueryClient()
@@ -206,17 +206,17 @@ export function useUpdateParametroEstudio(id: number) {
     mutationFn: (data: ParametroEstudioRequestDTO) => updateParametroEstudio(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tiposEstudio'] })
-      toast.success('ParÃ¡metro actualizado exitosamente')
+      toast.success('Parámetro actualizado exitosamente')
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Error al actualizar parÃ¡metro'
+      const message = error.response?.data?.message || 'Error al actualizar parámetro'
       toast.error(message)
     },
   })
 }
 
 /**
- * Delete a parÃ¡metro de estudio
+ * Delete a parámetro de estudio
  */
 export function useDeleteParametroEstudio() {
   const queryClient = useQueryClient()
@@ -225,10 +225,10 @@ export function useDeleteParametroEstudio() {
     mutationFn: (id: number) => deleteParametroEstudio(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tiposEstudio'] })
-      toast.success('ParÃ¡metro eliminado')
+      toast.success('Parámetro eliminado')
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Error al eliminar parÃ¡metro'
+      const message = error.response?.data?.message || 'Error al eliminar parámetro'
       toast.error(message)
     },
   })
