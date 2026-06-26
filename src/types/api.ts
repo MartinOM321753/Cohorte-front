@@ -260,9 +260,11 @@ export interface ParametroEstudio {
   unidad?: string
   tipo: TipoParametro
   tipoEstudio?: string
-  /** Rango de referencia — solo aplica a tipo NUMERICO */
-  valorMinimo?: number | null
-  valorMaximo?: number | null
+  /** Rango de referencia por sexo — solo aplica a tipo NUMERICO */
+  valorMinMujeres?: number | null
+  valorMaxMujeres?: number | null
+  valorMinHombres?: number | null
+  valorMaxHombres?: number | null
   /** Opciones predefinidas — solo aplica a tipo TEXTO_OPCIONES */
   opciones?: string[] | null
 }
@@ -272,8 +274,10 @@ export interface ParametroEstudioRequestDTO {
   nombre: string
   unidad?: string
   tipo: TipoParametro
-  valorMinimo?: number | null
-  valorMaximo?: number | null
+  valorMinMujeres?: number | null
+  valorMaxMujeres?: number | null
+  valorMinHombres?: number | null
+  valorMaxHombres?: number | null
   /** Lista de valores válidos — solo cuando tipo == TEXTO_OPCIONES */
   opciones?: string[]
 }

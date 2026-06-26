@@ -181,12 +181,14 @@ export function LlenadoEstudioTab() {
   }, [tiposActivos, editingEstudioId, selectedTipoId, estudioEditar])
 
   const [selectedPacienteNombre, setSelectedPacienteNombre] = useState('')
+  const [selectedPacienteSexo, setSelectedPacienteSexo] = useState<'M' | 'F' | undefined>(undefined)
 
   // ── Pre-populate base fields when editing ──────────────
   useEffect(() => {
     if (!estudioEditar || !editingEstudioId) return
     setValue('pacienteUUID', estudioEditar.paciente?.uuid ?? '')
     setSelectedPacienteUUID(estudioEditar.paciente?.uuid ?? '')
+    setSelectedPacienteSexo(estudioEditar.paciente?.sexo === 'M' ? 'M' : estudioEditar.paciente?.sexo === 'F' ? 'F' : undefined)
     const tipoId = estudioEditar.tipoEstudio?.id ?? 0
     setValue('idTipoEstudio', tipoId)
     setSelectedTipoId(tipoId)
@@ -556,6 +558,7 @@ export function LlenadoEstudioTab() {
                 const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
                   .filter(Boolean).join(' ')
                 setSelectedPacienteNombre(nombre)
+                setSelectedPacienteSexo(p.persona?.sexo)
               }}
             />
           </FormField>
@@ -685,6 +688,7 @@ export function LlenadoEstudioTab() {
                         <ParametroInput
                           key={p.id}
                           parametro={p}
+                          sexo={selectedPacienteSexo}
                           register={register}
                           control={control}
                           error={errors[`param_${p.id}`]?.message as string | undefined}
@@ -725,6 +729,7 @@ export function LlenadoEstudioTab() {
                               <ParametroInput
                                 key={p.id}
                                 parametro={p}
+                                sexo={selectedPacienteSexo}
                                 standaloneValue={grupo.valores[p.id]}
                                 onStandaloneChange={(val) => setGrupoValor(idx, p.id, val)}
                               />
@@ -795,6 +800,7 @@ export function LlenadoEstudioTab() {
 // ──────────────────────────────────────────────────────────
 function ParametroInput({
   parametro,
+  sexo,
   register,
   control,
   error,
@@ -802,6 +808,8 @@ function ParametroInput({
   onStandaloneChange,
 }: {
   parametro: ParametroEstudio
+  /** Sexo del paciente — determina qué rango de referencia (hombres/mujeres) aplicar */
+  sexo?: 'M' | 'F'
   // Form mode props
   register?: any
   control?: any
@@ -816,11 +824,13 @@ function ParametroInput({
     : parametro.nombre
   const isStandalone = onStandaloneChange !== undefined
 
+  // Rango de referencia según sexo del paciente (por defecto, mujeres, si no se conoce el sexo)
+  const min = sexo === 'M' ? parametro.valorMinHombres : parametro.valorMinMujeres
+  const max = sexo === 'M' ? parametro.valorMaxHombres : parametro.valorMaxMujeres
+
   // Out-of-range warning for NUMERICO params with defined reference range
   const rangeWarning = (() => {
     if (parametro.tipo !== 'NUMERICO') return null
-    const min = parametro.valorMinimo
-    const max = parametro.valorMaximo
     if (min == null && max == null) return null
     const raw = isStandalone ? standaloneValue : undefined   // form mode: no live access here
     const num = raw !== undefined && raw !== '' ? Number(raw) : NaN
@@ -833,8 +843,6 @@ function ParametroInput({
   // Reference range label shown as hint
   const rangeHint = (() => {
     if (parametro.tipo !== 'NUMERICO') return null
-    const min = parametro.valorMinimo
-    const max = parametro.valorMaximo
     if (min == null && max == null) return null
     if (min != null && max != null) return `Ref: ${min} – ${max}${parametro.unidad ? ' ' + parametro.unidad : ''}`
     if (min != null) return `Ref: ≥ ${min}${parametro.unidad ? ' ' + parametro.unidad : ''}`

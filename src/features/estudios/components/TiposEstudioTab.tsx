@@ -46,19 +46,29 @@ interface PendingParametro {
   nombre: string
   unidad: string
   tipo: TipoParametro
-  valorMinimo?: string
-  valorMaximo?: string
+  valorMinMujeres?: string
+  valorMaxMujeres?: string
+  valorMinHombres?: string
+  valorMaxHombres?: string
   opciones?: string[]
 }
 
 const TIPO_LABELS: Record<TipoParametro, string> = {
   NUMERICO: 'Numérico',
   TEXTO: 'Texto libre',
-  BOOLEANO: 'Booleano',
+  BOOLEANO: 'Sí/No',
   TEXTO_OPCIONES: 'Selección',
 }
 
 const DEFAULT_TIPO: TipoEstudioFormData = { nombre: '', descripcion: '' }
+
+/** Valida que mín < máx para un par de campos de rango; null si es válido o están vacíos. */
+function validarRango(min: string, max: string): string | null {
+  if (min !== '' && max !== '' && Number(min) >= Number(max)) {
+    return 'El valor mínimo debe ser menor que el máximo'
+  }
+  return null
+}
 
 export function TiposEstudioTab() {
   const { data: tipos, isLoading, isError } = useGetTodosLosTipos()
@@ -74,8 +84,10 @@ export function TiposEstudioTab() {
   const [paramNombre, setParamNombre] = useState('')
   const [paramUnidad, setParamUnidad] = useState('')
   const [paramTipo, setParamTipo] = useState<TipoParametro>('NUMERICO')
-  const [paramValorMin, setParamValorMin] = useState('')
-  const [paramValorMax, setParamValorMax] = useState('')
+  const [paramValorMinMujeres, setParamValorMinMujeres] = useState('')
+  const [paramValorMaxMujeres, setParamValorMaxMujeres] = useState('')
+  const [paramValorMinHombres, setParamValorMinHombres] = useState('')
+  const [paramValorMaxHombres, setParamValorMaxHombres] = useState('')
   const [paramOpciones, setParamOpciones] = useState<string[]>([])
   const [paramOpcionInput, setParamOpcionInput] = useState('')
   const [paramError, setParamError] = useState('')
@@ -104,11 +116,9 @@ export function TiposEstudioTab() {
       return
     }
     // Validate min/max range for NUMERICO
-    if (paramTipo === 'NUMERICO' && paramValorMin !== '' && paramValorMax !== '') {
-      if (Number(paramValorMin) >= Number(paramValorMax)) {
-        setParamRangoError('El valor mínimo debe ser menor que el máximo')
-        return
-      }
+    if (paramTipo === 'NUMERICO') {
+      const err = validarRango(paramValorMinMujeres, paramValorMaxMujeres) ?? validarRango(paramValorMinHombres, paramValorMaxHombres)
+      if (err) { setParamRangoError(err); return }
     }
     setParamError('')
     setParamRangoError('')
@@ -120,16 +130,20 @@ export function TiposEstudioTab() {
         nombre: trimmed,
         unidad: paramUnidad.trim(),
         tipo: paramTipo,
-        valorMinimo: paramTipo === 'NUMERICO' && paramValorMin !== '' ? paramValorMin : undefined,
-        valorMaximo: paramTipo === 'NUMERICO' && paramValorMax !== '' ? paramValorMax : undefined,
+        valorMinMujeres: paramTipo === 'NUMERICO' && paramValorMinMujeres !== '' ? paramValorMinMujeres : undefined,
+        valorMaxMujeres: paramTipo === 'NUMERICO' && paramValorMaxMujeres !== '' ? paramValorMaxMujeres : undefined,
+        valorMinHombres: paramTipo === 'NUMERICO' && paramValorMinHombres !== '' ? paramValorMinHombres : undefined,
+        valorMaxHombres: paramTipo === 'NUMERICO' && paramValorMaxHombres !== '' ? paramValorMaxHombres : undefined,
         opciones: paramTipo === 'TEXTO_OPCIONES' ? [...paramOpciones] : undefined,
       },
     ])
     setParamNombre('')
     setParamUnidad('')
     setParamTipo('NUMERICO')
-    setParamValorMin('')
-    setParamValorMax('')
+    setParamValorMinMujeres('')
+    setParamValorMaxMujeres('')
+    setParamValorMinHombres('')
+    setParamValorMaxHombres('')
     setParamOpciones([])
     setParamOpcionInput('')
   }
@@ -158,8 +172,10 @@ export function TiposEstudioTab() {
             nombre: p.nombre,
             unidad: p.unidad || undefined,
             tipo: p.tipo,
-            valorMinimo: p.valorMinimo !== undefined ? Number(p.valorMinimo) : undefined,
-            valorMaximo: p.valorMaximo !== undefined ? Number(p.valorMaximo) : undefined,
+            valorMinMujeres: p.valorMinMujeres !== undefined ? Number(p.valorMinMujeres) : undefined,
+            valorMaxMujeres: p.valorMaxMujeres !== undefined ? Number(p.valorMaxMujeres) : undefined,
+            valorMinHombres: p.valorMinHombres !== undefined ? Number(p.valorMinHombres) : undefined,
+            valorMaxHombres: p.valorMaxHombres !== undefined ? Number(p.valorMaxHombres) : undefined,
             opciones: p.tipo === 'TEXTO_OPCIONES' ? (p.opciones ?? []) : undefined,
           })
         }
@@ -318,14 +334,14 @@ export function TiposEstudioTab() {
                 />
                 {paramError && <p className="mt-1 text-xs text-destructive">{paramError}</p>}
               </div>
-              <Select value={paramTipo} onValueChange={(v) => { setParamTipo(v as TipoParametro); setParamValorMin(''); setParamValorMax(''); setParamOpciones([]); setParamOpcionInput(''); setParamRangoError('') }}>
+              <Select value={paramTipo} onValueChange={(v) => { setParamTipo(v as TipoParametro); setParamValorMinMujeres(''); setParamValorMaxMujeres(''); setParamValorMinHombres(''); setParamValorMaxHombres(''); setParamOpciones([]); setParamOpcionInput(''); setParamRangoError('') }}>
                 <SelectTrigger className="text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NUMERICO">Numérico</SelectItem>
                   <SelectItem value="TEXTO">Texto libre</SelectItem>
-                  <SelectItem value="BOOLEANO">Booleano</SelectItem>
+                  <SelectItem value="BOOLEANO">Sí/No</SelectItem>
                   <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
                 </SelectContent>
               </Select>
@@ -337,30 +353,13 @@ export function TiposEstudioTab() {
               />
               {/* Rango de referencia — solo para NUMERICO */}
               {paramTipo === 'NUMERICO' && (
-                <>
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="Mín. referencia"
-                    value={paramValorMin}
-                    onChange={(e) => { setParamValorMin(e.target.value); setParamRangoError('') }}
-                    className="text-sm"
-                  />
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="Máx. referencia"
-                    value={paramValorMax}
-                    onChange={(e) => { setParamValorMax(e.target.value); setParamRangoError('') }}
-                    className="text-sm"
-                  />
-                  {paramRangoError && (
-                    <p className="col-span-2 text-xs text-destructive flex items-center gap-1">
-                      <AlertCircle className="size-3 shrink-0" />
-                      {paramRangoError}
-                    </p>
-                  )}
-                </>
+                <RangoReferenciaFields
+                  valMinMujeres={paramValorMinMujeres} setValMinMujeres={(v) => { setParamValorMinMujeres(v); setParamRangoError('') }}
+                  valMaxMujeres={paramValorMaxMujeres} setValMaxMujeres={(v) => { setParamValorMaxMujeres(v); setParamRangoError('') }}
+                  valMinHombres={paramValorMinHombres} setValMinHombres={(v) => { setParamValorMinHombres(v); setParamRangoError('') }}
+                  valMaxHombres={paramValorMaxHombres} setValMaxHombres={(v) => { setParamValorMaxHombres(v); setParamRangoError('') }}
+                  error={paramRangoError}
+                />
               )}
               {/* Opciones configurables — solo para TEXTO_OPCIONES */}
               {paramTipo === 'TEXTO_OPCIONES' && (
@@ -562,8 +561,10 @@ function EditableParametroRow({
   const [nombre, setNombre]           = useState(parametro.nombre)
   const [unidad, setUnidad]           = useState(parametro.unidad ?? '')
   const [tipo,   setTipo]             = useState<TipoParametro>(parametro.tipo as TipoParametro)
-  const [valMin, setValMin]           = useState(parametro.valorMinimo != null ? String(parametro.valorMinimo) : '')
-  const [valMax, setValMax]           = useState(parametro.valorMaximo != null ? String(parametro.valorMaximo) : '')
+  const [valMinMujeres, setValMinMujeres] = useState(parametro.valorMinMujeres != null ? String(parametro.valorMinMujeres) : '')
+  const [valMaxMujeres, setValMaxMujeres] = useState(parametro.valorMaxMujeres != null ? String(parametro.valorMaxMujeres) : '')
+  const [valMinHombres, setValMinHombres] = useState(parametro.valorMinHombres != null ? String(parametro.valorMinHombres) : '')
+  const [valMaxHombres, setValMaxHombres] = useState(parametro.valorMaxHombres != null ? String(parametro.valorMaxHombres) : '')
   const [opciones, setOpciones]       = useState<string[]>(parametro.opciones ?? [])
   const [opcionInput, setOpcionInput] = useState('')
   const [error,  setError]            = useState('')
@@ -573,8 +574,10 @@ function EditableParametroRow({
     setNombre(parametro.nombre)
     setUnidad(parametro.unidad ?? '')
     setTipo(parametro.tipo as TipoParametro)
-    setValMin(parametro.valorMinimo != null ? String(parametro.valorMinimo) : '')
-    setValMax(parametro.valorMaximo != null ? String(parametro.valorMaximo) : '')
+    setValMinMujeres(parametro.valorMinMujeres != null ? String(parametro.valorMinMujeres) : '')
+    setValMaxMujeres(parametro.valorMaxMujeres != null ? String(parametro.valorMaxMujeres) : '')
+    setValMinHombres(parametro.valorMinHombres != null ? String(parametro.valorMinHombres) : '')
+    setValMaxHombres(parametro.valorMaxHombres != null ? String(parametro.valorMaxHombres) : '')
     setOpciones(parametro.opciones ?? [])
     setOpcionInput('')
     setError('')
@@ -591,11 +594,9 @@ function EditableParametroRow({
   function saveEdit() {
     const trimmed = nombre.trim()
     if (!trimmed) { setError('El nombre es requerido'); return }
-    if (tipo === 'NUMERICO' && valMin !== '' && valMax !== '') {
-      if (Number(valMin) >= Number(valMax)) {
-        setRangoError('El valor mínimo debe ser menor que el máximo')
-        return
-      }
+    if (tipo === 'NUMERICO') {
+      const err = validarRango(valMinMujeres, valMaxMujeres) ?? validarRango(valMinHombres, valMaxHombres)
+      if (err) { setRangoError(err); return }
     }
     setError('')
     setRangoError('')
@@ -605,8 +606,10 @@ function EditableParametroRow({
         nombre: trimmed,
         unidad: unidad.trim() || undefined,
         tipo,
-        valorMinimo: tipo === 'NUMERICO' && valMin !== '' ? Number(valMin) : undefined,
-        valorMaximo: tipo === 'NUMERICO' && valMax !== '' ? Number(valMax) : undefined,
+        valorMinMujeres: tipo === 'NUMERICO' && valMinMujeres !== '' ? Number(valMinMujeres) : undefined,
+        valorMaxMujeres: tipo === 'NUMERICO' && valMaxMujeres !== '' ? Number(valMaxMujeres) : undefined,
+        valorMinHombres: tipo === 'NUMERICO' && valMinHombres !== '' ? Number(valMinHombres) : undefined,
+        valorMaxHombres: tipo === 'NUMERICO' && valMaxHombres !== '' ? Number(valMaxHombres) : undefined,
         opciones: tipo === 'TEXTO_OPCIONES' ? opciones : undefined,
       },
       { onSuccess: () => setEditing(false) }
@@ -627,44 +630,28 @@ function EditableParametroRow({
             />
             {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
           </div>
-          <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMin(''); setValMax(''); setOpciones([]); setOpcionInput(''); setRangoError('') }}>
+          <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setOpcionInput(''); setRangoError('') }}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="NUMERICO">Numérico</SelectItem>
               <SelectItem value="TEXTO">Texto libre</SelectItem>
-              <SelectItem value="BOOLEANO">Booleano</SelectItem>
+              <SelectItem value="BOOLEANO">Sí/No</SelectItem>
               <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
             </SelectContent>
           </Select>
           <UnidadSelect value={unidad} onChange={setUnidad} placeholder="Unidad" compact />
           {/* Reference range — only for NUMERICO */}
           {tipo === 'NUMERICO' && (
-            <>
-              <Input
-                type="number"
-                step="any"
-                placeholder="Mín. referencia"
-                value={valMin}
-                onChange={(e) => { setValMin(e.target.value); setRangoError('') }}
-                className="h-8 text-sm"
-              />
-              <Input
-                type="number"
-                step="any"
-                placeholder="Máx. referencia"
-                value={valMax}
-                onChange={(e) => { setValMax(e.target.value); setRangoError('') }}
-                className="h-8 text-sm"
-              />
-              {rangoError && (
-                <p className="col-span-2 text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle className="size-3 shrink-0" />
-                  {rangoError}
-                </p>
-              )}
-            </>
+            <RangoReferenciaFields
+              valMinMujeres={valMinMujeres} setValMinMujeres={(v) => { setValMinMujeres(v); setRangoError('') }}
+              valMaxMujeres={valMaxMujeres} setValMaxMujeres={(v) => { setValMaxMujeres(v); setRangoError('') }}
+              valMinHombres={valMinHombres} setValMinHombres={(v) => { setValMinHombres(v); setRangoError('') }}
+              valMaxHombres={valMaxHombres} setValMaxHombres={(v) => { setValMaxHombres(v); setRangoError('') }}
+              error={rangoError}
+              compact
+            />
           )}
           {/* Opciones — solo para TEXTO_OPCIONES */}
           {tipo === 'TEXTO_OPCIONES' && (
@@ -739,15 +726,20 @@ function EditableParametroRow({
     )
   }
 
-  // Reference range display string
+  // Reference range display string (mujeres / hombres)
   const rangoLabel = (() => {
     if (parametro.tipo !== 'NUMERICO') return null
-    const min = parametro.valorMinimo
-    const max = parametro.valorMaximo
-    if (min != null && max != null) return `${min}–${max}`
-    if (min != null) return `≥${min}`
-    if (max != null) return `≤${max}`
-    return null
+    const fmt = (min?: number | null, max?: number | null) => {
+      if (min != null && max != null) return `${min}–${max}`
+      if (min != null) return `≥${min}`
+      if (max != null) return `≤${max}`
+      return null
+    }
+    const m = fmt(parametro.valorMinMujeres, parametro.valorMaxMujeres)
+    const h = fmt(parametro.valorMinHombres, parametro.valorMaxHombres)
+    if (!m && !h) return null
+    if (m && h && m !== h) return `M ${m} · H ${h}`
+    return m ?? h
   })()
 
   return (
@@ -811,8 +803,10 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
   const [nombre, setNombre]           = useState('')
   const [unidad, setUnidad]           = useState('')
   const [tipo, setTipo]               = useState<TipoParametro>('NUMERICO')
-  const [valMin, setValMin]           = useState('')
-  const [valMax, setValMax]           = useState('')
+  const [valMinMujeres, setValMinMujeres] = useState('')
+  const [valMaxMujeres, setValMaxMujeres] = useState('')
+  const [valMinHombres, setValMinHombres] = useState('')
+  const [valMaxHombres, setValMaxHombres] = useState('')
   const [opciones, setOpciones]       = useState<string[]>([])
   const [opcionInput, setOpcionInput] = useState('')
   const [error, setError]             = useState('')
@@ -821,11 +815,9 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
   function handleAdd() {
     const trimmed = nombre.trim()
     if (!trimmed) { setError('Requerido'); return }
-    if (tipo === 'NUMERICO' && valMin !== '' && valMax !== '') {
-      if (Number(valMin) >= Number(valMax)) {
-        setRangoError('El mínimo debe ser menor que el máximo')
-        return
-      }
+    if (tipo === 'NUMERICO') {
+      const err = validarRango(valMinMujeres, valMaxMujeres) ?? validarRango(valMinHombres, valMaxHombres)
+      if (err) { setRangoError(err); return }
     }
     setError('')
     setRangoError('')
@@ -835,11 +827,13 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
         nombre: trimmed,
         unidad: unidad.trim() || undefined,
         tipo,
-        valorMinimo: tipo === 'NUMERICO' && valMin !== '' ? Number(valMin) : undefined,
-        valorMaximo: tipo === 'NUMERICO' && valMax !== '' ? Number(valMax) : undefined,
+        valorMinMujeres: tipo === 'NUMERICO' && valMinMujeres !== '' ? Number(valMinMujeres) : undefined,
+        valorMaxMujeres: tipo === 'NUMERICO' && valMaxMujeres !== '' ? Number(valMaxMujeres) : undefined,
+        valorMinHombres: tipo === 'NUMERICO' && valMinHombres !== '' ? Number(valMinHombres) : undefined,
+        valorMaxHombres: tipo === 'NUMERICO' && valMaxHombres !== '' ? Number(valMaxHombres) : undefined,
         opciones: tipo === 'TEXTO_OPCIONES' ? opciones : undefined,
       },
-      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMin(''); setValMax(''); setOpciones([]); setOpcionInput('') } }
+      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setOpcionInput('') } }
     )
   }
 
@@ -856,14 +850,14 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
           />
           {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
         </div>
-        <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMin(''); setValMax(''); setOpciones([]); setOpcionInput(''); setRangoError('') }}>
+        <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setOpcionInput(''); setRangoError('') }}>
           <SelectTrigger className="h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="NUMERICO">Numérico</SelectItem>
             <SelectItem value="TEXTO">Texto libre</SelectItem>
-            <SelectItem value="BOOLEANO">Booleano</SelectItem>
+            <SelectItem value="BOOLEANO">Sí/No</SelectItem>
             <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
           </SelectContent>
         </Select>
@@ -874,30 +868,14 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
           compact
         />
         {tipo === 'NUMERICO' && (
-          <>
-            <Input
-              type="number"
-              step="any"
-              placeholder="Mín. referencia"
-              value={valMin}
-              onChange={(e) => { setValMin(e.target.value); setRangoError('') }}
-              className="h-8 text-sm"
-            />
-            <Input
-              type="number"
-              step="any"
-              placeholder="Máx. referencia"
-              value={valMax}
-              onChange={(e) => { setValMax(e.target.value); setRangoError('') }}
-              className="h-8 text-sm"
-            />
-            {rangoError && (
-              <p className="col-span-2 text-xs text-destructive flex items-center gap-1">
-                <AlertCircle className="size-3 shrink-0" />
-                {rangoError}
-              </p>
-            )}
-          </>
+          <RangoReferenciaFields
+            valMinMujeres={valMinMujeres} setValMinMujeres={(v) => { setValMinMujeres(v); setRangoError('') }}
+            valMaxMujeres={valMaxMujeres} setValMaxMujeres={(v) => { setValMaxMujeres(v); setRangoError('') }}
+            valMinHombres={valMinHombres} setValMinHombres={(v) => { setValMinHombres(v); setRangoError('') }}
+            valMaxHombres={valMaxHombres} setValMaxHombres={(v) => { setValMaxHombres(v); setRangoError('') }}
+            error={rangoError}
+            compact
+          />
         )}
         {tipo === 'TEXTO_OPCIONES' && (
           <div className="col-span-2 space-y-1.5">
@@ -955,6 +933,69 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
           <><Plus className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} /> Agregar</>
         )}
       </Button>
+    </div>
+  )
+}
+
+/** Bloque reutilizable de 4 inputs para el rango de referencia mujeres/hombres de un parámetro NUMERICO */
+function RangoReferenciaFields({
+  valMinMujeres,
+  setValMinMujeres,
+  valMaxMujeres,
+  setValMaxMujeres,
+  valMinHombres,
+  setValMinHombres,
+  valMaxHombres,
+  setValMaxHombres,
+  error,
+  compact,
+}: {
+  valMinMujeres: string
+  setValMinMujeres: (v: string) => void
+  valMaxMujeres: string
+  setValMaxMujeres: (v: string) => void
+  valMinHombres: string
+  setValMinHombres: (v: string) => void
+  valMaxHombres: string
+  setValMaxHombres: (v: string) => void
+  error?: string
+  compact?: boolean
+}) {
+  const inputClass = compact ? 'h-8 text-sm' : 'text-sm'
+  return (
+    <div className="col-span-2 grid grid-cols-2 gap-2">
+      <p className="col-span-2 text-[11px] font-medium text-muted-foreground">Mujeres</p>
+      <Input
+        type="number" step="any" placeholder="Mín. mujeres"
+        value={valMinMujeres}
+        onChange={(e) => setValMinMujeres(e.target.value)}
+        className={inputClass}
+      />
+      <Input
+        type="number" step="any" placeholder="Máx. mujeres"
+        value={valMaxMujeres}
+        onChange={(e) => setValMaxMujeres(e.target.value)}
+        className={inputClass}
+      />
+      <p className="col-span-2 text-[11px] font-medium text-muted-foreground">Hombres</p>
+      <Input
+        type="number" step="any" placeholder="Mín. hombres"
+        value={valMinHombres}
+        onChange={(e) => setValMinHombres(e.target.value)}
+        className={inputClass}
+      />
+      <Input
+        type="number" step="any" placeholder="Máx. hombres"
+        value={valMaxHombres}
+        onChange={(e) => setValMaxHombres(e.target.value)}
+        className={inputClass}
+      />
+      {error && (
+        <p className="col-span-2 text-xs text-destructive flex items-center gap-1">
+          <AlertCircle className="size-3 shrink-0" />
+          {error}
+        </p>
+      )}
     </div>
   )
 }
