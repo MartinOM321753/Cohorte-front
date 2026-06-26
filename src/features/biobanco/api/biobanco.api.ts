@@ -504,8 +504,20 @@ export async function getZplEtiqueta(idMuestra: number, configuracionId?: number
   return response.data.data
 }
 
-export async function getZplAlicuotas(idMuestraPadre: number, configuracionId?: number): Promise<string[]> {
-  const response = await api.get<ApiResponse<string[]>>(`/almacenamiento/muestras/${idMuestraPadre}/alicuotas/etiquetas/zpl`, {
+export interface ZplLoteResponse {
+  zpl: string
+  total: number
+}
+
+export async function getZplAlicuotas(idMuestraPadre: number, configuracionId?: number): Promise<ZplLoteResponse> {
+  const response = await api.get<ApiResponse<ZplLoteResponse>>(`/almacenamiento/muestras/${idMuestraPadre}/alicuotas/etiquetas/zpl`, {
+    params: configuracionId ? { configuracionId } : undefined,
+  })
+  return response.data.data
+}
+
+export async function getZplLoteCompleto(idMuestraPadre: number, configuracionId?: number): Promise<ZplLoteResponse> {
+  const response = await api.get<ApiResponse<ZplLoteResponse>>(`/almacenamiento/muestras/${idMuestraPadre}/lote-completo/zpl`, {
     params: configuracionId ? { configuracionId } : undefined,
   })
   return response.data.data
@@ -538,11 +550,9 @@ export async function imprimirAlicuotas(idMuestraPadre: number, impresora: strin
   const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
 
   if (await isAgentAvailable()) {
-    const zpls = await getZplAlicuotas(idMuestraPadre, configuracionId)
-    for (const zpl of zpls) {
-      await imprimirLocal(impresora, zpl)
-    }
-    return zpls.length
+    const { zpl, total } = await getZplAlicuotas(idMuestraPadre, configuracionId)
+    await imprimirLocal(impresora, zpl)
+    return total
   }
   const params: Record<string, string | number> = { impresora }
   if (configuracionId) params.configuracionId = configuracionId
@@ -558,13 +568,9 @@ export async function imprimirLoteCompleto(idMuestraPadre: number, impresora: st
   const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
 
   if (await isAgentAvailable()) {
-    const zplPadre = await getZplEtiqueta(idMuestraPadre, configuracionId)
-    const zplsAlicuotas = await getZplAlicuotas(idMuestraPadre, configuracionId)
-    await imprimirLocal(impresora, zplPadre)
-    for (const zpl of zplsAlicuotas) {
-      await imprimirLocal(impresora, zpl)
-    }
-    return 1 + zplsAlicuotas.length
+    const { zpl, total } = await getZplLoteCompleto(idMuestraPadre, configuracionId)
+    await imprimirLocal(impresora, zpl)
+    return total
   }
   const params: Record<string, string | number> = { impresora }
   if (configuracionId) params.configuracionId = configuracionId
