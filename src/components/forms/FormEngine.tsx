@@ -1,7 +1,7 @@
 import { useForm, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import type { ParametroEstudio } from '@/types/api'
@@ -56,9 +56,9 @@ export function FormEngine({
               name={fieldName}
               control={control}
               render={({ field }) => (
-                <Checkbox
+                <Switch
                   id={fieldName}
-                  checked={field.value}
+                  checked={Boolean(field.value)}
                   onCheckedChange={field.onChange}
                 />
               )}

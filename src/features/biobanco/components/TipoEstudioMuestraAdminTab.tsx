@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils'
 const TIPO_LABELS: Record<TipoParametro, string> = {
   NUMERICO: 'Numérico',
   TEXTO: 'Texto libre',
-  BOOLEANO: 'Booleano',
+  BOOLEANO: 'Sí/No',
   TEXTO_OPCIONES: 'Selección',
 }
 
