@@ -72,6 +72,12 @@ export async function searchInstituciones(q: string, soloActivas = true, page = 
   return response.data.data
 }
 
+/** Instituciones visibles para el usuario actual según jerarquía (propia + descendientes + ancestras con permiso). */
+export async function getInstitucionesVisibles() {
+  const response = await api.get<ApiResponse<Institucion[]>>(`${BASE}/visibles`)
+  return response.data.data
+}
+
 export async function getInstitucionesActivas() {
   const response = await api.get<ApiResponse<Institucion[]>>(`${BASE}/activas`)
   return response.data.data

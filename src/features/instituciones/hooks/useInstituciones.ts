@@ -4,6 +4,7 @@ import {
   getInstitucionesPaginado,
   getInstitucionesGestionables,
   getInstitucionesGestionablesEstado,
+  getInstitucionesVisibles,
   searchInstituciones,
   getInstitucionesActivas,
   getInstitucionesRaices,
@@ -43,6 +44,14 @@ export function useGetInstitucionesGestionablesEstado() {
   return useQuery({
     queryKey: ['instituciones', 'gestionables-estado'],
     queryFn: () => getInstitucionesGestionablesEstado(),
+  })
+}
+
+export function useGetInstitucionesVisibles(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['instituciones', 'visibles'],
+    queryFn: () => getInstitucionesVisibles(),
+    enabled: options?.enabled ?? true,
   })
 }
 

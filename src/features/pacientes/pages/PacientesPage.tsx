@@ -1,86 +1,138 @@
-import { useState } from 'react'
-import { Building2, CalendarDays, Search, Upload, UserRound, UserRoundPlus } from 'lucide-react'
-import { useGetPacientesPaginados } from '../hooks/useGetPacientes'
-import { useToggleActivoPaciente } from '../hooks/useCreatePaciente'
-import { PacientesTable } from '../components/PacientesTable'
-import { PacienteFormModal } from '../components/PacienteFormModal'
-import { PacienteImportModal } from '../components/PacienteImportModal'
-import { PacienteDetailDrawer } from '../components/PacienteDetailDrawer'
-import { CitaIlamyEventForm } from '@/features/citas/components/CitaIlamyEventForm'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { useDebounce } from '@/hooks/useDebounce'
-import type { Paciente } from '@/types/api'
-import type { PaginationState } from '@tanstack/react-table'
+import { useState } from "react";
+import {
+  Building2,
+  CalendarDays,
+  Search,
+  Upload,
+  UserRound,
+  UserRoundPlus,
+} from "lucide-react";
+import { useGetPacientesPaginados } from "../hooks/useGetPacientes";
+import { useToggleActivoPaciente } from "../hooks/useCreatePaciente";
+import { useGetInstitucionesVisibles } from "@/features/instituciones/hooks/useInstituciones";
+import { PacientesTable } from "../components/PacientesTable";
+import { PacienteFormModal } from "../components/PacienteFormModal";
+import { PacienteImportModal } from "../components/PacienteImportModal";
+import { PacienteDetailDrawer } from "../components/PacienteDetailDrawer";
+import { CitaIlamyEventForm } from "@/features/citas/components/CitaIlamyEventForm";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useDebounce } from "@/hooks/useDebounce";
+import type { Paciente } from "@/types/api";
+import type { PaginationState } from "@tanstack/react-table";
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 10;
+
+type EstadoFiltro = "todos" | "activos" | "inactivos";
+
+const ESTADO_OPCIONES: { valor: EstadoFiltro; label: string }[] = [
+  { valor: "activos", label: "Activos" },
+  { valor: "inactivos", label: "Inactivos" },
+  { valor: "todos", label: "Todos" },
+];
 
 export default function PacientesPage() {
-  const [incluirJerarquia, setIncluirJerarquia] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearch = useDebounce(searchTerm.trim(), 350)
+  const [incluirJerarquia, setIncluirJerarquia] = useState(false);
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>("activos");
+  const [idInstitucionFiltro, setIdInstitucionFiltro] = useState<number | null>(
+    null,
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm.trim(), 350);
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: PAGE_SIZE,
-  })
+  });
 
   // Reset a página 0 cuando cambia la búsqueda
   const handleSearchChange = (value: string) => {
-    setSearchTerm(value)
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }))
-  }
+    setSearchTerm(value);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const { data: institucionesVisibles } = useGetInstitucionesVisibles({
+    enabled: incluirJerarquia,
+  });
+
+  const soloActivos =
+    estadoFiltro === "todos" ? undefined : estadoFiltro === "activos";
 
   const { data, isLoading } = useGetPacientesPaginados({
     page: pagination.pageIndex,
     size: pagination.pageSize,
     buscar: debouncedSearch || undefined,
     incluirJerarquia,
-  })
+    soloActivos,
+    idInstitucionFiltro:
+      incluirJerarquia && idInstitucionFiltro ? idInstitucionFiltro : undefined,
+  });
 
-  const pacientes = data?.content ?? []
-  const totalElements = data?.totalElements ?? 0
-  const totalPages = data?.totalPages ?? 0
+  const pacientes = data?.content ?? [];
+  const totalElements = data?.totalElements ?? 0;
+  const totalPages = data?.totalPages ?? 0;
 
-  const toggleActivoMutation = useToggleActivoPaciente()
+  const toggleActivoMutation = useToggleActivoPaciente();
 
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null)
-  const [isImportOpen, setIsImportOpen] = useState(false)
-  const [isCitaModalOpen, setIsCitaModalOpen] = useState(false)
-  const [patientToSchedule, setPatientToSchedule] = useState<Paciente | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(
+    null,
+  );
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isCitaModalOpen, setIsCitaModalOpen] = useState(false);
+  const [patientToSchedule, setPatientToSchedule] = useState<Paciente | null>(
+    null,
+  );
 
   function handleView(paciente: Paciente) {
-    setSelectedPaciente(paciente)
-    setIsDrawerOpen(true)
+    setSelectedPaciente(paciente);
+    setIsDrawerOpen(true);
   }
 
   function handleEdit(paciente: Paciente) {
-    setPacienteToEdit(paciente)
-    setIsFormOpen(true)
+    setPacienteToEdit(paciente);
+    setIsFormOpen(true);
   }
 
   function handleSchedule(paciente: Paciente) {
-    setPatientToSchedule(paciente)
-    setIsCitaModalOpen(true)
+    setPatientToSchedule(paciente);
+    setIsCitaModalOpen(true);
   }
 
   function handleFormClose(open: boolean) {
-    setIsFormOpen(open)
-    if (!open) setPacienteToEdit(null)
+    setIsFormOpen(open);
+    if (!open) setPacienteToEdit(null);
   }
 
   function handleOpenCreate() {
-    setPacienteToEdit(null)
-    setIsFormOpen(true)
+    setPacienteToEdit(null);
+    setIsFormOpen(true);
   }
 
   function handleToggleJerarquia() {
-    setIncluirJerarquia(!incluirJerarquia)
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+    setIncluirJerarquia(!incluirJerarquia);
+    setIdInstitucionFiltro(null);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }
+
+  function handleEstadoFiltroChange(opcion: EstadoFiltro) {
+    setEstadoFiltro(opcion);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }
+
+  function handleInstitucionFiltroChange(value: string) {
+    setIdInstitucionFiltro(value === "todas" ? null : Number(value));
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }
 
   return (
@@ -132,28 +184,67 @@ export default function PacientesPage() {
               className="h-9 pl-8 text-[13px]"
             />
           </div>
+          <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+            {ESTADO_OPCIONES.map((opcion) => (
+              <Button
+                key={opcion.valor}
+                variant={estadoFiltro === opcion.valor ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleEstadoFiltroChange(opcion.valor)}
+                className={[
+                  "text-[12px] h-8 whitespace-nowrap",
+                  estadoFiltro === opcion.valor
+                    ? "bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)]"
+                    : "",
+                ].join(" ")}
+              >
+                {opcion.label}
+              </Button>
+            ))}
+          </div>
           <Button
-            variant={incluirJerarquia ? 'default' : 'outline'}
+            variant={incluirJerarquia ? "default" : "outline"}
             size="sm"
             onClick={handleToggleJerarquia}
             className={[
-              'gap-1.5 text-[12px] h-9 whitespace-nowrap',
+              "gap-1.5 text-[12px] h-9 whitespace-nowrap",
               incluirJerarquia
-                ? 'bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)]'
-                : '',
-            ].join(' ')}
+                ? "bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)]"
+                : "",
+            ].join(" ")}
             title="Mostrar participantes de instituciones relacionadas"
           >
             <Building2 className="h-3.5 w-3.5" strokeWidth={1.75} />
             Jerarquía
           </Button>
+
+          {incluirJerarquia && (
+            <Select
+              value={
+                idInstitucionFiltro ? String(idInstitucionFiltro) : "todas"
+              }
+              onValueChange={handleInstitucionFiltroChange}
+            >
+              <SelectTrigger className="h-9 text-[12px] w-[220px]">
+                <SelectValue placeholder="Todas las instituciones" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas las instituciones</SelectItem>
+                {institucionesVisibles?.map((inst) => (
+                  <SelectItem key={inst.id} value={String(inst.id)}>
+                    {inst.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {!isLoading && (
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--imss-ink-300)]">
             <UserRound className="h-3.5 w-3.5" strokeWidth={1.75} />
             <span>
-              {totalElements} participante{totalElements !== 1 ? 's' : ''}
+              {totalElements} participante{totalElements !== 1 ? "s" : ""}
             </span>
           </div>
         )}
@@ -167,8 +258,8 @@ export default function PacientesPage() {
         onView={handleView}
         onEdit={handleEdit}
         onToggleActivo={(p) => {
-          const uuid = p.UUID || (p as any).uuid
-          if (uuid) toggleActivoMutation.mutate(uuid)
+          const uuid = p.uuid;
+          if (uuid) toggleActivoMutation.mutate(uuid);
         }}
         onSchedule={handleSchedule}
         manualPagination
@@ -176,13 +267,6 @@ export default function PacientesPage() {
         onPaginationChange={setPagination}
         pageCount={totalPages}
         totalElements={totalElements}
-      />
-
-      {/* Modal crear / editar */}
-      <PacienteFormModal
-        open={isFormOpen}
-        onOpenChange={handleFormClose}
-        paciente={pacienteToEdit}
       />
 
       {/* Drawer detalle */}
@@ -194,24 +278,25 @@ export default function PacientesPage() {
         onSchedule={handleSchedule}
       />
 
-      {/* Modal importar */}
-      <PacienteImportModal
-        open={isImportOpen}
-        onOpenChange={setIsImportOpen}
+      {/* Modal crear / editar */}
+      <PacienteFormModal
+        open={isFormOpen}
+        onOpenChange={handleFormClose}
+        paciente={pacienteToEdit}
       />
+
+      {/* Modal importar */}
+      <PacienteImportModal open={isImportOpen} onOpenChange={setIsImportOpen} />
 
       {/* Modal agendar cita */}
       <CitaIlamyEventForm
         open={isCitaModalOpen}
         onClose={() => {
-          setPatientToSchedule(null)
-          setIsCitaModalOpen(false)
+          setPatientToSchedule(null);
+          setIsCitaModalOpen(false);
         }}
-        initialPacienteUUID={
-          patientToSchedule?.UUID || (patientToSchedule as any)?.uuid || undefined
-        }
+        initialPacienteUUID={patientToSchedule?.uuid || undefined}
       />
-
     </div>
-  )
+  );
 }

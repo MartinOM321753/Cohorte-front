@@ -49,6 +49,8 @@ export function useGetPacientesPaginados(params: {
   size: number
   buscar?: string
   incluirJerarquia?: boolean
+  soloActivos?: boolean
+  idInstitucionFiltro?: number
 }) {
   return useQuery({
     queryKey: ['pacientes', 'paginado', params],

@@ -92,6 +92,8 @@ export async function getPacientesPaginados(params: {
   size?: number
   buscar?: string
   incluirJerarquia?: boolean
+  soloActivos?: boolean
+  idInstitucionFiltro?: number
 }): Promise<PacientesPaginados> {
   const response = await axiosInstance.get<ApiResponse<PacientesPaginados>>(
     '/pacientes/paginado',

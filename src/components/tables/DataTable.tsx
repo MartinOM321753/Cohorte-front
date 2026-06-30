@@ -11,7 +11,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -32,6 +32,8 @@ interface DataTableProps<TData, TValue> {
   pageCount?: number
   /** Total de registros reportado por el backend (paginación server-side). */
   totalElements?: number
+  /** Función que devuelve clases CSS adicionales para cada fila según sus datos. */
+  getRowClassName?: (row: TData) => string
 }
 
 export function DataTable<TData, TValue>({
@@ -44,6 +46,7 @@ export function DataTable<TData, TValue>({
   onPaginationChange,
   pageCount,
   totalElements,
+  getRowClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -111,7 +114,10 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className="hover:bg-[var(--imss-green-50)] data-[state=selected]:bg-[var(--imss-green-50)] data-[state=selected]:shadow-[inset_2px_0_0_var(--primary)]"
+                  className={[
+                    'hover:bg-[var(--imss-green-50)] data-[state=selected]:bg-[var(--imss-green-50)] data-[state=selected]:shadow-[inset_2px_0_0_var(--primary)]',
+                    getRowClassName?.(row.original) ?? '',
+                  ].join(' ')}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="px-4 py-3 tabular-nums">
@@ -134,6 +140,15 @@ export function DataTable<TData, TValue>({
       <div className="flex items-center justify-between">
         <div className="text-xs font-mono text-muted-foreground">{totalLabel} registro(s)</div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+            title="Primera página"
+          >
+            <ChevronsLeft className="h-4 w-4" strokeWidth={1.75} />
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
             <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
             Anterior
@@ -144,6 +159,15 @@ export function DataTable<TData, TValue>({
           <Button variant="ghost" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
             Siguiente
             <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+            title="Última página"
+          >
+            <ChevronsRight className="h-4 w-4" strokeWidth={1.75} />
           </Button>
         </div>
       </div>
