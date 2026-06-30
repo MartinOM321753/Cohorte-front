@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
+import { Check, ChevronsUpDown, Loader2, UserX } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -155,6 +155,7 @@ export function PacienteSearchCombobox({
                         setSelectedLabel(label)
                         setOpen(false)
                       }}
+                      className={cn(!p.activo && 'opacity-60')}
                     >
                       <Check
                         className={cn(
@@ -162,6 +163,9 @@ export function PacienteSearchCombobox({
                           value === uuid ? 'opacity-100' : 'opacity-0'
                         )}
                       />
+                      {!p.activo && (
+                        <UserX className="mr-1.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                      )}
                       <span className="truncate text-[13px]">{label}</span>
                     </CommandItem>
                   )
