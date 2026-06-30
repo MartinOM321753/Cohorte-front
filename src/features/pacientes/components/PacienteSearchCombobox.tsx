@@ -32,7 +32,7 @@ interface PacienteSearchComboboxProps {
 }
 
 function getUUID(p: Paciente): string {
-  return p.UUID || (p as unknown as { uuid?: string }).uuid || ''
+  return p.uuid || ''
 }
 
 function getLabel(p: Paciente): string {

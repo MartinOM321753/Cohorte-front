@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CalendarPlus, Pencil } from 'lucide-react'
 import { getFullName, formatDate } from '@/lib/utils'
 import type { Paciente, TipoDocumentoPaciente } from '@/types/api'
+import { CURP_REGEX } from '../schemas/paciente.schema'
 import { useAuthStore } from '@/stores/authStore'
 import { DocumentoUploader } from '@/features/documentos/components/DocumentoUploader'
 import { DocumentoList } from '@/features/documentos/components/DocumentoList'
@@ -37,6 +38,31 @@ function DetailRow({ label, value, mono }: DetailRowProps) {
       >
         {value || '—'}
       </span>
+    </div>
+  )
+}
+
+function CurpDetailRow({ curp }: { curp?: string | null }) {
+  const valor = curp?.trim().toUpperCase()
+  const esValido = valor ? CURP_REGEX.test(valor) : null
+
+  return (
+    <div className="flex flex-col gap-0.5 border-b border-[var(--imss-ink-100)] py-2.5 last:border-0">
+      <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--imss-ink-300)]">
+        CURP
+      </span>
+      {!valor ? (
+        <span className="text-[13px] text-[var(--imss-ink-900)]">—</span>
+      ) : (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-[12px] text-[var(--imss-ink-900)]">{valor}</span>
+          {!esValido && (
+            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-600">
+              Formato no válido
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -98,7 +124,7 @@ export function PacienteDetailDrawer({
   if (!paciente) return null
 
   const nombreCompleto = getFullName(paciente.persona)
-  const uuid = paciente.UUID || (paciente as any).uuid || ''
+  const uuid = paciente.uuid || ''
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -194,7 +220,7 @@ export function PacienteDetailDrawer({
                         : null
                     }
                   />
-                  <DetailRow label="CURP" value={paciente.persona.curp} />
+                  <CurpDetailRow curp={paciente.persona.curp} />
                   <DetailRow label="Correo electrónico" value={paciente.persona.email} />
                   <DetailRow label="Teléfono" value={paciente.persona.telefono} />
                 </div>

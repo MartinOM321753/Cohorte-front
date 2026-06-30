@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { pacienteCreateSchema, pacienteEditSchema, type PacienteFormData } from '../schemas/paciente.schema'
+import { pacienteCreateSchema, pacienteEditSchema, type PacienteFormData, CURP_REGEX } from '../schemas/paciente.schema'
 import { useCreatePaciente, useUpdatePaciente } from '../hooks/useCreatePaciente'
 import {
   TIPO_RECLUTAMIENTO_LABELS,
@@ -93,6 +93,9 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
   })
 
   const tipoReclutamiento = watch('tipoReclutamiento')
+  const curpValue = (watch('curp') ?? '').trim().toUpperCase()
+  const curpFormatoValido = curpValue.length > 0 && CURP_REGEX.test(curpValue)
+  const curpFormatoInvalido = curpValue.length > 0 && !CURP_REGEX.test(curpValue)
 
   useEffect(() => {
     if (open) {
@@ -440,6 +443,12 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                   <p className="text-[11px] text-[var(--imss-ink-300)]">
                     Opcional al registrar. Será obligatorio al editar el expediente.
                   </p>
+                )}
+                {curpFormatoValido && !errors.curp && (
+                  <span className="text-[11px] text-green-600">✓ Formato válido</span>
+                )}
+                {curpFormatoInvalido && !errors.curp && (
+                  <span className="text-[11px] text-[var(--status-danger-fg)]">✗ Formato no válido</span>
                 )}
                 {errors.curp && (
                   <p className="text-[11px] text-[var(--status-danger-fg)]">

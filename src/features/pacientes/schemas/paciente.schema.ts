@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { esMayorDeEdadConTolerancia } from '@/components/ui/date-time-picker'
 
-const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/
+export const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/
 
 const basePacienteSchema = z.object({
   folio: z.string()

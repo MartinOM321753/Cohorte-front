@@ -97,7 +97,7 @@ export interface LoginResponse {
 // ============================================
 export interface Paciente {
   id: number
-  UUID: string
+  uuid: string
   folio: string
   activo: boolean
   fechaRegistro: string
