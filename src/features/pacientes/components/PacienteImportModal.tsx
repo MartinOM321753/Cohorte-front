@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { importarPacientes } from '../api/pacientes.api'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Upload, FileSpreadsheet, Mail, X } from 'lucide-react'
 
@@ -24,17 +25,19 @@ const COLUMNAS = [
   { nombre: 'tercerNombre', obligatorio: false, desc: 'Tercer nombre (se une al segundo)' },
   { nombre: 'apellidoPaterno', obligatorio: true, desc: 'Apellido paterno' },
   { nombre: 'apellidoMaterno', obligatorio: false, desc: 'Apellido materno' },
-  { nombre: 'curp', obligatorio: false, desc: 'CURP (18 caracteres)' },
+  { nombre: 'curp', obligatorio: false, desc: 'CURP (opcional; se acepta incompleto o repetido, máx. 18 caracteres)' },
   { nombre: 'fechaNacimiento', obligatorio: false, desc: 'Fecha de nacimiento (AAAA-MM-DD)' },
   { nombre: 'sexo', obligatorio: false, desc: 'Sexo (M o F)' },
   { nombre: 'telefono', obligatorio: false, desc: 'Teléfono (10 dígitos)' },
   { nombre: 'email', obligatorio: false, desc: 'Correo electrónico' },
+  { nombre: 'estado', obligatorio: false, desc: 'Activo o Inactivo (vacío o valor no reconocido = Inactivo)' },
 ]
 
 export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalProps) {
   const [archivo, setArchivo] = useState<File | null>(null)
   const [enviado, setEnviado] = useState(false)
   const [dragActive, setDragActive] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const mutation = useMutation({
     mutationFn: (file: File) => importarPacientes(file),
@@ -119,54 +122,59 @@ export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalP
 
           {/* Drop zone */}
           {!enviado && (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
-              onDragLeave={() => setDragActive(false)}
-              onDrop={handleDrop}
-              className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 transition-colors ${
-                dragActive
-                  ? 'border-[var(--imss-green-500)] bg-[var(--imss-green-500)]/5'
-                  : 'border-[var(--imss-ink-200)] hover:border-[var(--imss-ink-300)]'
-              }`}
-            >
+            <>
               {archivo ? (
-                <>
-                  <FileSpreadsheet className="h-8 w-8 text-[var(--imss-green-500)]" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-medium">{archivo.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => setArchivo(null)}
-                      className="rounded-full p-0.5 hover:bg-[var(--imss-ink-100)]"
-                    >
-                      <X className="h-3.5 w-3.5 text-[var(--imss-ink-400)]" />
-                    </button>
+                <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
+                  <FileSpreadsheet className="h-8 w-8 shrink-0 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-[13px] font-medium text-foreground">{archivo.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {archivo.size < 1024 * 1024
+                        ? `${(archivo.size / 1024).toFixed(1)} KB`
+                        : `${(archivo.size / (1024 * 1024)).toFixed(1)} MB`}
+                    </p>
                   </div>
-                  <span className="text-[11px] text-[var(--imss-ink-400)]">
-                    {(archivo.size / 1024).toFixed(1)} KB
-                  </span>
-                </>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => setArchivo(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               ) : (
-                <>
-                  <Upload className="h-8 w-8 text-[var(--imss-ink-300)]" />
-                  <p className="text-[13px] text-[var(--imss-ink-500)]">
-                    Arrastra un archivo aquí o{' '}
-                    <label className="cursor-pointer text-[var(--imss-green-600)] underline">
-                      selecciona uno
-                      <input
-                        type="file"
-                        accept=".csv,.xlsx,.xls"
-                        className="hidden"
-                        onChange={handleFileSelect}
-                      />
-                    </label>
-                  </p>
-                  <p className="text-[11px] text-[var(--imss-ink-300)]">
-                    CSV o Excel (.xlsx) — máximo 10 MB
-                  </p>
-                </>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+                  onDragLeave={() => setDragActive(false)}
+                  onDrop={handleDrop}
+                  className={cn(
+                    'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 transition-colors',
+                    dragActive
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/60 hover:bg-muted/30',
+                  )}
+                >
+                  <Upload className="h-8 w-8 opacity-50" />
+                  <div className="text-center text-[13px]">
+                    <span className="font-medium text-foreground">Haz clic</span> o arrastra un archivo aquí
+                  </div>
+                  <p className="text-[11px] opacity-60">CSV o Excel (.xlsx, .xls) — máximo 10 MB</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                </div>
               )}
-            </div>
+            </>
           )}
 
           {/* Confirmación de envío — el procesamiento corre en segundo plano */}
