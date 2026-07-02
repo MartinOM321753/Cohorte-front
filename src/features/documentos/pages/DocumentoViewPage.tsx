@@ -23,7 +23,7 @@ type ViewState =
 export default function DocumentoViewPage() {
   const { etiqueta } = useParams<{ etiqueta: string }>()
   const navigate = useNavigate()
-  const { isAuthenticated, user, hasRole, isLoading: authLoading } = useAuthStore()
+  const { isAuthenticated, user, hasPermiso, isLoading: authLoading } = useAuthStore()
   const [state, setState] = useState<ViewState>({ status: 'loading' })
 
   const iniciarVisualizacion = useCallback(async () => {
@@ -32,10 +32,10 @@ export default function DocumentoViewPage() {
       return
     }
 
-    if (!hasRole('ADMINISTRADOR')) {
+    if (!hasPermiso('DOCUMENTOS_DESCARGAR')) {
       setState({
         status: 'unauthorized',
-        reason: 'Solo usuarios con rol ADMINISTRADOR pueden visualizar documentos escaneados.',
+        reason: 'No tienes permiso para visualizar documentos escaneados.',
       })
       return
     }
@@ -67,7 +67,7 @@ export default function DocumentoViewPage() {
         setState({ status: 'error', message: msg })
       }
     }
-  }, [etiqueta, hasRole])
+  }, [etiqueta, hasPermiso])
 
   useEffect(() => {
     if (authLoading) return

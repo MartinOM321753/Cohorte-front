@@ -608,8 +608,8 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
 export function MuestrasTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
   const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
-  const isAdmin = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
-  const canUploadMuestra = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'LABORATORISTA']))
+  const isAdmin = useAuthStore((s) => s.hasPermiso('MUESTRAS_ELIMINAR'))
+  const canUploadMuestra = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
 
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
@@ -809,17 +809,17 @@ export function MuestrasTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Muestras Biológicas</h2>
-          <p className="text-muted-foreground">Gestiona el registro, ubicación y traslados de muestras</p>
+          <h2 className="text-xl sm:text-2xl font-bold">Muestras Biológicas</h2>
+          <p className="text-muted-foreground text-sm">Gestiona el registro, ubicación y traslados de muestras</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {configuracionesEtiqueta.length > 0 && (
             <div className="flex items-center gap-1.5 border rounded-md px-2 py-1.5 text-sm">
               <Tag className="h-4 w-4 text-violet-600 shrink-0" />
               <select
-                className="bg-transparent outline-none cursor-pointer max-w-[180px] truncate"
+                className="bg-transparent outline-none cursor-pointer max-w-[140px] truncate"
                 value={resolvedConfigId ?? ''}
                 onChange={(e) => {
                   const val = e.target.value
@@ -838,7 +838,7 @@ export function MuestrasTab() {
             <div className="flex items-center gap-1.5 border rounded-md px-2 py-1.5 text-sm">
               <Printer className="h-4 w-4 text-sky-600 shrink-0" />
               <select
-                className="bg-transparent outline-none cursor-pointer max-w-[180px] truncate"
+                className="bg-transparent outline-none cursor-pointer max-w-[140px] truncate"
                 value={selectedPrinter || impresoras[0]}
                 onChange={(e) => handleSelectPrinter(e.target.value)}
               >
@@ -849,6 +849,7 @@ export function MuestrasTab() {
             </div>
           )}
           <Button
+            size="sm"
             onClick={() => setIsMuestraModalOpen(true)}
             disabled={!puedeCrearMuestra}
             title={!puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}

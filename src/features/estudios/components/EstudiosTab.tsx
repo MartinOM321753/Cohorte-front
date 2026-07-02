@@ -32,8 +32,8 @@ const DEFAULT_VALUES: EstudioMedicoFormData = {
 
 export function EstudiosTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
-  const isAdmin   = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
-  const canUploadEstudio = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'MEDICO']))
+  const isAdmin   = useAuthStore((s) => s.hasPermiso('ESTUDIOS_ELIMINAR'))
+  const canUploadEstudio = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
   const [docEstudioId, setDocEstudioId] = useState<number | null>(null)
 
   const { data: estudios, isLoading: isLoadingEstudios, isError: isErrorEstudios } = useGetEstudios()

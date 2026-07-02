@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { CalendarDays, ChevronRight, LayoutDashboard, Search, Settings, Stethoscope, TestTube2, UserRound } from 'lucide-react'
+import { CalendarDays, ChevronRight, LayoutDashboard, Menu, Search, Settings, Stethoscope, TestTube2, UserRound } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useSidebarStore } from '@/stores/sidebarStore'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher'
 import {
   CommandDialog,
@@ -26,11 +28,9 @@ const routeLabels: Record<string, string> = {
   expediente: 'Expediente',
 }
 
-// Regex para UUID v4 estándar (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function labelForSegment(segment: string) {
-  // Nunca mostrar IDs numéricos ni UUIDs en el breadcrumb
   if (/^\d+$/.test(segment)) return null
   if (UUID_RE.test(segment)) return null
   return routeLabels[segment] ?? segment
@@ -39,9 +39,11 @@ function labelForSegment(segment: string) {
 export function Header() {
   const location = useLocation()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
+  const { toggleMobileOpen } = useSidebarStore()
   const [commandOpen, setCommandOpen] = useState(false)
-  const { hasRole } = useAuthStore()
-  const homeHref = hasRole('ENCARGADO') ? '/mis-muestras' : '/dashboard'
+  const { hasPermiso } = useAuthStore()
+  const homeHref = hasPermiso('DASHBOARD_VER') ? '/dashboard' : '/mis-muestras'
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -62,7 +64,7 @@ export function Header() {
     segments.forEach((seg, idx) => {
       accPath += `/${seg}`
       const label = labelForSegment(seg)
-      if (label === null) return // skip numeric ID segments
+      if (label === null) return
       const isLast = idx === segments.length - 1
       items.push({
         label,
@@ -87,7 +89,17 @@ export function Header() {
 
   return (
     <>
-      <header className="flex h-14 items-center gap-4 border-b border-border bg-card px-6">
+      <header className="flex h-14 items-center gap-3 border-b border-border bg-card px-4 md:gap-4 md:px-6">
+        {isMobile && (
+          <button
+            onClick={toggleMobileOpen}
+            className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted"
+            aria-label="Abrir menú"
+          >
+            <Menu className="h-5 w-5" strokeWidth={1.75} />
+          </button>
+        )}
+
         <nav className="hidden min-w-0 items-center gap-2 text-[13px] md:flex">
           {breadcrumbs.map((item, idx) => {
             const isLast = idx === breadcrumbs.length - 1
@@ -106,7 +118,13 @@ export function Header() {
           })}
         </nav>
 
-        <div className="flex-1" />
+        {isMobile && (
+          <span className="flex-1 truncate text-[14px] font-medium text-foreground">
+            {breadcrumbs[breadcrumbs.length - 1]?.label ?? ''}
+          </span>
+        )}
+
+        <div className="hidden flex-1 md:block" />
 
         <button
           type="button"
@@ -120,6 +138,16 @@ export function Header() {
             Ctrl K
           </kbd>
         </button>
+
+        {isMobile && (
+          <button
+            onClick={() => setCommandOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted"
+            aria-label="Buscar"
+          >
+            <Search className="h-4 w-4" strokeWidth={1.75} />
+          </button>
+        )}
 
         <ThemeSwitcher />
       </header>

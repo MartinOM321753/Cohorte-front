@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import type { ElementType } from 'react'
 import cohorteLogo from '../../assets/logo.png'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { useAuthStore, type UserRole } from '@/stores/authStore'
-import { rolesFor } from '@/config/featureRoles'
+import { useAuthStore } from '@/stores/authStore'
+import { useSidebarStore } from '@/stores/sidebarStore'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { permisoFor } from '@/config/featurePermisos'
 import { Button } from '@/components/ui/button'
 import {
   CalendarDays,
@@ -14,19 +16,21 @@ import {
   ChevronUp,
   ClipboardList,
   Database,
+  Home,
   KeyRound,
-  LayoutDashboard,
   LogOut,
   Microscope,
   Network,
   PieChart,
   Settings,
+  Shield,
   Stethoscope,
   TestTube2,
   UserRound,
   UsersRound,
   CircleUserRound,
   Warehouse,
+  X,
 } from 'lucide-react'
 import { useGetAlmacenesByEncargado } from '@/features/biobanco/hooks/useBiobanco'
 import { useEncargadoStore } from '@/stores/encargadoStore'
@@ -35,25 +39,20 @@ interface NavItem {
   label: string
   href: string
   icon: ElementType
-  roles?: UserRole[]
-  /**
-   * Módulo del sistema (ver ModuloSistema en backend) que la institución del
-   * usuario debe tener habilitado para ver este ítem. Los ítems sin `modulo`
-   * (Inicio, Mi perfil, etc.) no están sujetos a esta puerta — sólo a roles.
-   */
+  permiso?: string
   modulo?: string
   group: 'Clínico' | 'Biobanco' | 'Sistema'
 }
 
 const navItems: NavItem[] = [
-  { label: 'Inicio', href: '/dashboard', icon: LayoutDashboard, roles: rolesFor('dashboard'), group: 'Clínico' },
-  { label: 'Participantes', href: '/pacientes', icon: UserRound, roles: rolesFor('pacientes'), modulo: 'PARTICIPANTES', group: 'Clínico' },
-  { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, roles: rolesFor('estudios'), modulo: 'ESTUDIOS_MEDICOS', group: 'Clínico' },
+  { label: 'Inicio', href: '/dashboard', icon: Home, permiso: permisoFor('dashboard'), group: 'Clínico' },
+  { label: 'Participantes', href: '/pacientes', icon: UserRound, permiso: permisoFor('pacientes'), modulo: 'PARTICIPANTES', group: 'Clínico' },
+  { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, permiso: permisoFor('estudios'), modulo: 'ESTUDIOS_MEDICOS', group: 'Clínico' },
   {
     label: 'Exámenes',
     href: '/examenes',
     icon: Microscope,
-    roles: rolesFor('examenes'),
+    permiso: permisoFor('examenes'),
     modulo: 'EXAMENES',
     group: 'Clínico',
   },
@@ -61,7 +60,7 @@ const navItems: NavItem[] = [
     label: 'Citas',
     href: '/citas',
     icon: CalendarDays,
-    roles: rolesFor('citas'),
+    permiso: permisoFor('citas'),
     modulo: 'CITAS',
     group: 'Clínico',
   },
@@ -69,7 +68,7 @@ const navItems: NavItem[] = [
     label: 'Cobertura',
     href: '/cobertura',
     icon: PieChart,
-    roles: rolesFor('cobertura'),
+    permiso: permisoFor('cobertura'),
     modulo: 'COBERTURA',
     group: 'Clínico',
   },
@@ -77,7 +76,7 @@ const navItems: NavItem[] = [
     label: 'Biobanco',
     href: '/biobanco',
     icon: TestTube2,
-    roles: rolesFor('biobanco'),
+    permiso: permisoFor('biobanco'),
     modulo: 'BIOBANCO',
     group: 'Biobanco',
   },
@@ -85,28 +84,35 @@ const navItems: NavItem[] = [
     label: 'Usuarios',
     href: '/usuarios',
     icon: UsersRound,
-    roles: rolesFor('usuarios'),
+    permiso: permisoFor('usuarios'),
     group: 'Sistema',
   },
   {
     label: 'Instituciones',
     href: '/instituciones',
     icon: Network,
-    roles: rolesFor('instituciones'),
+    permiso: permisoFor('instituciones'),
     group: 'Sistema',
   },
   {
     label: 'Catálogos',
     href: '/catalogos',
     icon: Database,
-    roles: rolesFor('catalogos'),
+    permiso: permisoFor('catalogos'),
+    group: 'Sistema',
+  },
+  {
+    label: 'Permisos',
+    href: '/permisos',
+    icon: Shield,
+    permiso: permisoFor('permisos'),
     group: 'Sistema',
   },
   {
     label: 'Bitácora Accesos',
     href: '/bitacora/accesos',
     icon: KeyRound,
-    roles: rolesFor('bitacoraAccesos'),
+    permiso: permisoFor('bitacoraAccesos'),
     modulo: 'BITACORA_ACCESOS',
     group: 'Sistema',
   },
@@ -114,7 +120,7 @@ const navItems: NavItem[] = [
     label: 'Bitácora Acciones',
     href: '/bitacora/acciones',
     icon: ClipboardList,
-    roles: rolesFor('bitacoraAcciones'),
+    permiso: permisoFor('bitacoraAcciones'),
     modulo: 'BITACORA_ACCIONES',
     group: 'Sistema',
   },
@@ -122,7 +128,7 @@ const navItems: NavItem[] = [
     label: 'Configuración',
     href: '/configuracion',
     icon: Settings,
-    roles: rolesFor('configuracion'),
+    permiso: permisoFor('configuracion'),
     group: 'Sistema',
   },
   {
@@ -239,32 +245,32 @@ function EncargadoAlmacenesSection({ uuid, collapsed }: { uuid: string; collapse
 }
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+  const isMobile = useIsMobile()
+  const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebarStore()
   const location = useLocation()
-  const { user, logout, hasRole, modulosHabilitados } = useAuthStore()
+  const { user, logout, hasRole, hasPermiso, modulosHabilitados, roles } = useAuthStore()
   const isEncargado = hasRole('ENCARGADO')
 
+  useEffect(() => {
+    if (isMobile) setMobileOpen(false)
+  }, [location.pathname, isMobile, setMobileOpen])
+
   const userRoleLabel = useMemo(() => {
+    if (roles.length > 0) return roles.join(', ')
     if (!user) return ''
-    const knownRoles: UserRole[] = ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA', 'PACIENTE', 'ENCARGADO']
-    const normalized = knownRoles.find((r) => hasRole(r))
-    if (normalized) return normalized
     return typeof user.rol === 'string' ? user.rol : typeof (user.rol as any)?.nombre === 'string' ? (user.rol as any).nombre : ''
-  }, [hasRole, user])
+  }, [roles, user])
 
   const filteredNavItems = useMemo(() => {
     return navItems.filter((item) => {
-      if (item.roles) {
+      if (item.permiso) {
         if (!user) return false
-        if (!hasRole(item.roles)) return false
+        if (!hasPermiso(item.permiso)) return false
       }
-      // Usa `modulosHabilitados` (el array primitivo) como dep para que el useMemo
-      // se recalcule cuando lleguen los módulos del servidor tras el login.
-      // `hasModulo` es una referencia estable que nunca cambia — no sirve como dep.
       if (item.modulo && !modulosHabilitados.includes(item.modulo)) return false
       return true
     })
-  }, [modulosHabilitados, hasRole, user])
+  }, [modulosHabilitados, hasPermiso, user])
 
   const groupedNavItems = useMemo(() => {
     return filteredNavItems.reduce<Record<NavItem['group'], NavItem[]>>(
@@ -284,11 +290,13 @@ export function Sidebar() {
         .join('')
     : ''
 
-  return (
+  const effectiveCollapsed = isMobile ? false : collapsed
+
+  const sidebarContent = (
     <aside
       className={cn(
-        'flex flex-col border-r',
-        collapsed ? 'w-16' : 'w-[248px]'
+        'flex h-full flex-col border-r',
+        isMobile ? 'w-[280px]' : collapsed ? 'w-16' : 'w-[248px]'
       )}
       style={{
         background: 'var(--sidebar-bg)',
@@ -297,7 +305,7 @@ export function Sidebar() {
       }}
     >
       <div className="flex h-14 items-center justify-between border-b px-3" style={{ borderColor: 'var(--sidebar-border)' }}>
-        {!collapsed ? (
+        {!effectiveCollapsed ? (
           <div className="flex min-w-0 items-center gap-3">
             <ImssShield size={32} />
             <div className="min-w-0">
@@ -311,30 +319,42 @@ export function Sidebar() {
           <ImssShield size={28} />
         )}
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="h-8 w-8 hover:opacity-100 opacity-70"
-          style={{ color: 'var(--sidebar-fg)' } as React.CSSProperties}
-          aria-label={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
-          title={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+        {isMobile ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(false)}
+            className="h-8 w-8 hover:opacity-100 opacity-70"
+            style={{ color: 'var(--sidebar-fg)' } as React.CSSProperties}
+            aria-label="Cerrar menú"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleCollapsed}
+            className="h-8 w-8 hover:opacity-100 opacity-70"
+            style={{ color: 'var(--sidebar-fg)' } as React.CSSProperties}
+            aria-label={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
+            title={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-auto py-2">
+      <nav className="flex-1 overflow-y-auto py-2 custom-scrollbar">
         {(['Clínico', 'Biobanco', 'Sistema'] as const).map((group) => {
           const items = groupedNavItems[group]
 
-          // For ENCARGADO: replace Biobanco group with the dynamic almacenes section
           if (group === 'Biobanco' && isEncargado) {
             return (
               <EncargadoAlmacenesSection
                 key="encargado-almacenes"
                 uuid={user?.uuid ?? ''}
-                collapsed={collapsed}
+                collapsed={effectiveCollapsed}
               />
             )
           }
@@ -343,7 +363,7 @@ export function Sidebar() {
 
           return (
             <div key={group} className="mb-2">
-              {!collapsed && (
+              {!effectiveCollapsed && (
                 <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.06em]"
                   style={{ color: 'var(--sidebar-muted)' }}>
                   {group}
@@ -369,7 +389,7 @@ export function Sidebar() {
                       aria-current={isActive ? 'page' : undefined}
                     >
                       <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
+                      {!effectiveCollapsed && <span className="truncate">{item.label}</span>}
                     </Link>
                   )
                 })}
@@ -380,7 +400,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t p-2" style={{ borderColor: 'var(--sidebar-border)' }}>
-        {user && !collapsed ? (
+        {user && !effectiveCollapsed ? (
           <div className="flex items-center gap-3 rounded-md px-2 py-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full"
               style={{ background: 'var(--sidebar-active-bg)', color: 'var(--sidebar-fg)' }}>
@@ -412,17 +432,40 @@ export function Sidebar() {
             variant="ghost"
             className={cn(
               'w-full justify-start gap-3 opacity-70 hover:opacity-100',
-              collapsed && 'justify-center px-0'
+              effectiveCollapsed && 'justify-center px-0'
             )}
             style={{ color: 'var(--sidebar-fg)' } as React.CSSProperties}
             onClick={logout}
             title="Cerrar sesión"
           >
             <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-            {!collapsed && <span>Cerrar sesión</span>}
+            {!effectiveCollapsed && <span>Cerrar sesión</span>}
           </Button>
         )}
       </div>
     </aside>
   )
+
+  if (isMobile) {
+    return (
+      <>
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 transition-opacity"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+        <div
+          className={cn(
+            'fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out',
+            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          {sidebarContent}
+        </div>
+      </>
+    )
+  }
+
+  return sidebarContent
 }

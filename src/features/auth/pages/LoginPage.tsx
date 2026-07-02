@@ -167,7 +167,7 @@ function ShieldFiligree() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, hasRole } = useAuthStore();
+  const { login, isAuthenticated, hasPermiso } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [submitBtnHover, setSubmitBtnHover] = useState(false);
@@ -219,10 +219,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated)
-      navigate(hasRole("ENCARGADO") ? "/mis-muestras" : "/dashboard", {
+      navigate(hasPermiso("DASHBOARD_VER") ? "/dashboard" : "/mis-muestras", {
         replace: true,
       });
-  }, [isAuthenticated, navigate, hasRole]);
+  }, [isAuthenticated, navigate, hasPermiso]);
 
   const onSubmit = async (data: LoginFormData) => {
     if (!coords) {
@@ -233,7 +233,7 @@ export default function LoginPage() {
     try {
       const response = await loginUser(data, coords);
       if (!response.user) throw new Error("Respuesta de servidor inválida");
-      const ok = await login({ user: response.user, mustChangePassword: response.mustChangePassword });
+      const ok = await login({ user: response.user, mustChangePassword: response.mustChangePassword, permisos: response.permisos, roles: response.roles });
       if (!ok) throw new Error("Rol de usuario no reconocido");
       toast.success("Inicio de sesión exitoso");
       // Role-based redirect: ENCARGADO goes to their samples page

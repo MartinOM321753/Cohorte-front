@@ -119,7 +119,7 @@ export function PacienteDetailDrawer({
   onSchedule,
 }: PacienteDetailDrawerProps) {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
-  const isAdmin = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
+  const isAdmin = useAuthStore((s) => s.hasPermiso('PACIENTES_ELIMINAR'))
 
   if (!paciente) return null
 
@@ -175,28 +175,28 @@ export function PacienteDetailDrawer({
         {/* Contenido con tabs */}
         <div className="flex-1 overflow-y-auto">
           <Tabs defaultValue="datos" className="h-full">
-            <TabsList className="w-full rounded-none border-b bg-transparent px-5 justify-start gap-4 h-10">
+            <TabsList className="sticky top-0 z-10 w-full shrink-0 overflow-x-auto scrollbar-none rounded-none border-b bg-card px-3 sm:px-5 justify-start gap-4 sm:gap-6 h-11">
               <TabsTrigger
                 value="datos"
-                className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
+                className="rounded-none border-b-2 border-transparent px-0.5 pb-2.5 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
               >
                 Datos
               </TabsTrigger>
               <TabsTrigger
                 value="consentimientos"
-                className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
+                className="rounded-none border-b-2 border-transparent px-0.5 pb-2.5 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
               >
                 Consentimientos
               </TabsTrigger>
               <TabsTrigger
                 value="cuestionarios"
-                className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
+                className="rounded-none border-b-2 border-transparent px-0.5 pb-2.5 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
               >
                 Cuestionarios
               </TabsTrigger>
               <TabsTrigger
                 value="documentos"
-                className="rounded-none border-b-2 border-transparent px-0 pb-1 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
+                className="rounded-none border-b-2 border-transparent px-0.5 pb-2.5 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-[13px]"
               >
                 Documentos
               </TabsTrigger>

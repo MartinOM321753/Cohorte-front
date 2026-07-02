@@ -4,11 +4,13 @@ import { Spinner } from '@/components/ui/spinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  /** @deprecated Use requiredPermiso instead */
   requiredRoles?: UserRole[];
+  requiredPermiso?: string;
 }
 
-export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user, isLoading, hasRole, mustChangePassword } = useAuthStore();
+export function ProtectedRoute({ children, requiredRoles, requiredPermiso }: ProtectedRouteProps) {
+  const { isAuthenticated, user, isLoading, hasRole, hasPermiso, mustChangePassword } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
@@ -23,14 +25,16 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     return <Navigate to="/login" replace />;
   }
 
-  // Si el usuario debe cambiar su contraseña y no está ya en esa página, redirigir
   if (mustChangePassword && location.pathname !== '/cambiar-contrasena') {
     return <Navigate to="/cambiar-contrasena" replace />;
   }
 
-  if (requiredRoles && requiredRoles.length > 0) {
-    const hasRequiredRole = hasRole(requiredRoles as UserRole[])
-    if (!hasRequiredRole) {
+  if (requiredPermiso) {
+    if (!hasPermiso(requiredPermiso)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
+  } else if (requiredRoles && requiredRoles.length > 0) {
+    if (!hasRole(requiredRoles as UserRole[])) {
       return <Navigate to="/unauthorized" replace />;
     }
   }

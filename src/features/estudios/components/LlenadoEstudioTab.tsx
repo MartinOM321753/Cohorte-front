@@ -112,8 +112,8 @@ type LlenadoForm = Record<string, unknown>
 // ──────────────────────────────────────────────────────────
 export function LlenadoEstudioTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
-  const isAdmin  = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
-  const canUploadEstudio = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'MEDICO']))
+  const isAdmin  = useAuthStore((s) => s.hasPermiso('ESTUDIOS_ELIMINAR'))
+  const canUploadEstudio = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
 
   const [openTipo, setOpenTipo] = useState(false)
   const [selectedPacienteUUID, setSelectedPacienteUUID] = useState('')
