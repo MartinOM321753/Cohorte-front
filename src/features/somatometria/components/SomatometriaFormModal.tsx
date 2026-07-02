@@ -146,7 +146,7 @@ export function SomatometriaFormModal({
           </div>
 
           {/* Peso y Talla */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="pesoKg" className="text-[13px]">Peso (kg)</Label>
               <Input
@@ -184,7 +184,7 @@ export function SomatometriaFormModal({
           {/* Presión arterial */}
           <div className="space-y-1.5">
             <Label className="text-[13px]">Presión arterial (sistólica / diastólica)</Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Input
                   id="presionSistolica"
@@ -217,7 +217,7 @@ export function SomatometriaFormModal({
           </div>
 
           {/* Circ. abdominal y FC */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="circunferenciaAbdominalCm" className="text-[13px]">
                 Circ. abdominal (cm)

@@ -172,7 +172,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="codigoCaja">Código de Caja</Label>
               <Input
@@ -210,7 +210,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="filas">Filas *</Label>
               <Input

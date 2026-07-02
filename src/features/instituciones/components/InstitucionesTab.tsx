@@ -96,19 +96,19 @@ export function InstitucionesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Instituciones</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold">Instituciones</h2>
+          <p className="text-muted-foreground text-sm">
             Catálogo central de instituciones (jerarquía, ubicación y módulos habilitados)
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsTiposOpen(true)}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsTiposOpen(true)}>
             <Tag className="mr-2 h-4 w-4" />
             Tipos de institución
           </Button>
-          <Button onClick={() => setIsModalOpen(true)}>
+          <Button size="sm" onClick={() => setIsModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nueva Institución
           </Button>
@@ -124,7 +124,7 @@ export function InstitucionesTab() {
         </AlertDescription>
       </Alert>
 
-      <div className="relative max-w-sm">
+      <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar institución por nombre..."

@@ -935,7 +935,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           </div>
         ) : null}
         {!isLoading && noConfig && (
-          <div className="absolute inset-0 z-50 grid place-items-center bg-card/90 backdrop-blur-sm rounded-[10px]">
+          <div className="absolute inset-0 z-[30] grid place-items-center bg-card/90 backdrop-blur-sm rounded-[10px]">
             <div className="text-center space-y-2 max-w-sm px-4">
               <Clock className="h-10 w-10 mx-auto text-muted-foreground/60" />
               <p className="text-sm font-medium text-muted-foreground">

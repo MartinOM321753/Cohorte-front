@@ -848,7 +848,7 @@ export function MiniStatStrip({ stats, isLoading }: { stats?: { muestrasBiobanco
   return (
     <Card className="border border-border shadow-none">
       <CardContent className="p-0">
-        <div className="grid grid-cols-4 divide-x divide-border">
+        <div className="grid grid-cols-2 divide-x divide-border sm:grid-cols-4">
           {items.map((item, i) => (
             <div
               key={i}
@@ -930,7 +930,7 @@ export function AgendaHoyPanel({
   onCitaClick?:  (uuid: string) => void
 }) {
   return (
-    <Card className="border border-border shadow-none sticky top-4 overflow-x-hidden">
+    <Card className="border border-border shadow-none lg:sticky lg:top-4 overflow-x-hidden">
       <CardHeader className="px-5 pt-5 pb-3 border-b border-border">
         <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--imss-ink-500)]">
           Agenda de hoy

@@ -335,8 +335,8 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
           {/* Nombre + Tipo ──────────────────────────────────────────── */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 space-y-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="sm:col-span-2 space-y-2">
               <Label>Nombre <span className="text-destructive">*</span></Label>
               <Input {...register('nombre')} sanitize="alfanumerico" placeholder="Ej: Hospital General de Zona No. 1" maxLength={100} />
               {errors.nombre && (
@@ -399,7 +399,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
           </div>
 
           {/* Estado + Ciudad ─────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Estado <span className="text-destructive">*</span></Label>
               <Controller
@@ -469,7 +469,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
 
             {!showMap && (
               <>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Input
                       type="number"
@@ -553,7 +553,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
           </div>
 
           {/* Responsable + Teléfono ──────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Responsable de contacto</Label>
               <Input {...register('responsable')} sanitize="nombre" placeholder="Nombre del contacto" maxLength={100} />
@@ -619,7 +619,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
           </div>
 
           {/* Switches ────────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex items-center justify-between rounded-md border px-3 py-2">
               <div>
                 <p className="text-sm font-medium">Tiene biobanco</p>

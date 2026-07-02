@@ -75,7 +75,7 @@ export default function DashboardPage() {
       />
 
       {/* ── Fila 1: FeatureKPI + 3 SupportKPI — ancho completo ── */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:gap-4 sm:grid-cols-4">
         <FeatureKPI stats={stats} isLoading={stL} />
         <SupportKPI
           label="Citas del mes"
@@ -109,14 +109,14 @@ export default function DashboardPage() {
       <MiniStatStrip stats={stats} isLoading={stL} />
 
       {/* ── Fila 3+: gráficas + agenda lateral ── */}
-      <div className="grid gap-5 xl:grid-cols-[1fr_300px] items-start">
+      <div className="grid gap-4 lg:gap-5 lg:grid-cols-[1fr_300px] items-start">
         {/* ══ Columna principal: gráficas ══ */}
         <div className="flex flex-col gap-5">
           {/* Somatometría — ancho completo */}
           <SomatometriaGlobalCharts />
 
           {/* Exámenes + Calidad + Biobanco — 3 columnas iguales */}
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
             <ExamenesGlobalCharts />
             <ExamenesCalidadDonut data={calidad} />
           </div>

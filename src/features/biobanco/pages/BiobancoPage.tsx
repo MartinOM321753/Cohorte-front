@@ -47,13 +47,13 @@ export default function BiobancoPage() {
 
         <TooltipProvider delayDuration={100}>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="refrigeradores">Refrigeradores</TabsTrigger>
+            <TabsList className="flex overflow-x-auto scrollbar-none gap-1 sm:grid sm:w-full sm:grid-cols-6">
+              <TabsTrigger value="refrigeradores" className="shrink-0 sm:shrink">Refrigeradores</TabsTrigger>
 
               {!hayPisos ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="w-full">
+                    <span className="shrink-0 sm:w-full sm:shrink">
                       <TabsTrigger value="cajas" disabled className="w-full pointer-events-none opacity-50">
                         Cajas criogénicas
                       </TabsTrigger>
@@ -64,13 +64,13 @@ export default function BiobancoPage() {
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <TabsTrigger value="cajas">Cajas criogénicas</TabsTrigger>
+                <TabsTrigger value="cajas" className="shrink-0 sm:shrink">Cajas criogénicas</TabsTrigger>
               )}
 
               {!hayTiposMuestra ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="w-full">
+                    <span className="shrink-0 sm:w-full sm:shrink">
                       <TabsTrigger value="muestras" disabled className="w-full pointer-events-none opacity-50">
                         Muestras
                       </TabsTrigger>
@@ -81,12 +81,12 @@ export default function BiobancoPage() {
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <TabsTrigger value="muestras">Muestras</TabsTrigger>
+                <TabsTrigger value="muestras" className="shrink-0 sm:shrink">Muestras</TabsTrigger>
               )}
 
-              <TabsTrigger value="tipos-muestra">Tipos de Muestra</TabsTrigger>
-              <TabsTrigger value="est-muestras">Est. Muestras</TabsTrigger>
-              <TabsTrigger value="prestamos">Préstamos</TabsTrigger>
+              <TabsTrigger value="tipos-muestra" className="shrink-0 sm:shrink">Tipos de Muestra</TabsTrigger>
+              <TabsTrigger value="est-muestras" className="shrink-0 sm:shrink">Est. Muestras</TabsTrigger>
+              <TabsTrigger value="prestamos" className="shrink-0 sm:shrink">Préstamos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="refrigeradores" className="space-y-4">

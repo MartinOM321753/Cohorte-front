@@ -53,7 +53,11 @@ const DialogContent = React.forwardRef<
       ref={ref}
       data-slot="dialog-content"
       className={cn(
-        'fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[10px] border border-border bg-card p-6 shadow-[0_12px_32px_oklch(0.2_0.02_156/0.12),0_2px_6px_oklch(0.2_0.02_156/0.06)] sm:max-w-lg',
+        // Mobile: nearly fullscreen with small margin + rounded corners so it reads as a modal
+        'fixed inset-2 z-50 flex flex-col rounded-[10px] border border-border bg-card shadow-[0_16px_48px_oklch(0.2_0.02_156/0.22),0_4px_12px_oklch(0.2_0.02_156/0.10)] p-4 overflow-y-auto custom-scrollbar',
+        // Tablet+: centered modal
+        'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:max-h-[90vh] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[10px] sm:border sm:border-border sm:shadow-[0_12px_32px_oklch(0.2_0.02_156/0.12),0_2px_6px_oklch(0.2_0.02_156/0.06)]',
+        'sm:w-full sm:max-w-[calc(100%-2rem)] sm:p-6 md:max-w-lg',
         className,
       )}
       {...props}
@@ -72,11 +76,16 @@ const DialogContent = React.forwardRef<
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
+
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn('flex flex-col gap-2 text-center sm:text-left', className)}
+      className={cn(
+        'flex flex-col gap-2 text-center sm:text-left',
+        'sticky top-0 z-10 bg-card pb-2 sm:static',
+        className,
+      )}
       {...props}
     />
   )
@@ -88,6 +97,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
       data-slot="dialog-footer"
       className={cn(
         'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
+        'sticky bottom-0 z-10 bg-card pt-2 border-t border-border sm:border-0 sm:static',
         className,
       )}
       {...props}

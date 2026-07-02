@@ -587,7 +587,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Dimensiones */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Dimensiones</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
               <div className="space-y-1">
                 <Label htmlFor="cfg-ancho">Ancho (mm)</Label>
                 <NumInput id="cfg-ancho" value={form.anchoMm} placeholder="33" step="0.5" min="10" max="200" onChange={(v) => updateField('anchoMm', v)} />
@@ -607,7 +607,7 @@ export default function EtiquetasConfigPanel() {
             </div>
 
             {/* Margenes */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="cfg-margen-izq">Margen izquierdo (mm)</Label>
                 <NumInput id="cfg-margen-izq" value={form.margenIzquierdoMm} placeholder="2.5" step="0.5" min="0" max="20" onChange={(v) => updateField('margenIzquierdoMm', v)} />
@@ -622,7 +622,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Codigo de barras */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Codigo de barras</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>Tipo de codigo</Label>
                 <Select value={form.tipoCodigo} onValueChange={(v) => updateField('tipoCodigo', v as TipoCodigo)}>
@@ -646,7 +646,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Tamanos de fuente */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tamano de fuentes</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="cfg-font-nombre">Fuente del nombre (px)</Label>
                 <NumInput id="cfg-font-nombre" value={form.tamanoFuenteNombre} placeholder="16" min="8" max="72" onChange={(v) => updateField('tamanoFuenteNombre', v)} />
@@ -661,7 +661,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Espaciado entre elementos */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Espaciado entre elementos (dots)</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1">
                 <Label htmlFor="cfg-gap-nombre">Despues del nombre</Label>
                 <NumInput id="cfg-gap-nombre" value={form.espaciadoNombre} placeholder="4" min="0" max="50" onChange={(v) => updateField('espaciadoNombre', v)} />

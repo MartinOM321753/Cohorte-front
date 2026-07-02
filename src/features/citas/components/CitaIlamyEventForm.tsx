@@ -339,7 +339,7 @@ export function CitaIlamyEventForm({
           )}
 
           {/* ── FECHA Y DURACIÓN ── */}
-          <div className="grid grid-cols-1 gap-30 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5 ">
               <Label className="text-[13px]">
                 Fecha y hora <span className="text-red-500">*</span>

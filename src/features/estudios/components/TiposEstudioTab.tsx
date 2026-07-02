@@ -324,7 +324,7 @@ export function TiposEstudioTab() {
             )}
 
             {/* Add pending parametro */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="col-span-2">
                 <Input
                   placeholder="Nombre del parámetro"
@@ -619,7 +619,7 @@ function EditableParametroRow({
   if (editing) {
     return (
       <div className="rounded-md border bg-background px-3 py-2 space-y-2">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="col-span-2">
             <Input
               value={nombre}
@@ -840,7 +840,7 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
   return (
     <div className="mt-3 space-y-2 border-t pt-3">
       <p className="text-xs font-medium text-muted-foreground">Agregar parámetro</p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div className="col-span-2">
           <Input
             placeholder="Nombre del parámetro"

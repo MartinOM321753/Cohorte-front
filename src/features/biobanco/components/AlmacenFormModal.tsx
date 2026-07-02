@@ -287,8 +287,8 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
             {/* Nombre + Tipo ──────────────────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 space-y-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="sm:col-span-2 space-y-2">
                 <Label>
                   Nombre de la institución <span className="text-destructive">*</span>
                 </Label>
@@ -321,7 +321,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
             </div>
 
             {/* Estado + Ciudad ─────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Estado */}
               <div className="space-y-2">
                 <Label>
@@ -398,7 +398,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
             </div>
 
             {/* Responsable + Teléfono ──────────────────────────────────── */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Responsable de contacto</Label>
                 <Input
