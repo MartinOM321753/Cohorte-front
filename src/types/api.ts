@@ -107,6 +107,7 @@ export interface Paciente {
   institucionId?: number
   institucionNombre?: string
   propiaInstitucion?: boolean
+  tieneAcceso?: boolean
 }
 
 export interface PacienteRequestDTO {

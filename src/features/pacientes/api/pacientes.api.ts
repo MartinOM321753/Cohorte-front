@@ -107,6 +107,13 @@ export async function getPacientesPaginados(params: {
  * responde de inmediato — el resultado (exitosos/errores/duplicados) ya no
  * llega en esta respuesta, se notifica por correo al terminar.
  */
+export async function crearAccesoPaciente(uuid: string): Promise<Paciente> {
+  const response = await axiosInstance.post<ApiResponse<Paciente>>(
+    `/pacientes/uuid/${uuid}/crear-acceso`
+  )
+  return response.data.data
+}
+
 export async function importarPacientes(archivo: File): Promise<string> {
   const formData = new FormData()
   formData.append('archivo', archivo)

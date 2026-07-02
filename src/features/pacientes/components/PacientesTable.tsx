@@ -1,26 +1,36 @@
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import {
   CalendarPlus,
-  Eye,
   FileText,
+  KeyRound,
+  MoreHorizontal,
   Pencil,
   UserCheck,
   UserX,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/components/tables/DataTable";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getFullName } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 import type { Paciente } from "@/types/api";
 
 interface PacientesTableProps {
   data: Paciente[];
   isLoading?: boolean;
   incluirJerarquia?: boolean;
-  onView: (paciente: Paciente) => void;
+  onRowClick: (paciente: Paciente) => void;
   onEdit: (paciente: Paciente) => void;
   onToggleActivo: (paciente: Paciente) => void;
   onSchedule: (paciente: Paciente) => void;
+  onCrearAcceso: (paciente: Paciente) => void;
   manualPagination?: boolean;
   pagination?: PaginationState;
   onPaginationChange?: (pagination: PaginationState) => void;
@@ -58,16 +68,20 @@ export function PacientesTable({
   data,
   isLoading,
   incluirJerarquia,
-  onView,
+  onRowClick,
   onEdit,
   onToggleActivo,
   onSchedule,
+  onCrearAcceso,
   manualPagination,
   pagination,
   onPaginationChange,
   pageCount,
   totalElements,
 }: PacientesTableProps) {
+  const navigate = useNavigate();
+  const hasPermiso = useAuthStore((s) => s.hasPermiso);
+
   const columns: ColumnDef<Paciente>[] = [
     {
       id: "nombre",
@@ -140,69 +154,92 @@ export function PacientesTable({
     {
       id: "acciones",
       header: "",
-      cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-1">
-          {/* Expediente 360 — UUID pasa por state, nunca por URL */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
-            title="Ver detalle rápido"
-            onClick={() => onView(row.original)}
-          >
-            <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
+      cell: ({ row }) => {
+        const p = row.original;
+        const showCrearAcceso = p.activo && !p.tieneAcceso && hasPermiso('PACIENTES_CREAR_ACCESO');
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
-            title="Editar participante"
-            onClick={() => onEdit(row.original)}
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
-          <Link
-            to="/pacientes/expediente"
-            state={{ uuid: row.original.uuid }}
-            title="Ver expediente 360"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-green-700)] hover:bg-[var(--imss-green-50)]"
-          >
-            <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-green-700)]"
-            title="Agendar cita"
-            onClick={() => onSchedule(row.original)}
-          >
-            <CalendarPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={[
-              "h-7 w-7",
-              row.original.activo
-                ? "text-[var(--imss-ink-300)] hover:text-[var(--status-danger-fg)]"
-                : "text-[var(--imss-ink-300)] hover:text-[var(--status-success-fg)]",
-            ].join(" ")}
-            title={
-              row.original.activo
-                ? "Desactivar participante"
-                : "Activar participante"
-            }
-            onClick={() => onToggleActivo(row.original)}
-          >
-            {row.original.activo ? (
-              <UserX className="h-3.5 w-3.5" strokeWidth={1.75} />
-            ) : (
-              <UserCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
-            )}
-          </Button>
-        </div>
-      ),
+        return (
+          <div className="flex items-center justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate("/pacientes/expediente", { state: { uuid: p.uuid } });
+                  }}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Ver expediente 360
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(p);
+                  }}
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSchedule(p);
+                  }}
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Agendar cita
+                </DropdownMenuItem>
+
+                {showCrearAcceso && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCrearAcceso(p);
+                      }}
+                    >
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      Crear acceso
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleActivo(p);
+                  }}
+                  className={p.activo ? "text-destructive focus:text-destructive" : "text-green-600 focus:text-green-600"}
+                >
+                  {p.activo ? (
+                    <>
+                      <UserX className="mr-2 h-4 w-4" />
+                      Desactivar
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Activar
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
     },
   ];
 
@@ -217,6 +254,7 @@ export function PacientesTable({
       pageCount={pageCount}
       totalElements={totalElements}
       getRowClassName={getRowClassName}
+      onRowClick={onRowClick}
     />
   );
 }

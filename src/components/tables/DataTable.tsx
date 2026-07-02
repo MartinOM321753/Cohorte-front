@@ -21,19 +21,14 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   isLoading?: boolean
   pageSize?: number
-  /**
-   * Activa paginación server-side: la tabla deja de paginar localmente y delega
-   * el control de página al consumidor (p. ej. consumiendo un endpoint /paginado).
-   * Requiere `pagination`, `onPaginationChange` y `pageCount`.
-   */
   manualPagination?: boolean
   pagination?: PaginationState
   onPaginationChange?: (pagination: PaginationState) => void
   pageCount?: number
-  /** Total de registros reportado por el backend (paginación server-side). */
   totalElements?: number
-  /** Función que devuelve clases CSS adicionales para cada fila según sus datos. */
   getRowClassName?: (row: TData) => string
+  onRowClick?: (row: TData) => void
+  emptyMessage?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -47,6 +42,8 @@ export function DataTable<TData, TValue>({
   pageCount,
   totalElements,
   getRowClassName,
+  onRowClick,
+  emptyMessage = 'No se encontraron resultados.',
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -92,7 +89,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-border bg-card">
+      <div className="overflow-x-auto rounded-md border border-border bg-card custom-scrollbar">
         <Table>
           <TableHeader className="bg-[var(--muted)]">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -100,7 +97,7 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="px-4 py-[10px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--imss-ink-500)]"
+                    className="px-3 py-[10px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--imss-ink-500)] whitespace-nowrap sm:px-4"
                   >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
@@ -116,11 +113,13 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && 'selected'}
                   className={[
                     'hover:bg-[var(--imss-green-50)] data-[state=selected]:bg-[var(--imss-green-50)] data-[state=selected]:shadow-[inset_2px_0_0_var(--primary)]',
+                    onRowClick ? 'cursor-pointer' : '',
                     getRowClassName?.(row.original) ?? '',
                   ].join(' ')}
+                  onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-4 py-3 tabular-nums">
+                    <TableCell key={cell.id} className="px-3 py-3 tabular-nums sm:px-4">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -129,7 +128,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-sm text-muted-foreground">
-                  No se encontraron resultados.
+                  {emptyMessage}
                 </TableCell>
               </TableRow>
             )}
@@ -137,9 +136,12 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="text-xs font-mono text-muted-foreground">{totalLabel} registro(s)</div>
-        <div className="flex items-center gap-2">
+      {/* Paginación responsive */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-xs font-mono text-muted-foreground text-center sm:text-left">
+          {totalLabel} registro(s)
+        </div>
+        <div className="flex items-center justify-center gap-1 sm:gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -151,13 +153,13 @@ export function DataTable<TData, TValue>({
           </Button>
           <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
             <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
-            Anterior
+            <span className="hidden sm:inline">Anterior</span>
           </Button>
-          <span className="text-xs font-mono text-muted-foreground">
-            Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap px-1">
+            {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
           </span>
           <Button variant="ghost" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            Siguiente
+            <span className="hidden sm:inline">Siguiente</span>
             <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
           </Button>
           <Button
@@ -174,4 +176,3 @@ export function DataTable<TData, TValue>({
     </div>
   )
 }
-
