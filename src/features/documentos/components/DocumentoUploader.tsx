@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,6 +45,7 @@ function formatBytes(bytes: number): string {
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export function DocumentoUploader(props: DocumentoUploaderProps) {
+  const puedeSubir = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
   const { usuarioUUID, onUploaded, accept, showDescripcion = false, className } = props
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -94,7 +96,7 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
   }
 
   async function handleUpload() {
-    if (!selectedFile) return
+    if (!selectedFile || !puedeSubir) return
 
     // Guardia: verificar que el ID de entidad sea válido antes de llamar al backend
     if (props.entidad === 'estudio' && !props.estudioId) {
@@ -231,7 +233,7 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
         <Button
           className="w-full"
           onClick={handleUpload}
-          disabled={isPending}
+          disabled={isPending || !puedeSubir}
         >
           {isPending ? (
             <>

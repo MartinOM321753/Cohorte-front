@@ -1,5 +1,4 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { RoleGuard } from '@/components/routes/RoleGuard'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { AlertCircle } from 'lucide-react'
@@ -17,8 +16,7 @@ export default function ConfiguracionPage() {
         </p>
       </div>
 
-      <RoleGuard allowedRoles={['ADMINISTRADOR']}>
-        <Alert>
+      <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Acceso restringido a administradores. Los cambios aquí afectan a todo el sistema.
@@ -106,8 +104,7 @@ export default function ConfiguracionPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
-      </RoleGuard>
+      </Card>
     </div>
   )
 }

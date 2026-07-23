@@ -21,10 +21,11 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { DocumentoResponseDTO } from '@/types/api'
+import type { DocumentoResponseDTO, PrintableLabelBatchDTO } from '@/types/api'
 import { useDeleteDocumento, useListarImpresorasDocumentos, useImprimirEtiquetaDocumento, useAdjuntarArchivo } from '../hooks/useDocumentos'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
-import { downloadDocumentoBlob } from '../api/documentos.api'
+import { downloadDocumentoBlob, getLabelDataDocumento } from '../api/documentos.api'
+import { PrintableLabelsView } from '@/components/print/PrintableLabelsView'
 import { toast } from 'sonner'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -130,6 +131,7 @@ export function DocumentoList({
   const [downloading, setDownloading] = useState<number | null>(null)
   const [adjuntando, setAdjuntando] = useState<number | null>(null)
   const [printDoc, setPrintDoc] = useState<DocumentoResponseDTO | null>(null)
+  const [browserPrintData, setBrowserPrintData] = useState<PrintableLabelBatchDTO | null>(null)
   const [selectedPrinter, setSelectedPrinter] = useState(() =>
     localStorage.getItem('zebra-printer-name') ?? ''
   )
@@ -175,14 +177,26 @@ export function DocumentoList({
     setDownloading(null)
   }
 
-  function handlePrint() {
-    if (!printDoc || !selectedPrinter) return
+  async function handlePrint() {
+    if (!printDoc) return
+    const configId = selectedConfig ? Number(selectedConfig) : undefined
+    if (selectedPrinter === '__browser__') {
+      try {
+        const data = await getLabelDataDocumento(printDoc.id, configId)
+        setPrintDoc(null)
+        setBrowserPrintData(data)
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || err?.message || 'Error al obtener datos de etiqueta')
+      }
+      return
+    }
+    if (!selectedPrinter) return
     localStorage.setItem('zebra-printer-name', selectedPrinter)
     printMutation.mutate(
       {
         idDocumento: printDoc.id,
         impresora: selectedPrinter,
-        configuracionId: selectedConfig ? Number(selectedConfig) : undefined,
+        configuracionId: configId,
       },
       { onSuccess: () => setPrintDoc(null) },
     )
@@ -421,6 +435,7 @@ export function DocumentoList({
                   <SelectValue placeholder="Seleccionar impresora" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__browser__">Impresora estándar (navegador)</SelectItem>
                   {impresoras?.map((p) => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -465,6 +480,15 @@ export function DocumentoList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {browserPrintData && (
+        <PrintableLabelsView
+          open={true}
+          etiquetas={browserPrintData.etiquetas}
+          configuracion={browserPrintData.configuracion}
+          onClose={() => setBrowserPrintData(null)}
+        />
+      )}
     </>
   )
 }
