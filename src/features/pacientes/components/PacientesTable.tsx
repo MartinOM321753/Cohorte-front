@@ -27,10 +27,10 @@ interface PacientesTableProps {
   isLoading?: boolean;
   incluirJerarquia?: boolean;
   onRowClick: (paciente: Paciente) => void;
-  onEdit: (paciente: Paciente) => void;
-  onToggleActivo: (paciente: Paciente) => void;
-  onSchedule: (paciente: Paciente) => void;
-  onCrearAcceso: (paciente: Paciente) => void;
+  onEdit?: (paciente: Paciente) => void;
+  onToggleActivo?: (paciente: Paciente) => void;
+  onSchedule?: (paciente: Paciente) => void;
+  onCrearAcceso?: (paciente: Paciente) => void;
   manualPagination?: boolean;
   pagination?: PaginationState;
   onPaginationChange?: (pagination: PaginationState) => void;
@@ -181,26 +181,30 @@ export function PacientesTable({
                   <FileText className="mr-2 h-4 w-4" />
                   Ver expediente 360
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(p);
-                  }}
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSchedule(p);
-                  }}
-                >
-                  <CalendarPlus className="mr-2 h-4 w-4" />
-                  Agendar cita
-                </DropdownMenuItem>
+                {onEdit && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(p);
+                    }}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                  </DropdownMenuItem>
+                )}
+                {onSchedule && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSchedule(p);
+                    }}
+                  >
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Agendar cita
+                  </DropdownMenuItem>
+                )}
 
-                {showCrearAcceso && (
+                {showCrearAcceso && onCrearAcceso && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -215,6 +219,8 @@ export function PacientesTable({
                   </>
                 )}
 
+                {onToggleActivo && (
+                  <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -235,6 +241,8 @@ export function PacientesTable({
                     </>
                   )}
                 </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

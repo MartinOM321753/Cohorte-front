@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Edit, Building2, MapPin, Phone, User, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 import { useGetAlmacenes, useDeleteAlmacen, useActivateAlmacen } from '../hooks/useBiobanco'
 import { AlmacenFormModal } from './AlmacenFormModal'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,6 +23,10 @@ import { Almacen, TIPO_INSTITUCION_LABELS } from '@/types/api'
 export function AlmacenesTab() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingAlmacen, setEditingAlmacen] = useState<Almacen | null>(null)
+
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('TRASLADOS_CREAR')
+  const puedeEditar = hasPermiso('TRASLADOS_CREAR')
 
   const { data: almacenes = [], isLoading } = useGetAlmacenes()
   const deleteAlmacenMutation = useDeleteAlmacen()
@@ -60,10 +65,12 @@ export function AlmacenesTab() {
           <h2 className="text-2xl font-bold">Instituciones Externas</h2>
           <p className="text-muted-foreground">Instituciones (INMEGEN, INSP, hospitales, laboratorios) que reciben traslados de muestras</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Institución
-        </Button>
+        {puedeCrear && (
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Institución
+          </Button>
+        )}
       </div>
 
       <Alert>
@@ -82,10 +89,12 @@ export function AlmacenesTab() {
             <p className="text-muted-foreground text-center mb-4">
               Registra la primera institución externa para poder trasladar muestras.
             </p>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Registrar Primera Institución
-            </Button>
+            {puedeCrear && (
+              <Button onClick={() => setIsModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Registrar Primera Institución
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -149,6 +158,7 @@ export function AlmacenesTab() {
               </CardContent>
 
               {/* Acciones — siempre al fondo de la card ─────────────────── */}
+              {puedeEditar && (
               <CardFooter className="flex gap-2 pt-3 border-t">
                 <Button
                   variant="outline"
@@ -226,6 +236,7 @@ export function AlmacenesTab() {
                   </AlertDialog>
                 )}
               </CardFooter>
+              )}
             </Card>
           ))}
         </div>

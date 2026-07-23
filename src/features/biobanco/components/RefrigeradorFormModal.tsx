@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -40,6 +41,7 @@ const DEFAULT_VALUES: RefrigeradorFormData = {
 }
 
 export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: RefrigeradorFormModalProps) {
+  const puedeSubmit = useAuthStore((s) => s.hasPermiso(refrigerador ? 'REFRIGERADORES_EDITAR' : 'REFRIGERADORES_CREAR'))
   const isEditing = !!refrigerador
 
   const {
@@ -200,7 +202,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !puedeSubmit}
             >
               {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
             </Button>

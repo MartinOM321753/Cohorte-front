@@ -17,6 +17,7 @@ import { PacienteDetailDrawer } from "../components/PacienteDetailDrawer";
 import { CitaIlamyEventForm } from "@/features/citas/components/CitaIlamyEventForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuthStore } from "@/stores/authStore";
 import {
   Select,
   SelectContent,
@@ -82,6 +83,13 @@ export default function PacientesPage() {
   const toggleActivoMutation = useToggleActivoPaciente();
   const crearAccesoMutation = useCrearAccesoPaciente();
 
+  const hasPermiso = useAuthStore((s) => s.hasPermiso);
+  const puedeCrearPaciente = hasPermiso("PACIENTES_CREAR");
+  const puedeImportarPacientes = hasPermiso("PACIENTES_IMPORTAR");
+  const puedeCrearCita = hasPermiso("CITAS_CREAR");
+  const puedeEditarPaciente = hasPermiso("PACIENTES_EDITAR");
+  const puedeCrearAcceso = hasPermiso("PACIENTES_CREAR_ACCESO");
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -142,29 +150,35 @@ export default function PacientesPage() {
         subtitle="Registro de participantes incluidos en la cohorte"
         actions={
           <>
-            <Button
-              variant="outline"
-              onClick={() => setIsImportOpen(true)}
-              className="gap-2 text-[13px] h-9"
-            >
-              <Upload className="h-4 w-4" strokeWidth={1.75} />
-              <span className="hidden sm:inline">Importar</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsCitaModalOpen(true)}
-              className="gap-2 text-[13px] h-9"
-            >
-              <CalendarDays className="h-4 w-4" strokeWidth={1.75} />
-              <span className="hidden sm:inline">Agendar cita</span>
-            </Button>
-            <Button
-              onClick={handleOpenCreate}
-              className="gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px] h-9"
-            >
-              <UserRoundPlus className="h-4 w-4" strokeWidth={1.75} />
-              <span className="hidden sm:inline">Registrar participante</span>
-            </Button>
+            {puedeImportarPacientes && (
+              <Button
+                variant="outline"
+                onClick={() => setIsImportOpen(true)}
+                className="gap-2 text-[13px] h-9"
+              >
+                <Upload className="h-4 w-4" strokeWidth={1.75} />
+                <span className="hidden sm:inline">Importar</span>
+              </Button>
+            )}
+            {puedeCrearCita && (
+              <Button
+                variant="outline"
+                onClick={() => setIsCitaModalOpen(true)}
+                className="gap-2 text-[13px] h-9"
+              >
+                <CalendarDays className="h-4 w-4" strokeWidth={1.75} />
+                <span className="hidden sm:inline">Agendar cita</span>
+              </Button>
+            )}
+            {puedeCrearPaciente && (
+              <Button
+                onClick={handleOpenCreate}
+                className="gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px] h-9"
+              >
+                <UserRoundPlus className="h-4 w-4" strokeWidth={1.75} />
+                <span className="hidden sm:inline">Registrar participante</span>
+              </Button>
+            )}
           </>
         }
       />
@@ -261,13 +275,19 @@ export default function PacientesPage() {
         isLoading={isLoading}
         incluirJerarquia={incluirJerarquia}
         onRowClick={handleView}
-        onEdit={handleEdit}
-        onToggleActivo={(p) => {
-          const uuid = p.uuid;
-          if (uuid) toggleActivoMutation.mutate(uuid);
-        }}
-        onSchedule={handleSchedule}
-        onCrearAcceso={(p) => crearAccesoMutation.mutate(p.uuid)}
+        onEdit={puedeEditarPaciente ? handleEdit : undefined}
+        onToggleActivo={
+          puedeEditarPaciente
+            ? (p) => {
+                const uuid = p.uuid;
+                if (uuid) toggleActivoMutation.mutate(uuid);
+              }
+            : undefined
+        }
+        onSchedule={puedeCrearCita ? handleSchedule : undefined}
+        onCrearAcceso={
+          puedeCrearAcceso ? (p) => crearAccesoMutation.mutate(p.uuid) : undefined
+        }
         manualPagination
         pagination={pagination}
         onPaginationChange={setPagination}
@@ -280,8 +300,8 @@ export default function PacientesPage() {
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
         paciente={selectedPaciente}
-        onEdit={handleEdit}
-        onSchedule={handleSchedule}
+        onEdit={puedeEditarPaciente ? handleEdit : undefined}
+        onSchedule={puedeCrearCita ? handleSchedule : undefined}
       />
 
       {/* Modal crear / editar */}

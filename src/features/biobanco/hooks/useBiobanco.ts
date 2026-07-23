@@ -25,6 +25,7 @@ import {
   createMuestra,
   updateMuestra,
   deleteMuestra,
+  darDeBajaMuestra,
   getMuestrasEnBiobanco,
   getAlicuotasByMuestra,
   asignarPosicionMuestra,
@@ -328,7 +329,7 @@ export function useGetPosicionesLibresByCaja(idCaja: number) {
 // HOOKS PARA MUESTRAS
 // ============================================
 
-export function useGetMuestras(params?: { pacienteUUID?: string }) {
+export function useGetMuestras(params?: { pacienteUUID?: string; incluirHistorico?: boolean }) {
   return useQuery<MuestraDetalleDTO[]>({
     queryKey: ['muestras', params],
     queryFn: () => getMuestras(params),
@@ -417,6 +418,25 @@ export function useDeleteMuestra() {
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error al eliminar la muestra'
+      toast.error(message)
+    },
+  })
+}
+
+export function useDarDeBajaMuestra() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, motivo }: { id: number; motivo: string }) => darDeBajaMuestra(id, motivo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+      queryClient.invalidateQueries({ queryKey: ['posiciones'] })
+      queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
+      toast.success('Muestra dada de baja')
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Error al dar de baja la muestra'
       toast.error(message)
     },
   })
@@ -597,6 +617,8 @@ export function useIniciarPrestamo() {
     mutationFn: (data: TrasladoRequestDTO) => iniciarPrestamo(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados-historial'] })
       queryClient.invalidateQueries({ queryKey: ['muestras'] })
       queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       queryClient.invalidateQueries({ queryKey: ['posiciones'] })
@@ -621,6 +643,7 @@ export function useConfirmarRecepcion() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
       queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados-historial'] })
       queryClient.invalidateQueries({ queryKey: ['muestras'] })
       queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       toast.success('Recepción confirmada exitosamente')
@@ -642,6 +665,7 @@ export function useIniciarDevolucion() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
       queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados-historial'] })
       queryClient.invalidateQueries({ queryKey: ['muestras'] })
       queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       toast.success('Devolución iniciada exitosamente')
@@ -663,6 +687,7 @@ export function useConfirmarDevolucion() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
       queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados-historial'] })
       queryClient.invalidateQueries({ queryKey: ['muestras'] })
       queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       toast.success('Devolución confirmada exitosamente')
@@ -684,6 +709,7 @@ export function useCancelarPrestamo() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
       queryClient.invalidateQueries({ queryKey: ['traslados-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['traslados-historial'] })
       queryClient.invalidateQueries({ queryKey: ['muestras'] })
       queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
       toast.success('Préstamo cancelado. La muestra fue restaurada a su ubicación anterior.')
@@ -741,17 +767,6 @@ export function useGetTipoInstitucion(idMuestra: number, options?: { enabled?: b
   })
 }
 
-/**
- * @deprecated El rol ENCARGADO ya no está vinculado a almacenes específicos.
- * Retorna siempre una lista vacía. Mantenido por compatibilidad con Sidebar.
- */
-export function useGetAlmacenesByEncargado(_uuid: string, _options?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: ['almacenes-encargado-stub'],
-    queryFn: async () => [] as import('@/types/api').Almacen[],
-    staleTime: Infinity,
-  })
-}
 
 // ============================================
 // HOOKS PARA TIPOS DE MUESTRA (Stream C)
@@ -764,10 +779,11 @@ export function useGetTiposMuestra() {
   })
 }
 
-export function useGetTiposMuestraActivos() {
+export function useGetTiposMuestraActivos(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['tipos-muestra-activos'],
     queryFn: () => getTiposMuestraActivos(),
+    enabled: options?.enabled ?? true,
   })
 }
 
@@ -886,11 +902,12 @@ export function useGetZplAlicuotas() {
   })
 }
 
-export function useListarImpresoras() {
+export function useListarImpresoras(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['impresoras'],
     queryFn: listarImpresoras,
     staleTime: 30000,
+    enabled: options?.enabled ?? true,
   })
 }
 

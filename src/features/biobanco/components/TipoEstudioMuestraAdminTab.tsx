@@ -4,6 +4,7 @@
  * Espejo de TiposEstudioTab (estudios médicos) pero para muestras.
  */
 import { useState, useMemo } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import {
   AlertCircle, ChevronDown, ChevronRight,
   Pencil, Plus, Trash2, ToggleLeft, ToggleRight, X, Check, Loader2,
@@ -15,6 +16,7 @@ import {
   useCreateTipoEstudioMuestra,
   useUpdateTipoEstudioMuestra,
   useToggleTipoEstudioMuestra,
+  useDeleteTipoEstudioMuestra,
   useCreateParametroEstudioMuestra,
   useUpdateParametroEstudioMuestra,
   useDeleteParametroEstudioMuestra,
@@ -31,6 +33,17 @@ import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -209,9 +222,10 @@ interface ParametroRowProps {
   parametro: ParametroEstudioMuestra
   idTipo: number
   onDelete: (id: number) => void
+  puedeEditar: boolean
 }
 
-function ParametroRow({ parametro, idTipo, onDelete }: ParametroRowProps) {
+function ParametroRow({ parametro, idTipo, onDelete, puedeEditar }: ParametroRowProps) {
   const updateMutation = useUpdateParametroEstudioMuestra()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<ParametroFormState>(emptyParamForm())
@@ -287,15 +301,17 @@ function ParametroRow({ parametro, idTipo, onDelete }: ParametroRowProps) {
           <p className="text-xs text-muted-foreground">{parametro.opciones.join(' · ')}</p>
         )}
       </div>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
-        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={startEdit}>
-          <Pencil className="h-3 w-3" />
-        </Button>
-        <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive"
-          onClick={() => onDelete(parametro.id)}>
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
+      {puedeEditar && (
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={startEdit}>
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive"
+            onClick={() => onDelete(parametro.id)}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -306,10 +322,13 @@ interface TipoRowProps {
   tipo: TipoEstudioMuestra
   expanded: boolean
   onToggleExpand: () => void
+  puedeEditar: boolean
+  puedeEliminar: boolean
 }
 
-function TipoRow({ tipo, expanded, onToggleExpand }: TipoRowProps) {
+function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }: TipoRowProps) {
   const toggleMutation = useToggleTipoEstudioMuestra()
+  const deleteTipoMutation = useDeleteTipoEstudioMuestra()
   const createParam = useCreateParametroEstudioMuestra()
   const deleteParam = useDeleteParametroEstudioMuestra()
   const updateTipo = useUpdateTipoEstudioMuestra()
@@ -362,18 +381,52 @@ function TipoRow({ tipo, expanded, onToggleExpand }: TipoRowProps) {
           {!tipo.activo && <Badge variant="outline" className="text-xs shrink-0">Inactivo</Badge>}
           <Badge variant="secondary" className="text-xs shrink-0">{parametros.length} param.</Badge>
         </button>
-        <div className="flex gap-1 shrink-0">
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingTipo(v => !v)}>
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7"
-            onClick={() => toggleMutation.mutate(tipo.id)}
-            disabled={toggleMutation.isPending}>
-            {tipo.activo
-              ? <ToggleRight className="h-4 w-4 text-green-600" />
-              : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
-          </Button>
-        </div>
+        {puedeEditar && (
+          <div className="flex gap-1 shrink-0">
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingTipo(v => !v)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7"
+              onClick={() => toggleMutation.mutate(tipo.id)}
+              disabled={toggleMutation.isPending}>
+              {tipo.activo
+                ? <ToggleRight className="h-4 w-4 text-green-600" />
+                : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
+            </Button>
+            {puedeEliminar && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    disabled={deleteTipoMutation.isPending}
+                    title="Eliminar tipo"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar tipo "{tipo.nombre}"?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se eliminarán todos sus parámetros. Esta acción no se puede deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteTipoMutation.mutate(tipo.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Eliminar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Edit tipo */}
@@ -407,11 +460,11 @@ function TipoRow({ tipo, expanded, onToggleExpand }: TipoRowProps) {
           )}
           {parametros.map(p => (
             <ParametroRow key={p.id} parametro={p} idTipo={tipo.id}
-              onDelete={(id) => deleteParam.mutate(id)} />
+              onDelete={(id) => deleteParam.mutate(id)} puedeEditar={puedeEditar} />
           ))}
 
           {/* Add param form */}
-          {tipo.activo && (
+          {tipo.activo && puedeEditar && (
             <>
               {addingParam ? (
                 <div className="mt-2 p-3 border rounded-md bg-muted/20 space-y-3">
@@ -445,6 +498,10 @@ function TipoRow({ tipo, expanded, onToggleExpand }: TipoRowProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function TipoEstudioMuestraAdminTab() {
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('ESTUDIOS_MUESTRA_CREAR')
+  const puedeEditar = hasPermiso('ESTUDIOS_MUESTRA_EDITAR')
+  const puedeEliminar = hasPermiso('ESTUDIOS_MUESTRA_ELIMINAR')
   const { data: tipos, isLoading, isError } = useGetTodosLosTiposEstudioMuestra()
   const createTipo = useCreateTipoEstudioMuestra()
   const createParam = useCreateParametroEstudioMuestra()
@@ -605,7 +662,9 @@ export function TipoEstudioMuestraAdminTab() {
         {tiposActivos.map(t => (
           <TipoRow key={t.id} tipo={t}
             expanded={expandedId === t.id}
-            onToggleExpand={() => setExpandedId(expandedId === t.id ? null : t.id)} />
+            onToggleExpand={() => setExpandedId(expandedId === t.id ? null : t.id)}
+            puedeEditar={puedeEditar}
+            puedeEliminar={puedeEliminar} />
         ))}
 
         {tiposInactivos.length > 0 && (
@@ -615,14 +674,16 @@ export function TipoEstudioMuestraAdminTab() {
             {tiposInactivos.map(t => (
               <TipoRow key={t.id} tipo={t}
                 expanded={expandedId === t.id}
-                onToggleExpand={() => setExpandedId(expandedId === t.id ? null : t.id)} />
+                onToggleExpand={() => setExpandedId(expandedId === t.id ? null : t.id)}
+                puedeEditar={puedeEditar}
+                puedeEliminar={puedeEliminar} />
             ))}
           </>
         )}
       </div>
 
       {/* ── Crear nuevo tipo ── */}
-      <Card className="p-4 h-fit space-y-4">
+      {puedeCrear && <Card className="p-4 h-fit space-y-4">
         <div>
           <h3 className="font-semibold text-sm">Nuevo tipo de estudio</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Nombre + sus parámetros de captura.</p>
@@ -724,7 +785,7 @@ export function TipoEstudioMuestraAdminTab() {
             Los parámetros adicionales se pueden agregar después expandiendo el tipo en la lista.
           </AlertDescription>
         </Alert>
-      </Card>
+      </Card>}
     </div>
   )
 }

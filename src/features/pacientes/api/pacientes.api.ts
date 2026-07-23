@@ -39,6 +39,14 @@ export async function getPacienteByUUID(uuid: string): Promise<Paciente> {
 }
 
 /**
+ * Resuelve el UUID del propio expediente para el rol PACIENTE (sin conocerlo de antemano).
+ */
+export async function getMiPacienteUuid(): Promise<string> {
+  const response = await axiosInstance.get<ApiResponse<{ uuid: string }>>('/pacientes/mi-uuid')
+  return response.data.data.uuid
+}
+
+/**
  * Get paciente by folio
  */
 export async function getPacienteByFolio(folio: string): Promise<Paciente> {
@@ -97,6 +105,23 @@ export async function getPacientesPaginados(params: {
 }): Promise<PacientesPaginados> {
   const response = await axiosInstance.get<ApiResponse<PacientesPaginados>>(
     '/pacientes/paginado',
+    { params }
+  )
+  return response.data.data
+}
+
+/**
+ * Endpoint lookup para el combobox de participantes usado desde formularios de
+ * otros módulos (Estudios, Exámenes, Citas). Aceptado con permiso
+ * PACIENTES_LOOKUP (no requiere PACIENTES_ACCEDER). Devuelve max 20 resultados
+ * de participantes activos.
+ */
+export async function buscarPacientes(params: {
+  q?: string
+  incluirJerarquia?: boolean
+}): Promise<PacientesPaginados> {
+  const response = await axiosInstance.get<ApiResponse<PacientesPaginados>>(
+    '/pacientes/buscar',
     { params }
   )
   return response.data.data

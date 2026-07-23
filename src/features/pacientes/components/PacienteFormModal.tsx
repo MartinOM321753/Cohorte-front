@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -77,6 +78,7 @@ const DEFAULT_VALUES: PacienteFormData = {
 
 
 export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteFormModalProps) {
+  const puedeSubmit = useAuthStore((s) => s.hasPermiso(paciente ? 'PACIENTES_EDITAR' : 'PACIENTES_CREAR'))
   const isEdit = !!paciente
   const createMutation = useCreatePaciente()
   const updateMutation = useUpdatePaciente()
@@ -564,7 +566,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
             </Button>
             <Button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || !puedeSubmit}
               className="bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
             >
               {isPending

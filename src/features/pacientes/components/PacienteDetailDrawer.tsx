@@ -17,8 +17,8 @@ interface PacienteDetailDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   paciente: Paciente | null
-  onEdit: (paciente: Paciente) => void
-  onSchedule: (paciente: Paciente) => void
+  onEdit?: (paciente: Paciente) => void
+  onSchedule?: (paciente: Paciente) => void
 }
 
 interface DetailRowProps {
@@ -119,7 +119,7 @@ export function PacienteDetailDrawer({
   onSchedule,
 }: PacienteDetailDrawerProps) {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
-  const isAdmin = useAuthStore((s) => s.hasPermiso('PACIENTES_ELIMINAR'))
+  const puedeEliminarDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
 
   if (!paciente) return null
 
@@ -253,7 +253,7 @@ export function PacienteDetailDrawer({
                 uuid={uuid}
                 tipo="CONSENTIMIENTO"
                 usuarioUUID={userUuid}
-                canDelete={isAdmin}
+                canDelete={puedeEliminarDocs}
                 emptyMessage="Sin consentimientos registrados."
               />
             </TabsContent>
@@ -275,7 +275,7 @@ export function PacienteDetailDrawer({
                     uuid={uuid}
                     tipo={tipo}
                     usuarioUUID={userUuid}
-                    canDelete={isAdmin}
+                    canDelete={puedeEliminarDocs}
                     emptyMessage="Sin registro."
                   />
                 </section>
@@ -291,7 +291,7 @@ export function PacienteDetailDrawer({
                 uuid={uuid}
                 tipo="GENERAL"
                 usuarioUUID={userUuid}
-                canDelete={isAdmin}
+                canDelete={puedeEliminarDocs}
                 emptyMessage="Sin documentos generales."
               />
             </TabsContent>
@@ -299,23 +299,29 @@ export function PacienteDetailDrawer({
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col gap-2 border-t border-[var(--imss-ink-100)] px-5 py-3">
-          <Button
-            className="w-full gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
-            onClick={() => { onOpenChange(false); onEdit(paciente) }}
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Editar participante
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full gap-2 text-[13px]"
-            onClick={() => { onOpenChange(false); onSchedule(paciente) }}
-          >
-            <CalendarPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Agendar cita
-          </Button>
-        </div>
+        {(onEdit || onSchedule) && (
+          <div className="flex flex-col gap-2 border-t border-[var(--imss-ink-100)] px-5 py-3">
+            {onEdit && (
+              <Button
+                className="w-full gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
+                onClick={() => { onOpenChange(false); onEdit(paciente) }}
+              >
+                <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Editar participante
+              </Button>
+            )}
+            {onSchedule && (
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-[13px]"
+                onClick={() => { onOpenChange(false); onSchedule(paciente) }}
+              >
+                <CalendarPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Agendar cita
+              </Button>
+            )}
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   )

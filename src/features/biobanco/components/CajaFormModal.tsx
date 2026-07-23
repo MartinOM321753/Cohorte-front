@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -51,6 +52,7 @@ const DEFAULT_VALUES: CajaFormData = {
 }
 
 export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) {
+  const puedeSubmit = useAuthStore((s) => s.hasPermiso(caja ? 'CAJAS_EDITAR' : 'CAJAS_CREAR'))
   const isEditing = !!caja
   const [selectedRefrigerador, setSelectedRefrigerador] = useState<string>('')
   const [selectedPiso, setSelectedPiso] = useState<string>('')
@@ -557,7 +559,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !puedeSubmit}
             >
               {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
             </Button>
