@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "../schemas/login.schema";
 import { loginUser, getGeolocation } from "../api/auth.api";
 import { useAuthStore } from "@/stores/authStore";
+import { resolveHomeRoute } from "@/config/featurePermisos";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import {
@@ -219,9 +220,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated)
-      navigate(hasPermiso("DASHBOARD_VER") ? "/dashboard" : "/mis-muestras", {
-        replace: true,
-      });
+      navigate(resolveHomeRoute(hasPermiso), { replace: true });
   }, [isAuthenticated, navigate, hasPermiso]);
 
   const onSubmit = async (data: LoginFormData) => {
@@ -236,13 +235,7 @@ export default function LoginPage() {
       const ok = await login({ user: response.user, mustChangePassword: response.mustChangePassword, permisos: response.permisos, roles: response.roles });
       if (!ok) throw new Error("Rol de usuario no reconocido");
       toast.success("Inicio de sesión exitoso");
-      // Role-based redirect: ENCARGADO goes to their samples page
-      const targetRole = response.user?.rol;
-      const isEncargado =
-        typeof targetRole === "string"
-          ? targetRole === "ENCARGADO"
-          : (targetRole as any)?.nombre === "ENCARGADO";
-      navigate(isEncargado ? "/mis-muestras" : "/dashboard", { replace: true });
+      navigate(resolveHomeRoute(hasPermiso), { replace: true });
     } catch (error: any) {
       const message =
         error.response?.data?.message ||

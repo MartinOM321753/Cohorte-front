@@ -4,13 +4,7 @@ import axiosInstance from '@/lib/axiosInstance'
 import { queryClient } from '@/lib/queryClient'
 import { getModulosHabilitadosActual } from '@/features/instituciones/api/instituciones.api'
 
-export type UserRole =
-  | 'ADMINISTRADOR'
-  | 'MEDICO'
-  | 'LABORATORISTA'
-  | 'RECEPCIONISTA'
-  | 'PACIENTE'
-  | 'ENCARGADO'
+export type UserRole = string
 
 type RolLike = string | { nombre?: string } | null | undefined
 
@@ -39,8 +33,9 @@ export interface AuthState {
   permisos: string[]
   /** Roles asignados al usuario (multi-rol). */
   roles: string[]
+  isRoot: boolean
 
-  login: (data: { user: UserData; mustChangePassword?: boolean; permisos?: string[]; roles?: string[] }) => Promise<boolean>
+  login: (data: { user: UserData; mustChangePassword?: boolean; permisos?: string[]; roles?: string[]; isRoot?: boolean }) => Promise<boolean>
   logout: () => void
   hasRole: (role: UserRole | UserRole[]) => boolean
   /** Verifica si el usuario tiene el permiso indicado. Acepta un código o un arreglo (any). */
@@ -61,6 +56,7 @@ const initialState = {
   modulosHabilitados: [] as string[],
   permisos: [] as string[],
   roles: [] as string[],
+  isRoot: false,
 }
 
 function parseInstitucion(raw: any): InstitucionResumen | null {
@@ -86,23 +82,14 @@ function normalizeRoleName(rol: RolLike): string {
   const raw = typeof rol === 'string' ? rol : typeof rol === 'object' && typeof rol.nombre === 'string' ? rol.nombre : ''
   const cleaned = raw.trim().toUpperCase()
   if (!cleaned) return ''
-
-  const withoutPrefix = cleaned.startsWith('ROLE_') ? cleaned.slice('ROLE_'.length) : cleaned
-  if (withoutPrefix === 'ADMINISTRADOR') return 'ADMINISTRADOR'
-  if (withoutPrefix === 'MEDICO') return 'MEDICO'
-  if (withoutPrefix === 'RECEPCIONISTA') return 'RECEPCIONISTA'
-  if (withoutPrefix === 'LABORATORISTA') return 'LABORATORISTA'
-  if (withoutPrefix === 'PACIENTE') return 'PACIENTE'
-  if (withoutPrefix === 'ENCARGADO') return 'ENCARGADO'
-
-  return ''
+  return cleaned.startsWith('ROLE_') ? cleaned.slice('ROLE_'.length) : cleaned
 }
 
 export const useAuthStore = create<AuthState>()(
   subscribeWithSelector((set, get) => ({
     ...initialState,
 
-    login: async ({ user, mustChangePassword = false, permisos = [], roles = [] }) => {
+    login: async ({ user, mustChangePassword = false, permisos = [], roles = [], isRoot = false }) => {
       const normalizedRole = normalizeRoleName(user.rol)
       if (!normalizedRole && roles.length === 0) {
         queryClient.clear()
@@ -118,6 +105,7 @@ export const useAuthStore = create<AuthState>()(
         modulosHabilitados: [],
         permisos: [],
         roles: [],
+        isRoot: false,
       })
 
       const modulosHabilitados = await fetchModulosHabilitados()
@@ -131,6 +119,7 @@ export const useAuthStore = create<AuthState>()(
         modulosHabilitados,
         permisos,
         roles,
+        isRoot,
       })
       return true
     },
@@ -205,7 +194,8 @@ export const useAuthStore = create<AuthState>()(
         const permisos: string[] = Array.isArray(data?.permisos) ? data.permisos : []
         const roles: string[] = Array.isArray(data?.roles) ? data.roles : []
 
-        await get().login({ user, mustChangePassword: data?.mustChangePassword === true, permisos, roles })
+        const isRoot: boolean = data?.isRoot === true
+        await get().login({ user, mustChangePassword: data?.mustChangePassword === true, permisos, roles, isRoot })
       } catch {
         queryClient.clear()
         set({ ...initialState, isLoading: false })

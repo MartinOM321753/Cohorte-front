@@ -1,8 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { useAuthStore } from '@/stores/authStore'
+import { resolveHomeRoute } from '@/config/featurePermisos'
 
 export default function NotFoundPage() {
   const navigate = useNavigate()
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const homeRoute = resolveHomeRoute(hasPermiso)
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -18,7 +22,7 @@ export default function NotFoundPage() {
           La ruta solicitada no existe o no está disponible.
         </p>
         <div className="mt-6 flex justify-center">
-          <Button onClick={() => navigate('/dashboard')}>Volver al dashboard</Button>
+          <Button onClick={() => navigate(homeRoute)}>Volver al inicio</Button>
         </div>
       </div>
     </div>

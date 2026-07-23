@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { useBitacoraPermisos } from '../hooks/usePermisos'
+import { humanizarTextoConCodigos } from '@/config/permisoLabels'
 import { formatDateTime } from '@/lib/utils'
 
 const ACCION_STYLES: Record<string, string> = {
@@ -100,7 +101,7 @@ export function BitacoraPermisosTab() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-[12px] max-w-[300px] truncate" title={entry.detalle}>
-                        {entry.detalle}
+                        {humanizarTextoConCodigos(entry.detalle)}
                       </TableCell>
                       <TableCell className="text-[11px] font-mono text-muted-foreground">
                         {entry.usuarioAfectadoUuid?.slice(0, 8) ?? '—'}

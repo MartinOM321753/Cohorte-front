@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { ChevronDown, ChevronUp, Shield } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
@@ -8,6 +9,7 @@ import { ROL_LABELS, getRolBadgeClass } from '@/features/usuarios/types/usuario.
 
 
 export function RolesTab() {
+  const puedeEditar = useAuthStore((s) => s.hasPermiso('PERMISOS_EDITAR'))
   const { data: roles, isLoading, refetch } = useRolesConPermisos()
   const [expandedRol, setExpandedRol] = useState<number | null>(null)
 
@@ -42,12 +44,19 @@ export function RolesTab() {
               {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
             </button>
 
-            {expanded && (
+            {expanded && puedeEditar && (
               <div className="border-t border-border p-5">
                 <RolPermisoEditor
                   rol={rol}
                   onSaved={() => refetch()}
                 />
+              </div>
+            )}
+            {expanded && !puedeEditar && (
+              <div className="border-t border-border p-5">
+                <p className="text-xs text-muted-foreground">
+                  {rol.permisos.length} permisos asignados. No tienes permiso para editarlos.
+                </p>
               </div>
             )}
           </div>

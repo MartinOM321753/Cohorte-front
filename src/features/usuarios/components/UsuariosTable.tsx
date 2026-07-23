@@ -8,9 +8,9 @@ interface UsuariosTableProps {
   data: Usuario[]
   isLoading: boolean
   onView: (usuario: Usuario) => void
-  onEdit: (usuario: Usuario) => void
-  onToggleActivo: (usuario: Usuario) => void
-  onReenviarInvitacion: (usuario: Usuario) => void
+  onEdit?: (usuario: Usuario) => void
+  onToggleActivo?: (usuario: Usuario) => void
+  onReenviarInvitacion?: (usuario: Usuario) => void
   reenviandoInvitacionUuid?: string | null
   currentInstitucionId?: number
   currentUserUuid?: string
@@ -103,6 +103,7 @@ export function UsuariosTable({
       cell: ({ row }) => {
         const u = row.original
         const isSelf = u.UUID === currentUserUuid
+        const isOtherRoot = u.rol?.nombre === 'ROOT' && !isSelf
         const isExternalPending =
           u.activo &&
           u.debeResetear &&
@@ -120,17 +121,25 @@ export function UsuariosTable({
             >
               <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
-              title={isExternalPending ? 'Usuario pendiente de otra institucion: solo se puede reenviar invitacion' : 'Editar usuario'}
-              onClick={() => onEdit(u)}
-              disabled={isExternalPending}
-            >
-              <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-            </Button>
-            {u.activo && u.debeResetear && (
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
+                title={
+                  isOtherRoot
+                    ? 'No puedes editar a otro usuario ROOT'
+                    : isExternalPending
+                    ? 'Usuario pendiente de otra institucion: solo se puede reenviar invitacion'
+                    : 'Editar usuario'
+                }
+                onClick={() => onEdit(u)}
+                disabled={isExternalPending || isOtherRoot}
+              >
+                <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </Button>
+            )}
+            {onReenviarInvitacion && u.activo && u.debeResetear && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -142,19 +151,21 @@ export function UsuariosTable({
                 <MailCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-7 w-7 ${u.activo ? 'text-[var(--status-danger-fg)] hover:text-red-700' : 'text-[var(--status-success-fg)] hover:text-green-700'}`}
-              title={isSelf ? 'No puedes cambiar el estado de tu propia cuenta' : isExternalPending ? 'Usuario pendiente de otra institucion: solo se puede reenviar invitacion' : u.activo ? 'Desactivar usuario' : 'Activar usuario'}
-              onClick={() => onToggleActivo(u)}
-              disabled={isExternalPending || isSelf}
-            >
-              {u.activo
-                ? <PowerOff className="h-3.5 w-3.5" strokeWidth={1.75} />
-                : <Power className="h-3.5 w-3.5" strokeWidth={1.75} />
-              }
-            </Button>
+            {onToggleActivo && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 ${u.activo ? 'text-[var(--status-danger-fg)] hover:text-red-700' : 'text-[var(--status-success-fg)] hover:text-green-700'}`}
+                title={isSelf ? 'No puedes cambiar el estado de tu propia cuenta' : isExternalPending ? 'Usuario pendiente de otra institucion: solo se puede reenviar invitacion' : u.activo ? 'Desactivar usuario' : 'Activar usuario'}
+                onClick={() => onToggleActivo(u)}
+                disabled={isExternalPending || isSelf}
+              >
+                {u.activo
+                  ? <PowerOff className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  : <Power className="h-3.5 w-3.5" strokeWidth={1.75} />
+                }
+              </Button>
+            )}
           </div>
         )
       },

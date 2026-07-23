@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher'
+import { resolveHomeRoute } from '@/config/featurePermisos'
 import {
   CommandDialog,
   CommandEmpty,
@@ -24,7 +25,6 @@ const routeLabels: Record<string, string> = {
   configuracion: 'Configuración',
   perfil: 'Mi perfil',
   login: 'Inicio de sesión',
-  'mis-muestras': 'Mis Almacenes',
   expediente: 'Expediente',
 }
 
@@ -43,7 +43,7 @@ export function Header() {
   const { toggleMobileOpen } = useSidebarStore()
   const [commandOpen, setCommandOpen] = useState(false)
   const { hasPermiso } = useAuthStore()
-  const homeHref = hasPermiso('DASHBOARD_VER') ? '/dashboard' : '/mis-muestras'
+  const homeHref = resolveHomeRoute(hasPermiso)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

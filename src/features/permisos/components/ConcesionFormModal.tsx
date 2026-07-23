@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { useCatalogo, useConcederPermiso, useRestringirPermiso } from '../hooks/usePermisos'
+import { codigoAEtiqueta, moduloAEtiqueta } from '@/config/permisoLabels'
 import type { PermisoDTO } from '../types/permiso.types'
 
 interface Props {
@@ -18,6 +20,7 @@ interface Props {
 }
 
 export function ConcesionFormModal({ uuid, tipo, open, onOpenChange }: Props) {
+  const puedeEditar = useAuthStore((s) => s.hasPermiso('PERMISOS_EDITAR'))
   const { data: catalogo } = useCatalogo()
   const concederMut = useConcederPermiso(uuid)
   const restringirMut = useRestringirPermiso(uuid)
@@ -65,8 +68,10 @@ export function ConcesionFormModal({ uuid, tipo, open, onOpenChange }: Props) {
               <SelectContent className="max-h-[300px]">
                 {allPermisos.map((p) => (
                   <SelectItem key={p.codigo} value={p.codigo}>
-                    <span className="font-mono text-[11px]">{p.codigo}</span>
-                    {p.descripcion && <span className="ml-2 text-[11px] text-muted-foreground">— {p.descripcion}</span>}
+                    <span className="text-[12px]">{codigoAEtiqueta(p.codigo)}</span>
+                    <span className="ml-2 text-[10px] text-muted-foreground">
+                      {moduloAEtiqueta(p.modulo)} · {p.codigo}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -100,7 +105,7 @@ export function ConcesionFormModal({ uuid, tipo, open, onOpenChange }: Props) {
             </Button>
             <Button
               type="submit"
-              disabled={!codigoPermiso || mutation.isPending}
+              disabled={!codigoPermiso || mutation.isPending || !puedeEditar}
               variant={tipo === 'RESTRICCION' ? 'destructive' : 'default'}
             >
               {mutation.isPending ? <Spinner className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}

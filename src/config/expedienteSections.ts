@@ -36,21 +36,3 @@ export const EXPEDIENTE_SECTION_PERMISOS: Record<SectionKey, string> = {
   examenes: 'EXPEDIENTE_EXAMENES',
   documentos: 'EXPEDIENTE_DOCUMENTOS',
 }
-
-// ── Backward compat: re-export the old types/names for any lingering imports ──
-import type { UserRole } from '@/stores/authStore'
-
-/** @deprecated Use EXPEDIENTE_SECTION_PERMISOS instead */
-export const EXPEDIENTE_SECTION_ROLES: Record<SectionKey, UserRole[]> = {
-  datosPersonales: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'PACIENTE'],
-  somatometria: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA'],
-  tendenciaResultados: ['ADMINISTRADOR', 'MEDICO', 'LABORATORISTA'],
-  perfilLaboratorio: ['ADMINISTRADOR', 'MEDICO', 'LABORATORISTA'],
-  analisisSimplificado: ['PACIENTE'],
-  muestrasBiobanco: ['ADMINISTRADOR', 'MEDICO', 'ENCARGADO'],
-  pruebaEscalon: ['ADMINISTRADOR', 'MEDICO'],
-  citas: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'PACIENTE'],
-  estudios: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'LABORATORISTA'],
-  examenes: ['ADMINISTRADOR', 'MEDICO', 'LABORATORISTA'],
-  documentos: ['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA', 'PACIENTE'],
-}

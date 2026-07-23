@@ -57,6 +57,7 @@ export interface RolOption {
 
 /** Etiquetas legibles para mostrar en la UI */
 export const ROL_LABELS: Record<string, string> = {
+  ROOT: 'Sistema',
   ADMINISTRADOR: 'Administrador',
   MEDICO: 'Médico',
   LABORATORISTA: 'Laboratorista',
@@ -73,6 +74,8 @@ export function getNombreCompleto(persona: UsuarioPersona): string {
 
 export function getRolBadgeClass(rolNombre: string): string {
   switch (rolNombre) {
+    case 'ROOT':
+      return 'bg-[var(--imss-green-100)] text-[var(--imss-green-700)]'
     case 'ADMINISTRADOR':
       return 'bg-[var(--imss-green-100)] text-[var(--imss-green-700)]'
     case 'MEDICO':

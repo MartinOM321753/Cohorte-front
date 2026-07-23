@@ -27,6 +27,9 @@ const PAGE_SIZE = 10
 
 export default function UsuariosPage() {
   const { user } = useAuthStore()
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('USUARIOS_CREAR')
+  const puedeEditar = hasPermiso('USUARIOS_EDITAR')
   const toggleActivoMutation = useToggleActivo()
   const reenviarInvitacionMutation = useReenviarInvitacion()
 
@@ -105,13 +108,15 @@ export default function UsuariosPage() {
         title="Gestion de usuarios"
         subtitle="Administra las cuentas y roles de acceso al sistema"
         actions={
-          <Button
-            onClick={handleOpenCreate}
-            className="gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px] h-9"
-          >
-            <UserPlus className="h-4 w-4" strokeWidth={1.75} />
-            Nuevo usuario
-          </Button>
+          puedeCrear ? (
+            <Button
+              onClick={handleOpenCreate}
+              className="gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px] h-9"
+            >
+              <UserPlus className="h-4 w-4" strokeWidth={1.75} />
+              Nuevo usuario
+            </Button>
+          ) : undefined
         }
       />
 
@@ -140,9 +145,9 @@ export default function UsuariosPage() {
         data={usuarios}
         isLoading={isLoading}
         onView={handleView}
-        onEdit={handleEdit}
-        onToggleActivo={handleToggleActivo}
-        onReenviarInvitacion={handleReenviarInvitacion}
+        onEdit={puedeEditar ? handleEdit : undefined}
+        onToggleActivo={puedeEditar ? handleToggleActivo : undefined}
+        onReenviarInvitacion={puedeEditar ? handleReenviarInvitacion : undefined}
         reenviandoInvitacionUuid={reenviandoInvitacionUuid}
         currentInstitucionId={user?.institucion?.id}
         currentUserUuid={user?.uuid}

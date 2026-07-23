@@ -24,14 +24,13 @@ const InstitucionesPage= lazy(() => import('@/features/instituciones/pages/Insti
 const PerfilPage       = lazy(() => import('@/features/perfil/pages/PerfilPage'))
 const BitacoraAccesosPage  = lazy(() => import('@/features/bitacora/pages/BitacoraAccesosPage'))
 const BitacoraAccionesPage = lazy(() => import('@/features/bitacora/pages/BitacoraAccionesPage'))
-const EncargadoPage    = lazy(() => import('@/features/biobanco/pages/EncargadoPage'))
 const CoberturaPage    = lazy(() => import('@/features/cobertura/pages/CoberturaPage'))
 const DocumentoViewPage = lazy(() => import('@/features/documentos/pages/DocumentoViewPage'))
 const PermisosPage     = lazy(() => import('@/features/permisos/pages/PermisosPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage     = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
-import { permisoFor } from '@/config/featurePermisos'
+import { permisosFor, resolveHomeRoute } from '@/config/featurePermisos'
 
 function LoadingFallback() {
   return (
@@ -44,7 +43,7 @@ function LoadingFallback() {
 /** Redirects to the correct home based on permissions after successful auth */
 function PermisoBasedHome() {
   const { hasPermiso } = useAuthStore()
-  return <Navigate to={hasPermiso('DASHBOARD_VER') ? '/dashboard' : '/mis-muestras'} replace />
+  return <Navigate to={resolveHomeRoute(hasPermiso)} replace />
 }
 
 export function AppRouter() {
@@ -70,7 +69,7 @@ export function AppRouter() {
 
         {/* Visualización de documento por etiqueta (escaneo QR/barcode) — fuera de AppLayout */}
         <Route
-          path="/documento/:etiqueta"
+          path="/documento"
           element={
             <ProtectedRoute requiredPermiso="DOCUMENTOS_DESCARGAR">
               <Suspense fallback={<LoadingFallback />}>
@@ -91,23 +90,11 @@ export function AppRouter() {
           {/* Root → permission-aware redirect */}
           <Route path="/" element={<PermisoBasedHome />} />
 
-          {/* ── ENCARGADO-only routes ── */}
-          <Route
-            path="/mis-muestras"
-            element={
-              <ProtectedRoute requiredPermiso={permisoFor('misMuestras')}>
-                <Suspense fallback={<LoadingFallback />}>
-                  <EncargadoPage />
-                </Suspense>
-              </ProtectedRoute>
-            }
-          />
-
           {/* ── Clinical / admin routes ── */}
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('dashboard')}>
+              <ProtectedRoute requiredPermiso={permisosFor('dashboard')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <DashboardPage />
                 </Suspense>
@@ -117,7 +104,7 @@ export function AppRouter() {
           <Route
             path="/pacientes"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('pacientes')}>
+              <ProtectedRoute requiredPermiso={permisosFor('pacientes')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <PacientesPage />
                 </Suspense>
@@ -138,7 +125,7 @@ export function AppRouter() {
           <Route
             path="/estudios"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('estudios')}>
+              <ProtectedRoute requiredPermiso={permisosFor('estudios')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <EstudiosPage />
                 </Suspense>
@@ -148,7 +135,7 @@ export function AppRouter() {
           <Route
             path="/examenes"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('examenes')}>
+              <ProtectedRoute requiredPermiso={permisosFor('examenes')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <ExamenesPage />
                 </Suspense>
@@ -158,7 +145,7 @@ export function AppRouter() {
           <Route
             path="/biobanco"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('biobanco')}>
+              <ProtectedRoute requiredPermiso={permisosFor('biobanco')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <BiobancoPage />
                 </Suspense>
@@ -168,7 +155,7 @@ export function AppRouter() {
           <Route
             path="/citas"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('citas')}>
+              <ProtectedRoute requiredPermiso={permisosFor('citas')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <CitasPage />
                 </Suspense>
@@ -178,7 +165,7 @@ export function AppRouter() {
           <Route
             path="/cobertura"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('cobertura')}>
+              <ProtectedRoute requiredPermiso={permisosFor('cobertura')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <CoberturaPage />
                 </Suspense>
@@ -188,7 +175,7 @@ export function AppRouter() {
           <Route
             path="/catalogos"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('catalogos')}>
+              <ProtectedRoute requiredPermiso={permisosFor('catalogos')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <CatalogosPage />
                 </Suspense>
@@ -198,7 +185,7 @@ export function AppRouter() {
           <Route
             path="/configuracion"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('configuracion')}>
+              <ProtectedRoute requiredPermiso={permisosFor('configuracion')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <ConfiguracionPage />
                 </Suspense>
@@ -208,7 +195,7 @@ export function AppRouter() {
           <Route
             path="/usuarios"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('usuarios')}>
+              <ProtectedRoute requiredPermiso={permisosFor('usuarios')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <UsuariosPage />
                 </Suspense>
@@ -218,7 +205,7 @@ export function AppRouter() {
           <Route
             path="/instituciones"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('instituciones')}>
+              <ProtectedRoute requiredPermiso={permisosFor('instituciones')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <InstitucionesPage />
                 </Suspense>
@@ -236,7 +223,7 @@ export function AppRouter() {
           <Route
             path="/permisos"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('permisos')}>
+              <ProtectedRoute requiredPermiso={permisosFor('permisos')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <PermisosPage />
                 </Suspense>
@@ -247,7 +234,7 @@ export function AppRouter() {
           <Route
             path="/bitacora/accesos"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('bitacoraAccesos')}>
+              <ProtectedRoute requiredPermiso={permisosFor('bitacoraAccesos')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <BitacoraAccesosPage />
                 </Suspense>
@@ -257,7 +244,7 @@ export function AppRouter() {
           <Route
             path="/bitacora/acciones"
             element={
-              <ProtectedRoute requiredPermiso={permisoFor('bitacoraAcciones')}>
+              <ProtectedRoute requiredPermiso={permisosFor('bitacoraAcciones')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <BitacoraAccionesPage />
                 </Suspense>

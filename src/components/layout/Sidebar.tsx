@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import type { ElementType } from 'react'
 import cohorteLogo from '../../assets/logo.png'
 import { Link, useLocation } from 'react-router-dom'
@@ -6,14 +6,13 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { permisoFor } from '@/config/featurePermisos'
+import { permisosFor } from '@/config/featurePermisos'
+import { ROL_LABELS } from '@/features/usuarios/types/usuario.types'
 import { Button } from '@/components/ui/button'
 import {
   CalendarDays,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   ClipboardList,
   Database,
   Home,
@@ -29,30 +28,28 @@ import {
   UserRound,
   UsersRound,
   CircleUserRound,
-  Warehouse,
   X,
 } from 'lucide-react'
-import { useGetAlmacenesByEncargado } from '@/features/biobanco/hooks/useBiobanco'
-import { useEncargadoStore } from '@/stores/encargadoStore'
 
 interface NavItem {
   label: string
   href: string
   icon: ElementType
-  permiso?: string
+  /** El item aparece si el usuario tiene ALGUNO de estos permisos ACCEDER. */
+  permisos?: string[]
   modulo?: string
   group: 'Clínico' | 'Biobanco' | 'Sistema'
 }
 
 const navItems: NavItem[] = [
-  { label: 'Inicio', href: '/dashboard', icon: Home, permiso: permisoFor('dashboard'), group: 'Clínico' },
-  { label: 'Participantes', href: '/pacientes', icon: UserRound, permiso: permisoFor('pacientes'), modulo: 'PARTICIPANTES', group: 'Clínico' },
-  { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, permiso: permisoFor('estudios'), modulo: 'ESTUDIOS_MEDICOS', group: 'Clínico' },
+  { label: 'Inicio', href: '/dashboard', icon: Home, permisos: permisosFor('dashboard'), group: 'Clínico' },
+  { label: 'Participantes', href: '/pacientes', icon: UserRound, permisos: permisosFor('pacientes'), modulo: 'PARTICIPANTES', group: 'Clínico' },
+  { label: 'Estudios médicos', href: '/estudios', icon: Stethoscope, permisos: permisosFor('estudios'), modulo: 'ESTUDIOS_MEDICOS', group: 'Clínico' },
   {
     label: 'Exámenes',
     href: '/examenes',
     icon: Microscope,
-    permiso: permisoFor('examenes'),
+    permisos: permisosFor('examenes'),
     modulo: 'EXAMENES',
     group: 'Clínico',
   },
@@ -60,7 +57,7 @@ const navItems: NavItem[] = [
     label: 'Citas',
     href: '/citas',
     icon: CalendarDays,
-    permiso: permisoFor('citas'),
+    permisos: permisosFor('citas'),
     modulo: 'CITAS',
     group: 'Clínico',
   },
@@ -68,7 +65,7 @@ const navItems: NavItem[] = [
     label: 'Cobertura',
     href: '/cobertura',
     icon: PieChart,
-    permiso: permisoFor('cobertura'),
+    permisos: permisosFor('cobertura'),
     modulo: 'COBERTURA',
     group: 'Clínico',
   },
@@ -76,7 +73,7 @@ const navItems: NavItem[] = [
     label: 'Biobanco',
     href: '/biobanco',
     icon: TestTube2,
-    permiso: permisoFor('biobanco'),
+    permisos: permisosFor('biobanco'),
     modulo: 'BIOBANCO',
     group: 'Biobanco',
   },
@@ -84,35 +81,35 @@ const navItems: NavItem[] = [
     label: 'Usuarios',
     href: '/usuarios',
     icon: UsersRound,
-    permiso: permisoFor('usuarios'),
+    permisos: permisosFor('usuarios'),
     group: 'Sistema',
   },
   {
     label: 'Instituciones',
     href: '/instituciones',
     icon: Network,
-    permiso: permisoFor('instituciones'),
+    permisos: permisosFor('instituciones'),
     group: 'Sistema',
   },
   {
     label: 'Catálogos',
     href: '/catalogos',
     icon: Database,
-    permiso: permisoFor('catalogos'),
+    permisos: permisosFor('catalogos'),
     group: 'Sistema',
   },
   {
     label: 'Permisos',
     href: '/permisos',
     icon: Shield,
-    permiso: permisoFor('permisos'),
+    permisos: permisosFor('permisos'),
     group: 'Sistema',
   },
   {
     label: 'Bitácora Accesos',
     href: '/bitacora/accesos',
     icon: KeyRound,
-    permiso: permisoFor('bitacoraAccesos'),
+    permisos: permisosFor('bitacoraAccesos'),
     modulo: 'BITACORA_ACCESOS',
     group: 'Sistema',
   },
@@ -120,7 +117,7 @@ const navItems: NavItem[] = [
     label: 'Bitácora Acciones',
     href: '/bitacora/acciones',
     icon: ClipboardList,
-    permiso: permisoFor('bitacoraAcciones'),
+    permisos: permisosFor('bitacoraAcciones'),
     modulo: 'BITACORA_ACCIONES',
     group: 'Sistema',
   },
@@ -128,7 +125,7 @@ const navItems: NavItem[] = [
     label: 'Configuración',
     href: '/configuracion',
     icon: Settings,
-    permiso: permisoFor('configuracion'),
+    permisos: permisosFor('configuracion'),
     group: 'Sistema',
   },
   {
@@ -157,115 +154,28 @@ function ImssShield({ size = 62 }: { size?: number }) {
   )
 }
 
-function EncargadoAlmacenesSection({ uuid, collapsed }: { uuid: string; collapsed: boolean }) {
-  const [expanded, setExpanded] = useState(true)
-  const location = useLocation()
-  const { data: almacenes = [] } = useGetAlmacenesByEncargado(uuid)
-  const { selectedAlmacenId, setSelectedAlmacen } = useEncargadoStore()
-
-  if (collapsed) {
-    return (
-      <div className="mb-2">
-        <div className="space-y-1 px-2">
-          {almacenes.map((almacen) => {
-            const isActive = location.pathname === '/mis-muestras' && selectedAlmacenId === almacen.id
-            return (
-              <Link
-                key={almacen.id}
-                to="/mis-muestras"
-                title={almacen.nombre}
-                onClick={() => setSelectedAlmacen(almacen.id)}
-                className="flex items-center justify-center rounded-[5px] py-2 transition-colors"
-                style={{
-                  color: isActive ? 'var(--sidebar-fg)' : 'var(--sidebar-fg-dim)',
-                  background: isActive ? 'var(--sidebar-active-bg)' : undefined,
-                  boxShadow: isActive ? 'inset 2px 0 0 var(--sidebar-accent)' : undefined,
-                } as React.CSSProperties}
-                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)' }}
-                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '' }}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <Warehouse className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-              </Link>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="mb-2">
-      <div className="px-3 pb-1 pt-3">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex w-full items-center justify-between text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors hover:opacity-80"
-          style={{ color: 'var(--sidebar-muted)' }}
-        >
-          <span>Mis Almacenes</span>
-          {expanded
-            ? <ChevronUp className="h-3 w-3" />
-            : <ChevronDown className="h-3 w-3" />
-          }
-        </button>
-      </div>
-
-      {expanded && (
-        <div className="space-y-1 px-2">
-          {almacenes.length === 0 ? (
-            <p className="px-[10px] py-1 text-[11px] italic" style={{ color: 'var(--sidebar-muted)' }}>Sin almacenes asignados</p>
-          ) : (
-            almacenes.map((almacen) => {
-              const isActive = location.pathname === '/mis-muestras' && selectedAlmacenId === almacen.id
-              return (
-                <Link
-                  key={almacen.id}
-                  to="/mis-muestras"
-                  onClick={() => setSelectedAlmacen(almacen.id)}
-                  className="flex items-center gap-[10px] rounded-[5px] px-[10px] py-2 text-[13px] font-medium transition-colors"
-                  style={{
-                    color: isActive ? 'var(--sidebar-fg)' : 'var(--sidebar-fg-dim)',
-                    background: isActive ? 'var(--sidebar-active-bg)' : undefined,
-                    boxShadow: isActive ? 'inset 2px 0 0 var(--sidebar-accent)' : undefined,
-                  } as React.CSSProperties}
-                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)' }}
-                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '' }}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <Warehouse className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                  <span className="truncate">{almacen.nombre}</span>
-                </Link>
-              )
-            })
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function Sidebar() {
   const isMobile = useIsMobile()
   const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebarStore()
   const location = useLocation()
-  const { user, logout, hasRole, hasPermiso, modulosHabilitados, roles } = useAuthStore()
-  const isEncargado = hasRole('ENCARGADO')
+  const { user, logout, hasPermiso, modulosHabilitados, roles } = useAuthStore()
 
   useEffect(() => {
     if (isMobile) setMobileOpen(false)
   }, [location.pathname, isMobile, setMobileOpen])
 
   const userRoleLabel = useMemo(() => {
-    if (roles.length > 0) return roles.join(', ')
+    if (roles.length > 0) return roles.map((r) => ROL_LABELS[r] || r).join(', ')
     if (!user) return ''
-    return typeof user.rol === 'string' ? user.rol : typeof (user.rol as any)?.nombre === 'string' ? (user.rol as any).nombre : ''
+    const raw = typeof user.rol === 'string' ? user.rol : typeof (user.rol as any)?.nombre === 'string' ? (user.rol as any).nombre : ''
+    return ROL_LABELS[raw] || raw
   }, [roles, user])
 
   const filteredNavItems = useMemo(() => {
     return navItems.filter((item) => {
-      if (item.permiso) {
+      if (item.permisos && item.permisos.length > 0) {
         if (!user) return false
-        if (!hasPermiso(item.permiso)) return false
+        if (!item.permisos.some((p) => hasPermiso(p))) return false
       }
       if (item.modulo && !modulosHabilitados.includes(item.modulo)) return false
       return true
@@ -348,16 +258,6 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-2 custom-scrollbar">
         {(['Clínico', 'Biobanco', 'Sistema'] as const).map((group) => {
           const items = groupedNavItems[group]
-
-          if (group === 'Biobanco' && isEncargado) {
-            return (
-              <EncargadoAlmacenesSection
-                key="encargado-almacenes"
-                uuid={user?.uuid ?? ''}
-                collapsed={effectiveCollapsed}
-              />
-            )
-          }
 
           if (items.length === 0) return null
 

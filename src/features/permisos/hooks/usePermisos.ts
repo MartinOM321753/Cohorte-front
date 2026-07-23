@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/authStore'
 import * as api from '../api/permisos.api'
 import type { ActualizarPermisosRolRequest, AsignarRolRequest, PermisoIndividualRequest } from '../types/permiso.types'
 
@@ -45,6 +46,7 @@ export function useActualizarPermisosRol() {
       api.actualizarPermisosRol(idRol, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.roles })
+      useAuthStore.getState().restoreSession()
       toast.success('Permisos del rol actualizados')
     },
     onError: () => toast.error('Error al actualizar permisos del rol'),
@@ -58,6 +60,7 @@ export function useAsignarRol(uuid: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.usuario(uuid) })
       qc.invalidateQueries({ queryKey: ['permisos', 'bitacora'] })
+      useAuthStore.getState().restoreSession()
       toast.success('Rol asignado')
     },
     onError: () => toast.error('Error al asignar rol'),
@@ -71,6 +74,7 @@ export function useQuitarRol(uuid: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.usuario(uuid) })
       qc.invalidateQueries({ queryKey: ['permisos', 'bitacora'] })
+      useAuthStore.getState().restoreSession()
       toast.success('Rol removido')
     },
     onError: () => toast.error('Error al quitar rol'),
@@ -84,6 +88,7 @@ export function useConcederPermiso(uuid: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.usuario(uuid) })
       qc.invalidateQueries({ queryKey: ['permisos', 'bitacora'] })
+      useAuthStore.getState().restoreSession()
       toast.success('Permiso concedido')
     },
     onError: () => toast.error('Error al conceder permiso'),
@@ -97,6 +102,7 @@ export function useRestringirPermiso(uuid: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.usuario(uuid) })
       qc.invalidateQueries({ queryKey: ['permisos', 'bitacora'] })
+      useAuthStore.getState().restoreSession()
       toast.success('Restricción aplicada')
     },
     onError: () => toast.error('Error al restringir permiso'),
@@ -110,6 +116,7 @@ export function useQuitarPermisoIndividual(uuid: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.usuario(uuid) })
       qc.invalidateQueries({ queryKey: ['permisos', 'bitacora'] })
+      useAuthStore.getState().restoreSession()
       toast.success('Permiso individual revocado')
     },
     onError: () => toast.error('Error al revocar permiso'),

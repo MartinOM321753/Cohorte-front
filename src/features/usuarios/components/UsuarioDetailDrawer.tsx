@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 import { type Usuario, getNombreCompleto, getRolBadgeClass } from '../types/usuario.types'
 
 interface UsuarioDetailDrawerProps {
@@ -32,9 +33,13 @@ export function UsuarioDetailDrawer({
   usuario,
   onEdit,
 }: UsuarioDetailDrawerProps) {
+  const puedeEditar = useAuthStore((s) => s.hasPermiso('USUARIOS_EDITAR'))
+  const currentUserUuid = useAuthStore((s) => s.user?.uuid)
+
   if (!usuario) return null
 
   const rolNombre = usuario.rol?.nombre ?? '—'
+  const isOtherRoot = rolNombre === 'ROOT' && usuario.UUID !== currentUserUuid
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -140,18 +145,22 @@ export function UsuarioDetailDrawer({
         </div>
 
         {/* Footer con acción de editar */}
-        <div className="border-t border-[var(--imss-ink-100)] px-5 py-3">
-          <Button
-            className="w-full gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
-            onClick={() => {
-              onOpenChange(false)
-              onEdit(usuario)
-            }}
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Editar usuario
-          </Button>
-        </div>
+        {puedeEditar && (
+          <div className="border-t border-[var(--imss-ink-100)] px-5 py-3">
+            <Button
+              className="w-full gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
+              title={isOtherRoot ? 'No puedes editar a otro usuario ROOT' : undefined}
+              disabled={isOtherRoot}
+              onClick={() => {
+                onOpenChange(false)
+                onEdit(usuario)
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Editar usuario
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   )

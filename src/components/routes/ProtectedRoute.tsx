@@ -1,16 +1,15 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthStore, type UserRole } from '@/stores/authStore';
+import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui/spinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  /** @deprecated Use requiredPermiso instead */
-  requiredRoles?: UserRole[];
-  requiredPermiso?: string;
+  /** Un permiso único (compat) o array — cualquiera del array otorga acceso. */
+  requiredPermiso?: string | string[];
 }
 
-export function ProtectedRoute({ children, requiredRoles, requiredPermiso }: ProtectedRouteProps) {
-  const { isAuthenticated, user, isLoading, hasRole, hasPermiso, mustChangePassword } = useAuthStore();
+export function ProtectedRoute({ children, requiredPermiso }: ProtectedRouteProps) {
+  const { isAuthenticated, user, isLoading, hasPermiso, mustChangePassword } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
@@ -30,11 +29,9 @@ export function ProtectedRoute({ children, requiredRoles, requiredPermiso }: Pro
   }
 
   if (requiredPermiso) {
-    if (!hasPermiso(requiredPermiso)) {
-      return <Navigate to="/unauthorized" replace />;
-    }
-  } else if (requiredRoles && requiredRoles.length > 0) {
-    if (!hasRole(requiredRoles as UserRole[])) {
+    const codes = Array.isArray(requiredPermiso) ? requiredPermiso : [requiredPermiso];
+    const autorizado = codes.some((c) => hasPermiso(c));
+    if (!autorizado) {
       return <Navigate to="/unauthorized" replace />;
     }
   }
