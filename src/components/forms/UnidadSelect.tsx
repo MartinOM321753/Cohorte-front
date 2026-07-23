@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 import { useGetUnidadesActivas, useCreateUnidad } from '@/features/catalogos/hooks/useUnidades'
 
 interface UnidadSelectProps {
@@ -46,6 +47,7 @@ export function UnidadSelect({
   const [newNombre, setNewNombre] = useState('')
   const [newError, setNewError] = useState('')
 
+  const canCreate = useAuthStore((s) => s.hasPermiso('CATALOGOS_EDITAR'))
   const { data: unidades = [], isLoading } = useGetUnidadesActivas()
   const createMutation = useCreateUnidad()
 
@@ -128,17 +130,19 @@ export function UnidadSelect({
           </PopoverContent>
         </Popover>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          disabled={disabled}
-          onClick={() => { setNewNombre(''); setNewError(''); setOpenNew(true) }}
-          title="Agregar nueva unidad"
-          className={cn(compact ? 'h-8 w-8' : '')}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        {canCreate && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            disabled={disabled}
+            onClick={() => { setNewNombre(''); setNewError(''); setOpenNew(true) }}
+            title="Agregar nueva unidad"
+            className={cn(compact ? 'h-8 w-8' : '')}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {error && (

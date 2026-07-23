@@ -5,9 +5,9 @@ import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { RoleGuard } from '@/components/routes/RoleGuard'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PacienteFormModal } from '@/features/pacientes/components/PacienteFormModal'
+import { useAuthStore } from '@/stores/authStore'
 
 import { CitasIlamyCalendar } from '../components/CitasIlamyCalendar'
 import { useGetCitas } from '../hooks/useCitas'
@@ -16,6 +16,9 @@ export default function CitasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isPacienteFormOpen, setIsPacienteFormOpen] = useState(false)
   const { data: citas, isLoading } = useGetCitas()
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrearPaciente = hasPermiso('PACIENTES_CREAR')
+  const puedeAgendarCita = hasPermiso('CITAS_CREAR')
 
   const citasArray = Array.isArray(citas) ? citas : []
   const filteredCitas = citasArray.filter((cita) => {
@@ -29,16 +32,18 @@ export default function CitasPage() {
   })
 
   return (
-    <RoleGuard allowedRoles={['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA']}>
-      <div className="flex flex-col gap-6">
-        <PageHeader
-          title="Citas"
-          subtitle="Gestión de agenda clínica y registro inmediato de participantes."
-          actions={
-            <>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Citas"
+        subtitle="Gestión de agenda clínica y registro inmediato de participantes."
+        actions={
+          <>
+            {puedeCrearPaciente && (
               <Button variant="secondary" onClick={() => setIsPacienteFormOpen(true)}>
                 Registrar participante
               </Button>
+            )}
+            {puedeAgendarCita && (
               <Button
                 type="button"
                 onClick={() => toast.message('Para agendar: haz clic en un espacio del calendario (día/semana).')}
@@ -46,9 +51,10 @@ export default function CitasPage() {
                 <Plus className="h-4 w-4" strokeWidth={1.75} />
                 Nueva cita
               </Button>
-            </>
-          }
-        />
+            )}
+          </>
+        }
+      />
 
         <Card className="overflow-hidden p-0">
           <div className="flex flex-wrap items-center gap-3 border-b p-4">
@@ -77,12 +83,11 @@ export default function CitasPage() {
           </div>
         </Card>
 
-        <PacienteFormModal
-          open={isPacienteFormOpen}
-          onOpenChange={setIsPacienteFormOpen}
-        />
-      </div>
-    </RoleGuard>
+      <PacienteFormModal
+        open={isPacienteFormOpen}
+        onOpenChange={setIsPacienteFormOpen}
+      />
+    </div>
   )
 }
 

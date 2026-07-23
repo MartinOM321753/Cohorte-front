@@ -17,9 +17,11 @@ import {
 } from '@/components/ui/dialog'
 import { DataTable } from '@/components/tables/DataTable'
 import { useGetAllUnidades, useCreateUnidad, useUpdateUnidad, useToggleUnidad } from '../hooks/useUnidades'
+import { useAuthStore } from '@/stores/authStore'
 import { UnidadMedida } from '@/types/api'
 
 export function UnidadesPanel() {
+  const canEdit = useAuthStore((s) => s.hasPermiso('CATALOGOS_EDITAR'))
   const { data: unidades = [], isLoading, isError } = useGetAllUnidades()
   const createMutation = useCreateUnidad()
   const updateMutation = useUpdateUnidad()
@@ -89,10 +91,10 @@ export function UnidadesPanel() {
           <Badge variant="outline" className="text-[11px]">Inactiva</Badge>
         ),
     },
-    {
+    ...(canEdit ? [{
       id: 'acciones',
       header: '',
-      cell: ({ row }) => {
+      cell: ({ row }: { row: { original: UnidadMedida } }) => {
         const u = row.original
         return (
           <div className="flex justify-end gap-1">
@@ -112,7 +114,7 @@ export function UnidadesPanel() {
           </div>
         )
       },
-    },
+    }] as ColumnDef<UnidadMedida>[] : []),
   ]
 
   return (
@@ -125,10 +127,12 @@ export function UnidadesPanel() {
               Catálogo personalizado. Las unidades inactivas no se muestran en los formularios.
             </CardDescription>
           </div>
-          <Button size="sm" onClick={() => { setCreateNombre(''); setCreateError(''); setOpenCreate(true) }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva unidad
-          </Button>
+          {canEdit && (
+            <Button size="sm" onClick={() => { setCreateNombre(''); setCreateError(''); setOpenCreate(true) }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva unidad
+            </Button>
+          )}
         </div>
       </CardHeader>
 

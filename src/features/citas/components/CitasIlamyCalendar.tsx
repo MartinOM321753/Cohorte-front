@@ -17,6 +17,7 @@ import { CalendarClock, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 dayjs.extend(isoWeek);
 
 import type { Cita } from "@/types/api";
+import { useAuthStore } from "@/stores/authStore";
 import { useUpdateCita } from "../hooks/useCitas";
 import { useGetConfiguracionHorarioActiva } from "@/features/configuracion/hooks/useHorarios";
 import { CitaIlamyEventForm } from "./CitaIlamyEventForm";
@@ -326,6 +327,8 @@ function buildPastBlockCSS(
 
 export function CitasIlamyCalendar({ citas, isLoading }: Props) {
   const timezone = useMemo(() => safeTimeZone(), []);
+  const hasPermiso = useAuthStore((s) => s.hasPermiso);
+  const puedeEditar = hasPermiso('CITAS_EDITAR');
   const updateCita = useUpdateCita();
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const calendarWrapperRef = useRef<HTMLDivElement>(null);
@@ -861,7 +864,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
             </span>
           )}
           dayMaxEvents={4}
-          disableDragAndDrop={noConfig}
+          disableDragAndDrop={noConfig || !puedeEditar}
           disableEventClick={noConfig}
           disableCellClick={noConfig}
           stickyViewHeader

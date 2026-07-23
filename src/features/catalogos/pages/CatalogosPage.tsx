@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { RoleGuard } from '@/components/routes/RoleGuard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertCircle, Copy } from 'lucide-react'
 import { UnidadesPanel } from '../components/UnidadesPanel'
@@ -14,13 +13,22 @@ import { TipoEstudioMuestraAdminTab } from '@/features/biobanco/components/TipoE
 import { useAuthStore } from '@/stores/authStore'
 
 export default function CatalogosPage() {
-  const [activeTab, setActiveTab] = useState('unidades')
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
   const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const hasAnyPermiso = useAuthStore((s) => s.hasAnyPermiso)
+
+  const tabs = [
+    { value: 'unidades', label: 'Unidades', visible: true },
+    { value: 'tipos-estudio', label: 'Tipos de Estudio', visible: hasAnyPermiso(['ESTUDIOS_TIPOS_LOOKUP', 'ESTUDIOS_CATALOGO_ACCEDER']) },
+    { value: 'examenes', label: 'Exámenes', visible: hasAnyPermiso(['EXAMENES_LOOKUP', 'EXAMENES_CATALOGO_ACCEDER']) },
+    { value: 'tipos-muestra', label: 'Tipos de Muestra', visible: hasAnyPermiso(['TIPOS_MUESTRA_LOOKUP', 'TIPOS_MUESTRA_ACCEDER']) },
+    { value: 'estudios-muestra', label: 'Est. de Muestra', visible: hasAnyPermiso(['ESTUDIOS_MUESTRA_LOOKUP', 'ESTUDIOS_MUESTRA_ACCEDER']) },
+  ]
+  const visibleTabs = tabs.filter((t) => t.visible)
+  const [activeTab, setActiveTab] = useState(visibleTabs[0]?.value ?? 'unidades')
 
   return (
-    <RoleGuard allowedRoles={['ADMINISTRADOR']}>
-      <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
         <PageHeader
           title="Catálogos"
           subtitle="Catálogos maestros del sistema para configuración clínica."
@@ -43,12 +51,10 @@ export default function CatalogosPage() {
         </Alert>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
-            <TabsTrigger value="unidades">Unidades</TabsTrigger>
-            <TabsTrigger value="tipos-estudio">Tipos de Estudio</TabsTrigger>
-            <TabsTrigger value="examenes">Exámenes</TabsTrigger>
-            <TabsTrigger value="tipos-muestra">Tipos de Muestra</TabsTrigger>
-            <TabsTrigger value="estudios-muestra">Est. de Muestra</TabsTrigger>
+          <TabsList className="flex w-full flex-wrap">
+            {visibleTabs.map((t) => (
+              <TabsTrigger key={t.value} value={t.value} className="flex-1">{t.label}</TabsTrigger>
+            ))}
           </TabsList>
 
           <TabsContent value="unidades" className="space-y-4">
@@ -72,8 +78,7 @@ export default function CatalogosPage() {
           </TabsContent>
         </Tabs>
 
-        <CopiarCatalogosDialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen} />
-      </div>
-    </RoleGuard>
+      <CopiarCatalogosDialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen} />
+    </div>
   )
 }

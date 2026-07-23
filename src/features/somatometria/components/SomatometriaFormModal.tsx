@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Pencil } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 
 import {
   Dialog,
@@ -54,7 +55,10 @@ export function SomatometriaFormModal({
   usuarioRegistraUUID,
   somatometria,
 }: SomatometriaFormModalProps) {
+  const puedeCrear = useAuthStore((s) => s.hasPermiso('SOMATOMETRIA_CREAR'))
+  const puedeEditar = useAuthStore((s) => s.hasPermiso('SOMATOMETRIA_EDITAR'))
   const isEdit = !!somatometria
+  const puedeSubmit = isEdit ? puedeEditar : puedeCrear
   const createMutation = useCreateSomatometria()
   const updateMutation = useUpdateSomatometria(pacienteUUID)
 
@@ -277,7 +281,7 @@ export function SomatometriaFormModal({
             </Button>
             <Button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || !puedeSubmit}
               className="bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
             >
               {isPending
@@ -306,6 +310,7 @@ export function SomatometriaHistorialDialog({
   pacienteUUID,
   onEditar,
 }: SomatometriaHistorialDialogProps) {
+  const puedeEditar = useAuthStore((s) => s.hasPermiso('SOMATOMETRIA_EDITAR'))
   const { data: historial = [], isLoading } = useSomatometriaByPaciente(pacienteUUID, {
     enabled: open && !!pacienteUUID,
   })
@@ -382,13 +387,15 @@ export function SomatometriaHistorialDialog({
                       {s.frecuenciaCardiacaReposo != null ? `${s.frecuenciaCardiacaReposo} lpm` : '—'}
                     </td>
                     <td className="px-3 py-2.5 text-right">
-                      <button
-                        onClick={() => onEditar(s)}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
-                        title="Editar"
-                      >
-                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                      </button>
+                      {puedeEditar && (
+                        <button
+                          onClick={() => onEditar(s)}
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
+                          title="Editar"
+                        >
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

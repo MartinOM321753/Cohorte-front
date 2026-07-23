@@ -7,9 +7,11 @@ import {
   Check,
   ChevronsUpDown,
   ClipboardList,
+  Filter,
   Minus,
   Paperclip,
   Pencil,
+  Trash2,
   TrendingDown,
   TrendingUp,
   X,
@@ -19,6 +21,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { ResultadoExamen, ResultadoExamenRequestDTO } from '@/types/api'
 import { resultadoExamenSchema, type ResultadoExamenFormData } from '../schemas/examen.schema'
 import {
+  useDeleteResultadoExamen,
   useGetExamenes,
   useGetResultadosByPacienteUUID,
   useSaveResultadoExamen,
@@ -52,6 +55,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
 
@@ -106,7 +127,10 @@ function RangeIndicator({ status }: { status: 'low' | 'normal' | 'high' | null }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const todayStr = new Date().toISOString().slice(0, 10)
+function localDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const todayStr = localDateStr(new Date())
 
 const DEFAULT_VALUES: ResultadoExamenFormData = {
   pacienteUUID: '',
@@ -119,15 +143,22 @@ const DEFAULT_VALUES: ResultadoExamenFormData = {
 
 export function ResultadosExamenTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+  const puedeCrear = useAuthStore((s) => s.hasPermiso('EXAMENES_CREAR'))
+  const puedeEditarExamen = useAuthStore((s) => s.hasPermiso('EXAMENES_EDITAR'))
+  const puedeEliminar = useAuthStore((s) => s.hasPermiso('EXAMENES_ELIMINAR'))
+  const puedeSubirDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
+  const puedeEliminarDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
 
   const [openExamen, setOpenExamen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [docsResultadoId, setDocsResultadoId] = useState<number | null>(null)
   const [selectedPacienteLabel, setSelectedPacienteLabel] = useState<string | null>(null)
   const [selectedPacienteSexo, setSelectedPacienteSexo] = useState<'M' | 'F' | null>(null)
+  const [filterExamenId, setFilterExamenId] = useState<string>('all')
   const { data: examenes, isLoading: isLoadingExamenes } = useGetExamenes()
   const saveMutation   = useSaveResultadoExamen()
   const updateMutation = useUpdateResultadoExamen()
+  const deleteMutation = useDeleteResultadoExamen()
 
   const {
     register,
@@ -163,6 +194,8 @@ export function ResultadosExamenTab() {
     [examenesActivos, watchedIdExamen]
   )
 
+  useEffect(() => { setFilterExamenId('all') }, [watchedPacienteUUID])
+
   const {
     data: resultados,
     isLoading: isLoadingResultados,
@@ -176,6 +209,26 @@ export function ResultadosExamenTab() {
           new Date(b.fechaResultado).getTime() - new Date(a.fechaResultado).getTime()
       ),
     [resultados]
+  )
+
+  const examenesEnResultados = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const r of sortedResultados) {
+      const id = r.examen?.id ?? r.idExamen
+      if (!map.has(id)) map.set(id, r.examen?.nombreExamen ?? `#${id}`)
+    }
+    return [...map.entries()]
+      .sort((a, b) => a[1].localeCompare(b[1], 'es'))
+  }, [sortedResultados])
+
+  const filteredResultados = useMemo(
+    () =>
+      filterExamenId === 'all'
+        ? sortedResultados
+        : sortedResultados.filter(
+            (r) => (r.examen?.id ?? r.idExamen) === Number(filterExamenId)
+          ),
+    [sortedResultados, filterExamenId]
   )
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -237,10 +290,28 @@ export function ResultadosExamenTab() {
   // Fecha máxima = hoy (bloquear fechas futuras en el calendario)
   const maxDate = useMemo(() => new Date(), [])
 
+  const showForm = puedeCrear || (puedeEditarExamen && isEditing)
+
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+    <div className="space-y-4">
+      {!showForm && (
+        <PacienteSearchCombobox
+          value={watchedPacienteUUID || null}
+          onChange={(uuid) => setValue('pacienteUUID', uuid)}
+          onSelectPaciente={(p) => {
+            const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
+            setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
+            setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
+          }}
+          placeholder="Buscar participante por folio, nombre o CURP…"
+          variant="search"
+          className="max-w-md"
+        />
+      )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       {/* ── Panel izquierdo: historial ── */}
-      <Card className="lg:col-span-3">
+      <Card className={showForm ? 'lg:col-span-3' : 'lg:col-span-5'}>
         <div className="flex items-center justify-between gap-3 border-b p-4">
           <div className="space-y-0.5">
             <div className="flex items-center gap-2 text-sm font-medium">
@@ -250,13 +321,29 @@ export function ResultadosExamenTab() {
             <div className="text-xs text-muted-foreground">
               {selectedPacienteLabel
                 ? selectedPacienteLabel
-                : 'Selecciona un participante en el formulario para ver sus resultados.'}
+                : 'Busca un participante para ver sus resultados.'}
             </div>
           </div>
           {watchedPacienteUUID && (
-            <Badge variant="secondary" className="font-mono">
-              {sortedResultados.length}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {examenesEnResultados.length > 1 && (
+                <Select value={filterExamenId} onValueChange={setFilterExamenId}>
+                  <SelectTrigger className="h-7 w-auto max-w-[180px] gap-1 text-xs">
+                    <Filter className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {examenesEnResultados.map(([id, name]) => (
+                      <SelectItem key={id} value={String(id)}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Badge variant="secondary" className="font-mono">
+                {filteredResultados.length}
+              </Badge>
+            </div>
           )}
         </div>
 
@@ -264,7 +351,7 @@ export function ResultadosExamenTab() {
           {!watchedPacienteUUID ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-sm text-muted-foreground">
               <ClipboardList className="h-8 w-8 opacity-25" />
-              <span>Elige un participante en el formulario para ver su historial.</span>
+              <span>Busca un participante para ver su historial.</span>
             </div>
           ) : isLoadingResultados ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -297,7 +384,7 @@ export function ResultadosExamenTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedResultados.map((r) => {
+                  {filteredResultados.map((r) => {
                     const status = getRangeStatus(
                       r,
                       selectedPacienteSexo ?? undefined
@@ -335,26 +422,60 @@ export function ResultadosExamenTab() {
                             >
                               <Paperclip className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              title={editingId === r.id ? 'Cancelar edición' : 'Editar resultado'}
-                              onClick={() =>
-                                editingId === r.id ? handleCancelEdit() : handleEditResultado(r)
-                              }
-                            >
-                              {editingId === r.id
-                                ? <X className="h-3.5 w-3.5" />
-                                : <Pencil className="h-3.5 w-3.5" />
-                              }
-                            </Button>
+                            {(puedeEditarExamen || editingId === r.id) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title={editingId === r.id ? 'Cancelar edición' : 'Editar resultado'}
+                                onClick={() =>
+                                  editingId === r.id ? handleCancelEdit() : handleEditResultado(r)
+                                }
+                              >
+                                {editingId === r.id
+                                  ? <X className="h-3.5 w-3.5" />
+                                  : <Pencil className="h-3.5 w-3.5" />
+                                }
+                              </Button>
+                            )}
+                            {puedeEliminar && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                    disabled={deleteMutation.isPending}
+                                    title="Eliminar resultado"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Eliminar este resultado?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Se eliminarán los documentos adjuntos de este resultado. Esta acción no se puede deshacer.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteMutation.mutate(r.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Eliminar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
                     )
                   })}
-                  {sortedResultados.length === 0 && (
+                  {filteredResultados.length === 0 && (
                     <TableRow>
                       <TableCell
                         colSpan={5}
@@ -373,7 +494,7 @@ export function ResultadosExamenTab() {
       </Card>
 
       {/* ── Panel derecho: formulario ── */}
-      <Card className="lg:col-span-2">
+      {(puedeCrear || (puedeEditarExamen && isEditing)) && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">
             {isEditing ? 'Editar resultado' : 'Registrar resultado'}
@@ -413,7 +534,7 @@ export function ResultadosExamenTab() {
                   role="combobox"
                   aria-expanded={openExamen}
                   className="w-full justify-between"
-                  disabled={isLoadingExamenes}
+                  disabled={isLoadingExamenes || isEditing}
                 >
                   <span className="truncate text-left">
                     {watchedIdExamen && watchedIdExamen > 0
@@ -548,7 +669,7 @@ export function ResultadosExamenTab() {
             </Button>
           </div>
         </form>
-      </Card>
+      </Card>}
 
       {/* ── Modal de documentos del resultado ── */}
       <DocumentosDialog
@@ -559,9 +680,10 @@ export function ResultadosExamenTab() {
         titulo={`Documentos — Resultado #${docsResultadoId}`}
         descripcion="Sube y consulta los documentos adjuntos de este resultado de examen."
         usuarioUUID={userUuid}
-        canDelete
-        canUpload
+        canDelete={puedeEliminarDocs}
+        canUpload={puedeSubirDocs}
       />
+    </div>
     </div>
   )
 }

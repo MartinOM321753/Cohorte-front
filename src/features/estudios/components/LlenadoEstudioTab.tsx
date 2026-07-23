@@ -14,6 +14,7 @@ import {
 } from '@/types/api'
 import {
   useCreateEstudio,
+  useDeleteEstudio,
   useGetEstudiosByPaciente,
   useGetEstudioById,
   useGetParametrosByTipo,
@@ -37,6 +38,17 @@ import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 
 // ──────────────────────────────────────────────────────────
@@ -112,6 +124,8 @@ type LlenadoForm = Record<string, unknown>
 // ──────────────────────────────────────────────────────────
 export function LlenadoEstudioTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+  const puedeCrear = useAuthStore((s) => s.hasPermiso('ESTUDIOS_CREAR'))
+  const puedeEditar = useAuthStore((s) => s.hasPermiso('ESTUDIOS_EDITAR'))
   const isAdmin  = useAuthStore((s) => s.hasPermiso('ESTUDIOS_ELIMINAR'))
   const canUploadEstudio = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
 
@@ -137,6 +151,7 @@ export function LlenadoEstudioTab() {
 
   const createMutation = useCreateEstudio()
   const updateMutation = useUpdateEstudio(editingEstudioId ?? 0)
+  const deleteMutation = useDeleteEstudio()
 
   const parametrosList: ParametroEstudio[] = parametros ?? []
 
@@ -428,8 +443,27 @@ export function LlenadoEstudioTab() {
 
   const isPending = createMutation.isPending || updateMutation.isPending
 
+  const showForm = puedeCrear || (puedeEditar && !!editingEstudioId)
+
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+    <div className="space-y-4">
+      {!showForm && (
+        <PacienteSearchCombobox
+          value={selectedPacienteUUID || null}
+          onChange={(uuid) => setSelectedPacienteUUID(uuid)}
+          onSelectPaciente={(p) => {
+            const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
+              .filter(Boolean).join(' ')
+            setSelectedPacienteNombre(nombre)
+            setSelectedPacienteSexo(p.persona?.sexo)
+          }}
+          placeholder="Buscar participante por folio, nombre o CURP…"
+          variant="search"
+          className="max-w-md"
+        />
+      )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       {/* Dialog documentos del historial */}
       <DocumentosDialog
         open={docEstudioId !== null}
@@ -444,7 +478,7 @@ export function LlenadoEstudioTab() {
       />
 
       {/* LEFT — patient study history */}
-      <Card className="lg:col-span-3">
+      <Card className={showForm ? 'lg:col-span-3' : 'lg:col-span-5'}>
         <div className="flex items-center justify-between gap-3 border-b p-4">
           <div className="space-y-0.5">
             <div className="text-sm font-medium">Historial del participante</div>
@@ -463,7 +497,7 @@ export function LlenadoEstudioTab() {
           {!selectedPacienteUUID ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
               <ClipboardList className="h-8 w-8 opacity-30" strokeWidth={1.25} />
-              Selecciona un participante en el formulario.
+              Busca un participante para ver su historial.
             </div>
           ) : isLoadingHistorial ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -508,20 +542,55 @@ export function LlenadoEstudioTab() {
                         >
                           <Paperclip className="h-3.5 w-3.5" strokeWidth={1.75} />
                         </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Editar estudio"
-                          onClick={() => {
-                            setEditingEstudioId(e.id)
-                            setSelectedTipoId(e.tipoEstudioid)
-                            setValue('idTipoEstudio', e.tipoEstudioid)
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        </Button>
+                        {puedeEditar && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Editar estudio"
+                            onClick={() => {
+                              setEditingEstudioId(e.id)
+                              setSelectedTipoId(e.tipoEstudioid)
+                              setValue('idTipoEstudio', e.tipoEstudioid)
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                disabled={deleteMutation.isPending}
+                                title="Eliminar estudio"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar este estudio?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Se eliminarán todos sus resultados y documentos adjuntos. Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(e.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -533,7 +602,7 @@ export function LlenadoEstudioTab() {
       </Card>
 
       {/* RIGHT — fill form */}
-      <Card className="lg:col-span-2">
+      {(puedeCrear || (puedeEditar && editingEstudioId)) && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">
             {editingEstudioId ? 'Editar estudio' : 'Registrar estudio'}
@@ -560,6 +629,7 @@ export function LlenadoEstudioTab() {
                 setSelectedPacienteNombre(nombre)
                 setSelectedPacienteSexo(p.persona?.sexo)
               }}
+              disabled={!!editingEstudioId}
             />
           </FormField>
 
@@ -787,7 +857,8 @@ export function LlenadoEstudioTab() {
             </Button>
           </div>
         </form>
-      </Card>
+      </Card>}
+    </div>
     </div>
   )
 }

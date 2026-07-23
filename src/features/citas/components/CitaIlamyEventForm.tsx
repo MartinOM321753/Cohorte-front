@@ -104,6 +104,7 @@ export function CitaIlamyEventForm({
   initialPacienteUUID,
 }: CitaIlamyEventFormProps) {
   const user = useAuthStore((s) => s.user)
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
   const currentUserUuid = user?.uuid ?? ''
   const timezone = useMemo(() => safeTimeZone(), [])
 
@@ -141,6 +142,9 @@ export function CitaIlamyEventForm({
 
   const cita = (selectedEvent?.data as any)?.cita as Cita | undefined
   const isEditing = isEditingEarly
+  const puedeCrear = hasPermiso('CITAS_CREAR')
+  const puedeEditar = hasPermiso('CITAS_EDITAR')
+  const readOnly = isEditing ? !puedeEditar : !puedeCrear
 
   const isPast = useMemo(() => {
     if (!isEditing) return false
@@ -445,7 +449,7 @@ export function CitaIlamyEventForm({
             >
               Cancelar
             </Button>
-            {(!isPast || isEditing) && (
+            {(!isPast || isEditing) && !readOnly && (
               <Button
                 type="submit"
                 disabled={isPending}

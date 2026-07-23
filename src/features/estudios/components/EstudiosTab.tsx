@@ -26,12 +26,13 @@ const DEFAULT_VALUES: EstudioMedicoFormData = {
   pacienteUUID: '',
   usuarioRealizaUUID: '',
   idTipoEstudio: 0,
-  fechaEstudio: new Date().toISOString().slice(0, 10),
+  fechaEstudio: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })(),
   observaciones: '',
 }
 
 export function EstudiosTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+  const puedeCrear = useAuthStore((s) => s.hasPermiso('ESTUDIOS_CREAR'))
   const isAdmin   = useAuthStore((s) => s.hasPermiso('ESTUDIOS_ELIMINAR'))
   const canUploadEstudio = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
   const [docEstudioId, setDocEstudioId] = useState<number | null>(null)
@@ -160,7 +161,7 @@ export function EstudiosTab() {
         canUpload={canUploadEstudio}
       />
 
-      <Card className="lg:col-span-2">
+      {puedeCrear && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">Registrar estudio</div>
           <div className="text-xs text-muted-foreground">Captura los datos básicos; resultados/adjuntos se agregan luego.</div>
@@ -229,7 +230,7 @@ export function EstudiosTab() {
             </Button>
           </div>
         </form>
-      </Card>
+      </Card>}
     </div>
   )
 }

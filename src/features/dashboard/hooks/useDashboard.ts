@@ -85,8 +85,10 @@ export interface ExamenResultGlobalPoint {
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
+interface HookOpts { enabled?: boolean }
+
 /** Estadísticas numéricas del mes en curso para el dashboard. */
-export function useDashboardStats() {
+export function useDashboardStats(opts?: HookOpts) {
   return useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
@@ -94,11 +96,12 @@ export function useDashboardStats() {
       return res.data.data
     },
     staleTime: 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
 /** Citas no canceladas de hoy, ordenadas por hora de inicio. */
-export function useAgendaHoy() {
+export function useAgendaHoy(opts?: HookOpts) {
   return useQuery<AgendaHoyItem[]>({
     queryKey: ['dashboard-agenda-hoy'],
     queryFn: async () => {
@@ -106,11 +109,12 @@ export function useAgendaHoy() {
       return res.data.data ?? []
     },
     staleTime: 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
 /** Datos de somatometría global para gráficas de tendencia. */
-export function useSomatometriaGlobal() {
+export function useSomatometriaGlobal(opts?: HookOpts) {
   return useQuery<SomatometriaGlobalPoint[]>({
     queryKey: ['dashboard-somatometria-global'],
     queryFn: async () => {
@@ -118,11 +122,12 @@ export function useSomatometriaGlobal() {
       return res.data.data ?? []
     },
     staleTime: 5 * 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
 /** Datos de resultados de exámenes globales para gráficas. */
-export function useExamenesGlobal() {
+export function useExamenesGlobal(opts?: HookOpts) {
   return useQuery<ExamenResultGlobalPoint[]>({
     queryKey: ['dashboard-examenes-global'],
     queryFn: async () => {
@@ -130,11 +135,12 @@ export function useExamenesGlobal() {
       return res.data.data ?? []
     },
     staleTime: 5 * 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
 /** Calidad de resultados: en rango / fuera de rango / sin referencia. */
-export function useExamenesCalidad() {
+export function useExamenesCalidad(opts?: HookOpts) {
   return useQuery<ExamenesCalidadDTO>({
     queryKey: ['dashboard-examenes-calidad'],
     queryFn: async () => {
@@ -142,11 +148,12 @@ export function useExamenesCalidad() {
       return res.data.data
     },
     staleTime: 5 * 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
 /** Ocupación de refrigeradores del biobanco, ordenados por % DESC. */
-export function useBiobancoOcupacion() {
+export function useBiobancoOcupacion(opts?: HookOpts) {
   return useQuery<RefrigeradorOcupacionDTO[]>({
     queryKey: ['dashboard-biobanco-ocupacion'],
     queryFn: async () => {
@@ -154,11 +161,12 @@ export function useBiobancoOcupacion() {
       return res.data.data ?? []
     },
     staleTime: 2 * 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
 /** Ocupación de cajas criogénicas del biobanco, ordenadas por % DESC. */
-export function useBiobancoOcupacionCajas() {
+export function useBiobancoOcupacionCajas(opts?: HookOpts) {
   return useQuery<CajaOcupacionDTO[]>({
     queryKey: ['dashboard-biobanco-cajas'],
     queryFn: async () => {
@@ -166,5 +174,6 @@ export function useBiobancoOcupacionCajas() {
       return res.data.data ?? []
     },
     staleTime: 2 * 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
