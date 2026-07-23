@@ -31,6 +31,10 @@ export async function updateExamen(id: number, data: ExamenRequestDTO): Promise<
   return response.data.data
 }
 
+export async function deleteExamen(id: number): Promise<void> {
+  await axiosInstance.delete(`/examenes/${id}`)
+}
+
 // ============================================
 // RESULTADOS DE EXAMEN
 // ============================================
@@ -49,6 +53,10 @@ export async function updateResultadoExamen(
     data
   )
   return response.data.data
+}
+
+export async function deleteResultadoExamen(id: number): Promise<void> {
+  await axiosInstance.delete(`/examenes/resultados/${id}`)
 }
 
 export async function getResultadosByPacienteUUID(uuid: string): Promise<ResultadoExamen[]> {

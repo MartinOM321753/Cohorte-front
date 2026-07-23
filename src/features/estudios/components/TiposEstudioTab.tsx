@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
@@ -23,6 +24,7 @@ import {
   useCreateParametroEstudio,
   useCreateTipoEstudio,
   useDeleteParametroEstudio,
+  useDeleteTipoEstudio,
   useGetTodosLosTipos,
   useToggleTipoEstudio,
   useUpdateParametroEstudio,
@@ -38,6 +40,17 @@ import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
 
@@ -71,9 +84,14 @@ function validarRango(min: string, max: string): string | null {
 }
 
 export function TiposEstudioTab() {
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('ESTUDIOS_TIPOS_CREAR')
+  const puedeEditar = hasPermiso('ESTUDIOS_TIPOS_EDITAR')
+  const puedeEliminar = hasPermiso('ESTUDIOS_TIPOS_ELIMINAR')
   const { data: tipos, isLoading, isError } = useGetTodosLosTipos()
   const createTipo = useCreateTipoEstudio()
   const toggleTipo = useToggleTipoEstudio()
+  const deleteTipo = useDeleteTipoEstudio()
   const createParametro = useCreateParametroEstudio()
   const deleteParametro = useDeleteParametroEstudio()
 
@@ -188,7 +206,7 @@ export function TiposEstudioTab() {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       {/* LEFT — catalog list */}
-      <Card className="lg:col-span-3">
+      <Card className={puedeCrear ? 'lg:col-span-3' : 'lg:col-span-5'}>
         <div className="flex items-center justify-between gap-3 border-b p-4">
           <div className="space-y-0.5">
             <div className="text-sm font-medium">Plantillas de estudio</div>
@@ -221,8 +239,12 @@ export function TiposEstudioTab() {
                   onToggleExpand={setExpandedId}
                   onToggleActivo={() => toggleTipo.mutate(t.id)}
                   isTogglingActivo={toggleTipo.isPending}
+                  onDeleteTipo={() => deleteTipo.mutate(t.id)}
+                  isDeletingTipo={deleteTipo.isPending}
                   onDeleteParametro={(id) => deleteParametro.mutate(id)}
                   isDeletingParametro={deleteParametro.isPending}
+                  puedeEditar={puedeEditar}
+                  puedeEliminar={puedeEliminar}
                 />
               ))}
 
@@ -244,8 +266,12 @@ export function TiposEstudioTab() {
                       onToggleExpand={setExpandedId}
                       onToggleActivo={() => toggleTipo.mutate(t.id)}
                       isTogglingActivo={toggleTipo.isPending}
+                      onDeleteTipo={() => deleteTipo.mutate(t.id)}
+                      isDeletingTipo={deleteTipo.isPending}
                       onDeleteParametro={(id) => deleteParametro.mutate(id)}
                       isDeletingParametro={deleteParametro.isPending}
+                      puedeEditar={puedeEditar}
+                      puedeEliminar={puedeEliminar}
                     />
                   ))}
                 </>
@@ -256,7 +282,7 @@ export function TiposEstudioTab() {
       </Card>
 
       {/* RIGHT — create new tipo + pending params */}
-      <Card className="lg:col-span-2">
+      {puedeCrear && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">Nueva plantilla</div>
           <div className="text-xs text-muted-foreground">
@@ -445,7 +471,7 @@ export function TiposEstudioTab() {
             </Button>
           </div>
         </form>
-      </Card>
+      </Card>}
     </div>
   )
 }
@@ -459,16 +485,24 @@ function TipoRow({
   onToggleExpand,
   onToggleActivo,
   isTogglingActivo,
+  onDeleteTipo,
+  isDeletingTipo,
   onDeleteParametro,
   isDeletingParametro,
+  puedeEditar,
+  puedeEliminar,
 }: {
   tipo: import('@/types/api').TipoEstudio
   expandedId: number | null
   onToggleExpand: (id: number | null) => void
   onToggleActivo: () => void
   isTogglingActivo: boolean
+  onDeleteTipo: () => void
+  isDeletingTipo: boolean
   onDeleteParametro: (id: number) => void
   isDeletingParametro: boolean
+  puedeEditar: boolean
+  puedeEliminar: boolean
 }) {
   const isOpen = expandedId === tipo.id
   const parametros = tipo.parametroEstudios || []
@@ -494,21 +528,57 @@ function TipoRow({
           <Badge variant="outline" className="font-mono text-[10px]">
             {parametros.length} param.
           </Badge>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={(e) => { e.stopPropagation(); onToggleActivo() }}
-            disabled={isTogglingActivo}
-            title={tipo.activo ? 'Deshabilitar plantilla' : 'Reactivar plantilla'}
-          >
-            {tipo.activo ? (
-              <ToggleRight className="h-4 w-4 text-emerald-600" strokeWidth={1.75} />
-            ) : (
-              <ToggleLeft className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-            )}
-          </Button>
+          {puedeEditar && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={(e) => { e.stopPropagation(); onToggleActivo() }}
+              disabled={isTogglingActivo}
+              title={tipo.activo ? 'Deshabilitar plantilla' : 'Reactivar plantilla'}
+            >
+              {tipo.activo ? (
+                <ToggleRight className="h-4 w-4 text-emerald-600" strokeWidth={1.75} />
+              ) : (
+                <ToggleLeft className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+              )}
+            </Button>
+          )}
+          {puedeEliminar && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                  onClick={(e) => e.stopPropagation()}
+                  disabled={isDeletingTipo}
+                  title="Eliminar plantilla"
+                >
+                  <Trash2 className="h-4 w-4" strokeWidth={1.75} />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar plantilla "{tipo.nombre}"?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se eliminarán todos sus parámetros. Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={onDeleteTipo}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -525,13 +595,15 @@ function TipoRow({
                   tipoEstudioId={tipo.id}
                   onDelete={() => onDeleteParametro(p.id)}
                   isDeleting={isDeletingParametro}
+                  puedeEditar={puedeEditar}
+                  puedeEliminar={puedeEliminar}
                 />
               ))}
             </div>
           )}
 
           {/* Only allow adding params to active tipos */}
-          {tipo.activo && <AddParametroInline tipoId={tipo.id} />}
+          {tipo.activo && puedeEditar && <AddParametroInline tipoId={tipo.id} />}
           {!tipo.activo && (
             <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
               Esta plantilla está deshabilitada. Reactívala para agregar más parámetros.
@@ -549,11 +621,15 @@ function EditableParametroRow({
   tipoEstudioId,
   onDelete,
   isDeleting,
+  puedeEditar,
+  puedeEliminar,
 }: {
   parametro: import('@/types/api').ParametroEstudio
   tipoEstudioId: number
   onDelete: () => void
   isDeleting: boolean
+  puedeEditar: boolean
+  puedeEliminar: boolean
 }) {
   const updateParametro = useUpdateParametroEstudio(parametro.id)
 
@@ -761,27 +837,31 @@ function EditableParametroRow({
           <Badge variant="secondary" className="text-[10px]">
             {TIPO_LABELS[parametro.tipo as TipoParametro] ?? parametro.tipo}
           </Badge>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            onClick={startEdit}
-            title="Editar parámetro"
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-destructive hover:text-destructive"
-            onClick={onDelete}
-            disabled={isDeleting}
-            title="Eliminar parámetro"
-          >
-            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
+          {puedeEditar && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={startEdit}
+              title="Editar parámetro"
+            >
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </Button>
+          )}
+          {puedeEliminar && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={onDelete}
+              disabled={isDeleting}
+              title="Eliminar parámetro"
+            >
+              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </Button>
+          )}
         </div>
       </div>
       {/* Mostrar opciones configuradas para TEXTO_OPCIONES */}

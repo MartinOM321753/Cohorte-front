@@ -4,8 +4,10 @@ import {
   getExamenById,
   createExamen,
   updateExamen,
+  deleteExamen,
   saveResultadoExamen,
   updateResultadoExamen,
+  deleteResultadoExamen,
   getResultadosByPacienteUUID,
   getResultadosByPacienteFolio,
   countResultadosByPacienteUUID,
@@ -60,6 +62,20 @@ export function useUpdateExamen() {
   })
 }
 
+export function useDeleteExamen() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteExamen(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['examenes'] })
+      toast.success('Examen eliminado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar examen')
+    },
+  })
+}
+
 // ============================================
 // RESULTADOS DE EXAMEN
 // ============================================
@@ -89,6 +105,20 @@ export function useUpdateResultadoExamen() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al actualizar resultado')
+    },
+  })
+}
+
+export function useDeleteResultadoExamen() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteResultadoExamen(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resultadosExamen'] })
+      toast.success('Resultado eliminado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar resultado')
     },
   })
 }

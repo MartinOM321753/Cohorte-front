@@ -1,12 +1,13 @@
 import { useState } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
-import { AlertCircle, FlaskConical, Pencil, X } from 'lucide-react'
+import { AlertCircle, FlaskConical, Pencil, Trash2, X } from 'lucide-react'
 
 import { Examen, ExamenRequestDTO } from '@/types/api'
 import { examenSchema, type ExamenFormData } from '../schemas/examen.schema'
-import { useGetExamenes, useCreateExamen, useUpdateExamen } from '../hooks/useExamenes'
+import { useGetExamenes, useCreateExamen, useUpdateExamen, useDeleteExamen } from '../hooks/useExamenes'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +19,17 @@ import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import {
   Table,
   TableBody,
@@ -38,6 +50,10 @@ const DEFAULT_VALUES: ExamenFormData = {
 }
 
 export function ExamenesTab() {
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('EXAMENES_CATALOGO_CREAR')
+  const puedeEditar = hasPermiso('EXAMENES_CATALOGO_EDITAR')
+  const puedeEliminar = hasPermiso('EXAMENES_CATALOGO_ELIMINAR')
   const [editingId, setEditingId] = useState<number | null>(null)
   /** Cambia al limpiar/cancelar para forzar el remount del formulario y
    *  limpiar visualmente los inputs type="number" (React no actualiza el DOM
@@ -47,6 +63,7 @@ export function ExamenesTab() {
   const { data: examenes, isLoading, isError } = useGetExamenes()
   const createMutation = useCreateExamen()
   const updateMutation = useUpdateExamen()
+  const deleteMutation = useDeleteExamen()
 
   const isPending = createMutation.isPending || updateMutation.isPending
   const isEditing = editingId !== null
@@ -116,7 +133,7 @@ export function ExamenesTab() {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       {/* ── Lista de exámenes ── */}
-      <Card className="lg:col-span-3">
+      <Card className={puedeCrear || (puedeEditar && isEditing) ? 'lg:col-span-3' : 'lg:col-span-5'}>
         <div className="flex items-center justify-between gap-3 border-b p-4">
           <div className="space-y-0.5">
             <div className="flex items-center gap-2 text-sm font-medium">
@@ -171,19 +188,54 @@ export function ExamenesTab() {
                       {formatRange(ex.valorMinHombres, ex.valorMaxHombres)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() =>
-                          editingId === ex.id ? handleCancel() : handleEdit(ex)
-                        }
-                      >
-                        {editingId === ex.id ? (
-                          <X className="h-4 w-4" />
-                        ) : (
-                          <Pencil className="h-4 w-4" />
+                      <div className="flex items-center justify-end gap-0.5">
+                        {puedeEditar && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              editingId === ex.id ? handleCancel() : handleEdit(ex)
+                            }
+                          >
+                            {editingId === ex.id ? (
+                              <X className="h-4 w-4" />
+                            ) : (
+                              <Pencil className="h-4 w-4" />
+                            )}
+                          </Button>
                         )}
-                      </Button>
+                        {puedeEliminar && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar examen "{ex.nombreExamen}"?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Solo se puede eliminar si no tiene resultados registrados.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(ex.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -204,7 +256,7 @@ export function ExamenesTab() {
       </Card>
 
       {/* ── Formulario crear / editar ── */}
-      <Card className="lg:col-span-2">
+      {(puedeCrear || (puedeEditar && isEditing)) && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">
             {isEditing ? 'Editar examen' : 'Nuevo examen'}
@@ -317,7 +369,7 @@ export function ExamenesTab() {
             </Button>
           </div>
         </form>
-      </Card>
+      </Card>}
     </div>
   )
 }
