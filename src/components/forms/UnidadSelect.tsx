@@ -79,7 +79,7 @@ export function UnidadSelect({
 
   return (
     <>
-      <div className="flex gap-1.5">
+      <div className="flex gap-1.5 min-w-0">
         <Popover open={openCombo} onOpenChange={setOpenCombo} modal={true}>
           <PopoverTrigger asChild>
             <Button
@@ -88,12 +88,12 @@ export function UnidadSelect({
               aria-expanded={openCombo}
               disabled={disabled || isLoading}
               className={cn(
-                'flex-1 justify-between font-normal',
+                'flex-1 min-w-0 justify-between font-normal',
                 compact ? 'h-8 text-sm' : '',
                 error ? 'border-destructive' : ''
               )}
             >
-              <span className={cn(!value && 'text-muted-foreground')}>
+              <span className={cn('truncate', !value && 'text-muted-foreground')}>
                 {value || placeholder}
               </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -138,7 +138,7 @@ export function UnidadSelect({
             disabled={disabled}
             onClick={() => { setNewNombre(''); setNewError(''); setOpenNew(true) }}
             title="Agregar nueva unidad"
-            className={cn(compact ? 'h-8 w-8' : '')}
+            className={cn('shrink-0', compact ? 'h-8 w-8' : '')}
           >
             <Plus className="h-4 w-4" />
           </Button>

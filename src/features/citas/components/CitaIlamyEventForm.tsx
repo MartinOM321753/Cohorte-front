@@ -343,8 +343,8 @@ export function CitaIlamyEventForm({
           )}
 
           {/* ── FECHA Y DURACIÓN ── */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5 ">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[.9fr_auto]">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-[13px]">
                 Fecha y hora <span className="text-red-500">*</span>
               </Label>
@@ -385,7 +385,7 @@ export function CitaIlamyEventForm({
                 max={240}
                 step={15}
                 {...register('duracionMinutos')}
-                className="h-9 text-[13px]"
+                className="h-9 w-24 text-[13px]"
               />
               {errors.duracionMinutos ? (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
