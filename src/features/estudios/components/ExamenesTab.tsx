@@ -273,6 +273,7 @@ export function ExamenesTab() {
             <Input
               placeholder="Ej. Glucosa en ayuno"
               sanitize="alfanumerico"
+              maxLength={100}
               {...register('nombreExamen')}
             />
           </FormField>
@@ -283,6 +284,7 @@ export function ExamenesTab() {
               rows={2}
               className="resize-none"
               sanitize="descripcion"
+              maxLength={500}
               {...register('descripcion')}
             />
           </FormField>

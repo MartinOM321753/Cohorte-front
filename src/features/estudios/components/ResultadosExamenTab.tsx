@@ -8,6 +8,7 @@ import {
   ChevronsUpDown,
   ClipboardList,
   Filter,
+  Info,
   Minus,
   Paperclip,
   Pencil,
@@ -41,7 +42,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { DatePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -75,6 +76,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -127,18 +129,25 @@ function RangeIndicator({ status }: { status: 'low' | 'normal' | 'high' | null }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function localDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+function nowStr() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const mo = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${mo}-${day}T${h}:${mi}`
 }
-const todayStr = localDateStr(new Date())
 
-const DEFAULT_VALUES: ResultadoExamenFormData = {
-  pacienteUUID: '',
-  usuarioRegistroUUID: '',
-  idExamen: 0,
-  valorObtenido: 0,
-  observaciones: '',
-  fechaResultado: todayStr,
+function freshDefaults(): ResultadoExamenFormData {
+  return {
+    pacienteUUID: '',
+    usuarioRegistroUUID: '',
+    idExamen: 0,
+    valorObtenido: 0,
+    observaciones: '',
+    fechaResultado: nowStr(),
+  }
 }
 
 export function ResultadosExamenTab() {
@@ -148,6 +157,20 @@ export function ResultadosExamenTab() {
   const puedeEliminar = useAuthStore((s) => s.hasPermiso('EXAMENES_ELIMINAR'))
   const puedeSubirDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
   const puedeEliminarDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo) days.push(0)
+    if (!horarioActivo.lunes) days.push(1)
+    if (!horarioActivo.martes) days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves) days.push(4)
+    if (!horarioActivo.viernes) days.push(5)
+    if (!horarioActivo.sabado) days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
 
   const [openExamen, setOpenExamen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -169,7 +192,7 @@ export function ResultadosExamenTab() {
     formState: { errors },
   } = useForm<ResultadoExamenFormData>({
     resolver: zodResolver(resultadoExamenSchema),
-    defaultValues: { ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid },
+    defaultValues: { ...freshDefaults(), usuarioRegistroUUID: userUuid },
   })
 
   useEffect(() => {
@@ -239,32 +262,29 @@ export function ResultadosExamenTab() {
     setValue('idExamen', r.idExamen ?? r.examen?.id ?? 0)
     setValue('valorObtenido', r.valorObtenido)
     setValue('observaciones', r.observaciones ?? '')
-    setValue('fechaResultado', String(r.fechaResultado || '').slice(0, 10))
+    setValue('fechaResultado', String(r.fechaResultado || '').slice(0, 16))
   }
 
   const handleCancelEdit = () => {
     setEditingId(null)
-    reset({ ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid })
+    reset({ ...freshDefaults(), usuarioRegistroUUID: userUuid, pacienteUUID: watchedPacienteUUID })
+  }
+
+  const cambiarParticipante = () => {
+    setEditingId(null)
+    setSelectedPacienteLabel(null)
+    setSelectedPacienteSexo(null)
+    reset({ ...freshDefaults(), usuarioRegistroUUID: userUuid })
   }
 
   const onSubmit = (data: ResultadoExamenFormData) => {
-    // Fecha: nunca futura
-    if (data.fechaResultado > todayStr) {
-      // el DatePicker ya bloquea fechas futuras, pero doble validación
-      return
-    }
-
-    const fechaISO = data.fechaResultado.includes('T')
-      ? data.fechaResultado
-      : `${data.fechaResultado}T00:00:00`
-
     const payload: ResultadoExamenRequestDTO = {
       pacienteUUID:       data.pacienteUUID.trim(),
       usuarioRegistroUUID: userUuid.trim(),
       idExamen:           data.idExamen,
       valorObtenido:      data.valorObtenido,
       observaciones:      data.observaciones?.trim() || undefined,
-      fechaResultado:     fechaISO,
+      fechaResultado:     data.fechaResultado,
     }
 
     if (editingId !== null) {
@@ -273,13 +293,13 @@ export function ResultadosExamenTab() {
         {
           onSuccess: () => {
             setEditingId(null)
-            reset({ ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid })
+            reset({ ...freshDefaults(), usuarioRegistroUUID: userUuid, pacienteUUID: data.pacienteUUID })
           },
         }
       )
     } else {
       saveMutation.mutate(payload, {
-        onSuccess: () => reset({ ...DEFAULT_VALUES, usuarioRegistroUUID: userUuid }),
+        onSuccess: () => reset({ ...freshDefaults(), usuarioRegistroUUID: userUuid, pacienteUUID: data.pacienteUUID }),
       })
     }
   }
@@ -287,26 +307,31 @@ export function ResultadosExamenTab() {
   const isPending = saveMutation.isPending || updateMutation.isPending
   const isEditing = editingId !== null
 
-  // Fecha máxima = hoy (bloquear fechas futuras en el calendario)
-  const maxDate = useMemo(() => new Date(), [])
 
   const showForm = puedeCrear || (puedeEditarExamen && isEditing)
 
   return (
     <div className="space-y-4">
       {!showForm && (
-        <PacienteSearchCombobox
-          value={watchedPacienteUUID || null}
-          onChange={(uuid) => setValue('pacienteUUID', uuid)}
-          onSelectPaciente={(p) => {
-            const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
-            setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
-            setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
-          }}
-          placeholder="Buscar participante por folio, nombre o CURP…"
-          variant="search"
-          className="max-w-md"
-        />
+        <div className="flex items-center gap-2 max-w-md">
+          <PacienteSearchCombobox
+            value={watchedPacienteUUID || null}
+            onChange={(uuid) => setValue('pacienteUUID', uuid)}
+            onSelectPaciente={(p) => {
+              const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
+              setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
+              setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
+            }}
+            placeholder="Buscar participante por folio, nombre o CURP…"
+            variant="search"
+            className="flex-1"
+          />
+          {watchedPacienteUUID && (
+            <Button type="button" variant="outline" size="sm" className="shrink-0 text-xs" onClick={cambiarParticipante}>
+              Cambiar
+            </Button>
+          )}
+        </div>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -512,16 +537,25 @@ export function ResultadosExamenTab() {
 
           {/* Paciente */}
           <FormField label="Participante" required error={errors.pacienteUUID?.message}>
-            <PacienteSearchCombobox
-              value={watchedPacienteUUID}
-              onChange={(uuid) => setValue('pacienteUUID', uuid)}
-              onSelectPaciente={(p) => {
-                const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
-                setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
-                setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
-              }}
-              disabled={isEditing}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <PacienteSearchCombobox
+                  value={watchedPacienteUUID}
+                  onChange={(uuid) => setValue('pacienteUUID', uuid)}
+                  onSelectPaciente={(p) => {
+                    const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
+                    setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
+                    setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
+                  }}
+                  disabled={isEditing}
+                />
+              </div>
+              {watchedPacienteUUID && !isEditing && (
+                <Button type="button" variant="outline" size="sm" className="shrink-0 text-xs" onClick={cambiarParticipante}>
+                  Cambiar
+                </Button>
+              )}
+            </div>
           </FormField>
 
           {/* Examen — Combobox con búsqueda en lugar de Select */}
@@ -589,6 +623,14 @@ export function ResultadosExamenTab() {
             </Popover>
           </FormField>
 
+          {/* Descripción del examen */}
+          {selectedExamen?.descripcion && (
+            <div className="flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" strokeWidth={1.75} />
+              <span>{selectedExamen.descripcion}</span>
+            </div>
+          )}
+
           {/* Valor obtenido */}
           <FormField label="Valor obtenido" required error={errors.valorObtenido?.message}>
             <div className="relative">
@@ -625,14 +667,18 @@ export function ResultadosExamenTab() {
             )}
           </FormField>
 
-          {/* Fecha — máx = hoy, sin fechas futuras */}
-          <FormField label="Fecha del resultado" required error={errors.fechaResultado?.message}>
+          {/* Fecha y hora */}
+          <FormField label="Fecha y hora del resultado" required error={errors.fechaResultado?.message}>
             <input type="hidden" {...register('fechaResultado')} />
-            <DatePicker
+            <DateTimePicker
               value={watchedFecha}
-              onChange={(v) => setValue('fechaResultado', v)}
-              disabled={false}
-              maxDate={maxDate}
+              onChange={(v) => setValue('fechaResultado', v, { shouldValidate: true })}
+              placeholder="Selecciona fecha y hora"
+              timeStepMinutes={1}
+              maxDateTime={new Date()}
+              minHour={horarioActivo?.horaInicio ?? 8}
+              maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+              disabledDaysOfWeek={disabledDaysOfWeek}
             />
           </FormField>
 
@@ -641,9 +687,15 @@ export function ResultadosExamenTab() {
             <Textarea
               placeholder="Notas adicionales…"
               rows={2}
+              maxLength={1000}
               className="resize-none"
               {...register('observaciones')}
             />
+            {(watch('observaciones') as string)?.length > 900 && (
+              <p className="text-[11px] text-muted-foreground text-right">
+                {(watch('observaciones') as string).length}/1000
+              </p>
+            )}
           </FormField>
 
           <div className="flex items-center justify-end gap-2 pt-2">
