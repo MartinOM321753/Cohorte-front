@@ -1,7 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CalendarPlus, Pencil } from 'lucide-react'
+import { Activity, CalendarPlus, Pencil } from 'lucide-react'
 import { getFullName, formatDate } from '@/lib/utils'
 import type { Paciente, TipoDocumentoPaciente } from '@/types/api'
 import { CURP_REGEX } from '../schemas/paciente.schema'
@@ -19,6 +19,7 @@ interface PacienteDetailDrawerProps {
   paciente: Paciente | null
   onEdit?: (paciente: Paciente) => void
   onSchedule?: (paciente: Paciente) => void
+  onSomatometria?: (paciente: Paciente) => void
 }
 
 interface DetailRowProps {
@@ -117,6 +118,7 @@ export function PacienteDetailDrawer({
   paciente,
   onEdit,
   onSchedule,
+  onSomatometria,
 }: PacienteDetailDrawerProps) {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
   const puedeEliminarDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
@@ -299,7 +301,7 @@ export function PacienteDetailDrawer({
         </div>
 
         {/* Footer */}
-        {(onEdit || onSchedule) && (
+        {(onEdit || onSchedule || onSomatometria) && (
           <div className="flex flex-col gap-2 border-t border-[var(--imss-ink-100)] px-5 py-3">
             {onEdit && (
               <Button
@@ -308,6 +310,16 @@ export function PacienteDetailDrawer({
               >
                 <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Editar participante
+              </Button>
+            )}
+            {onSomatometria && (
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-[13px]"
+                onClick={() => { onOpenChange(false); onSomatometria(paciente) }}
+              >
+                <Activity className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Somatometría
               </Button>
             )}
             {onSchedule && (

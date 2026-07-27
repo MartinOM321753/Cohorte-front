@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 
 import { somatometriaSchema, type SomatometriaFormData } from '../schemas/somatometria.schema'
 import {
@@ -24,6 +25,7 @@ import {
   useUpdateSomatometria,
   useSomatometriaByPaciente,
 } from '../hooks/useSomatometria'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import { formatDate } from '@/lib/utils'
 import type { Somatometria } from '@/types/api'
 
@@ -61,22 +63,38 @@ export function SomatometriaFormModal({
   const puedeSubmit = isEdit ? puedeEditar : puedeCrear
   const createMutation = useCreateSomatometria()
   const updateMutation = useUpdateSomatometria(pacienteUUID)
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SomatometriaFormData>({
     resolver: zodResolver(somatometriaSchema),
     defaultValues: DEFAULT_VALUES,
   })
 
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo) days.push(0)
+    if (!horarioActivo.lunes) days.push(1)
+    if (!horarioActivo.martes) days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves) days.push(4)
+    if (!horarioActivo.viernes) days.push(5)
+    if (!horarioActivo.sabado) days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
+
   useEffect(() => {
     if (open) {
       if (somatometria) {
         reset({
-          fechaMedicion: somatometria.fechaMedicion?.slice(0, 10) ?? '',
+          fechaMedicion: somatometria.fechaMedicion?.slice(0, 16) ?? '',
           pesoKg: somatometria.pesoKg ?? undefined,
           tallaM: somatometria.tallaM ?? undefined,
           presionSistolica: somatometria.presionSistolica ?? undefined,
@@ -131,16 +149,20 @@ export function SomatometriaFormModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
-          {/* Fecha */}
+          {/* Fecha y hora */}
           <div className="space-y-1.5">
-            <Label htmlFor="fechaMedicion" className="text-[13px]">
-              Fecha de medición <span className="text-red-500">*</span>
+            <Label className="text-[13px]">
+              Fecha y hora de medición <span className="text-red-500">*</span>
             </Label>
-            <Input
-              id="fechaMedicion"
-              type="date"
-              {...register('fechaMedicion')}
-              className="h-9 text-[13px]"
+            <DateTimePicker
+              value={watch('fechaMedicion')}
+              onChange={(v) => setValue('fechaMedicion', v, { shouldValidate: true })}
+              placeholder="Selecciona fecha"
+              timeStepMinutes={1}
+              maxDateTime={new Date()}
+              minHour={horarioActivo?.horaInicio ?? 8}
+              maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+              disabledDaysOfWeek={disabledDaysOfWeek}
             />
             {errors.fechaMedicion && (
               <p className="text-[11px] text-[var(--status-danger-fg)]">
@@ -367,7 +389,7 @@ export function SomatometriaHistorialDialog({
                     className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--imss-green-50)]"
                   >
                     <td className="px-3 py-2.5 font-mono text-[12px] text-[var(--imss-ink-900)]">
-                      {formatDate(s.fechaMedicion, 'dd/MM/yyyy')}
+                      {formatDate(s.fechaMedicion, 'dd/MM/yyyy HH:mm')}
                     </td>
                     <td className="px-3 py-2.5 text-[var(--imss-ink-900)]">
                       {s.pesoKg != null ? `${s.pesoKg} kg` : '—'}

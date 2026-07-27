@@ -1,5 +1,6 @@
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import {
+  Activity,
   CalendarPlus,
   FileText,
   KeyRound,
@@ -31,6 +32,7 @@ interface PacientesTableProps {
   onToggleActivo?: (paciente: Paciente) => void;
   onSchedule?: (paciente: Paciente) => void;
   onCrearAcceso?: (paciente: Paciente) => void;
+  onSomatometria?: (paciente: Paciente) => void;
   manualPagination?: boolean;
   pagination?: PaginationState;
   onPaginationChange?: (pagination: PaginationState) => void;
@@ -73,6 +75,7 @@ export function PacientesTable({
   onToggleActivo,
   onSchedule,
   onCrearAcceso,
+  onSomatometria,
   manualPagination,
   pagination,
   onPaginationChange,
@@ -179,8 +182,19 @@ export function PacientesTable({
                   }}
                 >
                   <FileText className="mr-2 h-4 w-4" />
-                  Ver expediente 360
+                  Ver expediente
                 </DropdownMenuItem>
+                {onSomatometria && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSomatometria(p);
+                    }}
+                  >
+                    <Activity className="mr-2 h-4 w-4" />
+                    Somatometría
+                  </DropdownMenuItem>
+                )}
                 {onEdit && (
                   <DropdownMenuItem
                     onClick={(e) => {

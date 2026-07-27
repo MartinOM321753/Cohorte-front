@@ -15,6 +15,7 @@ import { PacienteFormModal } from "../components/PacienteFormModal";
 import { PacienteImportModal } from "../components/PacienteImportModal";
 import { PacienteDetailDrawer } from "../components/PacienteDetailDrawer";
 import { CitaIlamyEventForm } from "@/features/citas/components/CitaIlamyEventForm";
+import { SomatometriaFormModal } from "@/features/somatometria/components/SomatometriaFormModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/authStore";
@@ -84,11 +85,13 @@ export default function PacientesPage() {
   const crearAccesoMutation = useCrearAccesoPaciente();
 
   const hasPermiso = useAuthStore((s) => s.hasPermiso);
+  const userUuid = useAuthStore((s) => s.user?.uuid) || '';
   const puedeCrearPaciente = hasPermiso("PACIENTES_CREAR");
   const puedeImportarPacientes = hasPermiso("PACIENTES_IMPORTAR");
   const puedeCrearCita = hasPermiso("CITAS_CREAR");
   const puedeEditarPaciente = hasPermiso("PACIENTES_EDITAR");
   const puedeCrearAcceso = hasPermiso("PACIENTES_CREAR_ACCESO");
+  const puedeCrearSomatometria = hasPermiso("SOMATOMETRIA_CREAR");
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null);
@@ -101,6 +104,8 @@ export default function PacientesPage() {
   const [patientToSchedule, setPatientToSchedule] = useState<Paciente | null>(
     null,
   );
+  const [isSomatometriaOpen, setIsSomatometriaOpen] = useState(false);
+  const [patientForSoma, setPatientForSoma] = useState<Paciente | null>(null);
 
   function handleView(paciente: Paciente) {
     setSelectedPaciente(paciente);
@@ -115,6 +120,11 @@ export default function PacientesPage() {
   function handleSchedule(paciente: Paciente) {
     setPatientToSchedule(paciente);
     setIsCitaModalOpen(true);
+  }
+
+  function handleSomatometria(paciente: Paciente) {
+    setPatientForSoma(paciente);
+    setIsSomatometriaOpen(true);
   }
 
   function handleFormClose(open: boolean) {
@@ -285,6 +295,7 @@ export default function PacientesPage() {
             : undefined
         }
         onSchedule={puedeCrearCita ? handleSchedule : undefined}
+        onSomatometria={puedeCrearSomatometria ? handleSomatometria : undefined}
         onCrearAcceso={
           puedeCrearAcceso ? (p) => crearAccesoMutation.mutate(p.uuid) : undefined
         }
@@ -302,6 +313,7 @@ export default function PacientesPage() {
         paciente={selectedPaciente}
         onEdit={puedeEditarPaciente ? handleEdit : undefined}
         onSchedule={puedeCrearCita ? handleSchedule : undefined}
+        onSomatometria={puedeCrearSomatometria ? handleSomatometria : undefined}
       />
 
       {/* Modal crear / editar */}
@@ -323,6 +335,19 @@ export default function PacientesPage() {
         }}
         initialPacienteUUID={patientToSchedule?.uuid || undefined}
       />
+
+      {/* Modal somatometría */}
+      {patientForSoma && (
+        <SomatometriaFormModal
+          open={isSomatometriaOpen}
+          onOpenChange={(open) => {
+            setIsSomatometriaOpen(open);
+            if (!open) setPatientForSoma(null);
+          }}
+          pacienteUUID={patientForSoma.uuid}
+          usuarioRegistraUUID={userUuid}
+        />
+      )}
     </div>
   );
 }
