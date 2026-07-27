@@ -24,7 +24,7 @@ export interface UsuarioInstitucionResumen {
 
 export interface Usuario {
   id: number
-  UUID: string
+  uuid: string
   username: string
   activo: boolean
   debeResetear?: boolean

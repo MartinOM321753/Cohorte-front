@@ -84,13 +84,13 @@ export default function UsuariosPage() {
   }
 
   function handleToggleActivo(usuario: Usuario) {
-    if (usuario.UUID === user?.uuid) return
+    if (usuario.uuid === user?.uuid) return
     setUsuarioToToggle(usuario)
   }
 
   function handleReenviarInvitacion(usuario: Usuario) {
-    setReenviandoInvitacionUuid(usuario.UUID)
-    reenviarInvitacionMutation.mutate(usuario.UUID, {
+    setReenviandoInvitacionUuid(usuario.uuid)
+    reenviarInvitacionMutation.mutate(usuario.uuid, {
       onSettled: () => setReenviandoInvitacionUuid(null),
     })
   }

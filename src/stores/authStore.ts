@@ -61,7 +61,7 @@ const initialState = {
 
 function parseInstitucion(raw: any): InstitucionResumen | null {
   if (!raw || typeof raw !== 'object') return null
-  const uuid = raw.uuid || raw.UUID || ''
+  const uuid = raw.uuid || ''
   const nombre = raw.nombre || ''
   if (!uuid && !nombre) return null
   const id = typeof raw.id === 'number' ? raw.id : undefined
@@ -184,7 +184,7 @@ export const useAuthStore = create<AuthState>()(
           : ''
 
         const user: UserData = {
-          uuid: dto?.uuid || dto?.UUID || '',
+          uuid: dto?.uuid || '',
           username: dto?.username || '',
           nombreCompleto,
           rol: rolNombre,

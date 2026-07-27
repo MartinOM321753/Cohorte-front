@@ -220,7 +220,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
     () => [
       { value: '', label: 'Sin encargado asignado' },
       ...encargadosDisponibles.map(u => ({
-        value: u.UUID,
+        value: u.uuid,
         label: u.persona
           ? `${[u.persona.nombre, u.persona.segundoNombre, u.persona.apellidoPaterno].filter(Boolean).join(' ')} (@${u.username})`
           : `@${u.username}`,
@@ -234,7 +234,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
   // 2. Auto-selecciona el nuevo admin en el campo de encargado
   const handleAdminCreado = (nuevoAdmin: Usuario) => {
     queryClient.invalidateQueries({ queryKey: ['usuarios', 'administradores-disponibles'] })
-    setValue('uuidEncargado', nuevoAdmin.UUID || null)
+    setValue('uuidEncargado', nuevoAdmin.uuid || null)
   }
 
   const latitud = watch('latitud')

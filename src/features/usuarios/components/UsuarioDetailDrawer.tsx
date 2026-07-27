@@ -39,7 +39,7 @@ export function UsuarioDetailDrawer({
   if (!usuario) return null
 
   const rolNombre = usuario.rol?.nombre ?? '—'
-  const isOtherRoot = rolNombre === 'ROOT' && usuario.UUID !== currentUserUuid
+  const isOtherRoot = rolNombre === 'ROOT' && usuario.uuid !== currentUserUuid
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

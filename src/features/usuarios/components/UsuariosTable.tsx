@@ -102,7 +102,7 @@ export function UsuariosTable({
       header: '',
       cell: ({ row }) => {
         const u = row.original
-        const isSelf = u.UUID === currentUserUuid
+        const isSelf = u.uuid === currentUserUuid
         const isOtherRoot = u.rol?.nombre === 'ROOT' && !isSelf
         const isExternalPending =
           u.activo &&
@@ -146,7 +146,7 @@ export function UsuariosTable({
                 className="h-7 w-7 text-[var(--status-warning-fg)] hover:text-amber-700"
                 title="Reenviar invitacion"
                 onClick={() => onReenviarInvitacion(u)}
-                disabled={reenviandoInvitacionUuid === u.UUID}
+                disabled={reenviandoInvitacionUuid === u.uuid}
               >
                 <MailCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
               </Button>
