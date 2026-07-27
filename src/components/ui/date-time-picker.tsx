@@ -294,6 +294,69 @@ export function DateTimePicker({
     onChange(`${toDateOnlyString(base)}T${time}`);
   };
 
+  // ── Dual-select mode (hour + minute) for minute-precision ──────────────
+  const useDualSelect = timeStepMinutes === 1;
+  const selectedHourStr = parsed ? pad2(parsed.date.getHours()) : "";
+  const selectedMinuteStr = parsed ? pad2(parsed.date.getMinutes()) : "";
+
+  const hourOptions = useMemo(() => {
+    if (!useDualSelect) return [];
+    let effectiveMax = maxHour;
+    if (maxDateTime && selectedDate) {
+      if (
+        selectedDate.getFullYear() === maxDateTime.getFullYear() &&
+        selectedDate.getMonth() === maxDateTime.getMonth() &&
+        selectedDate.getDate() === maxDateTime.getDate()
+      ) {
+        effectiveMax = Math.min(maxHour, maxDateTime.getHours());
+      }
+    }
+    const hours: string[] = [];
+    for (let h = minHour; h <= effectiveMax; h++) hours.push(pad2(h));
+    return hours;
+  }, [useDualSelect, minHour, maxHour, maxDateTime, selectedDate]);
+
+  const minuteOptions = useMemo(() => {
+    if (!useDualSelect) return [];
+    let maxMin = 59;
+    if (maxDateTime && selectedDate && selectedHourStr) {
+      if (
+        selectedDate.getFullYear() === maxDateTime.getFullYear() &&
+        selectedDate.getMonth() === maxDateTime.getMonth() &&
+        selectedDate.getDate() === maxDateTime.getDate() &&
+        Number(selectedHourStr) === maxDateTime.getHours()
+      ) {
+        maxMin = maxDateTime.getMinutes();
+      }
+    }
+    const mins: string[] = [];
+    for (let m = 0; m <= maxMin; m++) mins.push(pad2(m));
+    return mins;
+  }, [useDualSelect, maxDateTime, selectedDate, selectedHourStr]);
+
+  const setHour = (h: string) => {
+    const base = selectedDate ?? new Date();
+    let min = selectedMinuteStr || "00";
+    if (maxDateTime) {
+      if (
+        base.getFullYear() === maxDateTime.getFullYear() &&
+        base.getMonth() === maxDateTime.getMonth() &&
+        base.getDate() === maxDateTime.getDate() &&
+        Number(h) === maxDateTime.getHours() &&
+        Number(min) > maxDateTime.getMinutes()
+      ) {
+        min = pad2(maxDateTime.getMinutes());
+      }
+    }
+    onChange(`${toDateOnlyString(base)}T${h}:${min}`);
+  };
+
+  const setMinute = (m: string) => {
+    const base = selectedDate ?? new Date();
+    const hr = selectedHourStr || pad2(minHour);
+    onChange(`${toDateOnlyString(base)}T${hr}:${m}`);
+  };
+
   // Matcher de fechas deshabilitadas
   const disabledDays = useMemo(() => {
     const matchers: any[] = [];
@@ -308,7 +371,7 @@ export function DateTimePicker({
   }, [minDate, maxDateTime, disabledDaysOfWeek]);
 
   return (
-    <div className={cn("grid grid-cols-[1fr_auto] gap-2", className)}>
+    <div className={cn("grid grid-cols-[minmax(0,1fr)_auto] gap-2 min-w-0", className)}>
       {/* ── Selector de fecha ── */}
       <Popover>
         <PopoverTrigger asChild>
@@ -317,14 +380,16 @@ export function DateTimePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              "w-full justify-start text-left font-normal text-[13px]",
+              "w-full min-w-0 justify-start text-left font-normal text-[13px]",
               !selectedDate && "text-muted-foreground",
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-            {selectedDate
-              ? format(selectedDate, "dd/MM/yyyy", { locale: dateFnsEs })
-              : placeholder}
+            <span className="truncate">
+              {selectedDate
+                ? format(selectedDate, "dd/MM/yyyy", { locale: dateFnsEs })
+                : placeholder}
+            </span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -343,19 +408,50 @@ export function DateTimePicker({
       </Popover>
 
       {/* ── Selector de hora — siempre visible, nunca dentro del popover ── */}
-      <Select value={selectedTime} onValueChange={setTime} disabled={disabled}>
-        <SelectTrigger className="w-[125px] text-[13px]">
-          <ClockIcon className="mr-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <SelectValue placeholder="Hora" />
-        </SelectTrigger>
-        <SelectContent className="max-h-64">
-          {timeOptions.map((t) => (
-            <SelectItem key={t} value={t} className="text-[13px]">
-              {t}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {useDualSelect ? (
+        <div className="flex items-center gap-1 shrink-0">
+          <Select value={selectedHourStr} onValueChange={setHour} disabled={disabled}>
+            <SelectTrigger className="w-[78px] shrink-0 text-[13px]">
+              <ClockIcon className="mr-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue placeholder="HH" />
+            </SelectTrigger>
+            <SelectContent className="max-h-64">
+              {hourOptions.map((h) => (
+                <SelectItem key={h} value={h} className="text-[13px]">
+                  {h}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-[13px] font-medium text-muted-foreground">:</span>
+          <Select value={selectedMinuteStr} onValueChange={setMinute} disabled={disabled}>
+            <SelectTrigger className="w-[68px] shrink-0 text-[13px]">
+              <SelectValue placeholder="mm" />
+            </SelectTrigger>
+            <SelectContent className="max-h-64">
+              {minuteOptions.map((m) => (
+                <SelectItem key={m} value={m} className="text-[13px]">
+                  {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <Select value={selectedTime} onValueChange={setTime} disabled={disabled}>
+          <SelectTrigger className="w-[125px] shrink-0 text-[13px]">
+            <ClockIcon className="mr-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <SelectValue placeholder="Hora" />
+          </SelectTrigger>
+          <SelectContent className="max-h-64">
+            {timeOptions.map((t) => (
+              <SelectItem key={t} value={t} className="text-[13px]">
+                {t}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
     </div>
   );
 }
