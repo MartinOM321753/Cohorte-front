@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select'
 import { AlertCircle, ArrowRightFromLine, Check, FlaskConical, Info, Lock, MapPin, TestTube, X } from 'lucide-react'
 
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import { useCreateMuestra, useUpdateMuestra, useGetMuestraById, useGetTiposMuestraActivos } from '../hooks/useBiobanco'
 import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 import { useAuthStore } from '@/stores/authStore'
@@ -66,6 +67,20 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
   const user = useAuthStore((state) => state.user)
   const { data: tiposMuestra = [] } = useGetTiposMuestraActivos()
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo) days.push(0)
+    if (!horarioActivo.lunes) days.push(1)
+    if (!horarioActivo.martes) days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves) days.push(4)
+    if (!horarioActivo.viernes) days.push(5)
+    if (!horarioActivo.sabado) days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
 
   const {
     register,
@@ -261,7 +276,12 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
               <DateTimePicker
                 value={watchedFechaRecoleccion}
                 onChange={(v) => setValue('fechaRecoleccion', v, { shouldValidate: true })}
+                placeholder="Selecciona fecha y hora"
+                timeStepMinutes={1}
                 maxDateTime={new Date()}
+                minHour={horarioActivo?.horaInicio ?? 8}
+                maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+                disabledDaysOfWeek={disabledDaysOfWeek}
               />
               {errors.fechaRecoleccion && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
@@ -434,7 +454,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="valor">Valor *</Label>
                 <Input

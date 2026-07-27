@@ -1,5 +1,5 @@
 import api from '@/lib/axiosInstance'
-import { ApiResponse, DocumentoResponseDTO, TipoDocumentoPaciente } from '@/types/api'
+import { ApiResponse, DocumentoResponseDTO, PrintableLabelBatchDTO, TipoDocumentoPaciente } from '@/types/api'
 
 // ─── Subida ───────────────────────────────────────────────────────────────────
 
@@ -241,6 +241,15 @@ export async function imprimirEtiquetaDocumento(
   }
 }
 
+export async function getLabelDataDocumento(
+  idDocumento: number,
+  configuracionId?: number,
+): Promise<PrintableLabelBatchDTO> {
+  const params = configuracionId ? { configuracionId } : undefined
+  const res = await api.get<ApiResponse<PrintableLabelBatchDTO>>(`/documentos/${idDocumento}/etiqueta/datos`, { params })
+  return res.data.data
+}
+
 export async function listarImpresorasDocumentos(): Promise<string[]> {
   const { isAgentAvailable, listarImpresorasLocal } = await import('@/lib/printAgent')
 
@@ -270,14 +279,17 @@ export interface DocumentoEtiquetaInfo {
 
 export async function generarTokenAcceso(etiqueta: string): Promise<DocumentoAccessTokenResponse> {
   const res = await api.post<ApiResponse<DocumentoAccessTokenResponse>>(
-    `/documentos/etiqueta/${encodeURIComponent(etiqueta)}/token`,
+    `/documentos/etiqueta/token`,
+    null,
+    { params: { etiqueta } },
   )
   return res.data.data
 }
 
 export async function getInfoPorEtiqueta(etiqueta: string): Promise<DocumentoEtiquetaInfo> {
   const res = await api.get<ApiResponse<DocumentoEtiquetaInfo>>(
-    `/documentos/etiqueta/${encodeURIComponent(etiqueta)}/info`,
+    `/documentos/etiqueta/info`,
+    { params: { etiqueta } },
   )
   return res.data.data
 }

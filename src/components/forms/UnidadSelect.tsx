@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 import { useGetUnidadesActivas, useCreateUnidad } from '@/features/catalogos/hooks/useUnidades'
 
 interface UnidadSelectProps {
@@ -46,6 +47,7 @@ export function UnidadSelect({
   const [newNombre, setNewNombre] = useState('')
   const [newError, setNewError] = useState('')
 
+  const canCreate = useAuthStore((s) => s.hasPermiso('CATALOGOS_EDITAR'))
   const { data: unidades = [], isLoading } = useGetUnidadesActivas()
   const createMutation = useCreateUnidad()
 
@@ -77,7 +79,7 @@ export function UnidadSelect({
 
   return (
     <>
-      <div className="flex gap-1.5">
+      <div className="flex gap-1.5 min-w-0">
         <Popover open={openCombo} onOpenChange={setOpenCombo} modal={true}>
           <PopoverTrigger asChild>
             <Button
@@ -86,12 +88,12 @@ export function UnidadSelect({
               aria-expanded={openCombo}
               disabled={disabled || isLoading}
               className={cn(
-                'flex-1 justify-between font-normal',
+                'flex-1 min-w-0 justify-between font-normal',
                 compact ? 'h-8 text-sm' : '',
                 error ? 'border-destructive' : ''
               )}
             >
-              <span className={cn(!value && 'text-muted-foreground')}>
+              <span className={cn('truncate', !value && 'text-muted-foreground')}>
                 {value || placeholder}
               </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -128,17 +130,19 @@ export function UnidadSelect({
           </PopoverContent>
         </Popover>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          disabled={disabled}
-          onClick={() => { setNewNombre(''); setNewError(''); setOpenNew(true) }}
-          title="Agregar nueva unidad"
-          className={cn(compact ? 'h-8 w-8' : '')}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        {canCreate && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            disabled={disabled}
+            onClick={() => { setNewNombre(''); setNewError(''); setOpenNew(true) }}
+            title="Agregar nueva unidad"
+            className={cn('shrink-0', compact ? 'h-8 w-8' : '')}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {error && (

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Plus, Edit, MapPin, Phone, User, AlertCircle, CheckCircle2, XCircle, Search, Network, ShieldCheck, Tag, Users } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 import { useGetInstitucionesPaginado, useGetInstitucionesGestionables, useGetInstitucionesGestionablesEstado, useSearchInstituciones, useToggleInstitucion } from '../hooks/useInstituciones'
 import { InstitucionFormModal } from './InstitucionFormModal'
 import { InstitucionModulosModal } from './InstitucionModulosModal'
@@ -35,6 +36,11 @@ export function InstitucionesTab() {
   const [isTiposOpen, setIsTiposOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
+
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('INSTITUCIONES_CREAR')
+  const puedeEditar = hasPermiso('INSTITUCIONES_EDITAR')
+  const puedeEliminar = hasPermiso('INSTITUCIONES_ELIMINAR')
 
   const isSearching = search.trim().length > 0
 
@@ -96,22 +102,26 @@ export function InstitucionesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Instituciones</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold">Instituciones</h2>
+          <p className="text-muted-foreground text-sm">
             Catálogo central de instituciones (jerarquía, ubicación y módulos habilitados)
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsTiposOpen(true)}>
-            <Tag className="mr-2 h-4 w-4" />
-            Tipos de institución
-          </Button>
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Institución
-          </Button>
+        <div className="flex flex-wrap gap-2">
+          {puedeEditar && (
+            <Button variant="outline" size="sm" onClick={() => setIsTiposOpen(true)}>
+              <Tag className="mr-2 h-4 w-4" />
+              Tipos de institución
+            </Button>
+          )}
+          {puedeCrear && (
+            <Button size="sm" onClick={() => setIsModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva Institución
+            </Button>
+          )}
         </div>
       </div>
 
@@ -124,7 +134,7 @@ export function InstitucionesTab() {
         </AlertDescription>
       </Alert>
 
-      <div className="relative max-w-sm">
+      <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar institución por nombre..."
@@ -150,7 +160,7 @@ export function InstitucionesTab() {
                 ? 'No se encontraron instituciones con ese nombre.'
                 : 'Registra la primera institución para comenzar a operar el sistema.'}
             </p>
-            {!isSearching && (
+            {!isSearching && puedeCrear && (
               <Button onClick={() => setIsModalOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Registrar Primera Institución
@@ -244,38 +254,44 @@ export function InstitucionesTab() {
                     </p>
                   )}
                   <div className="flex gap-2 w-full">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(institucion)}
-                      disabled={!gestionablesSet.has(institucion.id)}
-                      className="flex-1"
-                    >
-                      <Edit className="mr-1 h-3 w-3" />
-                      Editar
-                    </Button>
+                    {puedeEditar && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(institucion)}
+                        disabled={!gestionablesSet.has(institucion.id)}
+                        className="flex-1"
+                      >
+                        <Edit className="mr-1 h-3 w-3" />
+                        Editar
+                      </Button>
+                    )}
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenModulos(institucion)}
-                      disabled={!gestionablesSet.has(institucion.id)}
-                      title="Configurar módulos habilitados (permisos estilo ERP)"
-                    >
-                      <ShieldCheck className="h-4 w-4" />
-                    </Button>
+                    {puedeEditar && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenModulos(institucion)}
+                        disabled={!gestionablesSet.has(institucion.id)}
+                        title="Configurar módulos habilitados (permisos estilo ERP)"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                      </Button>
+                    )}
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenPermisos(institucion)}
-                      disabled={!gestionablesSet.has(institucion.id)}
-                      title="Permisos de acceso a pacientes para instituciones hijas"
-                    >
-                      <Users className="h-4 w-4" />
-                    </Button>
+                    {puedeEditar && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenPermisos(institucion)}
+                        disabled={!gestionablesSet.has(institucion.id)}
+                        title="Permisos de acceso a pacientes para instituciones hijas"
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                    )}
 
-                    {institucion.activo ? (
+                    {puedeEliminar && institucion.activo ? (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -307,7 +323,7 @@ export function InstitucionesTab() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                    ) : (
+                    ) : puedeEliminar ? (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -339,7 +355,7 @@ export function InstitucionesTab() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                    )}
+                    ) : null}
                   </div>
                 </CardFooter>
               </Card>

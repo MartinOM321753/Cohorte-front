@@ -28,8 +28,8 @@ export const resultadoExamenSchema = z.object({
   valorObtenido: z
     .number({ invalid_type_error: 'Ingrese un valor numérico' })
     .finite('Valor inválido'),
-  observaciones: z.string().trim().optional().or(z.literal('')),
-  fechaResultado: z.string().min(1, 'La fecha es requerida'),
+  observaciones: z.string().trim().max(1000, 'Máximo 1000 caracteres').optional().or(z.literal('')),
+  fechaResultado: z.string().min(1, 'La fecha y hora son requeridas'),
 })
 
 export type ResultadoExamenFormData = z.infer<typeof resultadoExamenSchema>

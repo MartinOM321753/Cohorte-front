@@ -1,16 +1,45 @@
+import { useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { RoleGuard } from '@/components/routes/RoleGuard'
-import { AlertCircle } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AlertCircle, Copy } from 'lucide-react'
+import { UnidadesPanel } from '../components/UnidadesPanel'
+import { TipoMuestraAdminPanel } from '../components/TipoMuestraAdminPanel'
+import { CopiarCatalogosDialog } from '../components/CopiarCatalogosDialog'
+import { TiposEstudioTab } from '@/features/estudios/components/TiposEstudioTab'
+import { ExamenesTab } from '@/features/estudios/components/ExamenesTab'
+import { TipoEstudioMuestraAdminTab } from '@/features/biobanco/components/TipoEstudioMuestraAdminTab'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function CatalogosPage() {
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false)
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const hasAnyPermiso = useAuthStore((s) => s.hasAnyPermiso)
+
+  const tabs = [
+    { value: 'unidades', label: 'Unidades', visible: true },
+    { value: 'tipos-estudio', label: 'Tipos de Estudio', visible: hasAnyPermiso(['ESTUDIOS_TIPOS_LOOKUP', 'ESTUDIOS_CATALOGO_ACCEDER']) },
+    { value: 'examenes', label: 'Exámenes', visible: hasAnyPermiso(['EXAMENES_LOOKUP', 'EXAMENES_CATALOGO_ACCEDER']) },
+    { value: 'tipos-muestra', label: 'Tipos de Muestra', visible: hasAnyPermiso(['TIPOS_MUESTRA_LOOKUP', 'TIPOS_MUESTRA_ACCEDER']) },
+    { value: 'estudios-muestra', label: 'Est. de Muestra', visible: hasAnyPermiso(['ESTUDIOS_MUESTRA_LOOKUP', 'ESTUDIOS_MUESTRA_ACCEDER']) },
+  ]
+  const visibleTabs = tabs.filter((t) => t.visible)
+  const [activeTab, setActiveTab] = useState(visibleTabs[0]?.value ?? 'unidades')
+
   return (
-    <RoleGuard allowedRoles={['ADMINISTRADOR']}>
-      <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
         <PageHeader
           title="Catálogos"
           subtitle="Catálogos maestros del sistema para configuración clínica."
+          actions={
+            hasPermiso('CATALOGOS_EDITAR') && (
+              <Button variant="outline" onClick={() => setCopyDialogOpen(true)}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar catálogos
+              </Button>
+            )
+          }
         />
 
         <Alert>
@@ -21,49 +50,35 @@ export default function CatalogosPage() {
           </AlertDescription>
         </Alert>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tipos de estudio</CardTitle>
-              <CardDescription>Estudios médicos disponibles</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Cree tipos de estudio y defina su descripción y estado.
-            </CardContent>
-          </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="flex w-full flex-wrap">
+            {visibleTabs.map((t) => (
+              <TabsTrigger key={t.value} value={t.value} className="flex-1">{t.label}</TabsTrigger>
+            ))}
+          </TabsList>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Exámenes de laboratorio</CardTitle>
-              <CardDescription>Catálogo de análisis disponibles</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Gestione exámenes y rangos de referencia por criterio clínico.
-            </CardContent>
-          </Card>
+          <TabsContent value="unidades" className="space-y-4">
+            <UnidadesPanel />
+          </TabsContent>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Parámetros</CardTitle>
-              <CardDescription>Variables por tipo de estudio</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Configure parámetros numéricos, de texto y booleanos, así como unidades y agrupación.
-            </CardContent>
-          </Card>
+          <TabsContent value="tipos-estudio" className="space-y-4">
+            <TiposEstudioTab />
+          </TabsContent>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Roles y permisos</CardTitle>
-              <CardDescription>Accesos del sistema</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Consulte roles disponibles y permisos asociados para auditoría y control de acceso.
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </RoleGuard>
+          <TabsContent value="examenes" className="space-y-4">
+            <ExamenesTab />
+          </TabsContent>
+
+          <TabsContent value="tipos-muestra" className="space-y-4">
+            <TipoMuestraAdminPanel />
+          </TabsContent>
+
+          <TabsContent value="estudios-muestra" className="space-y-4">
+            <TipoEstudioMuestraAdminTab />
+          </TabsContent>
+        </Tabs>
+
+      <CopiarCatalogosDialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen} />
+    </div>
   )
 }
-

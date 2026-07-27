@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -48,6 +49,7 @@ const schema = z.object({
     .trim()
     .max(500, 'Máximo 500 caracteres')
     .optional(),
+  fechaLimite: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -151,8 +153,17 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
     staleTime: 1000 * 60 * 5, // 5 min
   })
 
+  // Excluye:
+  //   • Mi propia institución (no puedo autoprestarme).
+  //   • La institución dueña original de la muestra: si soy tenedor pero no dueña,
+  //     "prestar" a la dueña crearía un préstamo B→A redundante en lugar de
+  //     usar el flujo formal de devolución. Para eso hay que iniciar devolución.
+  const idDuenaOriginal = muestra?.idInstitucion ?? null
+  const soyDuena = idDuenaOriginal != null && idDuenaOriginal === myInstitucionId
   const institucionsConBiobanco = todasInstituciones.filter(
-    (i) => i.tieneBiobanco && i.activo && i.id !== myInstitucionId,
+    (i) => i.tieneBiobanco && i.activo
+      && i.id !== myInstitucionId
+      && (soyDuena || i.id !== idDuenaOriginal),
   )
 
   const institucionOptions = institucionsConBiobanco.map((i) => ({
@@ -168,10 +179,11 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { idInstitucionDestino: '', motivo: '', observaciones: '' },
+    defaultValues: { idInstitucionDestino: '', motivo: '', observaciones: '', fechaLimite: '' },
   })
 
   const handleClose = () => {
+    if (prestarMutation.isPending) return
     reset()
     onOpenChange(false)
   }
@@ -185,6 +197,7 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
         uuidAutoriza: userUuid,
         motivo: data.motivo,
         observaciones: data.observaciones || undefined,
+        fechaLimite: data.fechaLimite ? `${data.fechaLimite}T23:59:59` : undefined,
       })
       handleClose()
     } catch (_) {}
@@ -286,17 +299,31 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
             )}
           </div>
 
+          {/* Fecha límite ─────────────────────────────────────────────── */}
+          <div className="space-y-2">
+            <Label>Fecha límite de devolución</Label>
+            <Input
+              type="date"
+              {...register('fechaLimite')}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">
+              Opcional. Se marcará como vencido si no se devuelve antes de esta fecha.
+            </p>
+          </div>
+
           <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
             La posición de la muestra quedará libre al iniciar el préstamo. La institución destino
             podrá asignarle una posición en su propio biobanco.
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting || prestarMutation.isPending}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || institucionsConBiobanco.length === 0}>
-              {isSubmitting ? 'Registrando...' : 'Iniciar Préstamo'}
+            <Button type="submit" disabled={isSubmitting || prestarMutation.isPending || institucionsConBiobanco.length === 0}>
+              {isSubmitting || prestarMutation.isPending ? 'Registrando...' : 'Iniciar Préstamo'}
             </Button>
           </DialogFooter>
         </form>

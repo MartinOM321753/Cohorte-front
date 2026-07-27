@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/stores/authStore'
-import { EXPEDIENTE_SECTION_ROLES, type SectionKey } from '@/config/expedienteSections'
+import { EXPEDIENTE_SECTION_PERMISOS, type SectionKey } from '@/config/expedienteSections'
 
 /**
  * Devuelve `true` si el usuario autenticado tiene acceso a la sección indicada.
@@ -13,8 +13,8 @@ import { EXPEDIENTE_SECTION_ROLES, type SectionKey } from '@/config/expedienteSe
  *   const { data } = useQuery({ ..., enabled: canSee && !!patientUuid })
  */
 export function useSectionAccess(section: SectionKey): boolean {
-  const hasRole = useAuthStore((s) => s.hasRole)
-  const allowedRoles = EXPEDIENTE_SECTION_ROLES[section]
-  if (!allowedRoles || allowedRoles.length === 0) return false
-  return allowedRoles.some((role) => hasRole(role))
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const requiredPermiso = EXPEDIENTE_SECTION_PERMISOS[section]
+  if (!requiredPermiso) return false
+  return hasPermiso(requiredPermiso)
 }

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -86,6 +87,11 @@ const DEFAULT_FORM: ConfiguracionEtiquetaRequest = {
   mostrarCodigo: true,
   mostrarEtiqueta: true,
   disposicion: 'NOMBRE_CODIGO_ETIQUETA',
+  filasPorPagina: 10,
+  espacioHorizontalMm: 3.0,
+  espacioVerticalMm: 2.0,
+  margenPaginaSuperiorMm: 12.7,
+  margenPaginaIzquierdoMm: 4.8,
 }
 
 function getOrdenElementos(disposicion: DisposicionEtiqueta): ('NOMBRE' | 'CODIGO' | 'ETIQUETA')[] {
@@ -315,6 +321,7 @@ function NumInput({
 }
 
 export default function EtiquetasConfigPanel() {
+  const puedeEditar = useAuthStore((s) => s.hasPermiso('CONFIGURACION_EDITAR'))
   const { data: configuraciones = [], isLoading, isError } = useGetConfiguracionesEtiqueta()
   const createMutation = useCreateConfiguracionEtiqueta()
   const updateMutation = useUpdateConfiguracionEtiqueta()
@@ -358,6 +365,11 @@ export default function EtiquetasConfigPanel() {
       mostrarCodigo: config.mostrarCodigo,
       mostrarEtiqueta: config.mostrarEtiqueta,
       disposicion: config.disposicion,
+      filasPorPagina: config.filasPorPagina,
+      espacioHorizontalMm: config.espacioHorizontalMm,
+      espacioVerticalMm: config.espacioVerticalMm,
+      margenPaginaSuperiorMm: config.margenPaginaSuperiorMm,
+      margenPaginaIzquierdoMm: config.margenPaginaIzquierdoMm,
     })
     setFormError('')
     setOpenForm(true)
@@ -453,7 +465,7 @@ export default function EtiquetasConfigPanel() {
         </TableCell>
         <TableCell className="text-right">
           <div className="flex justify-end gap-1">
-            {!config.predeterminada && config.activo && (
+            {puedeEditar && !config.predeterminada && config.activo && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -465,19 +477,23 @@ export default function EtiquetasConfigPanel() {
                 <Star className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={() => openEdit(config)} title="Editar">
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => toggleMutation.mutate(config.id)}
-              disabled={toggleMutation.isPending}
-              title={config.activo ? 'Desactivar' : 'Activar'}
-              className={config.activo ? 'text-muted-foreground hover:text-destructive' : 'text-muted-foreground hover:text-green-600'}
-            >
-              {config.activo ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-            </Button>
+            {puedeEditar && (
+              <Button variant="ghost" size="icon" onClick={() => openEdit(config)} title="Editar">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+            {puedeEditar && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => toggleMutation.mutate(config.id)}
+                disabled={toggleMutation.isPending}
+                title={config.activo ? 'Desactivar' : 'Activar'}
+                className={config.activo ? 'text-muted-foreground hover:text-destructive' : 'text-muted-foreground hover:text-green-600'}
+              >
+                {config.activo ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+              </Button>
+            )}
           </div>
         </TableCell>
       </TableRow>
@@ -497,10 +513,12 @@ export default function EtiquetasConfigPanel() {
               Define los tamanos de etiqueta y la disposicion de la informacion para la impresion de muestras.
             </CardDescription>
           </div>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva configuracion
-          </Button>
+          {puedeEditar && (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva configuracion
+            </Button>
+          )}
         </div>
       </CardHeader>
 
@@ -587,7 +605,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Dimensiones */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Dimensiones</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
               <div className="space-y-1">
                 <Label htmlFor="cfg-ancho">Ancho (mm)</Label>
                 <NumInput id="cfg-ancho" value={form.anchoMm} placeholder="33" step="0.5" min="10" max="200" onChange={(v) => updateField('anchoMm', v)} />
@@ -607,7 +625,7 @@ export default function EtiquetasConfigPanel() {
             </div>
 
             {/* Margenes */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="cfg-margen-izq">Margen izquierdo (mm)</Label>
                 <NumInput id="cfg-margen-izq" value={form.margenIzquierdoMm} placeholder="2.5" step="0.5" min="0" max="20" onChange={(v) => updateField('margenIzquierdoMm', v)} />
@@ -622,7 +640,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Codigo de barras */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Codigo de barras</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>Tipo de codigo</Label>
                 <Select value={form.tipoCodigo} onValueChange={(v) => updateField('tipoCodigo', v as TipoCodigo)}>
@@ -646,7 +664,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Tamanos de fuente */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tamano de fuentes</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="cfg-font-nombre">Fuente del nombre (px)</Label>
                 <NumInput id="cfg-font-nombre" value={form.tamanoFuenteNombre} placeholder="16" min="8" max="72" onChange={(v) => updateField('tamanoFuenteNombre', v)} />
@@ -661,7 +679,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Espaciado entre elementos */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Espaciado entre elementos (dots)</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1">
                 <Label htmlFor="cfg-gap-nombre">Despues del nombre</Label>
                 <NumInput id="cfg-gap-nombre" value={form.espaciadoNombre} placeholder="4" min="0" max="50" onChange={(v) => updateField('espaciadoNombre', v)} />
@@ -731,6 +749,40 @@ export default function EtiquetasConfigPanel() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Configuración de página (impresora estándar)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Estos valores solo aplican al imprimir desde el navegador (hojas tipo Avery).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Filas por página</Label>
+                <Input type="number" min={1} max={30} value={form.filasPorPagina} onChange={(e) => updateField('filasPorPagina', Number(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Espacio horizontal (mm)</Label>
+                <Input type="number" min={0} max={50} step={0.1} value={form.espacioHorizontalMm} onChange={(e) => updateField('espacioHorizontalMm', Number(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Espacio vertical (mm)</Label>
+                <Input type="number" min={0} max={50} step={0.1} value={form.espacioVerticalMm} onChange={(e) => updateField('espacioVerticalMm', Number(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Margen superior página (mm)</Label>
+                <Input type="number" min={0} max={50} step={0.1} value={form.margenPaginaSuperiorMm} onChange={(e) => updateField('margenPaginaSuperiorMm', Number(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Margen izquierdo página (mm)</Label>
+                <Input type="number" min={0} max={50} step={0.1} value={form.margenPaginaIzquierdoMm} onChange={(e) => updateField('margenPaginaIzquierdoMm', Number(e.target.value))} />
+              </div>
             </div>
 
             {formError && (

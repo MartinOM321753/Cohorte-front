@@ -3,10 +3,13 @@ import {
   Plus, Edit, Trash2, Search, TestTube, AlertCircle,
   Paperclip, ArrowRightFromLine, History, FlaskConical,
   ChevronDown, ChevronUp, MapPinOff, ClipboardList, X, Printer, Tag,
-  EyeOff, Eye,
+  EyeOff, Eye, Ban,
 } from 'lucide-react'
-import { useGetMuestras, useDeleteMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto } from '../hooks/useBiobanco'
+import { useGetMuestras, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto } from '../hooks/useBiobanco'
+import { getLabelDataEtiqueta, getLabelDataAlicuotas, getLabelDataLoteCompleto } from '../api/biobanco.api'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
+import { PrintableLabelsView } from '@/components/print/PrintableLabelsView'
+import type { PrintableLabelBatchDTO } from '@/types/api'
 import { MuestraFormModal } from './MuestraFormModal'
 import { GenerarAlicuotasModal } from './GenerarAlicuotasModal'
 import { TrasladarMuestraModal } from './TrasladarMuestraModal'
@@ -85,7 +88,10 @@ function activeBox(estado: EstadoActivo, isOrigen?: boolean) {
 // ── Acciones compartidas ──────────────────────────────────────────────────────
 
 interface SharedActions {
-  isAdmin: boolean
+  puedeTraslado: boolean
+  puedeCancelarTraslado: boolean
+  puedeEliminarDocs: boolean
+  puedeDarBaja: boolean
   userUuid: string
   canUpload: boolean
   myInstitucionId?: number
@@ -97,9 +103,64 @@ interface SharedActions {
   onResultados: (m: MuestraDetalleDTO) => void
   onGenerarAlicuotas: (m: MuestraDetalleDTO) => void
   onDelete: (id: number) => void
+  onDarBaja: (id: number, motivo: string) => void
   onPrintEtiqueta: (id: number) => void
   onPrintAlicuotas: (id: number) => void
   onPrintLoteCompleto: (id: number) => void
+}
+
+function DarDeBajaButton({
+  muestra,
+  onDarBaja,
+}: {
+  muestra: MuestraDetalleDTO
+  onDarBaja: (id: number, motivo: string) => void
+}) {
+  const [motivo, setMotivo] = useState('')
+  return (
+    <AlertDialog onOpenChange={(open) => { if (!open) setMotivo('') }}>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline" size="sm"
+          className="text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+          title="Dar de baja (irreversible)"
+        >
+          <Ban className="h-3 w-3" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Dar de baja la muestra {muestra.etiqueta}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta acción es <strong>irreversible</strong>. La muestra pasará a estado BAJA:
+            se libera su posición (si tenía), no se podrá prestar, alicuotar ni aplicar
+            estudios. El historial y los estudios ya realizados se conservan.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Motivo (obligatorio)</label>
+          <textarea
+            className="w-full rounded border bg-background px-2 py-1 text-xs"
+            rows={3}
+            maxLength={500}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Motivo de la baja..."
+          />
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => onDarBaja(muestra.id, motivo.trim())}
+            disabled={motivo.trim().length === 0}
+            className="bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+          >
+            Dar de baja
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
 }
 
 function MuestraFooter({
@@ -123,8 +184,8 @@ function MuestraFooter({
     && actions.myInstitucionId != null
     && muestra.idInstitucionActual !== actions.myInstitucionId
   const noEditable = isPrestada || noEsMia || noEnMiPosesion
-  const puedeEnviar = !esTrasladada && !noEnMiPosesion && actions.isAdmin
-  const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.isAdmin
+  const puedeEnviar = !esTrasladada && !noEnMiPosesion && actions.puedeTraslado
+  const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.puedeCancelarTraslado
   const esPadre = muestra.idMuestraPadre == null
 
   return (
@@ -244,6 +305,11 @@ function MuestraFooter({
           <Printer className="h-3 w-3 mr-1" />
           Todo
         </Button>
+      )}
+
+      {/* Dar de baja: solo la institución propietaria, y si la muestra no está en tránsito */}
+      {actions.puedeDarBaja && !noEsMia && !isPrestada && muestra.estadoMuestra !== 'BAJA' && (
+        <DarDeBajaButton muestra={muestra} onDarBaja={actions.onDarBaja} />
       )}
 
       <AlertDialog>
@@ -383,6 +449,12 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
             <p className="text-muted-foreground truncate">
               {muestra.paciente ? `${muestra.paciente.folio} — ${muestra.paciente.nombreCompleto}` : '—'}
             </p>
+            {muestra.paciente && muestra.paciente.activo === false && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-red-700 dark:text-red-400 border border-red-500/40 bg-red-500/10 rounded-full px-2 py-0.5 mt-1">
+                <Ban className="h-2.5 w-2.5" />
+                En cuarentena (participante inactivo)
+              </span>
+            )}
           </div>
 
           {trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
@@ -608,8 +680,13 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
 export function MuestrasTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
   const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
-  const isAdmin = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
-  const canUploadMuestra = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'LABORATORISTA']))
+  const puedeCrear = useAuthStore((s) => s.hasPermiso('MUESTRAS_CREAR'))
+  const puedeTraslado = useAuthStore((s) => s.hasPermiso('TRASLADOS_CREAR'))
+  const puedeCancelarTraslado = useAuthStore((s) => s.hasPermiso('TRASLADOS_CANCELAR'))
+  const puedeEliminarDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
+  const puedeDarBaja = useAuthStore((s) => s.hasPermiso('MUESTRAS_DAR_BAJA'))
+  const canUploadMuestra = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
+  const puedeImprimir = useAuthStore((s) => s.hasPermiso('MUESTRAS_IMPRIMIR'))
 
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
@@ -622,17 +699,21 @@ export function MuestrasTab() {
   const [resultadosMuestra, setResultadosMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [generarAlicuotasMuestra, setGenerarAlicuotasMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [hideDevueltasHuerfanas, setHideDevueltasHuerfanas] = useState(true)
+  const [incluirHistorico, setIncluirHistorico] = useState(false)
 
-  const { data: muestras, isLoading } = useGetMuestras()
+  const { data: muestras, isLoading } = useGetMuestras({ incluirHistorico })
   const { data: traslados = [] } = useGetAllTraslados()
   const { data: tiposActivos = [], isLoading: isLoadingTiposMuestra } = useGetTiposMuestraActivos()
   const deleteMuestraMutation = useDeleteMuestra()
+  const darBajaMutation = useDarDeBajaMuestra()
   const cancelarPrestamoMutation = useCancelarPrestamo()
-  const { data: impresoras = [] } = useListarImpresoras()
-  const { data: configuracionesEtiqueta = [] } = useGetConfiguracionesActivas()
+  const { data: impresoras = [] } = useListarImpresoras({ enabled: puedeImprimir })
+  const { data: configuracionesEtiqueta = [] } = useGetConfiguracionesActivas({ enabled: puedeImprimir })
   const imprimirEtiquetaMut = useImprimirEtiqueta()
   const imprimirAlicuotasMut = useImprimirAlicuotas()
   const imprimirLoteMut = useImprimirLoteCompleto()
+
+  const [browserPrintData, setBrowserPrintData] = useState<PrintableLabelBatchDTO | null>(null)
 
   const [selectedPrinter, setSelectedPrinter] = useState<string>(() =>
     localStorage.getItem('zebra-printer-name') ?? ''
@@ -647,13 +728,20 @@ export function MuestrasTab() {
   const resolvedConfigId = selectedConfigId ?? configPredeterminada?.id
 
   const hayTiposConTubos = tiposActivos.some((t) => t.tubos.some((tb) => tb.activo))
-  const puedeCrearMuestra = !isLoadingTiposMuestra && hayTiposConTubos
+  const puedeCrearMuestra = puedeCrear && !isLoadingTiposMuestra && hayTiposConTubos
 
   const trasladosActivos = useMemo(() => {
-    const ESTADOS_ACTIVOS: EstadoActivo[] = ['ENVIADA', 'RECIBIDA', 'EN_DEVOLUCION']
+    // Solo ENVIADA y EN_DEVOLUCION representan tránsito real: RECIBIDA significa
+    // que el destino ya tiene la muestra físicamente y puede operar sobre ella
+    // (incluyendo prestarla a un tercer eslabón de la cadena de custodia).
+    // Preferimos el traslado más reciente si hay varios activos para la misma muestra.
+    const ESTADOS_ACTIVOS: EstadoActivo[] = ['ENVIADA', 'EN_DEVOLUCION']
     const map = new Map<number, TrasladoInfo>()
-    traslados.forEach((t) => {
-      if ((ESTADOS_ACTIVOS as string[]).includes(t.estado)) {
+    const ordenados = [...traslados].sort(
+      (a, b) => new Date(b.fechaTraslado).getTime() - new Date(a.fechaTraslado).getTime()
+    )
+    ordenados.forEach((t) => {
+      if ((ESTADOS_ACTIVOS as string[]).includes(t.estado) && !map.has(t.muestra.id)) {
         map.set(t.muestra.id, {
           idTraslado: t.id,
           institucionNombre: t.institucionDestino.nombre,
@@ -728,6 +816,10 @@ export function MuestrasTab() {
 
   const handleEdit = (m: MuestraDetalleDTO) => { setEditingMuestra(m); setIsMuestraModalOpen(true) }
   const handleDelete = async (id: number) => { await deleteMuestraMutation.mutateAsync(id) }
+  const handleDarBaja = async (id: number, motivo: string) => {
+    if (!motivo || motivo.trim().length === 0) return
+    await darBajaMutation.mutateAsync({ id, motivo: motivo.trim() })
+  }
   const handleModalClose = () => { setIsMuestraModalOpen(false); setEditingMuestra(null) }
 
   const handleTrasladoClick = (m: MuestraDetalleDTO) => setPendingTraslado(m)
@@ -742,10 +834,21 @@ export function MuestrasTab() {
     })
   }
 
+  const isBrowserPrint = selectedPrinter === '__browser__'
+
   const handlePrintEtiqueta = async (id: number) => {
+    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
+    if (isBrowserPrint) {
+      try {
+        const data = await getLabelDataEtiqueta(id, resolvedConfigId)
+        setBrowserPrintData(data)
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || err?.message || 'Error al obtener datos de etiqueta')
+      }
+      return
+    }
     const imp = selectedPrinter || impresoras[0]
     if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
-    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
     try {
       await imprimirEtiquetaMut.mutateAsync({ idMuestra: id, impresora: imp, configuracionId: resolvedConfigId })
       toast.success('Etiqueta enviada a la impresora')
@@ -756,9 +859,18 @@ export function MuestrasTab() {
   }
 
   const handlePrintAlicuotas = async (id: number) => {
+    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
+    if (isBrowserPrint) {
+      try {
+        const data = await getLabelDataAlicuotas(id, resolvedConfigId)
+        setBrowserPrintData(data)
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || err?.message || 'Error al obtener datos de etiquetas')
+      }
+      return
+    }
     const imp = selectedPrinter || impresoras[0]
     if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
-    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
     try {
       const total = await imprimirAlicuotasMut.mutateAsync({ idMuestraPadre: id, impresora: imp, configuracionId: resolvedConfigId })
       toast.success(`${total} etiqueta(s) enviada(s) a la impresora`)
@@ -769,9 +881,18 @@ export function MuestrasTab() {
   }
 
   const handlePrintLoteCompleto = async (id: number) => {
+    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
+    if (isBrowserPrint) {
+      try {
+        const data = await getLabelDataLoteCompleto(id, resolvedConfigId)
+        setBrowserPrintData(data)
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || err?.message || 'Error al obtener datos de etiquetas')
+      }
+      return
+    }
     const imp = selectedPrinter || impresoras[0]
     if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
-    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
     try {
       const total = await imprimirLoteMut.mutateAsync({ idMuestraPadre: id, impresora: imp, configuracionId: resolvedConfigId })
       toast.success(`${total} etiqueta(s) enviada(s) a la impresora (padre + alícuotas)`)
@@ -782,7 +903,10 @@ export function MuestrasTab() {
   }
 
   const actions: SharedActions = {
-    isAdmin,
+    puedeTraslado,
+    puedeCancelarTraslado,
+    puedeEliminarDocs,
+    puedeDarBaja,
     userUuid,
     canUpload: canUploadMuestra,
     myInstitucionId,
@@ -794,6 +918,7 @@ export function MuestrasTab() {
     onResultados: setResultadosMuestra,
     onGenerarAlicuotas: setGenerarAlicuotasMuestra,
     onDelete: handleDelete,
+    onDarBaja: handleDarBaja,
     onPrintEtiqueta: handlePrintEtiqueta,
     onPrintAlicuotas: handlePrintAlicuotas,
     onPrintLoteCompleto: handlePrintLoteCompleto,
@@ -809,17 +934,17 @@ export function MuestrasTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Muestras Biológicas</h2>
-          <p className="text-muted-foreground">Gestiona el registro, ubicación y traslados de muestras</p>
+          <h2 className="text-xl sm:text-2xl font-bold">Muestras Biológicas</h2>
+          <p className="text-muted-foreground text-sm">Gestiona el registro, ubicación y traslados de muestras</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {configuracionesEtiqueta.length > 0 && (
             <div className="flex items-center gap-1.5 border rounded-md px-2 py-1.5 text-sm">
               <Tag className="h-4 w-4 text-violet-600 shrink-0" />
               <select
-                className="bg-transparent outline-none cursor-pointer max-w-[180px] truncate"
+                className="bg-transparent outline-none cursor-pointer max-w-[140px] truncate"
                 value={resolvedConfigId ?? ''}
                 onChange={(e) => {
                   const val = e.target.value
@@ -834,14 +959,15 @@ export function MuestrasTab() {
               </select>
             </div>
           )}
-          {impresoras.length > 0 && (
+          {puedeImprimir && (
             <div className="flex items-center gap-1.5 border rounded-md px-2 py-1.5 text-sm">
               <Printer className="h-4 w-4 text-sky-600 shrink-0" />
               <select
                 className="bg-transparent outline-none cursor-pointer max-w-[180px] truncate"
-                value={selectedPrinter || impresoras[0]}
+                value={selectedPrinter || (impresoras.length > 0 ? impresoras[0] : '__browser__')}
                 onChange={(e) => handleSelectPrinter(e.target.value)}
               >
+                <option value="__browser__">Impresora estándar (navegador)</option>
                 {impresoras.map((imp) => (
                   <option key={imp} value={imp}>{imp}</option>
                 ))}
@@ -849,9 +975,10 @@ export function MuestrasTab() {
             </div>
           )}
           <Button
+            size="sm"
             onClick={() => setIsMuestraModalOpen(true)}
             disabled={!puedeCrearMuestra}
-            title={!puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}
+            title={!puedeCrear ? 'No tienes permiso para crear muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}
           >
             <Plus className="mr-2 h-4 w-4" />
             {isLoadingTiposMuestra ? 'Cargando...' : 'Nueva Muestra'}
@@ -864,6 +991,16 @@ export function MuestrasTab() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             No hay tipos de muestra con tubos configurados. Ve a la pestaña <strong>Tipos de Muestra</strong> y crea al menos un tipo con un tubo activo para poder registrar muestras.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {puedeImprimir && configuracionesEtiqueta.length === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No hay configuraciones de etiqueta registradas. Cree una en{' '}
+            <strong>Configuración &gt; Etiquetas</strong> para poder imprimir.
           </AlertDescription>
         </Alert>
       )}
@@ -900,6 +1037,21 @@ export function MuestrasTab() {
             {hideDevueltasHuerfanas ? `Mostrar devueltas (${huerfanasDevueltasCount})` : 'Ocultar devueltas'}
           </Button>
         )}
+
+        {/* Toggle histórico: por default el backend NO devuelve muestras que solo estuvieron
+            prestadas en el pasado (evita crecimiento indefinido). Este botón activa la vista extendida. */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIncluirHistorico((prev) => !prev)}
+          className={`text-xs ${incluirHistorico ? 'text-teal-600 dark:text-teal-400 border-teal-500/30' : 'text-muted-foreground'}`}
+          title={incluirHistorico
+            ? 'Ocultar muestras que solo estuvieron prestadas en el pasado'
+            : 'Incluir muestras que estuvieron prestadas y fueron devueltas'}
+        >
+          <History className="h-3.5 w-3.5 mr-1" />
+          {incluirHistorico ? 'Ocultar histórico' : 'Mostrar histórico'}
+        </Button>
       </div>
 
       {filteredPadres.length === 0 ? (
@@ -918,7 +1070,7 @@ export function MuestrasTab() {
               <Button
                 onClick={() => setIsMuestraModalOpen(true)}
                 disabled={!puedeCrearMuestra}
-                title={!puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
+                title={!puedeCrear ? 'No tienes permiso para crear muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 {isLoadingTiposMuestra ? 'Cargando...' : 'Registrar Primera Muestra'}
@@ -1025,7 +1177,7 @@ export function MuestrasTab() {
         titulo="Documentos de la muestra"
         descripcion="Sube y consulta los archivos adjuntos a esta muestra biológica."
         usuarioUUID={userUuid}
-        canDelete={isAdmin}
+        canDelete={puedeEliminarDocs}
         canUpload={canUploadMuestra}
       />
 
@@ -1055,6 +1207,15 @@ export function MuestrasTab() {
           )}
         </SheetContent>
       </Sheet>
+
+      {browserPrintData && (
+        <PrintableLabelsView
+          open={true}
+          etiquetas={browserPrintData.etiquetas}
+          configuracion={browserPrintData.configuracion}
+          onClose={() => setBrowserPrintData(null)}
+        />
+      )}
 
     </div>
   )

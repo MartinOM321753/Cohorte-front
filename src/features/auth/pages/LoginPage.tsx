@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "../schemas/login.schema";
 import { loginUser, getGeolocation } from "../api/auth.api";
 import { useAuthStore } from "@/stores/authStore";
+import { resolveHomeRoute } from "@/config/featurePermisos";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import {
@@ -167,7 +168,7 @@ function ShieldFiligree() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, hasRole } = useAuthStore();
+  const { login, isAuthenticated, hasPermiso } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [submitBtnHover, setSubmitBtnHover] = useState(false);
@@ -219,10 +220,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated)
-      navigate(hasRole("ENCARGADO") ? "/mis-muestras" : "/dashboard", {
-        replace: true,
-      });
-  }, [isAuthenticated, navigate, hasRole]);
+      navigate(resolveHomeRoute(hasPermiso), { replace: true });
+  }, [isAuthenticated, navigate, hasPermiso]);
 
   const onSubmit = async (data: LoginFormData) => {
     if (!coords) {
@@ -233,16 +232,10 @@ export default function LoginPage() {
     try {
       const response = await loginUser(data, coords);
       if (!response.user) throw new Error("Respuesta de servidor inválida");
-      const ok = await login({ user: response.user, mustChangePassword: response.mustChangePassword });
+      const ok = await login({ user: response.user, mustChangePassword: response.mustChangePassword, permisos: response.permisos, roles: response.roles });
       if (!ok) throw new Error("Rol de usuario no reconocido");
       toast.success("Inicio de sesión exitoso");
-      // Role-based redirect: ENCARGADO goes to their samples page
-      const targetRole = response.user?.rol;
-      const isEncargado =
-        typeof targetRole === "string"
-          ? targetRole === "ENCARGADO"
-          : (targetRole as any)?.nombre === "ENCARGADO";
-      navigate(isEncargado ? "/mis-muestras" : "/dashboard", { replace: true });
+      navigate(resolveHomeRoute(hasPermiso), { replace: true });
     } catch (error: any) {
       const message =
         error.response?.data?.message ||

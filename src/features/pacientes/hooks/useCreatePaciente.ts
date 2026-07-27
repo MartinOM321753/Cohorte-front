@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createPaciente, updatePaciente, deletePaciente, toggleActivoPaciente } from '../api/pacientes.api'
+import { createPaciente, updatePaciente, deletePaciente, toggleActivoPaciente, crearAccesoPaciente } from '../api/pacientes.api'
 import { PacienteRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -64,6 +64,21 @@ export function useToggleActivoPaciente() {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message ?? 'Error al cambiar estado del participante')
+    },
+  })
+}
+
+export function useCrearAccesoPaciente() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (uuid: string) => crearAccesoPaciente(uuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] })
+      toast.success('Cuenta de acceso creada. Se envió un correo de invitación al participante.')
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message ?? 'Error al crear la cuenta de acceso')
     },
   })
 }

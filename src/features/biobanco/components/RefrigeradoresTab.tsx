@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Edit, Trash2, Layers } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 import { useGetRefrigeradores, useDeleteRefrigerador } from '../hooks/useBiobanco'
 import { RefrigeradorFormModal } from './RefrigeradorFormModal'
 import { PisosFormModal } from './PisosFormModal'
@@ -26,6 +27,11 @@ export function RefrigeradoresTab() {
   const [isPisosModalOpen, setIsPisosModalOpen] = useState(false)
   const [selectedRefrigerador, setSelectedRefrigerador] = useState<any>(null)
   const [editingRefrigerador, setEditingRefrigerador] = useState<any>(null)
+
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('REFRIGERADORES_CREAR')
+  const puedeEditar = hasPermiso('REFRIGERADORES_EDITAR')
+  const puedeEliminar = hasPermiso('REFRIGERADORES_ELIMINAR')
 
   const { data: refrigeradores, isLoading } = useGetRefrigeradores()
   const deleteRefrigeradorMutation = useDeleteRefrigerador()
@@ -66,10 +72,12 @@ export function RefrigeradoresTab() {
           <h2 className="text-2xl font-bold">Refrigeradores</h2>
           <p className="text-muted-foreground">Gestiona los equipos de almacenamiento criogénico</p>
         </div>
-        <Button onClick={() => setIsRefrigeradorModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Refrigerador
-        </Button>
+        {puedeCrear && (
+          <Button onClick={() => setIsRefrigeradorModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Refrigerador
+          </Button>
+        )}
       </div>
 
       <Alert>
@@ -87,10 +95,12 @@ export function RefrigeradoresTab() {
             <p className="text-muted-foreground text-center mb-4">
               Comienza creando tu primer refrigerador criogénico para organizar el almacenamiento de muestras.
             </p>
-            <Button onClick={() => setIsRefrigeradorModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Crear Primer Refrigerador
-            </Button>
+            {puedeCrear && (
+              <Button onClick={() => setIsRefrigeradorModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Crear Primer Refrigerador
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -158,47 +168,53 @@ export function RefrigeradoresTab() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAddPisos(refrigerador)}
-                    className="flex-1"
-                  >
-                    <Layers className="mr-1 h-3 w-3" />
-                    Gestionar Pisos
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(refrigerador)}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar "{refrigerador.nombre}"?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          El refrigerador <strong>{refrigerador.nombre}</strong> (código: {refrigerador.codigo}) será eliminado
-                          junto con todos sus pisos y posiciones asociadas. Esta acción no se puede deshacer.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(refrigerador.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Eliminar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {puedeEditar && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddPisos(refrigerador)}
+                      className="flex-1"
+                    >
+                      <Layers className="mr-1 h-3 w-3" />
+                      Gestionar Pisos
+                    </Button>
+                  )}
+                  {puedeEditar && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(refrigerador)}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  )}
+                  {puedeEliminar && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar "{refrigerador.nombre}"?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            El refrigerador <strong>{refrigerador.nombre}</strong> (código: {refrigerador.codigo}) será eliminado
+                            junto con todos sus pisos y posiciones asociadas. Esta acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(refrigerador.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </CardContent>
             </Card>

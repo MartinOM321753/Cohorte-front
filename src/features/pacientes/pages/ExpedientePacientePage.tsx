@@ -38,9 +38,9 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSectionAccess } from '@/hooks/useSectionAccess'
 
 // ── Feature hooks ──────────────────────────────────────────────────────────────
-import { useGetPacienteByUUID } from '../hooks/useGetPacientes'
+import { useGetPacienteByUUID, useMiPacienteUuid } from '../hooks/useGetPacientes'
 import { useLatestSomatometria, useSomatometriaByPaciente } from '@/features/somatometria/hooks/useSomatometria'
-import { useGetCitas, useCitasResumenByPaciente } from '@/features/citas/hooks/useCitas'
+import { useCitasResumenByPaciente } from '@/features/citas/hooks/useCitas'
 import {
   useGetEstudiosByPaciente,
   useGetEstudioById,
@@ -756,6 +756,8 @@ function SomatometriaCard({
   pinned?: boolean
 }) {
   const canSee = useSectionAccess('somatometria')
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('SOMATOMETRIA_CREAR')
   const { data: latest, isLoading } = useLatestSomatometria(pacienteUUID, { enabled: canSee })
   const { data: historial = [] } = useSomatometriaByPaciente(pacienteUUID, { enabled: canSee })
 
@@ -806,13 +808,15 @@ function SomatometriaCard({
             >
               <History className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
-            <button
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
-              onClick={onRegistrar}
-              title="Registrar medición"
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
-            </button>
+            {puedeCrear && (
+              <button
+                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
+                onClick={onRegistrar}
+                title="Registrar medición"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </button>
+            )}
           </div>
         }
       >
@@ -968,8 +972,8 @@ function CitasCard({
   onAgendar: () => void
 }) {
   const canSee = useSectionAccess('citas')
-  const { hasRole } = useAuthStore()
-  const canEdit = hasRole(['ADMINISTRADOR', 'RECEPCIONISTA', 'MEDICO'])
+  const { hasPermiso } = useAuthStore()
+  const canEdit = hasPermiso('CITAS_EDITAR')
   const navigate = useNavigate()
   const { data: citas = [], isLoading } = useCitasResumenByPaciente(pacienteUUID, {
     enabled: canSee && !!pacienteUUID,
@@ -1149,8 +1153,8 @@ function EstudioDetalleDialog({
   const tipoId     = estudio?.tipoEstudio?.id ?? null
   const { data: parametros }           = useGetParametrosByTipo(tipoId)
   const updateMutation                 = useUpdateEstudio(estudioId ?? 0)
-  const isAdmin    = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
-  const canUpload  = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'MEDICO']))
+  const canDeleteDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
+  const canUpload     = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
 
   const parametrosList: ParametroEstudio[] = parametros ?? []
 
@@ -1585,7 +1589,7 @@ function EstudioDetalleDialog({
           titulo="Documentos del estudio"
           descripcion="Sube y consulta los archivos adjuntos a este estudio médico."
           usuarioUUID={userUuid}
-          canDelete={isAdmin}
+          canDelete={canDeleteDocs}
           canUpload={canUpload}
         />
       )}
@@ -1596,10 +1600,10 @@ function EstudioDetalleDialog({
 // ── Estudios card ─────────────────────────────────────────────────────────────
 function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUuid: string }) {
   const canSee = useSectionAccess('estudios')
-  const { hasRole } = useAuthStore()
-  const canEdit     = hasRole(['ADMINISTRADOR', 'RECEPCIONISTA', 'MEDICO'])
-  const canUpload   = hasRole(['ADMINISTRADOR', 'MEDICO'])
-  const isAdmin     = hasRole('ADMINISTRADOR')
+  const { hasPermiso } = useAuthStore()
+  const canEdit       = hasPermiso('ESTUDIOS_EDITAR')
+  const canUpload     = hasPermiso('DOCUMENTOS_SUBIR')
+  const canDeleteDocs = hasPermiso('DOCUMENTOS_ELIMINAR')
   const navigate    = useNavigate()
   const { data: estudios = [], isLoading } = useGetEstudiosByPaciente(canSee ? pacienteUUID : null)
 
@@ -1735,7 +1739,7 @@ function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUu
           titulo="Documentos del estudio"
           descripcion="Archivos adjuntos al estudio médico."
           usuarioUUID={userUuid}
-          canDelete={isAdmin}
+          canDelete={canDeleteDocs}
           canUpload={canUpload}
         />
       )}
@@ -1752,8 +1756,8 @@ function ExamenesCard({
   pacienteSexo?: 'M' | 'F' | null
 }) {
   const canSee = useSectionAccess('examenes')
-  const { hasRole } = useAuthStore()
-  const canEdit = hasRole(['ADMINISTRADOR', 'MEDICO', 'LABORATORISTA'])
+  const { hasPermiso } = useAuthStore()
+  const canEdit = hasPermiso('EXAMENES_EDITAR')
   const navigate = useNavigate()
   const { data: resultados = [], isLoading } = useGetResultadosByPacienteUUID(canSee ? pacienteUUID : null)
   const [detalle, setDetalle] = useState<ResultadoExamen | null>(null)
@@ -2053,8 +2057,8 @@ function DocumentosCard({
   onSubir: () => void
 }) {
   const canSee = useSectionAccess('documentos')
-  const { hasRole } = useAuthStore()
-  const canEdit = hasRole(['ADMINISTRADOR', 'MEDICO', 'RECEPCIONISTA'])
+  const { hasPermiso } = useAuthStore()
+  const canEdit = hasPermiso('DOCUMENTOS_SUBIR')
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
 
   const { data: consentimientos = [], isLoading: loadingCons } = useDocumentosPacienteTipo(
@@ -2145,10 +2149,18 @@ export default function ExpedientePacientePage() {
   const location = useLocation()
   const navigate = useNavigate()
   // UUID llega por location.state (nunca por URL) para que no se vea en la barra del navegador.
-  // Si se accede directamente a /pacientes/expediente sin state (ej. refresh), redirige a la lista.
-  const uuid: string = (location.state as { uuid?: string } | null)?.uuid ?? ''
-  const { hasRole } = useAuthStore()
+  // Staff llega siempre con state (navega desde la tabla de pacientes). El rol PACIENTE
+  // llega sin state (aterriza aquí tras login) — en ese caso resolvemos su propio UUID
+  // vía /pacientes/mi-uuid, reutilizando esta MISMA página en modo lectura (los botones
+  // de edición ya se ocultan solos porque PACIENTE no tiene los permisos *_EDITAR).
+  const stateUuid: string = (location.state as { uuid?: string } | null)?.uuid ?? ''
+  const { hasPermiso } = useAuthStore()
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
+
+  const puedeVerCualquierPaciente = hasPermiso('PACIENTES_ACCEDER') || hasPermiso('PACIENTES_LOOKUP')
+  const necesitaUuidPropio = !stateUuid && !puedeVerCualquierPaciente
+  const { data: miUuid, isLoading: resolviendoUuidPropio } = useMiPacienteUuid({ enabled: necesitaUuidPropio })
+  const uuid: string = stateUuid || miUuid || ''
 
   const { data: paciente, isLoading, isError } = useGetPacienteByUUID(uuid)
 
@@ -2179,7 +2191,7 @@ export default function ExpedientePacientePage() {
   const canSeeExamenes   = useSectionAccess('examenes')
   const canSeeMuestras   = useSectionAccess('muestrasBiobanco')
 
-  const { data: citas = [] }    = useGetCitas({ pacienteUUID: uuid }, { enabled: canSeeCitas && !!uuid })
+  const { data: citas = [] }    = useCitasResumenByPaciente(uuid || '', { enabled: canSeeCitas && !!uuid })
   const { data: estudios = [] } = useGetEstudiosByPaciente(canSeeEstudios ? uuid : null)
   const { data: docsC = [] }    = useDocumentosPacienteTipo(uuid, 'CONSENTIMIENTO', { enabled: canSeeDocs && !!uuid })
   const { data: docsQ1 = [] }   = useDocumentosPacienteTipo(uuid, 'CUESTIONARIO_GENERAL', { enabled: canSeeDocs && !!uuid })
@@ -2204,7 +2216,17 @@ export default function ExpedientePacientePage() {
   const docsCount     = [docsC, docsQ1, docsQ2, docsQ3, docsQ4, docsG]
     .reduce((acc, arr) => acc + (Array.isArray(arr) ? arr.length : 0), 0)
 
-  // Sin UUID (acceso directo sin state, p.ej. refresh) → volver a la lista
+  // Resolviendo el UUID propio del participante (rol PACIENTE, llega sin state)
+  if (!uuid && resolviendoUuidPropio) {
+    return (
+      <div className="flex flex-col gap-5 p-6">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-28 w-full rounded-lg" />
+      </div>
+    )
+  }
+
+  // Sin UUID (acceso directo sin state, p.ej. refresh, o sin expediente propio vinculado) → volver a la lista
   if (!uuid) {
     navigate('/pacientes', { replace: true })
     return null
@@ -2215,7 +2237,7 @@ export default function ExpedientePacientePage() {
       <div className="flex flex-col gap-5 p-6">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-28 w-full rounded-lg" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
         </div>
       </div>
@@ -2231,7 +2253,7 @@ export default function ExpedientePacientePage() {
     )
   }
 
-  const canEdit = hasRole(['ADMINISTRADOR', 'RECEPCIONISTA'])
+  const canEdit = hasPermiso('PACIENTES_EDITAR')
 
   return (
     <div className="flex flex-col gap-5 p-6">

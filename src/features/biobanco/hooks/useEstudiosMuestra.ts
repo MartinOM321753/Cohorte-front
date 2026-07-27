@@ -6,6 +6,7 @@ import {
   createTipoEstudioMuestra,
   updateTipoEstudioMuestra,
   toggleTipoEstudioMuestra,
+  deleteTipoEstudioMuestra,
   getParametrosByTipoEstudioMuestra,
   createParametroEstudioMuestra,
   updateParametroEstudioMuestra,
@@ -75,6 +76,21 @@ export function useUpdateTipoEstudioMuestra() {
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? 'Error al actualizar tipo de estudio')
+    },
+  })
+}
+
+export function useDeleteTipoEstudioMuestra() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteTipoEstudioMuestra(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.tiposAll })
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.tiposTodos })
+      toast.success('Tipo de estudio de muestra eliminado')
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message ?? 'Error al eliminar tipo de estudio')
     },
   })
 }

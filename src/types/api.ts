@@ -107,6 +107,7 @@ export interface Paciente {
   institucionId?: number
   institucionNombre?: string
   propiaInstitucion?: boolean
+  tieneAcceso?: boolean
 }
 
 export interface PacienteRequestDTO {
@@ -182,6 +183,8 @@ export interface PacienteResumenDTO {
   nombreCompleto: string
   sexo: 'M' | 'F' | 'O'
   uuid: string
+  /** Estado del participante. false → sus muestras están en cuarentena (mutaciones bloqueadas). */
+  activo?: boolean
 }
 
 export interface UsuarioResumenDTO {
@@ -286,7 +289,9 @@ export interface TipoEstudio {
   id: number
   nombre: string
   descripcion?: string
+  tipoCapturaDefecto?: 'NORMAL' | 'GRUPOS'
   activo: boolean
+  tieneResultados?: boolean
   fechaCreacion?: string
   parametroEstudios?: ParametroEstudio[]
 }
@@ -294,6 +299,7 @@ export interface TipoEstudio {
 export interface TipoEstudioRequestDTO {
   nombre: string
   descripcion?: string
+  tipoCapturaDefecto?: 'NORMAL' | 'GRUPOS'
 }
 
 export interface ResultadoEstudioRequestDTO {
@@ -601,6 +607,8 @@ export interface MuestraDetalleDTO {
     nombreCompleto: string
     sexo: string
     uuid: string
+    /** false → participante inactivo, sus muestras están en cuarentena. */
+    activo?: boolean
   }
   usuarioRecolecta: {
     id: number
@@ -663,7 +671,9 @@ export interface TipoEstudioMuestra {
   id: number
   nombre: string
   descripcion?: string | null
+  tipoCapturaDefecto?: 'NORMAL' | 'GRUPOS'
   activo: boolean
+  tieneResultados?: boolean
   fechaCreacion?: string | null
   parametros?: ParametroEstudioMuestra[] | null
 }
@@ -671,6 +681,7 @@ export interface TipoEstudioMuestra {
 export interface TipoEstudioMuestraRequestDTO {
   nombre: string
   descripcion?: string
+  tipoCapturaDefecto?: 'NORMAL' | 'GRUPOS'
 }
 
 export interface ResultadoEstudioMuestraRequestDTO {
@@ -1040,6 +1051,8 @@ export interface TrasladoMuestra {
   estado: 'ENVIADA' | 'RECIBIDA' | 'EN_DEVOLUCION' | 'DEVUELTA' | 'CANCELADO'
   fechaTraslado: string
   fechaRetorno?: string | null
+  fechaLimite?: string | null
+  vencido?: boolean
   motivo: string
   observaciones?: string | null
 }
@@ -1050,6 +1063,7 @@ export interface TrasladoRequestDTO {
   uuidAutoriza: string
   motivo: string
   observaciones?: string
+  fechaLimite?: string
 }
 
 export interface DevolucionRequestDTO {
@@ -1071,6 +1085,12 @@ export interface IniciarDevolucionRequestDTO {
   uuidInicia: string
   observaciones?: string
   idsAlicuotasDevolver?: number[]
+  /**
+   * Institución destino de la devolución. Si es omitido, se devuelve al eslabón
+   * anterior de la cadena (institución origen del traslado). Se puede elegir cualquier
+   * institución que haya participado previamente en la cadena de custodia (atajo).
+   */
+  idInstitucionDestinoDevolucion?: number
 }
 
 export interface GenerarAlicuotasRequest {
@@ -1092,7 +1112,7 @@ export interface Somatometria {
   id: number
   pacienteUUID: string
   pacienteNombre?: string
-  fechaMedicion: string         // ISO date "YYYY-MM-DD"
+  fechaMedicion: string         // ISO datetime "YYYY-MM-DDTHH:mm:ss"
   pesoKg?: number | null
   tallaM?: number | null
   /** IMC calculado en backend (peso / talla²) */
@@ -1109,7 +1129,7 @@ export interface Somatometria {
 export interface SomatometriaRequestDTO {
   pacienteUUID: string
   usuarioRegistraUUID: string
-  fechaMedicion: string         // "YYYY-MM-DD"
+  fechaMedicion: string         // "YYYY-MM-DDTHH:mm:ss"
   pesoKg?: number | null
   tallaM?: number | null
   presionSistolica?: number | null
@@ -1181,6 +1201,11 @@ export interface ConfiguracionEtiquetaResponse {
   fechaActualizacion: string
   anchoDots: number
   altoDots: number
+  filasPorPagina: number
+  espacioHorizontalMm: number
+  espacioVerticalMm: number
+  margenPaginaSuperiorMm: number
+  margenPaginaIzquierdoMm: number
 }
 
 export interface ConfiguracionEtiquetaRequest {
@@ -1203,6 +1228,22 @@ export interface ConfiguracionEtiquetaRequest {
   mostrarCodigo: boolean
   mostrarEtiqueta: boolean
   disposicion: DisposicionEtiqueta
+  filasPorPagina: number
+  espacioHorizontalMm: number
+  espacioVerticalMm: number
+  margenPaginaSuperiorMm: number
+  margenPaginaIzquierdoMm: number
+}
+
+export interface LabelDataDTO {
+  etiqueta: string
+  nombre: string
+  codigoDatos: string
+}
+
+export interface PrintableLabelBatchDTO {
+  configuracion: ConfiguracionEtiquetaResponse
+  etiquetas: LabelDataDTO[]
 }
 
 export interface OpcionesEtiqueta {

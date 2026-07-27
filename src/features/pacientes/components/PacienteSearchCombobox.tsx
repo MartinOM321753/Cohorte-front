@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronsUpDown, Loader2, UserX } from 'lucide-react'
+import { Check, ChevronsUpDown, Loader2, Search, UserX } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,7 +16,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { useDebounce } from '@/hooks/useDebounce'
-import { getPacientesPaginados } from '../api/pacientes.api'
+import { buscarPacientes } from '../api/pacientes.api'
 import { getPacienteByUUID } from '../api/pacientes.api'
 import type { Paciente } from '@/types/api'
 
@@ -29,6 +29,8 @@ interface PacienteSearchComboboxProps {
   incluirJerarquia?: boolean
   modal?: boolean
   className?: string
+  /** 'default' = botón combobox clásico; 'search' = input tipo barra de búsqueda */
+  variant?: 'default' | 'search'
 }
 
 function getUUID(p: Paciente): string {
@@ -56,6 +58,7 @@ export function PacienteSearchCombobox({
   incluirJerarquia = true,
   modal = false,
   className,
+  variant = 'default',
 }: PacienteSearchComboboxProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -68,10 +71,8 @@ export function PacienteSearchCombobox({
     if (!open) return
     let cancelled = false
     setLoading(true)
-    getPacientesPaginados({
-      page: 0,
-      size: 20,
-      buscar: debouncedSearch || undefined,
+    buscarPacientes({
+      q: debouncedSearch || undefined,
       incluirJerarquia,
     })
       .then((data) => {
@@ -109,6 +110,7 @@ export function PacienteSearchCombobox({
   }, [value, results])
 
   const displayText = value ? (selectedLabel ?? 'Cargando…') : placeholder
+  const isSearch = variant === 'search'
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={modal}>
@@ -119,10 +121,20 @@ export function PacienteSearchCombobox({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn('w-full justify-between h-9 text-[13px]', className)}
+          className={cn(
+            'w-full justify-between h-9 text-[13px]',
+            isSearch && 'pl-9 font-normal',
+            !value && 'text-muted-foreground',
+            className,
+          )}
         >
+          {isSearch && (
+            <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
+          )}
           <span className="truncate">{displayText}</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          {!isSearch && (
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">

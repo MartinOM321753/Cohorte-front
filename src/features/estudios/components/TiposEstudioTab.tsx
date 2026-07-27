@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
@@ -23,9 +24,11 @@ import {
   useCreateParametroEstudio,
   useCreateTipoEstudio,
   useDeleteParametroEstudio,
+  useDeleteTipoEstudio,
   useGetTodosLosTipos,
   useToggleTipoEstudio,
   useUpdateParametroEstudio,
+  useUpdateTipoEstudio,
 } from '../hooks/useEstudios'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -38,6 +41,17 @@ import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
 
@@ -60,7 +74,7 @@ const TIPO_LABELS: Record<TipoParametro, string> = {
   TEXTO_OPCIONES: 'Selección',
 }
 
-const DEFAULT_TIPO: TipoEstudioFormData = { nombre: '', descripcion: '' }
+const DEFAULT_TIPO: TipoEstudioFormData = { nombre: '', descripcion: '', tipoCapturaDefecto: 'NORMAL' }
 
 /** Valida que mín < máx para un par de campos de rango; null si es válido o están vacíos. */
 function validarRango(min: string, max: string): string | null {
@@ -71,9 +85,14 @@ function validarRango(min: string, max: string): string | null {
 }
 
 export function TiposEstudioTab() {
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('ESTUDIOS_TIPOS_CREAR')
+  const puedeEditar = hasPermiso('ESTUDIOS_TIPOS_EDITAR')
+  const puedeEliminar = hasPermiso('ESTUDIOS_TIPOS_ELIMINAR')
   const { data: tipos, isLoading, isError } = useGetTodosLosTipos()
   const createTipo = useCreateTipoEstudio()
   const toggleTipo = useToggleTipoEstudio()
+  const deleteTipo = useDeleteTipoEstudio()
   const createParametro = useCreateParametroEstudio()
   const deleteParametro = useDeleteParametroEstudio()
 
@@ -93,6 +112,20 @@ export function TiposEstudioTab() {
   const [paramError, setParamError] = useState('')
   const [paramRangoError, setParamRangoError] = useState('')
   const [paramListError, setParamListError] = useState('')
+
+  // Edit pending param inline
+  const [pendingEditKey, setPendingEditKey] = useState<string | null>(null)
+  const [peNombre, setPeNombre] = useState('')
+  const [peUnidad, setPeUnidad] = useState('')
+  const [peTipo, setPeTipo] = useState<TipoParametro>('NUMERICO')
+  const [peValMinMujeres, setPeValMinMujeres] = useState('')
+  const [peValMaxMujeres, setPeValMaxMujeres] = useState('')
+  const [peValMinHombres, setPeValMinHombres] = useState('')
+  const [peValMaxHombres, setPeValMaxHombres] = useState('')
+  const [peOpciones, setPeOpciones] = useState<string[]>([])
+  const [peOpcionInput, setPeOpcionInput] = useState('')
+  const [peError, setPeError] = useState('')
+  const [peRangoError, setPeRangoError] = useState('')
 
   const tipoForm = useForm<TipoEstudioFormData>({
     resolver: zodResolver(tipoEstudioSchema),
@@ -152,6 +185,46 @@ export function TiposEstudioTab() {
     setPending((prev) => prev.filter((p) => p.key !== key))
   }
 
+  function startEditPending(p: PendingParametro) {
+    setPendingEditKey(p.key)
+    setPeNombre(p.nombre)
+    setPeUnidad(p.unidad ?? '')
+    setPeTipo(p.tipo)
+    setPeValMinMujeres(p.valorMinMujeres ?? '')
+    setPeValMaxMujeres(p.valorMaxMujeres ?? '')
+    setPeValMinHombres(p.valorMinHombres ?? '')
+    setPeValMaxHombres(p.valorMaxHombres ?? '')
+    setPeOpciones(p.opciones ?? [])
+    setPeOpcionInput('')
+    setPeError('')
+    setPeRangoError('')
+  }
+
+  function savePendingEdit() {
+    const trimmed = peNombre.trim()
+    if (!trimmed) { setPeError('El nombre es requerido'); return }
+    if (peTipo === 'NUMERICO') {
+      const err = validarRango(peValMinMujeres, peValMaxMujeres) ?? validarRango(peValMinHombres, peValMaxHombres)
+      if (err) { setPeRangoError(err); return }
+    }
+    const conflicto = pending.some((p) => p.key !== pendingEditKey && p.nombre.toLowerCase() === trimmed.toLowerCase())
+    if (conflicto) { setPeError('Ya existe un parámetro con ese nombre'); return }
+    setPending((prev) => prev.map((x) => x.key !== pendingEditKey ? x : {
+      ...x,
+      nombre: trimmed,
+      unidad: peUnidad.trim(),
+      tipo: peTipo,
+      valorMinMujeres: peTipo === 'NUMERICO' && peValMinMujeres !== '' ? peValMinMujeres : undefined,
+      valorMaxMujeres: peTipo === 'NUMERICO' && peValMaxMujeres !== '' ? peValMaxMujeres : undefined,
+      valorMinHombres: peTipo === 'NUMERICO' && peValMinHombres !== '' ? peValMinHombres : undefined,
+      valorMaxHombres: peTipo === 'NUMERICO' && peValMaxHombres !== '' ? peValMaxHombres : undefined,
+      opciones: peTipo === 'TEXTO_OPCIONES' ? [...peOpciones] : undefined,
+    }))
+    setPendingEditKey(null)
+    setPeError('')
+    setPeRangoError('')
+  }
+
   async function onSubmitTipo(data: TipoEstudioFormData) {
     if (pending.length === 0) {
       setParamListError('Agrega al menos un parámetro antes de guardar.')
@@ -161,6 +234,7 @@ export function TiposEstudioTab() {
     const payload: TipoEstudioRequestDTO = {
       nombre: data.nombre.trim(),
       descripcion: data.descripcion?.trim() || undefined,
+      tipoCapturaDefecto: data.tipoCapturaDefecto || 'NORMAL',
     }
 
     createTipo.mutate(payload, {
@@ -180,6 +254,7 @@ export function TiposEstudioTab() {
           })
         }
         setPending([])
+        setPendingEditKey(null)
         setParamListError('')
       },
     })
@@ -188,7 +263,7 @@ export function TiposEstudioTab() {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       {/* LEFT — catalog list */}
-      <Card className="lg:col-span-3">
+      <Card className={puedeCrear ? 'lg:col-span-3' : 'lg:col-span-5'}>
         <div className="flex items-center justify-between gap-3 border-b p-4">
           <div className="space-y-0.5">
             <div className="text-sm font-medium">Plantillas de estudio</div>
@@ -221,8 +296,12 @@ export function TiposEstudioTab() {
                   onToggleExpand={setExpandedId}
                   onToggleActivo={() => toggleTipo.mutate(t.id)}
                   isTogglingActivo={toggleTipo.isPending}
+                  onDeleteTipo={() => deleteTipo.mutate(t.id)}
+                  isDeletingTipo={deleteTipo.isPending}
                   onDeleteParametro={(id) => deleteParametro.mutate(id)}
                   isDeletingParametro={deleteParametro.isPending}
+                  puedeEditar={puedeEditar}
+                  puedeEliminar={puedeEliminar}
                 />
               ))}
 
@@ -244,8 +323,12 @@ export function TiposEstudioTab() {
                       onToggleExpand={setExpandedId}
                       onToggleActivo={() => toggleTipo.mutate(t.id)}
                       isTogglingActivo={toggleTipo.isPending}
+                      onDeleteTipo={() => deleteTipo.mutate(t.id)}
+                      isDeletingTipo={deleteTipo.isPending}
                       onDeleteParametro={(id) => deleteParametro.mutate(id)}
                       isDeletingParametro={deleteParametro.isPending}
+                      puedeEditar={puedeEditar}
+                      puedeEliminar={puedeEliminar}
                     />
                   ))}
                 </>
@@ -256,7 +339,7 @@ export function TiposEstudioTab() {
       </Card>
 
       {/* RIGHT — create new tipo + pending params */}
-      <Card className="lg:col-span-2">
+      {puedeCrear && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">Nueva plantilla</div>
           <div className="text-xs text-muted-foreground">
@@ -269,6 +352,7 @@ export function TiposEstudioTab() {
             <Input
               placeholder="Ej. Biometría hemática"
               sanitize="alfanumerico"
+              maxLength={100}
               {...tipoForm.register('nombre')}
             />
           </FormField>
@@ -277,9 +361,29 @@ export function TiposEstudioTab() {
               placeholder="Opcional…"
               rows={2}
               sanitize="descripcion"
+              maxLength={1000}
               {...tipoForm.register('descripcion')}
             />
           </FormField>
+
+          <div className="space-y-1.5">
+            <Label className="text-sm">Modo de captura predeterminado</Label>
+            <Select
+              value={tipoForm.watch('tipoCapturaDefecto') || 'NORMAL'}
+              onValueChange={(v) => tipoForm.setValue('tipoCapturaDefecto', v as 'NORMAL' | 'GRUPOS')}
+            >
+              <SelectTrigger className="h-9 text-[13px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NORMAL">Normal</SelectItem>
+                <SelectItem value="GRUPOS">Por grupos</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Define el modo de captura que se seleccionará automáticamente al usar esta plantilla.
+            </p>
+          </div>
 
           <Separator />
 
@@ -295,40 +399,139 @@ export function TiposEstudioTab() {
             {pending.length > 0 && (
               <div className="space-y-1.5">
                 {pending.map((p) => (
-                  <div
-                    key={p.key}
-                    className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2 text-sm">
-                      <Hash className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
-                      <span className="font-medium">{p.nombre}</span>
-                      {p.unidad && (
-                        <span className="font-mono text-xs text-muted-foreground">({p.unidad})</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-[10px]">{TIPO_LABELS[p.tipo]}</Badge>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={() => removePending(p.key)}
-                      >
-                        <Trash2 className="h-3 w-3" strokeWidth={1.75} />
-                      </Button>
-                    </div>
+                  <div key={p.key}>
+                    {pendingEditKey === p.key ? (
+                      <div className="rounded-md border bg-muted/20 px-3 py-2 space-y-2">
+                        <p className="text-[11px] font-medium text-muted-foreground">Editando parámetro</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="col-span-2">
+                            <Input
+                              value={peNombre}
+                              onChange={(e) => { setPeNombre(e.target.value); setPeError('') }}
+                              placeholder="Nombre del parámetro"
+                              maxLength={100}
+                              className={cn('h-8 text-sm', peError && 'border-destructive')}
+                              autoFocus
+                            />
+                            {peError && <p className="mt-0.5 text-xs text-destructive">{peError}</p>}
+                          </div>
+                          <Select value={peTipo} onValueChange={(v) => { setPeTipo(v as TipoParametro); setPeValMinMujeres(''); setPeValMaxMujeres(''); setPeValMinHombres(''); setPeValMaxHombres(''); setPeOpciones([]); setPeOpcionInput(''); setPeRangoError('') }}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NUMERICO">Numérico</SelectItem>
+                              <SelectItem value="TEXTO">Texto libre</SelectItem>
+                              <SelectItem value="BOOLEANO">Sí/No</SelectItem>
+                              <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <UnidadSelect value={peUnidad} onChange={setPeUnidad} placeholder="Unidad" compact />
+                          {peTipo === 'NUMERICO' && (
+                            <RangoReferenciaFields
+                              valMinMujeres={peValMinMujeres} setValMinMujeres={(v) => { setPeValMinMujeres(v); setPeRangoError('') }}
+                              valMaxMujeres={peValMaxMujeres} setValMaxMujeres={(v) => { setPeValMaxMujeres(v); setPeRangoError('') }}
+                              valMinHombres={peValMinHombres} setValMinHombres={(v) => { setPeValMinHombres(v); setPeRangoError('') }}
+                              valMaxHombres={peValMaxHombres} setValMaxHombres={(v) => { setPeValMaxHombres(v); setPeRangoError('') }}
+                              error={peRangoError}
+                              compact
+                            />
+                          )}
+                          {peTipo === 'TEXTO_OPCIONES' && (
+                            <div className="col-span-2 space-y-1.5">
+                              <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>
+                              {peOpciones.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {peOpciones.map((op, i) => (
+                                    <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs bg-muted">
+                                      {op}
+                                      <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setPeOpciones(prev => prev.filter((_, j) => j !== i))}>
+                                        <X className="h-2.5 w-2.5" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="flex gap-1">
+                                <Input
+                                  placeholder="Nueva opción…"
+                                  value={peOpcionInput}
+                                  onChange={(e) => setPeOpcionInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault()
+                                      const v = peOpcionInput.trim()
+                                      if (v && !peOpciones.includes(v)) setPeOpciones(prev => [...prev, v])
+                                      setPeOpcionInput('')
+                                    }
+                                  }}
+                                  className="h-7 text-sm flex-1"
+                                />
+                                <Button
+                                  type="button" variant="outline" size="sm" className="h-7 px-2 shrink-0"
+                                  onClick={() => {
+                                    const v = peOpcionInput.trim()
+                                    if (v && !peOpciones.includes(v)) setPeOpciones(prev => [...prev, v])
+                                    setPeOpcionInput('')
+                                  }}
+                                ><Plus className="h-3 w-3" /></Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" className="h-7 text-xs gap-1" onClick={savePendingEdit}>
+                            <Check className="h-3 w-3" strokeWidth={1.75} /> Guardar cambios
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" className="h-7 text-xs"
+                            onClick={() => { setPendingEditKey(null); setPeError(''); setPeRangoError('') }}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 group">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Hash className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
+                          <span className="font-medium">{p.nombre}</span>
+                          {p.unidad && (
+                            <span className="font-mono text-xs text-muted-foreground">({p.unidad})</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px]">{TIPO_LABELS[p.tipo]}</Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => startEditPending(p)}
+                            title="Editar parámetro"
+                          >
+                            <Pencil className="h-3 w-3" strokeWidth={1.75} />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive hover:text-destructive"
+                            onClick={() => removePending(p.key)}
+                          >
+                            <Trash2 className="h-3 w-3" strokeWidth={1.75} />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
             {/* Add pending parametro */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="col-span-2">
                 <Input
                   placeholder="Nombre del parámetro"
                   value={paramNombre}
+                  maxLength={100}
                   onChange={(e) => { setParamNombre(e.target.value); setParamError('') }}
                   className={cn(paramError && 'border-destructive')}
                 />
@@ -429,7 +632,7 @@ export function TiposEstudioTab() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => { tipoForm.reset(DEFAULT_TIPO); setPending([]); setParamListError('') }}
+              onClick={() => { tipoForm.reset(DEFAULT_TIPO); setPending([]); setParamListError(''); setPendingEditKey(null) }}
               disabled={createTipo.isPending}
             >
               Limpiar
@@ -445,7 +648,7 @@ export function TiposEstudioTab() {
             </Button>
           </div>
         </form>
-      </Card>
+      </Card>}
     </div>
   )
 }
@@ -459,19 +662,50 @@ function TipoRow({
   onToggleExpand,
   onToggleActivo,
   isTogglingActivo,
+  onDeleteTipo,
+  isDeletingTipo,
   onDeleteParametro,
   isDeletingParametro,
+  puedeEditar,
+  puedeEliminar,
 }: {
   tipo: import('@/types/api').TipoEstudio
   expandedId: number | null
   onToggleExpand: (id: number | null) => void
   onToggleActivo: () => void
   isTogglingActivo: boolean
+  onDeleteTipo: () => void
+  isDeletingTipo: boolean
   onDeleteParametro: (id: number) => void
   isDeletingParametro: boolean
+  puedeEditar: boolean
+  puedeEliminar: boolean
 }) {
   const isOpen = expandedId === tipo.id
   const parametros = tipo.parametroEstudios || []
+  const updateTipoMutation = useUpdateTipoEstudio(tipo.id)
+  const [editingTipo, setEditingTipo] = useState(false)
+  const [editNombre, setEditNombre] = useState(tipo.nombre)
+  const [editDesc, setEditDesc] = useState(tipo.descripcion ?? '')
+  const [editCaptura, setEditCaptura] = useState<'NORMAL' | 'GRUPOS'>(
+    (tipo.tipoCapturaDefecto as 'NORMAL' | 'GRUPOS') || 'NORMAL'
+  )
+
+  function startEditTipo(e: React.MouseEvent) {
+    e.stopPropagation()
+    setEditNombre(tipo.nombre)
+    setEditDesc(tipo.descripcion ?? '')
+    setEditCaptura((tipo.tipoCapturaDefecto as 'NORMAL' | 'GRUPOS') || 'NORMAL')
+    setEditingTipo(true)
+  }
+
+  function saveTipo() {
+    if (!editNombre.trim()) return
+    updateTipoMutation.mutate(
+      { nombre: editNombre.trim(), descripcion: editDesc.trim() || undefined, tipoCapturaDefecto: editCaptura },
+      { onSuccess: () => setEditingTipo(false) }
+    )
+  }
 
   return (
     <div className={cn(!tipo.activo && 'opacity-70')}>
@@ -494,26 +728,128 @@ function TipoRow({
           <Badge variant="outline" className="font-mono text-[10px]">
             {parametros.length} param.
           </Badge>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={(e) => { e.stopPropagation(); onToggleActivo() }}
-            disabled={isTogglingActivo}
-            title={tipo.activo ? 'Deshabilitar plantilla' : 'Reactivar plantilla'}
-          >
-            {tipo.activo ? (
-              <ToggleRight className="h-4 w-4 text-emerald-600" strokeWidth={1.75} />
-            ) : (
-              <ToggleLeft className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-            )}
-          </Button>
+          {tipo.tipoCapturaDefecto === 'GRUPOS' && (
+            <Badge variant="secondary" className="text-[10px]">Grupos</Badge>
+          )}
+          {puedeEditar && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={startEditTipo}
+              title="Editar plantilla"
+            >
+              <Pencil className="h-4 w-4" strokeWidth={1.75} />
+            </Button>
+          )}
+          {puedeEditar && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={(e) => { e.stopPropagation(); onToggleActivo() }}
+              disabled={isTogglingActivo}
+              title={tipo.activo ? 'Deshabilitar plantilla' : 'Reactivar plantilla'}
+            >
+              {tipo.activo ? (
+                <ToggleRight className="h-4 w-4 text-emerald-600" strokeWidth={1.75} />
+              ) : (
+                <ToggleLeft className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+              )}
+            </Button>
+          )}
+          {puedeEliminar && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                  onClick={(e) => e.stopPropagation()}
+                  disabled={isDeletingTipo || !!tipo.tieneResultados}
+                  title={tipo.tieneResultados ? 'No se puede eliminar: tiene estudios registrados' : 'Eliminar plantilla'}
+                >
+                  <Trash2 className="h-4 w-4" strokeWidth={1.75} />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar plantilla "{tipo.nombre}"?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se eliminarán todos sus parámetros. Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={onDeleteTipo}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
+      {editingTipo && (
+        <div className="border-t bg-muted/10 px-4 py-3 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Nombre</Label>
+              <Input value={editNombre} onChange={(e) => setEditNombre(e.target.value)} maxLength={100} className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Modo de captura</Label>
+              <Select value={editCaptura} onValueChange={(v) => setEditCaptura(v as 'NORMAL' | 'GRUPOS')} disabled={!!tipo.tieneResultados}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NORMAL">Normal</SelectItem>
+                  <SelectItem value="GRUPOS">Por grupos</SelectItem>
+                </SelectContent>
+              </Select>
+              {tipo.tieneResultados && (
+                <p className="text-[11px] text-muted-foreground">No se puede cambiar: tiene estudios registrados</p>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Descripción</Label>
+            <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} maxLength={1000} className="text-sm resize-none" placeholder="Opcional" rows={2} />
+            {editDesc.length > 900 && (
+              <p className="text-[11px] text-muted-foreground text-right">{editDesc.length}/1000</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" className="h-7 text-xs gap-1" onClick={saveTipo} disabled={updateTipoMutation.isPending || !editNombre.trim()}>
+              {updateTipoMutation.isPending ? <Spinner className="h-3 w-3" /> : <Check className="h-3 w-3" strokeWidth={1.75} />}
+              Guardar
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingTipo(false)}>Cancelar</Button>
+          </div>
+        </div>
+      )}
+
       {isOpen && (
         <div className="border-t bg-muted/20 px-4 pb-4 pt-3">
+          <div className="flex items-center gap-2 mb-3">
+            <Badge variant="outline" className="text-[10px]">
+              Modo: {tipo.tipoCapturaDefecto === 'GRUPOS' ? 'Por grupos' : 'Normal'}
+            </Badge>
+            {tipo.tieneResultados && (
+              <Badge variant="secondary" className="text-[10px] text-amber-600">
+                Tiene resultados — modo y parámetros bloqueados
+              </Badge>
+            )}
+          </div>
+
           {parametros.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sin parámetros definidos.</p>
           ) : (
@@ -525,13 +861,15 @@ function TipoRow({
                   tipoEstudioId={tipo.id}
                   onDelete={() => onDeleteParametro(p.id)}
                   isDeleting={isDeletingParametro}
+                  puedeEditar={puedeEditar}
+                  puedeEliminar={puedeEliminar && !tipo.tieneResultados}
                 />
               ))}
             </div>
           )}
 
           {/* Only allow adding params to active tipos */}
-          {tipo.activo && <AddParametroInline tipoId={tipo.id} />}
+          {tipo.activo && puedeEditar && <AddParametroInline tipoId={tipo.id} />}
           {!tipo.activo && (
             <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
               Esta plantilla está deshabilitada. Reactívala para agregar más parámetros.
@@ -549,11 +887,15 @@ function EditableParametroRow({
   tipoEstudioId,
   onDelete,
   isDeleting,
+  puedeEditar,
+  puedeEliminar,
 }: {
   parametro: import('@/types/api').ParametroEstudio
   tipoEstudioId: number
   onDelete: () => void
   isDeleting: boolean
+  puedeEditar: boolean
+  puedeEliminar: boolean
 }) {
   const updateParametro = useUpdateParametroEstudio(parametro.id)
 
@@ -619,12 +961,13 @@ function EditableParametroRow({
   if (editing) {
     return (
       <div className="rounded-md border bg-background px-3 py-2 space-y-2">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="col-span-2">
             <Input
               value={nombre}
               onChange={(e) => { setNombre(e.target.value); setError('') }}
               placeholder="Nombre del parámetro"
+              maxLength={100}
               className={cn('h-8 text-sm', error && 'border-destructive')}
               autoFocus
             />
@@ -761,27 +1104,31 @@ function EditableParametroRow({
           <Badge variant="secondary" className="text-[10px]">
             {TIPO_LABELS[parametro.tipo as TipoParametro] ?? parametro.tipo}
           </Badge>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            onClick={startEdit}
-            title="Editar parámetro"
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-destructive hover:text-destructive"
-            onClick={onDelete}
-            disabled={isDeleting}
-            title="Eliminar parámetro"
-          >
-            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </Button>
+          {puedeEditar && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={startEdit}
+              title="Editar parámetro"
+            >
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </Button>
+          )}
+          {puedeEliminar && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={onDelete}
+              disabled={isDeleting}
+              title="Eliminar parámetro"
+            >
+              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </Button>
+          )}
         </div>
       </div>
       {/* Mostrar opciones configuradas para TEXTO_OPCIONES */}
@@ -840,11 +1187,12 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
   return (
     <div className="mt-3 space-y-2 border-t pt-3">
       <p className="text-xs font-medium text-muted-foreground">Agregar parámetro</p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div className="col-span-2">
           <Input
             placeholder="Nombre del parámetro"
             value={nombre}
+            maxLength={100}
             onChange={(e) => { setNombre(e.target.value); setError('') }}
             className={cn('h-8 text-sm', error && 'border-destructive')}
           />

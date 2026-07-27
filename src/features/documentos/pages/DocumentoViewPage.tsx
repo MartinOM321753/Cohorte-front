@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { FileText, AlertCircle, Clock, ShieldAlert, ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,9 +21,10 @@ type ViewState =
   | { status: 'ready'; info: DocumentoEtiquetaInfo; viewUrl: string; expiresAt: Date }
 
 export default function DocumentoViewPage() {
-  const { etiqueta } = useParams<{ etiqueta: string }>()
+  const [searchParams] = useSearchParams()
+  const etiqueta = searchParams.get('etiqueta')
   const navigate = useNavigate()
-  const { isAuthenticated, user, hasRole, isLoading: authLoading } = useAuthStore()
+  const { isAuthenticated, user, hasPermiso, isLoading: authLoading } = useAuthStore()
   const [state, setState] = useState<ViewState>({ status: 'loading' })
 
   const iniciarVisualizacion = useCallback(async () => {
@@ -32,10 +33,10 @@ export default function DocumentoViewPage() {
       return
     }
 
-    if (!hasRole('ADMINISTRADOR')) {
+    if (!hasPermiso('DOCUMENTOS_DESCARGAR')) {
       setState({
         status: 'unauthorized',
-        reason: 'Solo usuarios con rol ADMINISTRADOR pueden visualizar documentos escaneados.',
+        reason: 'No tienes permiso para visualizar documentos escaneados.',
       })
       return
     }
@@ -67,7 +68,7 @@ export default function DocumentoViewPage() {
         setState({ status: 'error', message: msg })
       }
     }
-  }, [etiqueta, hasRole])
+  }, [etiqueta, hasPermiso])
 
   useEffect(() => {
     if (authLoading) return

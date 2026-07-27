@@ -98,6 +98,14 @@ export async function updateTipoEstudio(
   return response.data.data
 }
 
+export async function deleteTipoEstudio(id: number): Promise<void> {
+  await axiosInstance.delete(`/estudios/tipos/${id}`)
+}
+
+export async function deleteEstudio(id: number): Promise<void> {
+  await axiosInstance.delete(`/estudios/${id}`)
+}
+
 /**
  * Toggle tipo de estudio active status
  */

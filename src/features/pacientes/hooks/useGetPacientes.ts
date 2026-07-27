@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio, getPacientesPaginados } from '../api/pacientes.api'
+import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio, getPacientesPaginados, getMiPacienteUuid } from '../api/pacientes.api'
 
 export function useGetPacientes(
   params?: { buscar?: string; activos?: boolean; incluirJerarquia?: boolean },
@@ -41,6 +41,15 @@ export function useGetPacienteByFolio(folio: string) {
     queryKey: ['pacientes', folio],
     queryFn: () => getPacienteByFolio(folio),
     enabled: !!folio,
+  })
+}
+
+/** Resuelve el UUID propio para el rol PACIENTE — solo se dispara si `enabled`. */
+export function useMiPacienteUuid(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['pacientes', 'mi-uuid'],
+    queryFn: getMiPacienteUuid,
+    enabled: options?.enabled ?? false,
   })
 }
 

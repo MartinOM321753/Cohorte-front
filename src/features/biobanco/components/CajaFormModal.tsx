@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -51,6 +52,7 @@ const DEFAULT_VALUES: CajaFormData = {
 }
 
 export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) {
+  const puedeSubmit = useAuthStore((s) => s.hasPermiso(caja ? 'CAJAS_EDITAR' : 'CAJAS_CREAR'))
   const isEditing = !!caja
   const [selectedRefrigerador, setSelectedRefrigerador] = useState<string>('')
   const [selectedPiso, setSelectedPiso] = useState<string>('')
@@ -172,7 +174,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="codigoCaja">Código de Caja</Label>
               <Input
@@ -210,7 +212,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="filas">Filas *</Label>
               <Input
@@ -557,7 +559,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !puedeSubmit}
             >
               {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
             </Button>

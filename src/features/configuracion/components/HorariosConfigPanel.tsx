@@ -45,6 +45,7 @@ import {
   useActivarConfiguracionHorario,
   useDeleteConfiguracionHorario,
 } from '../hooks/useHorarios'
+import { useAuthStore } from '@/stores/authStore'
 import type { ConfiguracionHorarioResponse, ConfiguracionHorarioRequest } from '@/types/api'
 
 const DIAS = [
@@ -95,6 +96,7 @@ function diasActivos(config: ConfiguracionHorarioResponse): string {
 }
 
 export default function HorariosConfigPanel() {
+  const puedeEditar = useAuthStore((s) => s.hasPermiso('CITAS_CONFIGURACION_EDITAR'))
   const { data: configuraciones = [], isLoading, isError } = useGetConfiguracionesHorario()
   const createMutation = useCreateConfiguracionHorario()
   const updateMutation = useUpdateConfiguracionHorario()
@@ -184,10 +186,12 @@ export default function HorariosConfigPanel() {
               Configura los horarios y días disponibles para agendar citas. Solo una configuración puede estar activa.
             </CardDescription>
           </div>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo horario
-          </Button>
+          {puedeEditar && (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo horario
+            </Button>
+          )}
         </div>
       </CardHeader>
 
@@ -230,9 +234,11 @@ export default function HorariosConfigPanel() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(activa)} title="Editar">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    {puedeEditar && (
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(activa)} title="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               )}
@@ -261,29 +267,35 @@ export default function HorariosConfigPanel() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => activarMutation.mutate(config.id)}
-                            disabled={activarMutation.isPending}
-                            title="Activar"
-                            className="text-muted-foreground hover:text-green-600"
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(config)} title="Editar">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteMutation.mutate(config.id)}
-                            disabled={deleteMutation.isPending}
-                            title="Eliminar"
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {puedeEditar && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => activarMutation.mutate(config.id)}
+                              disabled={activarMutation.isPending}
+                              title="Activar"
+                              className="text-muted-foreground hover:text-green-600"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {puedeEditar && (
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(config)} title="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {puedeEditar && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteMutation.mutate(config.id)}
+                              disabled={deleteMutation.isPending}
+                              title="Eliminar"
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -326,7 +338,7 @@ export default function HorariosConfigPanel() {
             </div>
 
             {/* Rango de horas */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Hora inicio</Label>
                 <Select

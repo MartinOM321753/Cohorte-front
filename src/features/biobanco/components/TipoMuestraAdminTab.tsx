@@ -4,6 +4,7 @@ import {
   FlaskConical, Thermometer, CheckCircle2, XCircle, TestTube,
   Check, ChevronsUpDown
 } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 import {
   useGetTiposMuestra,
   useCreateTipoMuestra,
@@ -258,9 +259,10 @@ interface TuboRowProps {
   tubo: TuboMuestra
   onDelete: (id: number) => void
   deletePending: boolean
+  puedeEditar: boolean
 }
 
-function TuboRow({ tubo, onDelete, deletePending }: TuboRowProps) {
+function TuboRow({ tubo, onDelete, deletePending, puedeEditar }: TuboRowProps) {
   const updateMutation = useUpdateTuboMuestra()
   const [editOpen, setEditOpen] = useState(false)
 
@@ -287,20 +289,23 @@ function TuboRow({ tubo, onDelete, deletePending }: TuboRowProps) {
           </p>
         </div>
         <div className="flex gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditOpen(true)}>
-            <Edit className="h-3 w-3" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                disabled={deletePending}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </AlertDialogTrigger>
+          {puedeEditar && (
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditOpen(true)}>
+              <Edit className="h-3 w-3" />
+            </Button>
+          )}
+          {puedeEditar && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                  disabled={deletePending}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Eliminar tubo "{tubo.nombre}"?</AlertDialogTitle>
@@ -319,6 +324,7 @@ function TuboRow({ tubo, onDelete, deletePending }: TuboRowProps) {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -346,9 +352,10 @@ function TuboRow({ tubo, onDelete, deletePending }: TuboRowProps) {
 
 interface TipoCardProps {
   tipo: TipoMuestra
+  puedeEditar: boolean
 }
 
-function TipoCard({ tipo }: TipoCardProps) {
+function TipoCard({ tipo, puedeEditar }: TipoCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [addTuboOpen, setAddTuboOpen] = useState(false)
@@ -393,6 +400,7 @@ function TipoCard({ tipo }: TipoCardProps) {
       </CardHeader>
 
       {/* Acciones */}
+      {puedeEditar && (
       <div className="flex items-center gap-1.5 px-6 pb-3">
         <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setEditOpen(true)}>
           <Edit className="h-3 w-3" /> Editar
@@ -446,6 +454,7 @@ function TipoCard({ tipo }: TipoCardProps) {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      )}
 
       {/* Panel expandido — tubos */}
       {expanded && (
@@ -465,6 +474,7 @@ function TipoCard({ tipo }: TipoCardProps) {
                   tubo={tubo}
                   onDelete={(id) => deleteTuboMutation.mutate(id)}
                   deletePending={deleteTuboMutation.isPending}
+                  puedeEditar={puedeEditar}
                 />
               ))}
             </div>
@@ -514,6 +524,9 @@ function TipoCard({ tipo }: TipoCardProps) {
 
 export function TipoMuestraAdminTab() {
   const [createOpen, setCreateOpen] = useState(false)
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('TIPOS_MUESTRA_CREAR')
+  const puedeEditar = hasPermiso('TIPOS_MUESTRA_EDITAR')
   const { data: tipos = [], isLoading } = useGetTiposMuestra()
   const createMutation = useCreateTipoMuestra()
 
@@ -535,10 +548,12 @@ export function TipoMuestraAdminTab() {
             Configura los tipos de muestra y la cantidad de tubos/alícuotas que genera cada uno
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Tipo
-        </Button>
+        {puedeCrear && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Tipo
+          </Button>
+        )}
       </div>
 
       <Alert>
@@ -559,16 +574,18 @@ export function TipoMuestraAdminTab() {
             <p className="text-muted-foreground text-center mb-4">
               Crea el primer tipo de muestra para empezar a organizar el biobanco.
             </p>
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Crear primer tipo
-            </Button>
+            {puedeCrear && (
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Crear primer tipo
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tipos.map((tipo) => (
-            <TipoCard key={tipo.id} tipo={tipo} />
+            <TipoCard key={tipo.id} tipo={tipo} puedeEditar={puedeEditar} />
           ))}
         </div>
       )}

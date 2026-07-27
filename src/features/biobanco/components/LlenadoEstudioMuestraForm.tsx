@@ -2,8 +2,8 @@
  * LlenadoEstudioMuestraForm
  * Formulario para registrar un nuevo EstudioMuestra.
  */
-import { useEffect, useState } from 'react'
-import { AlertCircle, Check, ChevronsUpDown, Loader2, Save } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { AlertCircle, Check, ChevronsUpDown, Info, Loader2, Save } from 'lucide-react'
 
 import type {
   MuestraDetalleDTO,
@@ -16,7 +16,8 @@ import {
   useCreateEstudioMuestra,
 } from '../hooks/useEstudiosMuestra'
 import { useAuthStore } from '@/stores/authStore'
-import { DatePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -37,12 +38,15 @@ import { cn } from '@/lib/utils'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Devuelve la fecha de hoy como "YYYY-MM-DD" usando la zona horaria local. */
-function localDateString(d: Date = new Date()): string {
+/** Devuelve la fecha y hora actual como "YYYY-MM-DDTHH:mm" en zona horaria local. */
+function nowString(): string {
+  const d = new Date()
   const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const mo = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const h = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${mo}-${day}T${h}:${mi}`
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -94,6 +98,7 @@ function ParametroField({
         <Input
           type="text"
           placeholder="Ingrese valor…"
+          maxLength={255}
           value={valor as string ?? ''}
           onChange={e => onChange(e.target.value)}
           className="h-9 text-sm"
@@ -134,11 +139,24 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
   const { data: tipos = [], isLoading: loadingTipos } = useGetTiposEstudioMuestra()
   const { mutate: crearEstudio, isPending: creando } = useCreateEstudioMuestra(muestra.id)
   const user = useAuthStore(s => s.user)
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo) days.push(0)
+    if (!horarioActivo.lunes) days.push(1)
+    if (!horarioActivo.martes) days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves) days.push(4)
+    if (!horarioActivo.viernes) days.push(5)
+    if (!horarioActivo.sabado) days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
 
   const [idTipo, setIdTipo] = useState<number | null>(null)
   const [openTipo, setOpenTipo] = useState(false)
-  // Fecha inicial: hoy en zona horaria local (no UTC)
-  const [fechaEstudio, setFechaEstudio] = useState(() => localDateString())
+  const [fechaEstudio, setFechaEstudio] = useState(() => nowString())
   const [observaciones, setObservaciones] = useState('')
   const [cantidadConsumida, setCantidadConsumida] = useState('')
   const unidadConsumida = muestra.unidad ?? ''
@@ -181,7 +199,7 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
 
   function submit() {
     if (!idTipo) { setError('Selecciona un tipo de estudio'); return }
-    if (!fechaEstudio) { setError('Selecciona una fecha'); return }
+    if (!fechaEstudio) { setError('Selecciona fecha y hora'); return }
     if (!user?.uuid) { setError('Usuario no autenticado'); return }
     if (cantidadConsumida === '' || Number(cantidadConsumida) <= 0) {
       setError('La cantidad consumida es requerida y debe ser mayor a 0'); return
@@ -271,14 +289,26 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
         </Popover>
       </div>
 
-      {/* Fecha del estudio */}
+      {/* Descripción del tipo */}
+      {tipoSeleccionado?.descripcion && (
+        <div className="flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" strokeWidth={1.75} />
+          <span>{tipoSeleccionado.descripcion}</span>
+        </div>
+      )}
+
+      {/* Fecha y hora del estudio */}
       <div className="space-y-1">
-        <Label className="text-xs">Fecha del estudio *</Label>
-        <DatePicker
+        <Label className="text-xs">Fecha y hora del estudio *</Label>
+        <DateTimePicker
           value={fechaEstudio}
           onChange={setFechaEstudio}
-          placeholder="Selecciona fecha del estudio"
-          maxDate={new Date()}
+          placeholder="Selecciona fecha y hora"
+          timeStepMinutes={1}
+          maxDateTime={new Date()}
+          minHour={horarioActivo?.horaInicio ?? 8}
+          maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+          disabledDaysOfWeek={disabledDaysOfWeek}
         />
       </div>
 
@@ -344,8 +374,14 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
           onChange={e => setObservaciones(e.target.value)}
           placeholder="Notas adicionales sobre el estudio…"
           rows={2}
+          maxLength={500}
           className="text-sm resize-none"
         />
+        {observaciones.length > 400 && (
+          <p className="text-[11px] text-muted-foreground text-right">
+            {observaciones.length}/500
+          </p>
+        )}
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}

@@ -11,6 +11,8 @@ import {
   createTipoEstudio,
   updateTipoEstudio,
   toggleTipoEstudio,
+  deleteTipoEstudio,
+  deleteEstudio,
   createParametroEstudio,
   updateParametroEstudio,
   deleteParametroEstudio,
@@ -173,6 +175,34 @@ export function useToggleTipoEstudio() {
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error al actualizar estado del tipo de estudio'
       toast.error(message)
+    },
+  })
+}
+
+export function useDeleteTipoEstudio() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteTipoEstudio(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tiposEstudio'] })
+      toast.success('Plantilla eliminada')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar plantilla')
+    },
+  })
+}
+
+export function useDeleteEstudio() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteEstudio(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['estudios'] })
+      toast.success('Estudio eliminado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar estudio')
     },
   })
 }

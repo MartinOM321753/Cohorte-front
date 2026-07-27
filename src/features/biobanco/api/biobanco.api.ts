@@ -33,6 +33,7 @@ import {
   EstudioMuestraRequestDTO,
   EstudioMuestraResponse,
   HistorialCambioMuestraResponse,
+  PrintableLabelBatchDTO,
 } from '@/types/api'
 import { Usuario } from '@/types/api'
 
@@ -153,8 +154,16 @@ export async function getPosicionesLibresByCaja(idCaja: number) {
 // MUESTRAS
 // ============================================
 
-export async function getMuestras(params?: { pacienteUUID?: string }) {
+export async function getMuestras(params?: { pacienteUUID?: string; incluirHistorico?: boolean }) {
   const response = await api.get<ApiResponse<MuestraDetalleDTO[]>>('/almacenamiento/muestras', { params })
+  return response.data.data
+}
+
+export async function darDeBajaMuestra(id: number, motivo: string) {
+  const response = await api.post<ApiResponse<MuestraDetalleDTO>>(
+    `/almacenamiento/muestras/${id}/baja`,
+    { motivo },
+  )
   return response.data.data
 }
 
@@ -313,15 +322,15 @@ export async function iniciarDevolucion(idTraslado: number, data: IniciarDevoluc
   return response.data.data
 }
 
-/** EN_DEVOLUCION → DEVUELTA */
+/** EN_DEVOLUCION → DEVUELTA (confirma padre + alícuotas del mismo grupo de devolución) */
 export async function confirmarDevolucion(idTraslado: number, data: DevolucionRequestDTO) {
-  const response = await api.put<ApiResponse<TrasladoMuestra>>(`/almacenamiento/traslados/${idTraslado}/confirmar-devolucion`, data)
+  const response = await api.put<ApiResponse<TrasladoMuestra[]>>(`/almacenamiento/traslados/${idTraslado}/confirmar-devolucion`, data)
   return response.data.data
 }
 
-/** ENVIADA → CANCELADO (solo antes de que el destino confirme recepción) */
+/** ENVIADA → CANCELADO (cancela el traslado y todos los hermanos del grupo si aplica) */
 export async function cancelarPrestamo(idTraslado: number, data: CancelarPrestamoRequestDTO) {
-  const response = await api.put<ApiResponse<TrasladoMuestra>>(`/almacenamiento/traslados/${idTraslado}/cancelar`, data)
+  const response = await api.put<ApiResponse<TrasladoMuestra[]>>(`/almacenamiento/traslados/${idTraslado}/cancelar`, data)
   return response.data.data
 }
 
@@ -421,6 +430,10 @@ export async function updateTipoEstudioMuestra(id: number, data: TipoEstudioMues
   return response.data.data
 }
 
+export async function deleteTipoEstudioMuestra(id: number) {
+  await api.delete(`/muestras/estudios/tipos/${id}`)
+}
+
 export async function toggleTipoEstudioMuestra(id: number) {
   const response = await api.put<ApiResponse<boolean>>(`/muestras/estudios/tipos/${id}/toggle`)
   return response.data.data
@@ -518,6 +531,31 @@ export async function getZplAlicuotas(idMuestraPadre: number, configuracionId?: 
 
 export async function getZplLoteCompleto(idMuestraPadre: number, configuracionId?: number): Promise<ZplLoteResponse> {
   const response = await api.get<ApiResponse<ZplLoteResponse>>(`/almacenamiento/muestras/${idMuestraPadre}/lote-completo/zpl`, {
+    params: configuracionId ? { configuracionId } : undefined,
+  })
+  return response.data.data
+}
+
+// ============================================
+// DATOS PARA IMPRESIÓN POR NAVEGADOR
+// ============================================
+
+export async function getLabelDataEtiqueta(idMuestra: number, configuracionId?: number): Promise<PrintableLabelBatchDTO> {
+  const response = await api.get<ApiResponse<PrintableLabelBatchDTO>>(`/almacenamiento/muestras/${idMuestra}/etiqueta/datos`, {
+    params: configuracionId ? { configuracionId } : undefined,
+  })
+  return response.data.data
+}
+
+export async function getLabelDataAlicuotas(idMuestraPadre: number, configuracionId?: number): Promise<PrintableLabelBatchDTO> {
+  const response = await api.get<ApiResponse<PrintableLabelBatchDTO>>(`/almacenamiento/muestras/${idMuestraPadre}/alicuotas/etiquetas/datos`, {
+    params: configuracionId ? { configuracionId } : undefined,
+  })
+  return response.data.data
+}
+
+export async function getLabelDataLoteCompleto(idMuestraPadre: number, configuracionId?: number): Promise<PrintableLabelBatchDTO> {
+  const response = await api.get<ApiResponse<PrintableLabelBatchDTO>>(`/almacenamiento/muestras/${idMuestraPadre}/lote-completo/datos`, {
     params: configuracionId ? { configuracionId } : undefined,
   })
   return response.data.data

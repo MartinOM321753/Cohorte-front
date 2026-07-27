@@ -10,12 +10,13 @@ import { DocumentosDialog } from '@/features/documentos/components/DocumentosDia
 import { estudioMedicoSchema, type EstudioMedicoFormData } from '../schemas/estudio.schema'
 import { useCreateEstudio, useGetEstudios, useGetTiposEstudio } from '../hooks/useEstudios'
 import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { DatePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
@@ -26,14 +27,30 @@ const DEFAULT_VALUES: EstudioMedicoFormData = {
   pacienteUUID: '',
   usuarioRealizaUUID: '',
   idTipoEstudio: 0,
-  fechaEstudio: new Date().toISOString().slice(0, 10),
+  fechaEstudio: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` })(),
   observaciones: '',
 }
 
 export function EstudiosTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
-  const isAdmin   = useAuthStore((s) => s.hasRole('ADMINISTRADOR'))
-  const canUploadEstudio = useAuthStore((s) => s.hasRole(['ADMINISTRADOR', 'MEDICO']))
+  const puedeCrear = useAuthStore((s) => s.hasPermiso('ESTUDIOS_CREAR'))
+  const isAdmin   = useAuthStore((s) => s.hasPermiso('ESTUDIOS_ELIMINAR'))
+  const canUploadEstudio = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo) days.push(0)
+    if (!horarioActivo.lunes) days.push(1)
+    if (!horarioActivo.martes) days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves) days.push(4)
+    if (!horarioActivo.viernes) days.push(5)
+    if (!horarioActivo.sabado) days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
+
   const [docEstudioId, setDocEstudioId] = useState<number | null>(null)
 
   const { data: estudios, isLoading: isLoadingEstudios, isError: isErrorEstudios } = useGetEstudios()
@@ -118,7 +135,7 @@ export function EstudiosTab() {
               <TableBody>
                 {(estudios || []).map((e: EstudioListDTO) => (
                   <TableRow key={e.id}>
-                    <TableCell className="font-mono">{String(e.fechaEstudio || '').slice(0, 10)}</TableCell>
+                    <TableCell className="font-mono">{String(e.fechaEstudio || '').slice(0, 16).replace('T', ' ')}</TableCell>
                     <TableCell>{e.tipoEstudio}</TableCell>
                     <TableCell className="truncate max-w-[160px]">{e.paciente}</TableCell>
                     <TableCell className="text-right">
@@ -160,7 +177,7 @@ export function EstudiosTab() {
         canUpload={canUploadEstudio}
       />
 
-      <Card className="lg:col-span-2">
+      {puedeCrear && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">Registrar estudio</div>
           <div className="text-xs text-muted-foreground">Captura los datos básicos; resultados/adjuntos se agregan luego.</div>
@@ -196,11 +213,17 @@ export function EstudiosTab() {
             </Select>
           </FormField>
 
-          <FormField label="Fecha del estudio" required error={errors.fechaEstudio?.message}>
+          <FormField label="Fecha y hora del estudio" required error={errors.fechaEstudio?.message}>
             <input type="hidden" {...register('fechaEstudio')} />
-            <DatePicker
+            <DateTimePicker
               value={watchedFechaEstudio}
-              onChange={(v) => setValue('fechaEstudio', v)}
+              onChange={(v) => setValue('fechaEstudio', v, { shouldValidate: true })}
+              placeholder="Selecciona fecha y hora"
+              timeStepMinutes={1}
+              maxDateTime={new Date()}
+              minHour={horarioActivo?.horaInicio ?? 8}
+              maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+              disabledDaysOfWeek={disabledDaysOfWeek}
             />
           </FormField>
 
@@ -229,7 +252,7 @@ export function EstudiosTab() {
             </Button>
           </div>
         </form>
-      </Card>
+      </Card>}
     </div>
   )
 }

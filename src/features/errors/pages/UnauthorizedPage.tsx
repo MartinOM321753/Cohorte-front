@@ -1,8 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { useAuthStore } from '@/stores/authStore'
+import { resolveHomeRoute } from '@/config/featurePermisos'
 
 export default function UnauthorizedPage() {
   const navigate = useNavigate()
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const homeRoute = resolveHomeRoute(hasPermiso)
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -19,8 +23,12 @@ export default function UnauthorizedPage() {
           administrador del sistema.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Button variant="secondary" onClick={() => navigate('/dashboard')}>
-            Volver al dashboard
+          <Button
+            variant="secondary"
+            onClick={() => navigate(homeRoute)}
+            disabled={homeRoute === '/unauthorized'}
+          >
+            Volver al inicio
           </Button>
           <Button variant="outline" onClick={() => navigate('/login')}>
             Cambiar sesión

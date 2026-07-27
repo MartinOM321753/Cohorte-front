@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Download, FileText, Image, FileArchive, Trash2, AlertCircle, Eye, Lock, Printer, ClipboardList, Upload } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,10 +21,11 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { DocumentoResponseDTO } from '@/types/api'
+import type { DocumentoResponseDTO, PrintableLabelBatchDTO } from '@/types/api'
 import { useDeleteDocumento, useListarImpresorasDocumentos, useImprimirEtiquetaDocumento, useAdjuntarArchivo } from '../hooks/useDocumentos'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
-import { downloadDocumentoBlob } from '../api/documentos.api'
+import { downloadDocumentoBlob, getLabelDataDocumento } from '../api/documentos.api'
+import { PrintableLabelsView } from '@/components/print/PrintableLabelsView'
 import { toast } from 'sonner'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -130,6 +131,7 @@ export function DocumentoList({
   const [downloading, setDownloading] = useState<number | null>(null)
   const [adjuntando, setAdjuntando] = useState<number | null>(null)
   const [printDoc, setPrintDoc] = useState<DocumentoResponseDTO | null>(null)
+  const [browserPrintData, setBrowserPrintData] = useState<PrintableLabelBatchDTO | null>(null)
   const [selectedPrinter, setSelectedPrinter] = useState(() =>
     localStorage.getItem('zebra-printer-name') ?? ''
   )
@@ -139,6 +141,13 @@ export function DocumentoList({
   const { data: configuraciones } = useGetConfiguracionesActivas()
   const printMutation = useImprimirEtiquetaDocumento()
   const adjuntarMutation = useAdjuntarArchivo()
+
+  useEffect(() => {
+    if (configuraciones && configuraciones.length > 0 && !selectedConfig) {
+      const pred = configuraciones.find((c) => c.predeterminada)
+      setSelectedConfig(String(pred ? pred.id : configuraciones[0].id))
+    }
+  }, [configuraciones])
 
   function handleAdjuntar(doc: DocumentoResponseDTO) {
     const input = document.createElement('input')
@@ -175,14 +184,26 @@ export function DocumentoList({
     setDownloading(null)
   }
 
-  function handlePrint() {
-    if (!printDoc || !selectedPrinter) return
+  async function handlePrint() {
+    if (!printDoc) return
+    const configId = selectedConfig ? Number(selectedConfig) : undefined
+    if (selectedPrinter === '__browser__') {
+      try {
+        const data = await getLabelDataDocumento(printDoc.id, configId)
+        setPrintDoc(null)
+        setBrowserPrintData(data)
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || err?.message || 'Error al obtener datos de etiqueta')
+      }
+      return
+    }
+    if (!selectedPrinter) return
     localStorage.setItem('zebra-printer-name', selectedPrinter)
     printMutation.mutate(
       {
         idDocumento: printDoc.id,
         impresora: selectedPrinter,
-        configuracionId: selectedConfig ? Number(selectedConfig) : undefined,
+        configuracionId: configId,
       },
       { onSuccess: () => setPrintDoc(null) },
     )
@@ -421,6 +442,7 @@ export function DocumentoList({
                   <SelectValue placeholder="Seleccionar impresora" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__browser__">Impresora estándar (navegador)</SelectItem>
                   {impresoras?.map((p) => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -428,23 +450,27 @@ export function DocumentoList({
               </Select>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-[12px] text-muted-foreground">Configuración de etiqueta</Label>
-              <Select
-                value={selectedConfig || '__default__'}
-                onValueChange={(v) => setSelectedConfig(v === '__default__' ? '' : v)}
-              >
-                <SelectTrigger className="h-9 text-[13px]">
-                  <SelectValue placeholder="Predeterminada" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__default__">Predeterminada</SelectItem>
-                  {configuraciones?.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {configuraciones && configuraciones.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[12px] text-muted-foreground">Configuración de etiqueta</Label>
+                <Select value={selectedConfig} onValueChange={setSelectedConfig}>
+                  <SelectTrigger className="h-9 text-[13px]">
+                    <SelectValue placeholder="Seleccionar configuración" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {configuraciones.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.nombre}{c.predeterminada ? ' *' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <p className="text-xs text-amber-600">
+                No hay configuraciones de etiqueta. Cree una en Configuración &gt; Etiquetas.
+              </p>
+            )}
           </div>
 
           <DialogFooter>
@@ -453,7 +479,7 @@ export function DocumentoList({
             </Button>
             <Button
               onClick={handlePrint}
-              disabled={!selectedPrinter || printMutation.isPending}
+              disabled={!selectedPrinter || printMutation.isPending || !configuraciones?.length}
               className="gap-1.5 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)]"
             >
               {printMutation.isPending ? (
@@ -465,6 +491,15 @@ export function DocumentoList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {browserPrintData && (
+        <PrintableLabelsView
+          open={true}
+          etiquetas={browserPrintData.etiquetas}
+          configuracion={browserPrintData.configuracion}
+          onClose={() => setBrowserPrintData(null)}
+        />
+      )}
     </>
   )
 }

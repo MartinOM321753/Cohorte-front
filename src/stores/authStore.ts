@@ -4,13 +4,7 @@ import axiosInstance from '@/lib/axiosInstance'
 import { queryClient } from '@/lib/queryClient'
 import { getModulosHabilitadosActual } from '@/features/instituciones/api/instituciones.api'
 
-export type UserRole =
-  | 'ADMINISTRADOR'
-  | 'MEDICO'
-  | 'LABORATORISTA'
-  | 'RECEPCIONISTA'
-  | 'PACIENTE'
-  | 'ENCARGADO'
+export type UserRole = string
 
 type RolLike = string | { nombre?: string } | null | undefined
 
@@ -35,17 +29,22 @@ export interface AuthState {
   mustChangePassword: boolean
   /** Módulos del sistema (BIOBANCO, EXAMENES, CITAS, etc.) habilitados para la institución del usuario. */
   modulosHabilitados: string[]
+  /** Permisos efectivos del usuario (calculados por el backend). */
+  permisos: string[]
+  /** Roles asignados al usuario (multi-rol). */
+  roles: string[]
+  isRoot: boolean
 
-  login: (data: { user: UserData; mustChangePassword?: boolean }) => Promise<boolean>
+  login: (data: { user: UserData; mustChangePassword?: boolean; permisos?: string[]; roles?: string[]; isRoot?: boolean }) => Promise<boolean>
   logout: () => void
   hasRole: (role: UserRole | UserRole[]) => boolean
+  /** Verifica si el usuario tiene el permiso indicado. Acepta un código o un arreglo (any). */
+  hasPermiso: (permiso: string | string[]) => boolean
+  /** Verifica si el usuario tiene al menos uno de los permisos indicados. */
+  hasAnyPermiso: (permisos: string[]) => boolean
   /** Indica si la institución del usuario tiene habilitado el módulo dado (ver ModuloSistema). */
   hasModulo: (modulo: string) => boolean
   clearMustChangePassword: () => void
-  /**
-   * Restaura la sesión a partir de la cookie httpOnly al cargar la app
-   * (el JS no puede leer el token, así que se valida contra /auth/me).
-   */
   restoreSession: () => Promise<void>
 }
 
@@ -55,11 +54,14 @@ const initialState = {
   isLoading: true,
   mustChangePassword: false,
   modulosHabilitados: [] as string[],
+  permisos: [] as string[],
+  roles: [] as string[],
+  isRoot: false,
 }
 
 function parseInstitucion(raw: any): InstitucionResumen | null {
   if (!raw || typeof raw !== 'object') return null
-  const uuid = raw.uuid || raw.UUID || ''
+  const uuid = raw.uuid || ''
   const nombre = raw.nombre || ''
   if (!uuid && !nombre) return null
   const id = typeof raw.id === 'number' ? raw.id : undefined
@@ -80,27 +82,16 @@ function normalizeRoleName(rol: RolLike): string {
   const raw = typeof rol === 'string' ? rol : typeof rol === 'object' && typeof rol.nombre === 'string' ? rol.nombre : ''
   const cleaned = raw.trim().toUpperCase()
   if (!cleaned) return ''
-
-  // Strict: only accept roles that exist in the frontend app.
-  // If backend sends "ADMIN" (or any unknown role), user must NOT be authenticated.
-  const withoutPrefix = cleaned.startsWith('ROLE_') ? cleaned.slice('ROLE_'.length) : cleaned
-  if (withoutPrefix === 'ADMINISTRADOR') return 'ADMINISTRADOR'
-  if (withoutPrefix === 'MEDICO') return 'MEDICO'
-  if (withoutPrefix === 'RECEPCIONISTA') return 'RECEPCIONISTA'
-  if (withoutPrefix === 'LABORATORISTA') return 'LABORATORISTA'
-  if (withoutPrefix === 'PACIENTE') return 'PACIENTE'
-  if (withoutPrefix === 'ENCARGADO') return 'ENCARGADO'
-
-  return ''
+  return cleaned.startsWith('ROLE_') ? cleaned.slice('ROLE_'.length) : cleaned
 }
 
 export const useAuthStore = create<AuthState>()(
   subscribeWithSelector((set, get) => ({
     ...initialState,
 
-    login: async ({ user, mustChangePassword = false }) => {
+    login: async ({ user, mustChangePassword = false, permisos = [], roles = [], isRoot = false }) => {
       const normalizedRole = normalizeRoleName(user.rol)
-      if (!normalizedRole) {
+      if (!normalizedRole && roles.length === 0) {
         queryClient.clear()
         set({ ...initialState, isLoading: false })
         return false
@@ -112,23 +103,28 @@ export const useAuthStore = create<AuthState>()(
         isLoading: true,
         mustChangePassword: false,
         modulosHabilitados: [],
+        permisos: [],
+        roles: [],
+        isRoot: false,
       })
 
       const modulosHabilitados = await fetchModulosHabilitados()
       queryClient.clear()
 
       set({
-        user: { ...user, rol: normalizedRole },
+        user: { ...user, rol: normalizedRole || roles[0] || '' },
         isAuthenticated: true,
         isLoading: false,
         mustChangePassword,
         modulosHabilitados,
+        permisos,
+        roles,
+        isRoot,
       })
       return true
     },
 
     logout: () => {
-      // El backend lee la cookie httpOnly directamente — no hace falta pasar el token.
       axiosInstance.post('/auth/logout').catch(() => {})
       queryClient.clear()
       set({ ...initialState, isLoading: false })
@@ -139,12 +135,28 @@ export const useAuthStore = create<AuthState>()(
     },
 
     hasRole: (role: UserRole | UserRole[]) => {
-      const { user } = get()
+      const { roles, user } = get()
       if (!user) return false
       const rolesToCheck = Array.isArray(role) ? role : [role]
+      if (roles.length > 0) {
+        return rolesToCheck.some((r) => roles.includes(r))
+      }
       const userRoleName = normalizeRoleName(user.rol)
       if (!userRoleName) return false
       return rolesToCheck.includes(userRoleName as UserRole)
+    },
+
+    hasPermiso: (permiso: string | string[]) => {
+      const { permisos } = get()
+      if (Array.isArray(permiso)) {
+        return permiso.every((p) => permisos.includes(p))
+      }
+      return permisos.includes(permiso)
+    },
+
+    hasAnyPermiso: (permisos: string[]) => {
+      const { permisos: userPermisos } = get()
+      return permisos.some((p) => userPermisos.includes(p))
     },
 
     hasModulo: (modulo: string) => {
@@ -172,16 +184,19 @@ export const useAuthStore = create<AuthState>()(
           : ''
 
         const user: UserData = {
-          uuid: dto?.uuid || dto?.UUID || '',
+          uuid: dto?.uuid || '',
           username: dto?.username || '',
           nombreCompleto,
           rol: rolNombre,
           institucion: parseInstitucion(dto?.institucion),
         }
 
-        await get().login({ user, mustChangePassword: data?.mustChangePassword === true })
+        const permisos: string[] = Array.isArray(data?.permisos) ? data.permisos : []
+        const roles: string[] = Array.isArray(data?.roles) ? data.roles : []
+
+        const isRoot: boolean = data?.isRoot === true
+        await get().login({ user, mustChangePassword: data?.mustChangePassword === true, permisos, roles, isRoot })
       } catch {
-        // Sin cookie válida (no autenticado o sesión expirada)
         queryClient.clear()
         set({ ...initialState, isLoading: false })
       }

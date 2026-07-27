@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Edit, Trash2, Grid3X3, Package, MapPin } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 import { useGetCajas, useDeleteCaja } from '../hooks/useBiobanco'
 import { CajaFormModal } from './CajaFormModal'
 import { PosicionesModal } from './PosicionesModal'
@@ -25,6 +26,11 @@ export function CajasTab() {
   const [isPosicionesModalOpen, setIsPosicionesModalOpen] = useState(false)
   const [selectedCaja, setSelectedCaja] = useState<any>(null)
   const [editingCaja, setEditingCaja] = useState<any>(null)
+
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const puedeCrear = hasPermiso('CAJAS_CREAR')
+  const puedeEditar = hasPermiso('CAJAS_EDITAR')
+  const puedeEliminar = hasPermiso('CAJAS_ELIMINAR')
 
   const { data: cajas, isLoading } = useGetCajas()
   const deleteCajaMutation = useDeleteCaja()
@@ -65,10 +71,12 @@ export function CajasTab() {
           <h2 className="text-2xl font-bold">Cajas Criogénicas</h2>
           <p className="text-muted-foreground">Gestiona las cajas de almacenamiento y sus posiciones</p>
         </div>
-        <Button onClick={() => setIsCajaModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Caja
-        </Button>
+        {puedeCrear && (
+          <Button onClick={() => setIsCajaModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Caja
+          </Button>
+        )}
       </div>
 
       <Alert>
@@ -88,10 +96,12 @@ export function CajasTab() {
               Crea cajas criogénicas para organizar el almacenamiento de muestras.
               Primero necesitas tener refrigeradores con pisos configurados.
             </p>
-            <Button onClick={() => setIsCajaModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Crear Primera Caja
-            </Button>
+            {puedeCrear && (
+              <Button onClick={() => setIsCajaModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Crear Primera Caja
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -168,39 +178,43 @@ export function CajasTab() {
                     <Grid3X3 className="mr-1 h-3 w-3" />
                     Ver Posiciones
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(caja)}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar caja {caja.codigoCaja}?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          La caja <strong>{caja.codigoCaja}</strong> ({caja.tipoCaja}) será eliminada junto con todas
-                          sus posiciones. Si contiene muestras almacenadas, la operación será rechazada.
-                          Esta acción no se puede deshacer.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(caja.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Eliminar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {puedeEditar && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(caja)}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  )}
+                  {puedeEliminar && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar caja {caja.codigoCaja}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            La caja <strong>{caja.codigoCaja}</strong> ({caja.tipoCaja}) será eliminada junto con todas
+                            sus posiciones. Si contiene muestras almacenadas, la operación será rechazada.
+                            Esta acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(caja.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </CardContent>
             </Card>

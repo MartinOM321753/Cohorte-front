@@ -129,15 +129,15 @@ export function BitacoraFiltros(props: Props) {
 
   return (
     <div className="rounded-lg border border-[var(--imss-ink-100)] bg-card p-4">
-      <div className="flex flex-wrap items-end gap-3">
-        {/* Rango de fechas */}
-        <div className="flex items-end gap-2">
-          <DatePickerField label="Desde" value={desde} onChange={setDesde} />
-          <DatePickerField label="Hasta" value={hasta} onChange={setHasta} />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Fecha desde */}
+        <DatePickerField label="Desde" value={desde} onChange={setDesde} />
+
+        {/* Fecha hasta */}
+        <DatePickerField label="Hasta" value={hasta} onChange={setHasta} />
 
         {/* Selector de usuario */}
-        <div className="flex flex-col gap-1.5 min-w-[240px]">
+        <div className="flex flex-col gap-1.5">
           <Label className="text-[12px] text-[var(--imss-ink-400)]">Usuario</Label>
           <Select
             value={usuarioUuid === '' ? '__all__' : usuarioUuid}
@@ -159,7 +159,7 @@ export function BitacoraFiltros(props: Props) {
 
         {/* Selector específico por tipo */}
         {props.tipo === 'accesos' ? (
-          <div className="flex flex-col gap-1.5 min-w-[160px]">
+          <div className="flex flex-col gap-1.5">
             <Label className="text-[12px] text-[var(--imss-ink-400)]">Tipo de evento</Label>
             <Select
               value={tipoEvento === '' ? '__all__' : tipoEvento}
@@ -178,7 +178,7 @@ export function BitacoraFiltros(props: Props) {
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-1.5 min-w-[160px]">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-[12px] text-[var(--imss-ink-400)]">Tipo de acción</Label>
               <Select
                 value={tipoAccion === '' ? '__all__' : tipoAccion}
@@ -196,7 +196,7 @@ export function BitacoraFiltros(props: Props) {
               </Select>
             </div>
 
-            <div className="flex flex-col gap-1.5 min-w-[160px]">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-[12px] text-[var(--imss-ink-400)]">Entidad</Label>
               <Input
                 placeholder="Ej. Participante, Usuario…"
@@ -208,8 +208,8 @@ export function BitacoraFiltros(props: Props) {
           </>
         )}
 
-        {/* Botones */}
-        <div className="flex items-end gap-2 pb-[1px]">
+        {/* Botones — siempre al final, alineados a la derecha */}
+        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4 justify-end">
           <Button
             onClick={handleApply}
             className="h-9 gap-1.5 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"

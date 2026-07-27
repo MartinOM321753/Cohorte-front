@@ -22,10 +22,11 @@ export function useGetConfiguracionesEtiqueta() {
   })
 }
 
-export function useGetConfiguracionesActivas() {
+export function useGetConfiguracionesActivas(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [KEY, 'activas'],
     queryFn: getConfiguracionesActivas,
+    enabled: options?.enabled ?? true,
   })
 }
 

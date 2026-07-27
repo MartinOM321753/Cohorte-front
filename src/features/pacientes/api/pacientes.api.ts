@@ -39,6 +39,14 @@ export async function getPacienteByUUID(uuid: string): Promise<Paciente> {
 }
 
 /**
+ * Resuelve el UUID del propio expediente para el rol PACIENTE (sin conocerlo de antemano).
+ */
+export async function getMiPacienteUuid(): Promise<string> {
+  const response = await axiosInstance.get<ApiResponse<{ uuid: string }>>('/pacientes/mi-uuid')
+  return response.data.data.uuid
+}
+
+/**
  * Get paciente by folio
  */
 export async function getPacienteByFolio(folio: string): Promise<Paciente> {
@@ -103,10 +111,34 @@ export async function getPacientesPaginados(params: {
 }
 
 /**
+ * Endpoint lookup para el combobox de participantes usado desde formularios de
+ * otros módulos (Estudios, Exámenes, Citas). Aceptado con permiso
+ * PACIENTES_LOOKUP (no requiere PACIENTES_ACCEDER). Devuelve max 20 resultados
+ * de participantes activos.
+ */
+export async function buscarPacientes(params: {
+  q?: string
+  incluirJerarquia?: boolean
+}): Promise<PacientesPaginados> {
+  const response = await axiosInstance.get<ApiResponse<PacientesPaginados>>(
+    '/pacientes/buscar',
+    { params }
+  )
+  return response.data.data
+}
+
+/**
  * El backend procesa el archivo en segundo plano (ver PacienteController) y
  * responde de inmediato — el resultado (exitosos/errores/duplicados) ya no
  * llega en esta respuesta, se notifica por correo al terminar.
  */
+export async function crearAccesoPaciente(uuid: string): Promise<Paciente> {
+  const response = await axiosInstance.post<ApiResponse<Paciente>>(
+    `/pacientes/uuid/${uuid}/crear-acceso`
+  )
+  return response.data.data
+}
+
 export async function importarPacientes(archivo: File): Promise<string> {
   const formData = new FormData()
   formData.append('archivo', archivo)

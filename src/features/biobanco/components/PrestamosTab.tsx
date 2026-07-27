@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import {
   ArrowRightFromLine, ArrowLeftFromLine, Building2, ArrowRight,
-  AlertCircle, PackageCheck, RotateCcw, CheckCircle2, Clock,
-  RefreshCw, FlaskConical, XCircle, MapPin,
+  AlertCircle, AlertTriangle, PackageCheck, RotateCcw, CheckCircle2, Clock,
+  RefreshCw, FlaskConical, XCircle, MapPin, CalendarClock,
 } from 'lucide-react'
 import {
   useGetAllTraslados,
@@ -11,6 +11,7 @@ import {
   useConfirmarDevolucion,
   useGetAlicuotasEnDestino,
   useAsignarPosicionMuestra,
+  useGetTrasladosByMuestra,
 } from '../hooks/useBiobanco'
 import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -77,6 +78,13 @@ interface PrestamoCardProps {
   onToggleAlicuota: (id: number) => void
   onSelectAllAlicuotas: () => void
   onDeselectAllAlicuotas: () => void
+  // Devolución: destino (atajo en cadena de custodia)
+  destinoDevolucionId: number | null
+  setDestinoDevolucionId: (v: number | null) => void
+  destinoDevolucionOptions: { id: number; label: string }[]
+  // Permisos
+  puedeConfirmar: boolean
+  puedeDevolver: boolean
 }
 
 type ActionType = 'recepcion' | 'devolucion' | 'confirmar-devolucion' | 'asignar-posicion'
@@ -101,6 +109,11 @@ function PrestamoCard({
   onToggleAlicuota,
   onSelectAllAlicuotas,
   onDeselectAllAlicuotas,
+  destinoDevolucionId,
+  setDestinoDevolucionId,
+  destinoDevolucionOptions,
+  puedeConfirmar,
+  puedeDevolver,
 }: PrestamoCardProps) {
   const isOrigen  = traslado.institucionOrigen.id  === myInstitucionId
   const isDestino = traslado.institucionDestino.id === myInstitucionId
@@ -169,6 +182,17 @@ function PrestamoCard({
           </div>
         )}
 
+        {/* Fecha límite */}
+        {traslado.fechaLimite && (
+          <div className={`flex items-center gap-1.5 text-xs ${traslado.vencido ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+            {traslado.vencido
+              ? <AlertTriangle className="h-3 w-3 shrink-0" />
+              : <CalendarClock className="h-3 w-3 shrink-0" />}
+            <span className="font-medium">{traslado.vencido ? 'Vencido:' : 'Fecha límite:'}</span>{' '}
+            {formatDate(traslado.fechaLimite)}
+          </div>
+        )}
+
         {/* Posición asignada */}
         {traslado.muestra.posicionLabel && (
           <div className="flex items-center gap-1.5 text-xs">
@@ -181,7 +205,7 @@ function PrestamoCard({
         {/* Botones de acción */}
         {!isActionTarget && (
           <div className="flex flex-wrap gap-2 pt-1">
-            {traslado.estado === 'ENVIADA' && isDestino && (
+            {traslado.estado === 'ENVIADA' && isDestino && puedeConfirmar && (
               <Button
                 size="sm" variant="outline" className="h-7 text-xs"
                 onClick={() => onAction(traslado.id, 'recepcion')}
@@ -192,23 +216,27 @@ function PrestamoCard({
             )}
             {traslado.estado === 'RECIBIDA' && isDestino && (
               <>
-                <Button
-                  size="sm" variant="outline" className="h-7 text-xs"
-                  onClick={() => onAction(traslado.id, 'asignar-posicion')}
-                >
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {traslado.muestra.posicionLabel ? 'Actualizar posición' : 'Asignar posición'}
-                </Button>
-                <Button
-                  size="sm" variant="outline" className="h-7 text-xs"
-                  onClick={() => onAction(traslado.id, 'devolucion')}
-                >
-                  <RotateCcw className="h-3 w-3 mr-1" />
-                  Iniciar devolución
-                </Button>
+                {puedeConfirmar && (
+                  <Button
+                    size="sm" variant="outline" className="h-7 text-xs"
+                    onClick={() => onAction(traslado.id, 'asignar-posicion')}
+                  >
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {traslado.muestra.posicionLabel ? 'Actualizar posición' : 'Asignar posición'}
+                  </Button>
+                )}
+                {puedeDevolver && (
+                  <Button
+                    size="sm" variant="outline" className="h-7 text-xs"
+                    onClick={() => onAction(traslado.id, 'devolucion')}
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    Iniciar devolución
+                  </Button>
+                )}
               </>
             )}
-            {traslado.estado === 'EN_DEVOLUCION' && isOrigen && (
+            {traslado.estado === 'EN_DEVOLUCION' && isOrigen && puedeConfirmar && (
               <Button
                 size="sm" variant="outline" className="h-7 text-xs"
                 onClick={() => onAction(traslado.id, 'confirmar-devolucion')}
@@ -279,6 +307,31 @@ function PrestamoCard({
               </div>
             )}
 
+            {/* Devolución: destino (default = eslabón anterior; opcional = atajo en la cadena) */}
+            {actionType === 'devolucion' && (
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1">
+                  <Building2 className="h-3 w-3" />
+                  Devolver a
+                </Label>
+                <select
+                  className="w-full rounded border bg-background px-2 py-1 text-xs"
+                  value={destinoDevolucionId ?? ''}
+                  onChange={(e) => setDestinoDevolucionId(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">Al eslabón anterior: {traslado.institucionOrigen.nombre}</option>
+                  {destinoDevolucionOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-muted-foreground">
+                  Opcional: elige cualquier institución previa en la cadena de custodia (atajo).
+                </p>
+              </div>
+            )}
+
             {/* Devolución: selección de alícuotas */}
             {actionType === 'devolucion' && alicuotasEnDestino.length > 0 && (
               <div className="space-y-2">
@@ -338,7 +391,10 @@ function PrestamoCard({
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function PrestamosTab() {
+  const hasPermiso = useAuthStore((s) => s.hasPermiso)
   const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
+  const puedeConfirmar = hasPermiso('TRASLADOS_CONFIRMAR')
+  const puedeDevolver = hasPermiso('TRASLADOS_DEVOLVER')
 
   const [actionTrasladoId, setActionTrasladoId] = useState<number | null>(null)
   const [actionType, setActionType]             = useState<ActionType | null>(null)
@@ -352,6 +408,9 @@ export function PrestamosTab() {
   // Devolución: alícuotas
   const [selectedAlicuotaIds, setSelectedAlicuotaIds] = useState<Set<number>>(new Set())
 
+  // Devolución: destino elegido (null = eslabón anterior/default)
+  const [destinoDevolucionId, setDestinoDevolucionId] = useState<number | null>(null)
+
   const { data: traslados = [], isLoading, refetch } = useGetAllTraslados()
   const confirmarRecepcionMutation  = useConfirmarRecepcion()
   const iniciarDevolucionMutation   = useIniciarDevolucion()
@@ -362,6 +421,37 @@ export function PrestamosTab() {
     actionTrasladoId ?? 0,
     { enabled: actionType === 'devolucion' && !!actionTrasladoId }
   )
+
+  // Cargar historial de traslados de la muestra para poblar las opciones de "atajo"
+  // en devolución (instituciones previas en la cadena de custodia).
+  const trasladoDevolucion = traslados.find((t) => t.id === actionTrasladoId)
+  const idMuestraDevolucion = trasladoDevolucion?.muestra.id ?? 0
+  const { data: historialMuestra = [] } = useGetTrasladosByMuestra(
+    actionType === 'devolucion' ? idMuestraDevolucion : 0
+  )
+
+  // Construir opciones únicas de instituciones que participaron en la cadena de custodia,
+  // excluyendo (a) la que actualmente tiene la muestra y (b) la que es el eslabón anterior
+  // por default (ésa se muestra como opción por defecto en el <select>).
+  const destinoDevolucionOptions = (() => {
+    if (!trasladoDevolucion) return []
+    const excluir = new Set<number>([
+      trasladoDevolucion.institucionDestino.id, // yo mismo (tenedor actual)
+      trasladoDevolucion.institucionOrigen.id,  // eslabón anterior, ya es el default
+    ])
+    const seen = new Set<number>()
+    const opts: { id: number; label: string }[] = []
+    historialMuestra.forEach((t) => {
+      const candidatos = [t.institucionOrigen, t.institucionDestino]
+      candidatos.forEach((inst) => {
+        if (!excluir.has(inst.id) && !seen.has(inst.id)) {
+          seen.add(inst.id)
+          opts.push({ id: inst.id, label: inst.nombre })
+        }
+      })
+    })
+    return opts
+  })()
 
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
 
@@ -378,6 +468,7 @@ export function PrestamosTab() {
     setPosicionCajaId(null)
     setPosicionLabel('')
     setSelectedAlicuotaIds(new Set())
+    setDestinoDevolucionId(null)
   }
 
   const handleConfirmAction = async () => {
@@ -399,6 +490,7 @@ export function PrestamosTab() {
             uuidInicia: userUuid,
             observaciones: obsText || undefined,
             idsAlicuotasDevolver: idsDevolver,
+            idInstitucionDestinoDevolucion: destinoDevolucionId ?? undefined,
           },
         })
       } else if (actionType === 'asignar-posicion') {
@@ -426,6 +518,7 @@ export function PrestamosTab() {
     setPosicionCajaId(null)
     setPosicionLabel('')
     setSelectedAlicuotaIds(new Set())
+    setDestinoDevolucionId(null)
   }
 
   const toggleAlicuota = (id: number) => {
@@ -471,6 +564,11 @@ export function PrestamosTab() {
     onToggleAlicuota: toggleAlicuota,
     onSelectAllAlicuotas: () => setSelectedAlicuotaIds(new Set(alicuotasEnDestino.map((a) => a.id))),
     onDeselectAllAlicuotas: () => setSelectedAlicuotaIds(new Set()),
+    destinoDevolucionId,
+    setDestinoDevolucionId,
+    destinoDevolucionOptions,
+    puedeConfirmar,
+    puedeDevolver,
   })
 
   return (

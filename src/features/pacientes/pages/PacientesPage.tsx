@@ -8,15 +8,17 @@ import {
   UserRoundPlus,
 } from "lucide-react";
 import { useGetPacientesPaginados } from "../hooks/useGetPacientes";
-import { useToggleActivoPaciente } from "../hooks/useCreatePaciente";
+import { useToggleActivoPaciente, useCrearAccesoPaciente } from "../hooks/useCreatePaciente";
 import { useGetInstitucionesVisibles } from "@/features/instituciones/hooks/useInstituciones";
 import { PacientesTable } from "../components/PacientesTable";
 import { PacienteFormModal } from "../components/PacienteFormModal";
 import { PacienteImportModal } from "../components/PacienteImportModal";
 import { PacienteDetailDrawer } from "../components/PacienteDetailDrawer";
 import { CitaIlamyEventForm } from "@/features/citas/components/CitaIlamyEventForm";
+import { SomatometriaFormModal } from "@/features/somatometria/components/SomatometriaFormModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuthStore } from "@/stores/authStore";
 import {
   Select,
   SelectContent,
@@ -53,7 +55,6 @@ export default function PacientesPage() {
     pageSize: PAGE_SIZE,
   });
 
-  // Reset a página 0 cuando cambia la búsqueda
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
@@ -81,6 +82,16 @@ export default function PacientesPage() {
   const totalPages = data?.totalPages ?? 0;
 
   const toggleActivoMutation = useToggleActivoPaciente();
+  const crearAccesoMutation = useCrearAccesoPaciente();
+
+  const hasPermiso = useAuthStore((s) => s.hasPermiso);
+  const userUuid = useAuthStore((s) => s.user?.uuid) || '';
+  const puedeCrearPaciente = hasPermiso("PACIENTES_CREAR");
+  const puedeImportarPacientes = hasPermiso("PACIENTES_IMPORTAR");
+  const puedeCrearCita = hasPermiso("CITAS_CREAR");
+  const puedeEditarPaciente = hasPermiso("PACIENTES_EDITAR");
+  const puedeCrearAcceso = hasPermiso("PACIENTES_CREAR_ACCESO");
+  const puedeCrearSomatometria = hasPermiso("SOMATOMETRIA_CREAR");
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null);
@@ -93,6 +104,8 @@ export default function PacientesPage() {
   const [patientToSchedule, setPatientToSchedule] = useState<Paciente | null>(
     null,
   );
+  const [isSomatometriaOpen, setIsSomatometriaOpen] = useState(false);
+  const [patientForSoma, setPatientForSoma] = useState<Paciente | null>(null);
 
   function handleView(paciente: Paciente) {
     setSelectedPaciente(paciente);
@@ -107,6 +120,11 @@ export default function PacientesPage() {
   function handleSchedule(paciente: Paciente) {
     setPatientToSchedule(paciente);
     setIsCitaModalOpen(true);
+  }
+
+  function handleSomatometria(paciente: Paciente) {
+    setPatientForSoma(paciente);
+    setIsSomatometriaOpen(true);
   }
 
   function handleFormClose(open: boolean) {
@@ -136,43 +154,50 @@ export default function PacientesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
       <PageHeader
         title="Participantes"
         subtitle="Registro de participantes incluidos en la cohorte"
         actions={
           <>
-            <Button
-              variant="outline"
-              onClick={() => setIsImportOpen(true)}
-              className="gap-2 text-[13px] h-9"
-            >
-              <Upload className="h-4 w-4" strokeWidth={1.75} />
-              Importar
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsCitaModalOpen(true)}
-              className="gap-2 text-[13px] h-9"
-            >
-              <CalendarDays className="h-4 w-4" strokeWidth={1.75} />
-              Agendar cita
-            </Button>
-            <Button
-              onClick={handleOpenCreate}
-              className="gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px] h-9"
-            >
-              <UserRoundPlus className="h-4 w-4" strokeWidth={1.75} />
-              Registrar participante
-            </Button>
+            {puedeImportarPacientes && (
+              <Button
+                variant="outline"
+                onClick={() => setIsImportOpen(true)}
+                className="gap-2 text-[13px] h-9"
+              >
+                <Upload className="h-4 w-4" strokeWidth={1.75} />
+                <span className="hidden sm:inline">Importar</span>
+              </Button>
+            )}
+            {puedeCrearCita && (
+              <Button
+                variant="outline"
+                onClick={() => setIsCitaModalOpen(true)}
+                className="gap-2 text-[13px] h-9"
+              >
+                <CalendarDays className="h-4 w-4" strokeWidth={1.75} />
+                <span className="hidden sm:inline">Agendar cita</span>
+              </Button>
+            )}
+            {puedeCrearPaciente && (
+              <Button
+                onClick={handleOpenCreate}
+                className="gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px] h-9"
+              >
+                <UserRoundPlus className="h-4 w-4" strokeWidth={1.75} />
+                <span className="hidden sm:inline">Registrar participante</span>
+              </Button>
+            )}
           </>
         }
       />
 
-      {/* Barra de búsqueda y contador */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="relative w-full max-w-[340px]">
+      {/* Búsqueda y filtros */}
+      <div className="flex flex-col gap-3">
+        {/* Fila 1: Búsqueda + contador */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-[340px]">
             <Search
               className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--imss-ink-300)]"
               strokeWidth={1.75}
@@ -184,6 +209,19 @@ export default function PacientesPage() {
               className="h-9 pl-8 text-[13px]"
             />
           </div>
+
+          {!isLoading && (
+            <div className="flex items-center gap-1.5 text-[12px] text-[var(--imss-ink-300)]">
+              <UserRound className="h-3.5 w-3.5" strokeWidth={1.75} />
+              <span>
+                {totalElements} participante{totalElements !== 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Fila 2: Filtros (wrap en mobile) */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
             {ESTADO_OPCIONES.map((opcion) => (
               <Button
@@ -225,7 +263,7 @@ export default function PacientesPage() {
               }
               onValueChange={handleInstitucionFiltroChange}
             >
-              <SelectTrigger className="h-9 text-[12px] w-[220px]">
+              <SelectTrigger className="h-9 text-[12px] w-full sm:w-[220px]">
                 <SelectValue placeholder="Todas las instituciones" />
               </SelectTrigger>
               <SelectContent>
@@ -239,15 +277,6 @@ export default function PacientesPage() {
             </Select>
           )}
         </div>
-
-        {!isLoading && (
-          <div className="flex items-center gap-1.5 text-[12px] text-[var(--imss-ink-300)]">
-            <UserRound className="h-3.5 w-3.5" strokeWidth={1.75} />
-            <span>
-              {totalElements} participante{totalElements !== 1 ? "s" : ""}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Tabla */}
@@ -255,13 +284,21 @@ export default function PacientesPage() {
         data={pacientes}
         isLoading={isLoading}
         incluirJerarquia={incluirJerarquia}
-        onView={handleView}
-        onEdit={handleEdit}
-        onToggleActivo={(p) => {
-          const uuid = p.uuid;
-          if (uuid) toggleActivoMutation.mutate(uuid);
-        }}
-        onSchedule={handleSchedule}
+        onRowClick={handleView}
+        onEdit={puedeEditarPaciente ? handleEdit : undefined}
+        onToggleActivo={
+          puedeEditarPaciente
+            ? (p) => {
+                const uuid = p.uuid;
+                if (uuid) toggleActivoMutation.mutate(uuid);
+              }
+            : undefined
+        }
+        onSchedule={puedeCrearCita ? handleSchedule : undefined}
+        onSomatometria={puedeCrearSomatometria ? handleSomatometria : undefined}
+        onCrearAcceso={
+          puedeCrearAcceso ? (p) => crearAccesoMutation.mutate(p.uuid) : undefined
+        }
         manualPagination
         pagination={pagination}
         onPaginationChange={setPagination}
@@ -274,8 +311,9 @@ export default function PacientesPage() {
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
         paciente={selectedPaciente}
-        onEdit={handleEdit}
-        onSchedule={handleSchedule}
+        onEdit={puedeEditarPaciente ? handleEdit : undefined}
+        onSchedule={puedeCrearCita ? handleSchedule : undefined}
+        onSomatometria={puedeCrearSomatometria ? handleSomatometria : undefined}
       />
 
       {/* Modal crear / editar */}
@@ -297,6 +335,19 @@ export default function PacientesPage() {
         }}
         initialPacienteUUID={patientToSchedule?.uuid || undefined}
       />
+
+      {/* Modal somatometría */}
+      {patientForSoma && (
+        <SomatometriaFormModal
+          open={isSomatometriaOpen}
+          onOpenChange={(open) => {
+            setIsSomatometriaOpen(open);
+            if (!open) setPatientForSoma(null);
+          }}
+          pacienteUUID={patientForSoma.uuid}
+          usuarioRegistraUUID={userUuid}
+        />
+      )}
     </div>
   );
 }
