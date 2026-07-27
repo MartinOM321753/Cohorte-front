@@ -66,9 +66,11 @@ export interface UsuarioPermisosResumenDTO {
 export interface BitacoraPermisoDTO {
   id: number
   usuarioAfectadoUuid: string | null
+  usuarioAfectadoNombre: string | null
   accion: string
   detalle: string
   realizadoPorUuid: string
+  realizadoPorNombre: string | null
   timestamp: string
 }
 

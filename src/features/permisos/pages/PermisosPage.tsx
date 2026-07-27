@@ -16,10 +16,12 @@ import { ROL_LABELS, getRolBadgeClass } from '@/features/usuarios/types/usuario.
 interface UserRow {
   uuid: string
   username: string
-  nombre: string
-  apellidoPaterno: string
-  apellidoMaterno: string
-  rol: { role: string } | null
+  persona: {
+    nombre: string
+    apellidoPaterno: string
+    apellidoMaterno: string
+  } | null
+  rol: { nombre: string } | null
   activo: boolean
 }
 
@@ -27,6 +29,12 @@ interface UsersResp {
   data: UserRow[]
   message: string
   error: boolean
+}
+
+function buildNombreCompleto(u: UserRow): string {
+  if (!u.persona) return u.username
+  return [u.persona.nombre, u.persona.apellidoPaterno, u.persona.apellidoMaterno]
+    .filter(Boolean).join(' ') || u.username
 }
 
 function useUsuariosSimple() {
@@ -47,11 +55,8 @@ function UsuariosTab() {
   const filtered = (users ?? []).filter((u) => {
     if (!search) return true
     const q = search.toLowerCase()
-    return (
-      u.username.toLowerCase().includes(q) ||
-      u.nombre?.toLowerCase().includes(q) ||
-      u.apellidoPaterno?.toLowerCase().includes(q)
-    )
+    const nombre = buildNombreCompleto(u).toLowerCase()
+    return u.username.toLowerCase().includes(q) || nombre.includes(q)
   })
 
   return (
@@ -90,12 +95,13 @@ function UsuariosTab() {
                   </TableRow>
                 ) : (
                   filtered.map((u) => {
-                    const rolName = u.rol?.role ?? '—'
+                    const rolName = u.rol?.nombre ?? '—'
+                    const nombre = buildNombreCompleto(u)
                     return (
                       <TableRow key={u.uuid} className="cursor-pointer hover:bg-muted/40" onClick={() => setSelectedUuid(u.uuid)}>
                         <TableCell className="text-[13px] font-medium">{u.username}</TableCell>
-                        <TableCell className="text-[13px]">
-                          {[u.nombre, u.apellidoPaterno, u.apellidoMaterno].filter(Boolean).join(' ') || '—'}
+                        <TableCell className="text-[13px] max-w-[250px] truncate" title={nombre}>
+                          {nombre}
                         </TableCell>
                         <TableCell>
                           <Badge className={getRolBadgeClass(rolName) + ' text-[11px]'}>
