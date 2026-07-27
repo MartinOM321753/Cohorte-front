@@ -97,11 +97,9 @@ const basePacienteSchema = z.object({
     .optional()
     .refine((val) => {
       if (!val) return true
-      const fecha = new Date(`${val}T00:00:00`)
-      const hoy = new Date()
-      hoy.setHours(23, 59, 59, 999)
-      return fecha <= hoy
-    }, 'La fecha de contacto no puede ser una fecha futura')
+      const fecha = new Date(val)
+      return fecha <= new Date()
+    }, 'La fecha y hora de contacto no pueden ser futuras')
     .or(z.literal('')),
 })
 

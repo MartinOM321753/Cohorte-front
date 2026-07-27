@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -29,7 +29,8 @@ import {
   type Paciente,
   type PacienteRequestDTO,
 } from '@/types/api'
-import { BirthDatePicker, DatePicker } from '@/components/ui/date-time-picker'
+import { BirthDatePicker, DateTimePicker } from '@/components/ui/date-time-picker'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 
 interface PacienteFormModalProps {
   open: boolean
@@ -82,6 +83,20 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
   const isEdit = !!paciente
   const createMutation = useCreatePaciente()
   const updateMutation = useUpdatePaciente()
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo) days.push(0)
+    if (!horarioActivo.lunes) days.push(1)
+    if (!horarioActivo.martes) days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves) days.push(4)
+    if (!horarioActivo.viernes) days.push(5)
+    if (!horarioActivo.sabado) days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
   const {
     register,
     handleSubmit,
@@ -118,7 +133,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
           estadoContacto: paciente.reclutamiento?.estadoContacto ?? null,
           medioContacto: paciente.reclutamiento?.medioContacto ?? null,
           observaciones: paciente.reclutamiento?.observaciones ?? '',
-          fechaContacto: paciente.reclutamiento?.fechaContacto?.slice(0, 10) ?? '',
+          fechaContacto: paciente.reclutamiento?.fechaContacto?.slice(0, 16) ?? '',
         })
       } else {
         reset(DEFAULT_VALUES)
@@ -267,18 +282,21 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
               {/* Fecha de contacto */}
               <div className="space-y-1.5">
                 <Label className="text-[13px]">
-                  Fecha de contacto
+                  Fecha y hora de contacto
                 </Label>
                 <Controller
                   name="fechaContacto"
                   control={control}
                   render={({ field }) => (
-                    <DatePicker
+                    <DateTimePicker
                       value={field.value ?? ''}
                       onChange={field.onChange}
-                      placeholder="DD/MM/AAAA"
-                      className="h-9 text-[13px]"
-                      maxDate={new Date()}
+                      placeholder="Selecciona fecha y hora"
+                      timeStepMinutes={1}
+                      maxDateTime={new Date()}
+                      minHour={horarioActivo?.horaInicio ?? 8}
+                      maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+                      disabledDaysOfWeek={disabledDaysOfWeek}
                     />
                   )}
                 />
