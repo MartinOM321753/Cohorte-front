@@ -40,7 +40,7 @@ import { useSectionAccess } from '@/hooks/useSectionAccess'
 // ── Feature hooks ──────────────────────────────────────────────────────────────
 import { useGetPacienteByUUID, useMiPacienteUuid } from '../hooks/useGetPacientes'
 import { useLatestSomatometria, useSomatometriaByPaciente } from '@/features/somatometria/hooks/useSomatometria'
-import { useGetCitas, useCitasResumenByPaciente } from '@/features/citas/hooks/useCitas'
+import { useCitasResumenByPaciente } from '@/features/citas/hooks/useCitas'
 import {
   useGetEstudiosByPaciente,
   useGetEstudioById,
@@ -2191,7 +2191,7 @@ export default function ExpedientePacientePage() {
   const canSeeExamenes   = useSectionAccess('examenes')
   const canSeeMuestras   = useSectionAccess('muestrasBiobanco')
 
-  const { data: citas = [] }    = useGetCitas({ pacienteUUID: uuid }, { enabled: canSeeCitas && !!uuid })
+  const { data: citas = [] }    = useCitasResumenByPaciente(uuid || '', { enabled: canSeeCitas && !!uuid })
   const { data: estudios = [] } = useGetEstudiosByPaciente(canSeeEstudios ? uuid : null)
   const { data: docsC = [] }    = useDocumentosPacienteTipo(uuid, 'CONSENTIMIENTO', { enabled: canSeeDocs && !!uuid })
   const { data: docsQ1 = [] }   = useDocumentosPacienteTipo(uuid, 'CUESTIONARIO_GENERAL', { enabled: canSeeDocs && !!uuid })
