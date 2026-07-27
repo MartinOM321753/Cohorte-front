@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Download, FileText, Image, FileArchive, Trash2, AlertCircle, Eye, Lock, Printer, ClipboardList, Upload } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -141,6 +141,13 @@ export function DocumentoList({
   const { data: configuraciones } = useGetConfiguracionesActivas()
   const printMutation = useImprimirEtiquetaDocumento()
   const adjuntarMutation = useAdjuntarArchivo()
+
+  useEffect(() => {
+    if (configuraciones && configuraciones.length > 0 && !selectedConfig) {
+      const pred = configuraciones.find((c) => c.predeterminada)
+      setSelectedConfig(String(pred ? pred.id : configuraciones[0].id))
+    }
+  }, [configuraciones])
 
   function handleAdjuntar(doc: DocumentoResponseDTO) {
     const input = document.createElement('input')
@@ -443,23 +450,27 @@ export function DocumentoList({
               </Select>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-[12px] text-muted-foreground">Configuración de etiqueta</Label>
-              <Select
-                value={selectedConfig || '__default__'}
-                onValueChange={(v) => setSelectedConfig(v === '__default__' ? '' : v)}
-              >
-                <SelectTrigger className="h-9 text-[13px]">
-                  <SelectValue placeholder="Predeterminada" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__default__">Predeterminada</SelectItem>
-                  {configuraciones?.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {configuraciones && configuraciones.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[12px] text-muted-foreground">Configuración de etiqueta</Label>
+                <Select value={selectedConfig} onValueChange={setSelectedConfig}>
+                  <SelectTrigger className="h-9 text-[13px]">
+                    <SelectValue placeholder="Seleccionar configuración" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {configuraciones.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.nombre}{c.predeterminada ? ' *' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <p className="text-xs text-amber-600">
+                No hay configuraciones de etiqueta. Cree una en Configuración &gt; Etiquetas.
+              </p>
+            )}
           </div>
 
           <DialogFooter>
@@ -468,7 +479,7 @@ export function DocumentoList({
             </Button>
             <Button
               onClick={handlePrint}
-              disabled={!selectedPrinter || printMutation.isPending}
+              disabled={!selectedPrinter || printMutation.isPending || !configuraciones?.length}
               className="gap-1.5 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)]"
             >
               {printMutation.isPending ? (

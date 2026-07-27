@@ -995,6 +995,16 @@ export function MuestrasTab() {
         </Alert>
       )}
 
+      {puedeImprimir && configuracionesEtiqueta.length === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No hay configuraciones de etiqueta registradas. Cree una en{' '}
+            <strong>Configuración &gt; Etiquetas</strong> para poder imprimir.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Alert>
         <TestTube className="h-4 w-4" />
         <AlertDescription>
