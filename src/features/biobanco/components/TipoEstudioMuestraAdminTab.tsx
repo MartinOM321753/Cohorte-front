@@ -127,7 +127,7 @@ function ParametroFormFields({ form, onChange, error }: ParametroFormFieldsProps
       {/* Nombre */}
       <div className="space-y-1">
         <Label className="text-xs">Nombre *</Label>
-        <Input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="ej. Concentración DNA" />
+        <Input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="ej. Concentración DNA" maxLength={100} />
         {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
 
@@ -339,6 +339,9 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
   const [editingTipo, setEditingTipo] = useState(false)
   const [tipoNombre, setTipoNombre] = useState(tipo.nombre)
   const [tipoDesc, setTipoDesc] = useState(tipo.descripcion ?? '')
+  const [tipoCaptura, setTipoCaptura] = useState<'NORMAL' | 'GRUPOS'>(
+    (tipo.tipoCapturaDefecto as 'NORMAL' | 'GRUPOS') || 'NORMAL'
+  )
 
   function addParam() {
     const nombre = paramForm.nombre.trim()
@@ -363,7 +366,7 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
 
   function saveTipo() {
     if (!tipoNombre.trim()) return
-    updateTipo.mutate({ id: tipo.id, data: { nombre: tipoNombre.trim(), descripcion: tipoDesc || undefined } },
+    updateTipo.mutate({ id: tipo.id, data: { nombre: tipoNombre.trim(), descripcion: tipoDesc || undefined, tipoCapturaDefecto: tipoCaptura } },
       { onSuccess: () => setEditingTipo(false) })
   }
 
@@ -380,6 +383,9 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
           </span>
           {!tipo.activo && <Badge variant="outline" className="text-xs shrink-0">Inactivo</Badge>}
           <Badge variant="secondary" className="text-xs shrink-0">{parametros.length} param.</Badge>
+          {tipo.tipoCapturaDefecto === 'GRUPOS' && (
+            <Badge variant="secondary" className="text-xs shrink-0">Grupos</Badge>
+          )}
         </button>
         {puedeEditar && (
           <div className="flex gap-1 shrink-0">
@@ -400,8 +406,8 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-destructive hover:text-destructive"
-                    disabled={deleteTipoMutation.isPending}
-                    title="Eliminar tipo"
+                    disabled={deleteTipoMutation.isPending || !!tipo.tieneResultados}
+                    title={tipo.tieneResultados ? 'No se puede eliminar: tiene estudios registrados' : 'Eliminar tipo'}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -435,12 +441,28 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Nombre</Label>
-              <Input value={tipoNombre} onChange={e => setTipoNombre(e.target.value)} className="h-7 text-xs" />
+              <Input value={tipoNombre} onChange={e => setTipoNombre(e.target.value)} maxLength={100} className="h-7 text-xs" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Descripción</Label>
-              <Input value={tipoDesc} onChange={e => setTipoDesc(e.target.value)} className="h-7 text-xs" />
+              <Label className="text-xs">Modo de captura</Label>
+              <Select value={tipoCaptura} onValueChange={v => setTipoCaptura(v as 'NORMAL' | 'GRUPOS')} disabled={!!tipo.tieneResultados}>
+                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NORMAL" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="GRUPOS" className="text-xs">Por grupos</SelectItem>
+                </SelectContent>
+              </Select>
+              {tipo.tieneResultados && (
+                <p className="text-[11px] text-muted-foreground">No se puede cambiar: tiene estudios registrados</p>
+              )}
             </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Descripción</Label>
+            <Textarea value={tipoDesc} onChange={e => setTipoDesc(e.target.value)} maxLength={1000} className="text-xs resize-none" placeholder="Opcional" rows={2} />
+            {tipoDesc.length > 900 && (
+              <p className="text-[11px] text-muted-foreground text-right">{tipoDesc.length}/1000</p>
+            )}
           </div>
           <div className="flex gap-2">
             <Button size="sm" className="h-7 text-xs gap-1" onClick={saveTipo} disabled={updateTipo.isPending}>
@@ -455,12 +477,22 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
       {/* Expanded body */}
       {expanded && (
         <div className="px-3 py-2 border-t space-y-1">
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="text-[10px]">
+              Modo: {tipo.tipoCapturaDefecto === 'GRUPOS' ? 'Por grupos' : 'Normal'}
+            </Badge>
+            {tipo.tieneResultados && (
+              <Badge variant="secondary" className="text-[10px] text-amber-600">
+                Tiene resultados — modo y parámetros bloqueados
+              </Badge>
+            )}
+          </div>
           {parametros.length === 0 && (
             <p className="text-xs text-muted-foreground py-1">Sin parámetros. Agrega el primero.</p>
           )}
           {parametros.map(p => (
             <ParametroRow key={p.id} parametro={p} idTipo={tipo.id}
-              onDelete={(id) => deleteParam.mutate(id)} puedeEditar={puedeEditar} />
+              onDelete={(id) => deleteParam.mutate(id)} puedeEditar={puedeEditar && !tipo.tieneResultados} />
           ))}
 
           {/* Add param form */}
@@ -511,6 +543,7 @@ export function TipoEstudioMuestraAdminTab() {
   // New tipo form
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
+  const [tipoCapturaDefecto, setTipoCapturaDefecto] = useState<'NORMAL' | 'GRUPOS'>('NORMAL')
   const [pending, setPending] = useState<PendingParametro[]>([])
   const [paramForm, setParamForm] = useState<ParametroFormState>(emptyParamForm())
   const [paramError, setParamError] = useState('')
@@ -603,7 +636,7 @@ export function TipoEstudioMuestraAdminTab() {
     if (pending.length === 0) { setTipoError('Agrega al menos un parámetro'); return }
     setTipoError('')
     try {
-      const tipo = await createTipo.mutateAsync({ nombre: n, descripcion: descripcion || undefined })
+      const tipo = await createTipo.mutateAsync({ nombre: n, descripcion: descripcion || undefined, tipoCapturaDefecto })
       // Guardar todos los parámetros pendientes
       for (const p of pending) {
         await createParam.mutateAsync({
@@ -618,6 +651,7 @@ export function TipoEstudioMuestraAdminTab() {
       }
       setNombre('')
       setDescripcion('')
+      setTipoCapturaDefecto('NORMAL')
       setPending([])
       setPendingEditKey(null)
     } catch {
@@ -694,14 +728,26 @@ export function TipoEstudioMuestraAdminTab() {
           <div className="space-y-1">
             <Label className="text-xs">Nombre *</Label>
             <Input value={nombre} onChange={e => setNombre(e.target.value)}
-              placeholder="ej. Cuantificación de DNA" />
+              placeholder="ej. Cuantificación de DNA" maxLength={100} />
           </div>
 
           {/* Descripción */}
           <div className="space-y-1">
             <Label className="text-xs">Descripción</Label>
             <Textarea value={descripcion} onChange={e => setDescripcion(e.target.value)}
-              placeholder="Descripción del tipo de estudio…" rows={2} className="text-sm resize-none" />
+              placeholder="Descripción del tipo de estudio…" rows={2} maxLength={1000} className="text-sm resize-none" />
+          </div>
+
+          {/* Modo de captura */}
+          <div className="space-y-1">
+            <Label className="text-xs">Modo de captura predeterminado</Label>
+            <Select value={tipoCapturaDefecto} onValueChange={v => setTipoCapturaDefecto(v as 'NORMAL' | 'GRUPOS')}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NORMAL" className="text-xs">Normal</SelectItem>
+                <SelectItem value="GRUPOS" className="text-xs">Por grupos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Parámetros pendientes */}
