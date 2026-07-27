@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ReactNode } from 'react'
-import { AlertCircle, Check, ChevronsUpDown, ClipboardList, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertCircle, Check, ChevronsUpDown, ClipboardList, Info, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/authStore'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
@@ -22,13 +22,14 @@ import {
   useUpdateEstudio,
 } from '../hooks/useEstudios'
 import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { DatePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -69,21 +70,25 @@ interface GrupoCaptura {
 // ──────────────────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────────────────
-/** Formats a YYYY-MM-DD string as DD-MM-YYYY for display */
-function formatFechaDDMMYYYY(fecha: string | undefined | null): string {
-  const s = String(fecha ?? '').slice(0, 10)
+/** Formats a YYYY-MM-DDTHH:mm string as DD-MM-YYYY HH:mm for display */
+function formatFechaDisplay(fecha: string | undefined | null): string {
+  const s = String(fecha ?? '')
   if (!s || s.length < 10) return '—'
-  const [y, m, d] = s.split('-')
-  return `${d}-${m}-${y}`
+  const datePart = s.slice(0, 10)
+  const [y, m, d] = datePart.split('-')
+  const timePart = s.length >= 16 ? s.slice(11, 16) : ''
+  return timePart ? `${d}-${m}-${y} ${timePart}` : `${d}-${m}-${y}`
 }
 
-/** Today's date as YYYY-MM-DD (local time, not UTC) */
-function todayString(): string {
+/** Current local date+time as YYYY-MM-DDTHH:mm */
+function nowString(): string {
   const d = new Date()
   const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const mo = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const h = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${mo}-${day}T${h}:${mi}`
 }
 
 // ──────────────────────────────────────────────────────────
@@ -94,11 +99,11 @@ function buildResultadosSchema(parametros: ParametroEstudio[]) {
     pacienteUUID: z.string().min(1, 'Seleccione un participante'),
     idTipoEstudio: z.number().min(1, 'Seleccione una plantilla'),
     fechaEstudio: z.string()
-      .min(1, 'La fecha es requerida')
+      .min(1, 'La fecha y hora son requeridas')
       .refine((v) => {
         if (!v) return false
-        return v <= todayString()
-      }, 'No se permiten fechas futuras'),
+        return v <= nowString()
+      }, 'No se permiten fechas u horas futuras'),
     observaciones: z.string().optional(),
   }
   for (const p of parametros) {
@@ -128,6 +133,20 @@ export function LlenadoEstudioTab() {
   const puedeEditar = useAuthStore((s) => s.hasPermiso('ESTUDIOS_EDITAR'))
   const isAdmin  = useAuthStore((s) => s.hasPermiso('ESTUDIOS_ELIMINAR'))
   const canUploadEstudio = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo) days.push(0)
+    if (!horarioActivo.lunes) days.push(1)
+    if (!horarioActivo.martes) days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves) days.push(4)
+    if (!horarioActivo.viernes) days.push(5)
+    if (!horarioActivo.sabado) days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
 
   const [openTipo, setOpenTipo] = useState(false)
   const [selectedPacienteUUID, setSelectedPacienteUUID] = useState('')
@@ -174,7 +193,7 @@ export function LlenadoEstudioTab() {
     defaultValues: {
       pacienteUUID: '',
       idTipoEstudio: 0,
-      fechaEstudio: todayString(),
+      fechaEstudio: nowString(),
       observaciones: '',
     },
   })
@@ -207,7 +226,7 @@ export function LlenadoEstudioTab() {
     const tipoId = estudioEditar.tipoEstudio?.id ?? 0
     setValue('idTipoEstudio', tipoId)
     setSelectedTipoId(tipoId)
-    setValue('fechaEstudio', String(estudioEditar.fechaEstudio ?? '').slice(0, 10))
+    setValue('fechaEstudio', String(estudioEditar.fechaEstudio ?? '').slice(0, 16))
     setValue('observaciones', estudioEditar.observaciones ?? '')
   }, [estudioEditar, editingEstudioId, setValue])
 
@@ -290,40 +309,6 @@ export function LlenadoEstudioTab() {
     )
   }
 
-  // ── Mode switching ─────────────────────────────────────
-  function handleModoChange(nuevoModo: ModoCaptura) {
-    if (nuevoModo === modoCaptura) return
-
-    const hasData =
-      modoCaptura === 'NORMAL'
-        ? parametrosList.some((p) => {
-            const v = watch(`param_${p.id}`)
-            return v !== undefined && v !== '' && v !== false
-          })
-        : grupos.some((g) =>
-            Object.values(g.valores).some((v) => v !== undefined && v !== '' && v !== false)
-          )
-
-    if (
-      hasData &&
-      !window.confirm('Cambiar de modo limpiará los valores capturados. ¿Desea continuar?')
-    ) {
-      return
-    }
-
-    setModoCaptura(nuevoModo)
-    setGruposError(null)
-
-    if (nuevoModo === 'GRUPOS') {
-      // Clear normal form param fields and start with one empty group
-      parametrosList.forEach((p) =>
-        setValue(`param_${p.id}`, p.tipo === 'BOOLEANO' ? false : '')
-      )
-      setGrupos([{ grupoCodigo: 'GRUPO_1', grupoEtiqueta: 'Grupo 1', orden: 1, valores: {} }])
-    } else {
-      setGrupos([])
-    }
-  }
 
   // ── Build resultados payload ───────────────────────────
   function buildResultados(data: LlenadoForm): ResultadoEstudioRequestDTO[] {
@@ -363,20 +348,27 @@ export function LlenadoEstudioTab() {
   }
 
   // ── Reset ──────────────────────────────────────────────
-  /** Full reset — called by "Limpiar" / "Cancelar" button. Clears patient too. */
+  /** Reset form but keep the selected patient. */
   function resetForm() {
     reset({
-      pacienteUUID: '',
+      pacienteUUID: selectedPacienteUUID,
       idTipoEstudio: 0,
-      fechaEstudio: todayString(),
+      fechaEstudio: nowString(),
       observaciones: '',
     })
-    setSelectedPacienteUUID('')
     setSelectedTipoId(0)
     setEditingEstudioId(null)
     setModoCaptura('NORMAL')
     setGrupos([])
     setGruposError(null)
+  }
+
+  function cambiarParticipante() {
+    resetForm()
+    setSelectedPacienteUUID('')
+    setSelectedPacienteNombre('')
+    setSelectedPacienteSexo(undefined)
+    reset({ pacienteUUID: '', idTipoEstudio: 0, fechaEstudio: nowString(), observaciones: '' })
   }
 
   /**
@@ -387,7 +379,7 @@ export function LlenadoEstudioTab() {
     reset({
       pacienteUUID: selectedPacienteUUID,   // ← keep patient
       idTipoEstudio: 0,
-      fechaEstudio: todayString(),
+      fechaEstudio: nowString(),
       observaciones: '',
     })
     setSelectedTipoId(0)
@@ -448,19 +440,26 @@ export function LlenadoEstudioTab() {
   return (
     <div className="space-y-4">
       {!showForm && (
-        <PacienteSearchCombobox
-          value={selectedPacienteUUID || null}
-          onChange={(uuid) => setSelectedPacienteUUID(uuid)}
-          onSelectPaciente={(p) => {
-            const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
-              .filter(Boolean).join(' ')
-            setSelectedPacienteNombre(nombre)
-            setSelectedPacienteSexo(p.persona?.sexo)
-          }}
-          placeholder="Buscar participante por folio, nombre o CURP…"
-          variant="search"
-          className="max-w-md"
-        />
+        <div className="flex items-center gap-2 max-w-md">
+          <PacienteSearchCombobox
+            value={selectedPacienteUUID || null}
+            onChange={(uuid) => setSelectedPacienteUUID(uuid)}
+            onSelectPaciente={(p) => {
+              const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
+                .filter(Boolean).join(' ')
+              setSelectedPacienteNombre(nombre)
+              setSelectedPacienteSexo(p.persona?.sexo)
+            }}
+            placeholder="Buscar participante por folio, nombre o CURP…"
+            variant="search"
+            className="flex-1"
+          />
+          {selectedPacienteUUID && (
+            <Button type="button" variant="outline" size="sm" className="shrink-0 text-xs" onClick={cambiarParticipante}>
+              Cambiar
+            </Button>
+          )}
+        </div>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -524,7 +523,7 @@ export function LlenadoEstudioTab() {
                     className={cn(editingEstudioId === e.id && 'bg-muted/50')}
                   >
                     <TableCell className="font-mono text-xs">
-                      {formatFechaDDMMYYYY(String(e.fechaEstudio))}
+                      {formatFechaDisplay(String(e.fechaEstudio))}
                     </TableCell>
                     <TableCell className="text-sm">{e.tipoEstudio}</TableCell>
                     <TableCell className="truncate text-xs text-muted-foreground max-w-[120px]">
@@ -617,20 +616,29 @@ export function LlenadoEstudioTab() {
         <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4 p-4">
           {/* Paciente */}
           <FormField label="Participante" required error={errors.pacienteUUID?.message as string}>
-            <PacienteSearchCombobox
-              value={selectedPacienteUUID}
-              onChange={(uuid) => {
-                setSelectedPacienteUUID(uuid)
-                setValue('pacienteUUID', uuid)
-              }}
-              onSelectPaciente={(p) => {
-                const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
-                  .filter(Boolean).join(' ')
-                setSelectedPacienteNombre(nombre)
-                setSelectedPacienteSexo(p.persona?.sexo)
-              }}
-              disabled={!!editingEstudioId}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <PacienteSearchCombobox
+                  value={selectedPacienteUUID}
+                  onChange={(uuid) => {
+                    setSelectedPacienteUUID(uuid)
+                    setValue('pacienteUUID', uuid)
+                  }}
+                  onSelectPaciente={(p) => {
+                    const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
+                      .filter(Boolean).join(' ')
+                    setSelectedPacienteNombre(nombre)
+                    setSelectedPacienteSexo(p.persona?.sexo)
+                  }}
+                  disabled={!!editingEstudioId}
+                />
+              </div>
+              {selectedPacienteUUID && !editingEstudioId && (
+                <Button type="button" variant="outline" size="sm" className="shrink-0 text-xs" onClick={cambiarParticipante}>
+                  Cambiar
+                </Button>
+              )}
+            </div>
           </FormField>
 
           {/* Plantilla — combobox con búsqueda */}
@@ -673,8 +681,11 @@ export function LlenadoEstudioTab() {
                             setSelectedTipoId(t.id)
                             setValue('idTipoEstudio', t.id)
                             setEditingEstudioId(null)
-                            setModoCaptura('NORMAL')
-                            setGrupos([])
+                            const modo = (t.tipoCapturaDefecto as ModoCaptura) || 'NORMAL'
+                            setModoCaptura(modo)
+                            setGrupos(modo === 'GRUPOS'
+                              ? [{ grupoCodigo: 'GRUPO_1', grupoEtiqueta: 'Grupo 1', orden: 1, valores: {} }]
+                              : [])
                             setGruposError(null)
                             setOpenTipo(false)
                           }}
@@ -698,13 +709,30 @@ export function LlenadoEstudioTab() {
             </Popover>
           </FormField>
 
+          {/* Descripción de la plantilla */}
+          {selectedTipoId > 0 && (() => {
+            const tipoDesc = tiposParaSelector.find((t) => t.id === selectedTipoId)?.descripcion
+            if (!tipoDesc) return null
+            return (
+              <div className="flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" strokeWidth={1.75} />
+                <span>{tipoDesc}</span>
+              </div>
+            )
+          })()}
+
           {/* Fecha */}
-          <FormField label="Fecha del estudio" required error={errors.fechaEstudio?.message as string}>
+          <FormField label="Fecha y hora del estudio" required error={errors.fechaEstudio?.message as string}>
             <input type="hidden" {...register('fechaEstudio')} />
-            <DatePicker
+            <DateTimePicker
               value={watchedFecha}
-              onChange={(v) => setValue('fechaEstudio', v)}
-              maxDate={new Date()}
+              onChange={(v) => setValue('fechaEstudio', v, { shouldValidate: true })}
+              placeholder="Selecciona fecha y hora"
+              timeStepMinutes={1}
+              maxDateTime={new Date()}
+              minHour={horarioActivo?.horaInicio ?? 8}
+              maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+              disabledDaysOfWeek={disabledDaysOfWeek}
             />
           </FormField>
 
@@ -726,29 +754,12 @@ export function LlenadoEstudioTab() {
                 </Alert>
               ) : (
                 <div className="space-y-3">
-                  {/* Mode toggle */}
+                  {/* Mode indicator (locked to tipo's default) */}
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">Resultados</Label>
-                    <div className="flex items-center gap-1 rounded-md border p-0.5">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={modoCaptura === 'NORMAL' ? 'default' : 'ghost'}
-                        className="h-6 px-2 text-xs"
-                        onClick={() => handleModoChange('NORMAL')}
-                      >
-                        Normal
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={modoCaptura === 'GRUPOS' ? 'default' : 'ghost'}
-                        className="h-6 px-2 text-xs"
-                        onClick={() => handleModoChange('GRUPOS')}
-                      >
-                        Por grupos
-                      </Button>
-                    </div>
+                    <Badge variant="outline" className="text-[10px]">
+                      {modoCaptura === 'GRUPOS' ? 'Por grupos' : 'Normal'}
+                    </Badge>
                   </div>
 
                   {/* ── NORMAL MODE ── */}
@@ -777,6 +788,7 @@ export function LlenadoEstudioTab() {
                             <Input
                               value={grupo.grupoEtiqueta}
                               onChange={(e) => setGrupoEtiqueta(idx, e.target.value)}
+                              maxLength={100}
                               className="h-7 text-sm font-medium"
                               placeholder="Nombre del grupo"
                             />
@@ -836,7 +848,12 @@ export function LlenadoEstudioTab() {
 
           {/* Observaciones */}
           <FormField label="Observaciones" error={errors.observaciones?.message as string}>
-            <Textarea placeholder="Notas clínicas relevantes…" rows={2} {...register('observaciones')} />
+            <Textarea placeholder="Notas clínicas relevantes…" rows={2} maxLength={500} {...register('observaciones')} />
+            {(watch('observaciones') as string)?.length > 400 && (
+              <p className="text-[11px] text-muted-foreground text-right">
+                {(watch('observaciones') as string).length}/500
+              </p>
+            )}
           </FormField>
 
           <div className="flex items-center justify-end gap-2 pt-1">
@@ -944,11 +961,12 @@ function ParametroInput({
           <Input
             type="text"
             placeholder="Ingrese valor…"
+            maxLength={255}
             value={standaloneValue as string ?? ''}
             onChange={(e) => onStandaloneChange!(e.target.value)}
           />
         ) : (
-          <Input type="text" placeholder="Ingrese valor…" {...register(fieldName)} />
+          <Input type="text" placeholder="Ingrese valor…" maxLength={255} {...register(fieldName)} />
         )
       ) : parametro.tipo === 'TEXTO_OPCIONES' ? (
         // Selección de opción predefinida
