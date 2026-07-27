@@ -289,7 +289,9 @@ export interface TipoEstudio {
   id: number
   nombre: string
   descripcion?: string
+  tipoCapturaDefecto?: 'NORMAL' | 'GRUPOS'
   activo: boolean
+  tieneResultados?: boolean
   fechaCreacion?: string
   parametroEstudios?: ParametroEstudio[]
 }
@@ -297,6 +299,7 @@ export interface TipoEstudio {
 export interface TipoEstudioRequestDTO {
   nombre: string
   descripcion?: string
+  tipoCapturaDefecto?: 'NORMAL' | 'GRUPOS'
 }
 
 export interface ResultadoEstudioRequestDTO {
@@ -668,7 +671,9 @@ export interface TipoEstudioMuestra {
   id: number
   nombre: string
   descripcion?: string | null
+  tipoCapturaDefecto?: 'NORMAL' | 'GRUPOS'
   activo: boolean
+  tieneResultados?: boolean
   fechaCreacion?: string | null
   parametros?: ParametroEstudioMuestra[] | null
 }
@@ -676,6 +681,7 @@ export interface TipoEstudioMuestra {
 export interface TipoEstudioMuestraRequestDTO {
   nombre: string
   descripcion?: string
+  tipoCapturaDefecto?: 'NORMAL' | 'GRUPOS'
 }
 
 export interface ResultadoEstudioMuestraRequestDTO {
@@ -1106,7 +1112,7 @@ export interface Somatometria {
   id: number
   pacienteUUID: string
   pacienteNombre?: string
-  fechaMedicion: string         // ISO date "YYYY-MM-DD"
+  fechaMedicion: string         // ISO datetime "YYYY-MM-DDTHH:mm:ss"
   pesoKg?: number | null
   tallaM?: number | null
   /** IMC calculado en backend (peso / talla²) */
@@ -1123,7 +1129,7 @@ export interface Somatometria {
 export interface SomatometriaRequestDTO {
   pacienteUUID: string
   usuarioRegistraUUID: string
-  fechaMedicion: string         // "YYYY-MM-DD"
+  fechaMedicion: string         // "YYYY-MM-DDTHH:mm:ss"
   pesoKg?: number | null
   tallaM?: number | null
   presionSistolica?: number | null
