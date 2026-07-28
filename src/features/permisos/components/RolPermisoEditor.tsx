@@ -20,8 +20,13 @@ interface Props {
 export function RolPermisoEditor({ rol, onSaved }: Props) {
   const puedeEditar = useAuthStore((s) => s.hasPermiso('PERMISOS_EDITAR'))
   const mutation = useActualizarPermisosRol()
+  const isRoot = useAuthStore((s) => s.isRoot)
+  // PACIENTE queda en solo lectura para el resto de perfiles: un permiso de mas
+  // le abre pantallas que consultan endpoints para los que no esta autorizado,
+  // lo que dispara 401 en cascada y el logout automatico del interceptor.
+  // ROOT si puede ajustarlo, que es quien tiene el contexto para hacerlo bien.
   const esRolPaciente = rol.nombre === 'PACIENTE'
-  const readOnly = esRolPaciente || !puedeEditar
+  const readOnly = (esRolPaciente && !isRoot) || !puedeEditar
 
   const initialCodes = useMemo(
     () => limpiarPermisosHuerfanos(new Set(rol.permisos.map((p) => p.codigo))),
@@ -63,7 +68,9 @@ export function RolPermisoEditor({ rol, onSaved }: Props) {
           <div className="flex items-center gap-2 text-[12px]">
             {esRolPaciente && (
               <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400">
-                Solo lectura · gestionado por el sistema
+                {isRoot
+                  ? 'Editable solo por ROOT · cambios sensibles'
+                  : 'Solo lectura · gestionado por el sistema'}
               </Badge>
             )}
             <span className="text-muted-foreground">

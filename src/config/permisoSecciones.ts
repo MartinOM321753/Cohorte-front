@@ -17,6 +17,7 @@
 import {
   Home, Users, Calendar, Stethoscope, FlaskConical, Warehouse,
   UserCog, Building2, FolderTree, Settings, ClipboardList, ShieldCheck,
+  PieChart,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -109,11 +110,32 @@ export const SECCIONES: Seccion[] = [
             descripcion: 'Citas programadas para el día actual',
             permisos: ['DASHBOARD_AGENDA_VER'],
           },
+        ],
+      },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Cobertura tiene seccion propia porque COBERTURA_VER no controla solo un
+  // widget: da acceso a la pagina completa que aparece en el menu lateral.
+  // Estaba listada como un widget mas de Inicio, donde nadie la encontraba al
+  // buscar como quitarle la seccion a alguien.
+  {
+    id: 'cobertura',
+    nombre: 'Cobertura',
+    icono: PieChart,
+    descripcion: 'Indicadores de cobertura institucional',
+    subsecciones: [
+      {
+        id: 'general',
+        nombre: 'Cobertura',
+        acciones: [
           {
-            id: 'cobertura',
-            label: 'Widget de cobertura',
-            descripcion: 'Indicadores de cobertura institucional',
+            id: 'ver',
+            label: 'Acceder a Cobertura',
+            descripcion: 'Muestra la sección Cobertura en la barra lateral y habilita sus indicadores',
             permisos: ['COBERTURA_VER'],
+            imprescindible: true,
           },
         ],
       },
