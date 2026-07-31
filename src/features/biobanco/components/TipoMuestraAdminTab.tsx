@@ -310,7 +310,8 @@ function TuboRow({ tubo, onDelete, deletePending, puedeEditar }: TuboRowProps) {
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Eliminar tubo "{tubo.nombre}"?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Si ya hay muestras asociadas a este tubo, la referencia quedará nula pero las muestras no serán eliminadas.
+                  Solo puede eliminarse un tubo que todavía no tenga muestras ni alícuotas registradas.
+                  Si ya las tiene, la operación será rechazada y el tubo se conservará. Esta acción no se puede deshacer.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
