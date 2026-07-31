@@ -294,7 +294,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
                 </Label>
                 <Input
                   {...register('nombre')}
-                  sanitize="alfanumerico"
+                  sanitize="texto"
                   placeholder="Ej: INMEGEN Coahuila"
                   maxLength={100}
                 />

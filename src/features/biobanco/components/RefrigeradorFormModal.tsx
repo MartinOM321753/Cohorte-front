@@ -145,7 +145,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
               <Input
                 id="nombre"
                 {...register('nombre')}
-                sanitize="alfanumerico"
+                sanitize="texto"
                 placeholder="Refrigerador Principal"
               />
               {errors.nombre && (
@@ -163,7 +163,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
               <Input
                 id="marca"
                 {...register('marca')}
-                sanitize="alfanumerico"
+                sanitize="texto"
                 placeholder="Thermo Scientific"
               />
               {errors.marca && (
@@ -179,7 +179,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
               <Input
                 id="modelo"
                 {...register('modelo')}
-                sanitize="alfanumerico"
+                sanitize="texto"
                 placeholder="TSX600"
               />
               {errors.modelo && (

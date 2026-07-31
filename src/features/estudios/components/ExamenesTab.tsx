@@ -272,7 +272,7 @@ export function ExamenesTab() {
           <FormField label="Nombre del examen" required error={errors.nombreExamen?.message}>
             <Input
               placeholder="Ej. Glucosa en ayuno"
-              sanitize="alfanumerico"
+              sanitize="texto"
               maxLength={100}
               {...register('nombreExamen')}
             />

@@ -8,11 +8,18 @@
  * |--------------|--------------------------------------------------|-----------------------------------|-----------------------------|
  * | nombre       | letras con acentos, espacios                     | números, símbolos especiales      | primera letra de cada palabra en mayúscula |
  * | apellido     | letras con acentos, espacios, guión              | números, símbolos especiales      | primera letra de cada palabra en mayúscula |
- * | texto        | letras, números, espacios, .,:-                  | comillas, backtick, < > & / etc.  | sin espacio al inicio       |
+ * | texto        | letras, números, espacios, . , : - ( ) ! ? °     | comillas, backtick, < > & / etc.  | sin espacio al inicio       |
  * | descripcion  | texto clínico libre (paréntesis, comillas, etc.) | solo < > & ` \ (XSS/inyección)   | sin restricción de largo    |
  * | codigo       | A-Z 0-9 guión                                    | todo lo demás                     | fuerza mayúsculas           |
  * | folio        | letras, números, guión, guión bajo               | símbolos especiales               | —                           |
  * | alfanumerico | letras con acentos, números, espacios, guión     | símbolos especiales               | sin espacio al inicio       |
+ *
+ * NOTA sobre `alfanumerico`: es el tipo más estricto de los de texto libre y
+ * descarta punto, coma, paréntesis y el símbolo de grado. Eso lo hace
+ * inadecuado para nomenclatura de laboratorio ("Gradilla 81 pozos (2 mL)",
+ * "Hospital General de Zona No. 1", "-80°C"). Los campos de nombres de equipos,
+ * instituciones, exámenes y tipos de estudio usan `texto`, que sí los admite
+ * sin renunciar al bloqueo de caracteres de inyección.
  * | telefono     | dígitos 0-9                                      | todo lo demás                     | —                           |
  * | usuario      | a-z 0-9 . _ -                                    | todo lo demás                     | fuerza minúsculas           |
  * | numero       | dígitos + un punto decimal                       | todo lo demás                     | —                           |
