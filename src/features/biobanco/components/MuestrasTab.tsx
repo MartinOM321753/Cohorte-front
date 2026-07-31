@@ -184,7 +184,10 @@ function MuestraFooter({
     && actions.myInstitucionId != null
     && muestra.idInstitucionActual !== actions.myInstitucionId
   const noEditable = isPrestada || noEsMia || noEnMiPosesion
-  const puedeEnviar = !esTrasladada && !noEnMiPosesion && actions.puedeTraslado
+  const esBaja = muestra.estadoMuestra === 'BAJA'
+  // Una muestra dada de baja no puede prestarse: el backend lo rechaza con 409.
+  // Sin esta condicion se ofrecia una accion condenada a fallar.
+  const puedeEnviar = !esTrasladada && !noEnMiPosesion && actions.puedeTraslado && !esBaja
   const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.puedeCancelarTraslado
   const esPadre = muestra.idMuestraPadre == null
 
@@ -398,7 +401,14 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
               </div>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
-              {trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
+              {/* La baja es irreversible y define el estado de la muestra, asi que
+                  se antepone a cualquier distintivo de ubicacion: antes, una muestra
+                  dada de baja se veia igual que una activa sin posicion asignada. */}
+              {muestra.estadoMuestra === 'BAJA' ? (
+                <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 whitespace-nowrap text-xs">
+                  Dada de baja
+                </Badge>
+              ) : trasladoInfo && trasladoInfo.estado === 'ENVIADA' ? (
                 <Badge variant="outline" className={`${badge!.cls} whitespace-nowrap text-xs`}>
                   {badge!.label}
                 </Badge>
