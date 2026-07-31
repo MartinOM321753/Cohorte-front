@@ -23,7 +23,7 @@ export interface InputProps extends React.ComponentProps<'input'> {
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, sanitize, onChange, onBlur, ...props }, ref) => {
+  ({ className, type, sanitize, onChange, onBlur, onWheel, ...props }, ref) => {
 
     /**
      * Intercepta onChange: aplica el sanitizador antes de notificar a
@@ -66,6 +66,31 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       [sanitize, onBlur],
     )
 
+    /**
+     * Intercepta onWheel: evita que la rueda del ratón altere los campos
+     * numéricos.
+     *
+     * Un `input type="number"` con el foco puesto incrementa o decrementa su
+     * valor al girar la rueda. Al desplazarse por un formulario largo, el
+     * puntero pasa por encima de un campo y le cambia el dato sin que la
+     * persona se entere: en captura clínica eso es una alteración silenciosa
+     * de resultados.
+     *
+     * Se quita el foco en vez de llamar a preventDefault() a propósito:
+     * preventDefault también bloquearía el desplazamiento de la página, que es
+     * justo lo que se quiere hacer. Sin foco, el campo ignora la rueda y la
+     * página se desplaza con normalidad.
+     */
+    const handleWheel = React.useCallback(
+      (e: React.WheelEvent<HTMLInputElement>) => {
+        if (e.currentTarget.type === 'number') {
+          e.currentTarget.blur()
+        }
+        onWheel?.(e)
+      },
+      [onWheel],
+    )
+
     return (
       <input
         type={type}
@@ -79,6 +104,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         onChange={sanitize ? handleChange : onChange}
         onBlur={sanitize ? handleBlur : onBlur}
+        onWheel={handleWheel}
         {...props}
       />
     )
