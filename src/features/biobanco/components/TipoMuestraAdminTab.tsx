@@ -294,6 +294,37 @@ function TuboRow({ tubo, onDelete, deletePending, puedeEditar }: TuboRowProps) {
               <Edit className="h-3 w-3" />
             </Button>
           )}
+          {/* Un tubo con muestras registradas ya no puede eliminarse, asi que
+              desactivarlo es la unica forma de retirarlo: deja de ofrecerse al
+              registrar muestras nuevas y se conserva el historial. */}
+          {puedeEditar && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={updateMutation.isPending}
+              title={tubo.activo
+                ? 'Desactivar: dejara de ofrecerse al registrar muestras'
+                : 'Reactivar: volvera a ofrecerse al registrar muestras'}
+              onClick={() =>
+                updateMutation.mutate({
+                  id: tubo.id,
+                  data: {
+                    nombre: tubo.nombre,
+                    prefijoCodigo: tubo.prefijoCodigo ?? undefined,
+                    numeroAlicuotas: tubo.numeroAlicuotas,
+                    volumenAlicuota: tubo.volumenAlicuota ?? undefined,
+                    unidadVolumen: tubo.unidadVolumen ?? undefined,
+                    destinoSugerido: tubo.destinoSugerido ?? undefined,
+                    orden: tubo.orden,
+                    activo: !tubo.activo,
+                  },
+                })
+              }
+            >
+              {tubo.activo ? 'Desactivar' : 'Activar'}
+            </Button>
+          )}
           {puedeEditar && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
