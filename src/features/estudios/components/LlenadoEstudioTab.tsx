@@ -112,11 +112,15 @@ function buildResultadosSchema(parametros: ParametroEstudio[]) {
         (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
         z.number({ required_error: 'Requerido', invalid_type_error: 'Ingrese un número' }).finite('Ingrese un número válido')
       )
-    } else if (p.tipo === 'TEXTO') {
-      fields[`param_${p.id}`] = z.string().min(1, 'Requerido')
-    } else {
-      // BOOLEANO: false is a valid value
+    } else if (p.tipo === 'BOOLEANO') {
+      // false es un valor válido, por eso lleva default en vez de ser requerido
       fields[`param_${p.id}`] = z.boolean().default(false)
+    } else {
+      // TEXTO y TEXTO_OPCIONES se capturan como texto y son obligatorios.
+      // El booleano queda reservado al tipo BOOLEANO explícito: si mañana se
+      // añade un tipo nuevo, cae aquí y se ve como "Requerido", en lugar de
+      // convertirse en booleano por accidente.
+      fields[`param_${p.id}`] = z.string().min(1, 'Requerido')
     }
   }
   return z.object(fields)
@@ -258,9 +262,9 @@ export function LlenadoEstudioTab() {
         const val =
           param.tipo === 'NUMERICO'
             ? (resultado.valorNumerico ?? '')
-            : param.tipo === 'TEXTO'
-              ? (resultado.valorTexto ?? '')
-              : (resultado.valorBooleano ?? false)
+            : param.tipo === 'BOOLEANO'
+              ? (resultado.valorBooleano ?? false)
+              : (resultado.valorTexto ?? '')
         grupo.valores[param.id] = val
       }
 
@@ -272,8 +276,8 @@ export function LlenadoEstudioTab() {
         const param = parametrosList.find((p) => p.nombre === resultado.parametro)
         if (!param) continue
         if (param.tipo === 'NUMERICO') setValue(`param_${param.id}`, resultado.valorNumerico ?? '')
-        else if (param.tipo === 'TEXTO') setValue(`param_${param.id}`, resultado.valorTexto ?? '')
-        else setValue(`param_${param.id}`, resultado.valorBooleano ?? false)
+        else if (param.tipo === 'BOOLEANO') setValue(`param_${param.id}`, resultado.valorBooleano ?? false)
+        else setValue(`param_${param.id}`, resultado.valorTexto ?? '')
       }
     }
   }, [estudioEditar, parametrosList, editingEstudioId, setValue])
@@ -320,7 +324,8 @@ export function LlenadoEstudioTab() {
           return {
             idParametro: p.id,
             valorNumerico: p.tipo === 'NUMERICO' ? Number(val) : undefined,
-            valorTexto: p.tipo === 'TEXTO' ? String(val) : undefined,
+            // TEXTO_OPCIONES viaja como texto, igual que TEXTO
+            valorTexto: p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' ? String(val) : undefined,
             valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
           }
         })
@@ -336,7 +341,8 @@ export function LlenadoEstudioTab() {
           return {
             idParametro: p.id,
             valorNumerico: p.tipo === 'NUMERICO' ? Number(val) : undefined,
-            valorTexto: p.tipo === 'TEXTO' ? String(val) : undefined,
+            // TEXTO_OPCIONES viaja como texto, igual que TEXTO
+            valorTexto: p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' ? String(val) : undefined,
             valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
             grupoCodigo: grupo.grupoCodigo,
             grupoEtiqueta: grupo.grupoEtiqueta,
@@ -397,15 +403,20 @@ export function LlenadoEstudioTab() {
         setGruposError('Agregue al menos un grupo.')
         return
       }
-      const grupoVacio = grupos.some((g) =>
-        parametrosList.every((p) => {
+      // Un grupo es el mismo conjunto de parámetros repetido, así que rigen las
+      // mismas reglas que en modo normal: todo obligatorio salvo BOOLEANO, donde
+      // false es un valor válido y por eso nunca está "sin capturar".
+      for (const g of grupos) {
+        const faltante = parametrosList.find((p) => {
+          if (p.tipo === 'BOOLEANO') return false
           const v = g.valores[p.id]
-          return v === undefined || v === null || v === ''
+          return v === undefined || v === null || String(v).trim() === ''
         })
-      )
-      if (grupoVacio) {
-        setGruposError('Cada grupo debe tener al menos un resultado con valor.')
-        return
+        if (faltante) {
+          const etiqueta = g.grupoEtiqueta?.trim() || g.grupoCodigo
+          setGruposError(`Falta capturar "${faltante.nombre}" en el grupo "${etiqueta}".`)
+          return
+        }
       }
       setGruposError(null)
     }
