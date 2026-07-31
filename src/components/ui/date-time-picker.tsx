@@ -371,7 +371,10 @@ export function DateTimePicker({
   }, [minDate, maxDateTime, disabledDaysOfWeek]);
 
   return (
-    <div className={cn("grid grid-cols-[minmax(0,1fr)_auto] gap-2 min-w-0", className)}>
+    // La fecha se limita a 180px: con el formato dd/MM/yyyy no necesita mas, y
+    // con 1fr se comia todo el ancho disponible dejando la hora arrinconada.
+    // El minmax permite que siga encogiendo en contenedores estrechos.
+    <div className={cn("grid grid-cols-[minmax(0,180px)_auto] gap-2 min-w-0", className)}>
       {/* ── Selector de fecha ── */}
       <Popover>
         <PopoverTrigger asChild>
@@ -411,7 +414,8 @@ export function DateTimePicker({
       {useDualSelect ? (
         <div className="flex items-center gap-1 shrink-0">
           <Select value={selectedHourStr} onValueChange={setHour} disabled={disabled}>
-            <SelectTrigger className="w-[78px] shrink-0 text-[13px]">
+            {/* 92px: en 78 no cabian icono, valor y chevron, y la hora quedaba oculta */}
+            <SelectTrigger className="w-[92px] shrink-0 text-[13px]">
               <ClockIcon className="mr-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <SelectValue placeholder="HH" />
             </SelectTrigger>
