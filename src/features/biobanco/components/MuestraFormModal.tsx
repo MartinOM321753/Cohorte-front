@@ -207,8 +207,11 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         }
         await updateMuestraMutation.mutateAsync({ id: muestra.id, data: payload })
       } else {
+        // idPosicionCaja usa 0 como "sin posición" en el formulario; el backend
+        // espera que se omita, o intentará buscar la posición con id 0.
         const payload = {
           ...data,
+          idPosicionCaja: data.idPosicionCaja || undefined,
           idTipoMuestra: selectedTipoId!,
           idTuboMuestra: selectedTuboId!,
         }
