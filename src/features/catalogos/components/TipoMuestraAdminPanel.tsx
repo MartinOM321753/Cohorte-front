@@ -15,6 +15,17 @@ import {
   useDeleteTuboMuestra,
 } from '@/features/biobanco/hooks/useBiobanco'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -335,15 +346,38 @@ export function TipoMuestraAdminPanel() {
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditTubo(tubo)} title="Editar tubo">
                             <Pencil className="h-3 w-3" />
                           </Button>
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                            onClick={() => deleteTubo.mutate(tubo.id)}
-                            disabled={deleteTubo.isPending}
-                            title="Eliminar tubo"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {/* Misma confirmacion que en Biobanco: es una accion
+                              destructiva y aqui se ejecutaba con un solo clic. */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost" size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                disabled={deleteTubo.isPending}
+                                title="Eliminar tubo"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar tubo "{tubo.nombre}"?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Solo puede eliminarse un tubo que todavía no tenga muestras ni alícuotas registradas.
+                                  Si ya las tiene, la operación será rechazada y el tubo se conservará. Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteTubo.mutate(tubo.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     )}
