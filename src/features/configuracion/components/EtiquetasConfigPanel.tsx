@@ -393,7 +393,7 @@ export default function EtiquetasConfigPanel() {
       return
     }
     if (!form.moduloCodigo) {
-      setFormError('Debe definir el tamaño del modulo del código')
+      setFormError('Debe definir el tamaño del módulo del código')
       return
     }
     if (!form.tamanoFuenteNombre && form.mostrarNombre) {
@@ -655,7 +655,7 @@ export default function EtiquetasConfigPanel() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cfg-modulo">Tamaño del modulo</Label>
+                <Label htmlFor="cfg-modulo">Tamaño del módulo</Label>
                 <NumInput id="cfg-modulo" value={form.moduloCodigo} placeholder="6" min="1" max="20" onChange={(v) => updateField('moduloCodigo', v)} />
               </div>
             </div>
