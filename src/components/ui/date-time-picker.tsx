@@ -61,6 +61,78 @@ function toDateOnlyString(date: Date): string {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
+function toLocalDateTimeString(date: Date): string {
+  return `${toDateOnlyString(date)}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+// ── Valor inicial de los formularios de captura clínica ────────────────────────
+// Forma mínima del horario activo que necesitan los formularios.
+export type HorarioActivoMinimo = {
+  horaInicio?: number | null;
+  horaFin?: number | null;
+  lunes?: boolean | null;
+  martes?: boolean | null;
+  miercoles?: boolean | null;
+  jueves?: boolean | null;
+  viernes?: boolean | null;
+  sabado?: boolean | null;
+  domingo?: boolean | null;
+};
+
+function diaHabilitado(h: HorarioActivoMinimo | null | undefined, d: Date): boolean {
+  // Sin configuración cargada se asume lunes a viernes, igual que los valores
+  // por defecto de minHour/maxHour que usan las pantallas.
+  if (!h) return d.getDay() >= 1 && d.getDay() <= 5;
+  const porDia = [h.domingo, h.lunes, h.martes, h.miercoles, h.jueves, h.viernes, h.sabado];
+  return porDia[d.getDay()] === true;
+}
+
+/**
+ * Momento por defecto para los formularios que solo admiten fechas pasadas
+ * (estudios, exámenes, somatometría, muestras…).
+ *
+ * El reloj no sirve tal cual. Fuera del horario de atención —de noche, o en fin
+ * de semana— produce un valor que el propio formulario rechaza, y que además no
+ * se puede corregir tocando solo la hora: esa hora no figura entre las opciones
+ * del selector, así que el campo aparece vacío y el error solo salta al enviar.
+ *
+ * Se devuelve el último instante válido: ahora, si estamos dentro del horario;
+ * y si no, el cierre del último día hábil.
+ */
+export function ultimoMomentoValido(
+  horario?: HorarioActivoMinimo | null,
+  ahora: Date = new Date(),
+): string {
+  const minHour = horario?.horaInicio ?? 8;
+  // Última hora seleccionable: coincide con el maxHour que reciben los selectores.
+  const ultimaHora = (horario?.horaFin ?? 17) - 1;
+
+  if (ultimaHora < minHour) return toLocalDateTimeString(ahora);
+
+  if (diaHabilitado(horario, ahora)) {
+    const hora = ahora.getHours();
+    if (hora >= minHour && hora <= ultimaHora) return toLocalDateTimeString(ahora);
+    if (hora > ultimaHora) {
+      const d = new Date(ahora);
+      d.setHours(ultimaHora, 0, 0, 0);
+      return toLocalDateTimeString(d);
+    }
+    // Antes de abrir: se retrocede al día hábil anterior.
+  }
+
+  const d = new Date(ahora);
+  for (let i = 0; i < 7; i++) {
+    d.setDate(d.getDate() - 1);
+    if (diaHabilitado(horario, d)) {
+      d.setHours(ultimaHora, 0, 0, 0);
+      return toLocalDateTimeString(d);
+    }
+  }
+  // Sin ningún día habilitado no existe valor válido: se deja el reloj y que el
+  // formulario avise.
+  return toLocalDateTimeString(ahora);
+}
+
 function parseLocalDateTime(
   value: string | undefined | null,
 ): { date: Date; time: string } | null {
@@ -266,15 +338,22 @@ export function DateTimePicker({
   );
 
   const timeOptions = useMemo(() => {
-    if (!maxDateTime || !selectedDate) return allTimeOptions;
+    // La hora ya guardada tiene que poder verse aunque quede fuera de la franja
+    // vigente; si no, el desplegable sale vacío y no hay forma de saber qué hora
+    // tiene el registro. Misma razón que en hourOptions.
+    const conLaGuardada = (lista: string[]) => {
+      if (!selectedTime || lista.includes(selectedTime)) return lista;
+      return [...lista, selectedTime].sort();
+    };
+    if (!maxDateTime || !selectedDate) return conLaGuardada(allTimeOptions);
     const sameDay =
       selectedDate.getFullYear() === maxDateTime.getFullYear() &&
       selectedDate.getMonth() === maxDateTime.getMonth() &&
       selectedDate.getDate() === maxDateTime.getDate();
-    if (!sameDay) return allTimeOptions;
+    if (!sameDay) return conLaGuardada(allTimeOptions);
     const maxTime = `${pad2(maxDateTime.getHours())}:${pad2(maxDateTime.getMinutes())}`;
-    return allTimeOptions.filter((t) => t <= maxTime);
-  }, [allTimeOptions, maxDateTime, selectedDate]);
+    return conLaGuardada(allTimeOptions.filter((t) => t <= maxTime));
+  }, [allTimeOptions, maxDateTime, selectedDate, selectedTime]);
 
   const setDate = (d: Date) => {
     // Si no hay hora seleccionada, usar el primer slot disponible del rango
@@ -290,6 +369,10 @@ export function DateTimePicker({
   };
 
   const setTime = (time: string) => {
+    // Radix emite "" desde su <select> oculto cuando el valor que recibe no
+    // figura entre las opciones. No es una eleccion: si se dejara pasar,
+    // compondria una fecha rota. Ver DEF-015.
+    if (!time) return;
     const base = selectedDate ?? new Date();
     onChange(`${toDateOnlyString(base)}T${time}`);
   };
@@ -313,8 +396,16 @@ export function DateTimePicker({
     }
     const hours: string[] = [];
     for (let h = minHour; h <= effectiveMax; h++) hours.push(pad2(h));
+    // Un registro ya guardado puede tener una hora fuera de la franja vigente:
+    // se capturo con otro horario, se importo, o el horario cambio despues. Si
+    // no figura entre las opciones el desplegable sale vacio y no hay forma de
+    // ver que hora tiene el registro. Se anade para poder consultarla.
+    if (selectedHourStr && !hours.includes(selectedHourStr)) {
+      hours.push(selectedHourStr);
+      hours.sort();
+    }
     return hours;
-  }, [useDualSelect, minHour, maxHour, maxDateTime, selectedDate]);
+  }, [useDualSelect, minHour, maxHour, maxDateTime, selectedDate, selectedHourStr]);
 
   const minuteOptions = useMemo(() => {
     if (!useDualSelect) return [];
@@ -331,10 +422,15 @@ export function DateTimePicker({
     }
     const mins: string[] = [];
     for (let m = 0; m <= maxMin; m++) mins.push(pad2(m));
+    if (selectedMinuteStr && !mins.includes(selectedMinuteStr)) {
+      mins.push(selectedMinuteStr);
+      mins.sort();
+    }
     return mins;
-  }, [useDualSelect, maxDateTime, selectedDate, selectedHourStr]);
+  }, [useDualSelect, maxDateTime, selectedDate, selectedHourStr, selectedMinuteStr]);
 
   const setHour = (h: string) => {
+    if (!h) return;   // "" espurio de Radix; dejaria la fecha como "...T:40"
     const base = selectedDate ?? new Date();
     let min = selectedMinuteStr || "00";
     if (maxDateTime) {
@@ -352,6 +448,7 @@ export function DateTimePicker({
   };
 
   const setMinute = (m: string) => {
+    if (!m) return;   // idem: "" no viene de una eleccion
     const base = selectedDate ?? new Date();
     const hr = selectedHourStr || pad2(minHour);
     onChange(`${toDateOnlyString(base)}T${hr}:${m}`);

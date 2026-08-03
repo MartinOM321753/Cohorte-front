@@ -58,7 +58,16 @@ function ParametroField({
         />
       )}
       {parametro.tipo === 'TEXTO_OPCIONES' && (
-        <Select value={String(valor ?? '')} onValueChange={v => onChange(v)}>
+        <Select
+          value={String(valor ?? '')}
+          onValueChange={v => {
+            // El "" que emite el <select> oculto de Radix al sincronizarse
+            // borraría la opción cargada. Ninguna opción real vale cadena
+            // vacía, así que nunca viene de una elección. Ver DEF-013.
+            if (v === '') return
+            onChange(v)
+          }}
+        >
           <SelectTrigger className="h-9 text-sm">
             <SelectValue placeholder="Seleccione una opción…" />
           </SelectTrigger>

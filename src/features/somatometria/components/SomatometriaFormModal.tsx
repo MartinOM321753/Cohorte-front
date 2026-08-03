@@ -133,7 +133,13 @@ export function SomatometriaFormModal({
       }
       onOpenChange(false)
     } catch (err: any) {
-      toast.error(err?.message ?? 'Error al guardar la medición')
+      // El mensaje util viene del backend en response.data.message; err.message
+      // es el texto generico de Axios ("Request failed with status code 400"),
+      // que no le dice nada a quien captura. Reglas de negocio como el horario
+      // activo se explican solo en el primero.
+      toast.error(
+        err?.response?.data?.message ?? err?.message ?? 'Error al guardar la medición',
+      )
     }
   }
 

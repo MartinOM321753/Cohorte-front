@@ -61,10 +61,10 @@ const TIPOS_CODIGO: { value: TipoCodigo; label: string }[] = [
 ]
 
 const DISPOSICIONES: { value: DisposicionEtiqueta; label: string; desc: string }[] = [
-  { value: 'NOMBRE_CODIGO_ETIQUETA', label: 'Nombre - Codigo - Etiqueta', desc: 'Nombre arriba, codigo al centro, etiqueta abajo' },
-  { value: 'CODIGO_NOMBRE_ETIQUETA', label: 'Codigo - Nombre - Etiqueta', desc: 'Codigo arriba, nombre y etiqueta abajo' },
-  { value: 'CODIGO_ETIQUETA', label: 'Codigo - Etiqueta', desc: 'Solo codigo y etiqueta (sin nombre)' },
-  { value: 'NOMBRE_ETIQUETA_CODIGO', label: 'Nombre - Etiqueta - Codigo', desc: 'Nombre y etiqueta arriba, codigo abajo' },
+  { value: 'NOMBRE_CODIGO_ETIQUETA', label: 'Nombre - Código - Etiqueta', desc: 'Nombre arriba, código al centro, etiqueta abajo' },
+  { value: 'CODIGO_NOMBRE_ETIQUETA', label: 'Código - Nombre - Etiqueta', desc: 'Código arriba, nombre y etiqueta abajo' },
+  { value: 'CODIGO_ETIQUETA', label: 'Código - Etiqueta', desc: 'Solo código y etiqueta (sin nombre)' },
+  { value: 'NOMBRE_ETIQUETA_CODIGO', label: 'Nombre - Etiqueta - Código', desc: 'Nombre y etiqueta arriba, código abajo' },
 ]
 
 const DEFAULT_FORM: ConfiguracionEtiquetaRequest = {
@@ -393,15 +393,15 @@ export default function EtiquetasConfigPanel() {
       return
     }
     if (!form.moduloCodigo) {
-      setFormError('Debe definir el tamano del modulo del codigo')
+      setFormError('Debe definir el tamaño del módulo del código')
       return
     }
     if (!form.tamanoFuenteNombre && form.mostrarNombre) {
-      setFormError('Debe definir el tamano de fuente del nombre')
+      setFormError('Debe definir el tamaño de fuente del nombre')
       return
     }
     if (!form.tamanoFuenteEtiqueta && form.mostrarEtiqueta) {
-      setFormError('Debe definir el tamano de fuente de la etiqueta')
+      setFormError('Debe definir el tamaño de fuente de la etiqueta')
       return
     }
     if (!form.mostrarNombre && !form.mostrarCodigo && !form.mostrarEtiqueta) {
@@ -434,7 +434,7 @@ export default function EtiquetasConfigPanel() {
     const tipoLabel = TIPOS_CODIGO.find((t) => t.value === config.tipoCodigo)?.label ?? config.tipoCodigo
     const visibles: string[] = []
     if (config.mostrarNombre) visibles.push('Nombre')
-    if (config.mostrarCodigo) visibles.push('Codigo')
+    if (config.mostrarCodigo) visibles.push('Código')
     if (config.mostrarEtiqueta) visibles.push('Etiqueta')
 
     return (
@@ -507,16 +507,16 @@ export default function EtiquetasConfigPanel() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5" />
-              Configuracion de Etiquetas
+              Configuración de Etiquetas
             </CardTitle>
             <CardDescription>
-              Define los tamanos de etiqueta y la disposicion de la informacion para la impresion de muestras.
+              Define los tamaños de etiqueta y la disposición de la información para la impresión de muestras.
             </CardDescription>
           </div>
           {puedeEditar && (
             <Button size="sm" onClick={openCreate}>
               <Plus className="mr-2 h-4 w-4" />
-              Nueva configuracion
+              Nueva configuración
             </Button>
           )}
         </div>
@@ -539,8 +539,8 @@ export default function EtiquetasConfigPanel() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
-                <TableHead className="text-center">Tamano</TableHead>
-                <TableHead className="text-center">Codigo</TableHead>
+                <TableHead className="text-center">Tamaño</TableHead>
+                <TableHead className="text-center">Código</TableHead>
                 <TableHead className="hidden md:table-cell text-center">Elementos</TableHead>
                 <TableHead className="w-28 text-center">Estado</TableHead>
                 <TableHead className="w-32 text-right">Acciones</TableHead>
@@ -563,7 +563,7 @@ export default function EtiquetasConfigPanel() {
               {configuraciones.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                    No hay configuraciones de etiqueta. Crea la primera para empezar a imprimir.
+                    No hay configuraciones de etiqueta. Cree la primera para empezar a imprimir.
                   </TableCell>
                 </TableRow>
               )}
@@ -575,11 +575,11 @@ export default function EtiquetasConfigPanel() {
       <Dialog open={openForm} onOpenChange={setOpenForm}>
         <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>{editTarget ? 'Editar configuracion' : 'Nueva configuracion de etiqueta'}</DialogTitle>
+            <DialogTitle>{editTarget ? 'Editar configuración' : 'Nueva configuración de etiqueta'}</DialogTitle>
             <DialogDescription>
               {editTarget
                 ? `Modifica los parametros de "${editTarget.nombre}".`
-                : 'Define los parametros de tamano, codigo y disposicion para un nuevo tipo de etiqueta.'}
+                : 'Define los parámetros de tamaño, código y disposición para un nuevo tipo de etiqueta.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -591,7 +591,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Nombre */}
             <div className="space-y-1">
-              <Label htmlFor="cfg-nombre">Nombre de la configuracion</Label>
+              <Label htmlFor="cfg-nombre">Nombre de la configuración</Label>
               <Input
                 id="cfg-nombre"
                 placeholder="Ej. Etiqueta 33x22mm"
@@ -638,11 +638,11 @@ export default function EtiquetasConfigPanel() {
 
             <Separator />
 
-            {/* Codigo de barras */}
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Codigo de barras</p>
+            {/* Código de barras */}
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Código de barras</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label>Tipo de codigo</Label>
+                <Label>Tipo de código</Label>
                 <Select value={form.tipoCodigo} onValueChange={(v) => updateField('tipoCodigo', v as TipoCodigo)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -655,7 +655,7 @@ export default function EtiquetasConfigPanel() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cfg-modulo">Tamano del modulo</Label>
+                <Label htmlFor="cfg-modulo">Tamaño del módulo</Label>
                 <NumInput id="cfg-modulo" value={form.moduloCodigo} placeholder="6" min="1" max="20" onChange={(v) => updateField('moduloCodigo', v)} />
               </div>
             </div>
@@ -663,7 +663,7 @@ export default function EtiquetasConfigPanel() {
             <Separator />
 
             {/* Tamanos de fuente */}
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tamano de fuentes</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tamaño de fuentes</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="cfg-font-nombre">Fuente del nombre (px)</Label>
@@ -681,15 +681,15 @@ export default function EtiquetasConfigPanel() {
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Espaciado entre elementos (dots)</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1">
-                <Label htmlFor="cfg-gap-nombre">Despues del nombre</Label>
+                <Label htmlFor="cfg-gap-nombre">Después del nombre</Label>
                 <NumInput id="cfg-gap-nombre" value={form.espaciadoNombre} placeholder="4" min="0" max="50" onChange={(v) => updateField('espaciadoNombre', v)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cfg-gap-codigo">Despues del codigo</Label>
+                <Label htmlFor="cfg-gap-codigo">Después del código</Label>
                 <NumInput id="cfg-gap-codigo" value={form.espaciadoCodigo} placeholder="10" min="0" max="50" onChange={(v) => updateField('espaciadoCodigo', v)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cfg-gap-etiqueta">Despues de la etiqueta</Label>
+                <Label htmlFor="cfg-gap-etiqueta">Después de la etiqueta</Label>
                 <NumInput id="cfg-gap-etiqueta" value={form.espaciadoEtiqueta} placeholder="4" min="0" max="50" onChange={(v) => updateField('espaciadoEtiqueta', v)} />
               </div>
             </div>
@@ -715,7 +715,7 @@ export default function EtiquetasConfigPanel() {
                   onChange={(e) => updateField('mostrarCodigo', e.target.checked)}
                   className="h-4 w-4 rounded border-border"
                 />
-                <span className="text-sm">Codigo de barras</span>
+                <span className="text-sm">Código de barras</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -731,7 +731,7 @@ export default function EtiquetasConfigPanel() {
             <Separator />
 
             {/* Disposicion */}
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Disposicion (orden)</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Disposición (orden)</p>
             <div className="space-y-1">
               <Label>Orden de los elementos</Label>
               <Select value={form.disposicion} onValueChange={(v) => updateField('disposicion', v as DisposicionEtiqueta)}>

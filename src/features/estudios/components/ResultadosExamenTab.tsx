@@ -42,7 +42,8 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker, ultimoMomentoValido } from '@/components/ui/date-time-picker'
+import type { HorarioActivoMinimo } from '@/components/ui/date-time-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -129,24 +130,17 @@ function RangeIndicator({ status }: { status: 'low' | 'normal' | 'high' | null }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function nowStr() {
-  const d = new Date()
-  const y = d.getFullYear()
-  const mo = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const h = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${mo}-${day}T${h}:${mi}`
-}
 
-function freshDefaults(): ResultadoExamenFormData {
+function freshDefaults(horario?: HorarioActivoMinimo | null): ResultadoExamenFormData {
   return {
     pacienteUUID: '',
     usuarioRegistroUUID: '',
     idExamen: 0,
     valorObtenido: 0,
     observaciones: '',
-    fechaResultado: nowStr(),
+    // No vale el reloj a secas: fuera del horario activo esa hora no existe en
+    // el selector. Ver ultimoMomentoValido().
+    fechaResultado: ultimoMomentoValido(horario),
   }
 }
 
@@ -192,7 +186,7 @@ export function ResultadosExamenTab() {
     formState: { errors },
   } = useForm<ResultadoExamenFormData>({
     resolver: zodResolver(resultadoExamenSchema),
-    defaultValues: { ...freshDefaults(), usuarioRegistroUUID: userUuid },
+    defaultValues: { ...freshDefaults(horarioActivo), usuarioRegistroUUID: userUuid },
   })
 
   useEffect(() => {
@@ -267,14 +261,14 @@ export function ResultadosExamenTab() {
 
   const handleCancelEdit = () => {
     setEditingId(null)
-    reset({ ...freshDefaults(), usuarioRegistroUUID: userUuid, pacienteUUID: watchedPacienteUUID })
+    reset({ ...freshDefaults(horarioActivo), usuarioRegistroUUID: userUuid, pacienteUUID: watchedPacienteUUID })
   }
 
   const cambiarParticipante = () => {
     setEditingId(null)
     setSelectedPacienteLabel(null)
     setSelectedPacienteSexo(null)
-    reset({ ...freshDefaults(), usuarioRegistroUUID: userUuid })
+    reset({ ...freshDefaults(horarioActivo), usuarioRegistroUUID: userUuid })
   }
 
   const onSubmit = (data: ResultadoExamenFormData) => {
@@ -293,13 +287,13 @@ export function ResultadosExamenTab() {
         {
           onSuccess: () => {
             setEditingId(null)
-            reset({ ...freshDefaults(), usuarioRegistroUUID: userUuid, pacienteUUID: data.pacienteUUID })
+            reset({ ...freshDefaults(horarioActivo), usuarioRegistroUUID: userUuid, pacienteUUID: data.pacienteUUID })
           },
         }
       )
     } else {
       saveMutation.mutate(payload, {
-        onSuccess: () => reset({ ...freshDefaults(), usuarioRegistroUUID: userUuid, pacienteUUID: data.pacienteUUID }),
+        onSuccess: () => reset({ ...freshDefaults(horarioActivo), usuarioRegistroUUID: userUuid, pacienteUUID: data.pacienteUUID }),
       })
     }
   }

@@ -200,7 +200,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
               <Input
                 id="tipoCaja"
                 {...register('tipoCaja')}
-                sanitize="alfanumerico"
+                sanitize="texto"
                 placeholder="Gradilla 81 pozos"
               />
               {errors.tipoCaja && (

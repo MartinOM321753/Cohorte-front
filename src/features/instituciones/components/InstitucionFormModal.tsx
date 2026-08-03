@@ -338,7 +338,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="sm:col-span-2 space-y-2">
               <Label>Nombre <span className="text-destructive">*</span></Label>
-              <Input {...register('nombre')} sanitize="alfanumerico" placeholder="Ej: Hospital General de Zona No. 1" maxLength={100} />
+              <Input {...register('nombre')} sanitize="texto" placeholder="Ej: Hospital General de Zona No. 1" maxLength={100} />
               {errors.nombre && (
                 <p className="flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="h-3 w-3" strokeWidth={1.75} />

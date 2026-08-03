@@ -351,7 +351,7 @@ export function TiposEstudioTab() {
           <FormField label="Nombre" required error={tipoForm.formState.errors.nombre?.message}>
             <Input
               placeholder="Ej. Biometría hemática"
-              sanitize="alfanumerico"
+              sanitize="texto"
               maxLength={100}
               {...tipoForm.register('nombre')}
             />

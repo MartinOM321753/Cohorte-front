@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -29,7 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker, ultimoMomentoValido } from '@/components/ui/date-time-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -139,6 +139,11 @@ export function LlenadoEstudioTab() {
   const canUploadEstudio = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
   const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
 
+  // Valor inicial de la fecha: el reloj no sirve tal cual fuera del horario de
+  // atención, porque esa hora no figura en el selector y el error solo salta al
+  // enviar. Ver ultimoMomentoValido().
+  const fechaPorDefecto = useCallback(() => ultimoMomentoValido(horarioActivo), [horarioActivo])
+
   const disabledDaysOfWeek = useMemo(() => {
     if (!horarioActivo) return undefined
     const days: number[] = []
@@ -197,7 +202,7 @@ export function LlenadoEstudioTab() {
     defaultValues: {
       pacienteUUID: '',
       idTipoEstudio: 0,
-      fechaEstudio: nowString(),
+      fechaEstudio: fechaPorDefecto(),
       observaciones: '',
     },
   })
@@ -359,7 +364,7 @@ export function LlenadoEstudioTab() {
     reset({
       pacienteUUID: selectedPacienteUUID,
       idTipoEstudio: 0,
-      fechaEstudio: nowString(),
+      fechaEstudio: fechaPorDefecto(),
       observaciones: '',
     })
     setSelectedTipoId(0)
@@ -374,7 +379,7 @@ export function LlenadoEstudioTab() {
     setSelectedPacienteUUID('')
     setSelectedPacienteNombre('')
     setSelectedPacienteSexo(undefined)
-    reset({ pacienteUUID: '', idTipoEstudio: 0, fechaEstudio: nowString(), observaciones: '' })
+    reset({ pacienteUUID: '', idTipoEstudio: 0, fechaEstudio: fechaPorDefecto(), observaciones: '' })
   }
 
   /**
@@ -385,7 +390,7 @@ export function LlenadoEstudioTab() {
     reset({
       pacienteUUID: selectedPacienteUUID,   // ← keep patient
       idTipoEstudio: 0,
-      fechaEstudio: nowString(),
+      fechaEstudio: fechaPorDefecto(),
       observaciones: '',
     })
     setSelectedTipoId(0)
@@ -984,7 +989,12 @@ function ParametroInput({
         isStandalone ? (
           <Select
             value={String(standaloneValue ?? '')}
-            onValueChange={(v) => onStandaloneChange!(v)}
+            // Mismo motivo que en el campo controlado: el "" que emite el
+            // <select> oculto de Radix al sincronizarse no es una elección.
+            onValueChange={(v) => {
+              if (v === '') return
+              onStandaloneChange!(v)
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Seleccione una opción…" />
@@ -1000,7 +1010,22 @@ function ParametroInput({
             name={fieldName}
             control={control}
             render={({ field }) => (
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
+              // eslint-disable-next-line no-console
+              <Select
+                value={field.value ?? ''}
+                onValueChange={(v) => {
+                  // Radix mantiene un <select> nativo oculto para integrarse con
+                  // formularios. Cuando el valor llega por código en el mismo
+                  // renderizado en que el desplegable se monta, ese <select> aún
+                  // no tiene la <option> correspondiente: asignarla lo deja
+                  // vacío, y el evento change que Radix emite para sincronizar
+                  // informa "" y borra lo que se acaba de poner.
+                  // Ninguna opción real vale cadena vacía, así que un "" nunca
+                  // viene de una elección de la persona: se ignora.
+                  if (v === '') return
+                  field.onChange(v)
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione una opción…" />
                 </SelectTrigger>
