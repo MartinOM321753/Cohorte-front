@@ -93,7 +93,14 @@ function ParametroField({
       )}
 
       {parametro.tipo === 'TEXTO_OPCIONES' && (
-        <Select value={String(valor ?? '')} onValueChange={v => onChange(v)}>
+        <Select
+          value={String(valor ?? '')}
+          onValueChange={v => {
+            // Mismo motivo que en la edición: el "" de Radix no es una elección.
+            if (v === '') return
+            onChange(v)
+          }}
+        >
           <SelectTrigger className="h-9 text-sm">
             <SelectValue placeholder="Seleccione una opción…" />
           </SelectTrigger>
