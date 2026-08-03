@@ -989,7 +989,12 @@ function ParametroInput({
         isStandalone ? (
           <Select
             value={String(standaloneValue ?? '')}
-            onValueChange={(v) => onStandaloneChange!(v)}
+            // Mismo motivo que en el campo controlado: el "" que emite el
+            // <select> oculto de Radix al sincronizarse no es una elección.
+            onValueChange={(v) => {
+              if (v === '') return
+              onStandaloneChange!(v)
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Seleccione una opción…" />
@@ -1005,7 +1010,22 @@ function ParametroInput({
             name={fieldName}
             control={control}
             render={({ field }) => (
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
+              // eslint-disable-next-line no-console
+              <Select
+                value={field.value ?? ''}
+                onValueChange={(v) => {
+                  // Radix mantiene un <select> nativo oculto para integrarse con
+                  // formularios. Cuando el valor llega por código en el mismo
+                  // renderizado en que el desplegable se monta, ese <select> aún
+                  // no tiene la <option> correspondiente: asignarla lo deja
+                  // vacío, y el evento change que Radix emite para sincronizar
+                  // informa "" y borra lo que se acaba de poner.
+                  // Ninguna opción real vale cadena vacía, así que un "" nunca
+                  // viene de una elección de la persona: se ignora.
+                  if (v === '') return
+                  field.onChange(v)
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione una opción…" />
                 </SelectTrigger>
