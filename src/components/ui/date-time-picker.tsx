@@ -61,6 +61,78 @@ function toDateOnlyString(date: Date): string {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
+function toLocalDateTimeString(date: Date): string {
+  return `${toDateOnlyString(date)}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+// ── Valor inicial de los formularios de captura clínica ────────────────────────
+// Forma mínima del horario activo que necesitan los formularios.
+export type HorarioActivoMinimo = {
+  horaInicio?: number | null;
+  horaFin?: number | null;
+  lunes?: boolean | null;
+  martes?: boolean | null;
+  miercoles?: boolean | null;
+  jueves?: boolean | null;
+  viernes?: boolean | null;
+  sabado?: boolean | null;
+  domingo?: boolean | null;
+};
+
+function diaHabilitado(h: HorarioActivoMinimo | null | undefined, d: Date): boolean {
+  // Sin configuración cargada se asume lunes a viernes, igual que los valores
+  // por defecto de minHour/maxHour que usan las pantallas.
+  if (!h) return d.getDay() >= 1 && d.getDay() <= 5;
+  const porDia = [h.domingo, h.lunes, h.martes, h.miercoles, h.jueves, h.viernes, h.sabado];
+  return porDia[d.getDay()] === true;
+}
+
+/**
+ * Momento por defecto para los formularios que solo admiten fechas pasadas
+ * (estudios, exámenes, somatometría, muestras…).
+ *
+ * El reloj no sirve tal cual. Fuera del horario de atención —de noche, o en fin
+ * de semana— produce un valor que el propio formulario rechaza, y que además no
+ * se puede corregir tocando solo la hora: esa hora no figura entre las opciones
+ * del selector, así que el campo aparece vacío y el error solo salta al enviar.
+ *
+ * Se devuelve el último instante válido: ahora, si estamos dentro del horario;
+ * y si no, el cierre del último día hábil.
+ */
+export function ultimoMomentoValido(
+  horario?: HorarioActivoMinimo | null,
+  ahora: Date = new Date(),
+): string {
+  const minHour = horario?.horaInicio ?? 8;
+  // Última hora seleccionable: coincide con el maxHour que reciben los selectores.
+  const ultimaHora = (horario?.horaFin ?? 17) - 1;
+
+  if (ultimaHora < minHour) return toLocalDateTimeString(ahora);
+
+  if (diaHabilitado(horario, ahora)) {
+    const hora = ahora.getHours();
+    if (hora >= minHour && hora <= ultimaHora) return toLocalDateTimeString(ahora);
+    if (hora > ultimaHora) {
+      const d = new Date(ahora);
+      d.setHours(ultimaHora, 0, 0, 0);
+      return toLocalDateTimeString(d);
+    }
+    // Antes de abrir: se retrocede al día hábil anterior.
+  }
+
+  const d = new Date(ahora);
+  for (let i = 0; i < 7; i++) {
+    d.setDate(d.getDate() - 1);
+    if (diaHabilitado(horario, d)) {
+      d.setHours(ultimaHora, 0, 0, 0);
+      return toLocalDateTimeString(d);
+    }
+  }
+  // Sin ningún día habilitado no existe valor válido: se deja el reloj y que el
+  // formulario avise.
+  return toLocalDateTimeString(ahora);
+}
+
 function parseLocalDateTime(
   value: string | undefined | null,
 ): { date: Date; time: string } | null {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -29,7 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker, ultimoMomentoValido } from '@/components/ui/date-time-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -139,6 +139,11 @@ export function LlenadoEstudioTab() {
   const canUploadEstudio = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
   const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
 
+  // Valor inicial de la fecha: el reloj no sirve tal cual fuera del horario de
+  // atención, porque esa hora no figura en el selector y el error solo salta al
+  // enviar. Ver ultimoMomentoValido().
+  const fechaPorDefecto = useCallback(() => ultimoMomentoValido(horarioActivo), [horarioActivo])
+
   const disabledDaysOfWeek = useMemo(() => {
     if (!horarioActivo) return undefined
     const days: number[] = []
@@ -197,7 +202,7 @@ export function LlenadoEstudioTab() {
     defaultValues: {
       pacienteUUID: '',
       idTipoEstudio: 0,
-      fechaEstudio: nowString(),
+      fechaEstudio: fechaPorDefecto(),
       observaciones: '',
     },
   })
@@ -359,7 +364,7 @@ export function LlenadoEstudioTab() {
     reset({
       pacienteUUID: selectedPacienteUUID,
       idTipoEstudio: 0,
-      fechaEstudio: nowString(),
+      fechaEstudio: fechaPorDefecto(),
       observaciones: '',
     })
     setSelectedTipoId(0)
@@ -374,7 +379,7 @@ export function LlenadoEstudioTab() {
     setSelectedPacienteUUID('')
     setSelectedPacienteNombre('')
     setSelectedPacienteSexo(undefined)
-    reset({ pacienteUUID: '', idTipoEstudio: 0, fechaEstudio: nowString(), observaciones: '' })
+    reset({ pacienteUUID: '', idTipoEstudio: 0, fechaEstudio: fechaPorDefecto(), observaciones: '' })
   }
 
   /**
@@ -385,7 +390,7 @@ export function LlenadoEstudioTab() {
     reset({
       pacienteUUID: selectedPacienteUUID,   // ← keep patient
       idTipoEstudio: 0,
-      fechaEstudio: nowString(),
+      fechaEstudio: fechaPorDefecto(),
       observaciones: '',
     })
     setSelectedTipoId(0)

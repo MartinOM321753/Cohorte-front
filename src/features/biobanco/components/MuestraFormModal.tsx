@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker, ultimoMomentoValido } from '@/components/ui/date-time-picker'
 import {
   Select,
   SelectContent,
@@ -94,7 +94,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
     defaultValues: {
       valor: 0,
       unidad: '',
-      fechaRecoleccion: toLocalDateTimeInput(new Date()),
+      fechaRecoleccion: ultimoMomentoValido(horarioActivo),
       observaciones: '',
       pacienteUUID: '',
       usuarioRecolectaUUID: '',
@@ -110,7 +110,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   const buildDefaultValues = (): MuestraFormData => ({
     valor: 0,
     unidad: '',
-    fechaRecoleccion: toLocalDateTimeInput(new Date()),
+    fechaRecoleccion: ultimoMomentoValido(horarioActivo),
     observaciones: '',
     pacienteUUID: '',
     usuarioRecolectaUUID: user?.uuid || '',

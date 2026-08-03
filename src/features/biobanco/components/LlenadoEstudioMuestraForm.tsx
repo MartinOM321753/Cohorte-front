@@ -16,7 +16,7 @@ import {
   useCreateEstudioMuestra,
 } from '../hooks/useEstudiosMuestra'
 import { useAuthStore } from '@/stores/authStore'
-import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker, ultimoMomentoValido } from '@/components/ui/date-time-picker'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -35,19 +35,6 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Devuelve la fecha y hora actual como "YYYY-MM-DDTHH:mm" en zona horaria local. */
-function nowString(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const mo = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const h = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${mo}-${day}T${h}:${mi}`
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -156,7 +143,9 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
 
   const [idTipo, setIdTipo] = useState<number | null>(null)
   const [openTipo, setOpenTipo] = useState(false)
-  const [fechaEstudio, setFechaEstudio] = useState(() => nowString())
+  // El reloj a secas no vale: fuera del horario activo esa hora no figura en el
+  // selector y el error solo aparece al enviar. Ver ultimoMomentoValido().
+  const [fechaEstudio, setFechaEstudio] = useState(() => ultimoMomentoValido(horarioActivo))
   const [observaciones, setObservaciones] = useState('')
   const [cantidadConsumida, setCantidadConsumida] = useState('')
   const unidadConsumida = muestra.unidad ?? ''

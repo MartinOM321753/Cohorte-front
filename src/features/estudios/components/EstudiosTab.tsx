@@ -16,19 +16,25 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { DateTimePicker, ultimoMomentoValido } from '@/components/ui/date-time-picker'
+import type { HorarioActivoMinimo } from '@/components/ui/date-time-picker'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-const DEFAULT_VALUES: EstudioMedicoFormData = {
-  pacienteUUID: '',
-  usuarioRealizaUUID: '',
-  idTipoEstudio: 0,
-  fechaEstudio: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` })(),
-  observaciones: '',
+// Se calcula en cada uso, no una sola vez al importar el modulo: asi la fecha no
+// se queda congelada en la hora en que se cargo la pagina, y respeta el horario
+// activo (ver ultimoMomentoValido).
+function defaultValues(horario?: HorarioActivoMinimo | null): EstudioMedicoFormData {
+  return {
+    pacienteUUID: '',
+    usuarioRealizaUUID: '',
+    idTipoEstudio: 0,
+    fechaEstudio: ultimoMomentoValido(horario),
+    observaciones: '',
+  }
 }
 
 export function EstudiosTab() {
@@ -68,7 +74,7 @@ export function EstudiosTab() {
     formState: { errors },
   } = useForm<EstudioMedicoFormData>({
     resolver: zodResolver(estudioMedicoSchema),
-    defaultValues: { ...DEFAULT_VALUES, usuarioRealizaUUID: userUuid },
+    defaultValues: { ...defaultValues(horarioActivo), usuarioRealizaUUID: userUuid },
   })
 
   useEffect(() => {
@@ -93,7 +99,7 @@ export function EstudiosTab() {
 
     createMutation.mutate(payload, {
       onSuccess: () => {
-        reset({ ...DEFAULT_VALUES, usuarioRealizaUUID: userUuid })
+        reset({ ...defaultValues(horarioActivo), usuarioRealizaUUID: userUuid })
       },
     })
   }
@@ -235,7 +241,7 @@ export function EstudiosTab() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => reset({ ...DEFAULT_VALUES, usuarioRealizaUUID: userUuid })}
+              onClick={() => reset({ ...defaultValues(horarioActivo), usuarioRealizaUUID: userUuid })}
               disabled={createMutation.isPending}
             >
               Limpiar
