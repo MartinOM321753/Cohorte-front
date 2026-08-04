@@ -11,9 +11,36 @@ import {
   getOpcionesEtiqueta,
 } from '../api/etiquetas.api'
 import { ConfiguracionEtiquetaRequest } from '@/types/api'
+import { mensajeErrorApi } from '@/lib/apiErrors'
 import toast from 'react-hot-toast'
 
 const KEY = 'configuraciones-etiqueta'
+
+/** Nombres de campo del backend → los rótulos que se ven en el formulario. */
+const CAMPOS_ETIQUETA: Record<string, string> = {
+  nombre: 'Nombre de la configuración',
+  anchoMm: 'Ancho (mm)',
+  altoMm: 'Alto (mm)',
+  dpi: 'DPI',
+  etiquetasPorFila: 'Etiquetas por fila',
+  margenIzquierdoMm: 'Margen izquierdo (mm)',
+  margenSuperiorMm: 'Margen superior (mm)',
+  tipoCodigo: 'Tipo de código',
+  moduloCodigo: 'Tamaño del módulo',
+  // Validación cruzada del backend (módulo contra tipo de código).
+  moduloParaTipoCodigo: 'Tamaño del módulo',
+  tamanoFuenteNombre: 'Fuente del nombre',
+  tamanoFuenteEtiqueta: 'Fuente de la etiqueta',
+  espaciadoNombre: 'Después del nombre',
+  espaciadoCodigo: 'Después del código',
+  espaciadoEtiqueta: 'Después de la etiqueta',
+  disposicion: 'Orden de los elementos',
+  filasPorPagina: 'Filas por página',
+  espacioHorizontalMm: 'Espacio horizontal (mm)',
+  espacioVerticalMm: 'Espacio vertical (mm)',
+  margenPaginaSuperiorMm: 'Margen superior página (mm)',
+  margenPaginaIzquierdoMm: 'Margen izquierdo página (mm)',
+}
 
 export function useGetConfiguracionesEtiqueta() {
   return useQuery({
@@ -60,8 +87,8 @@ export function useCreateConfiguracionEtiqueta() {
       qc.invalidateQueries({ queryKey: [KEY] })
       toast.success('Configuración creada')
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al crear configuración')
+    onError: (err: unknown) => {
+      toast.error(mensajeErrorApi(err, 'Error al crear configuración', CAMPOS_ETIQUETA))
     },
   })
 }
@@ -75,8 +102,8 @@ export function useUpdateConfiguracionEtiqueta() {
       qc.invalidateQueries({ queryKey: [KEY] })
       toast.success('Configuración actualizada')
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al actualizar')
+    onError: (err: unknown) => {
+      toast.error(mensajeErrorApi(err, 'Error al actualizar', CAMPOS_ETIQUETA))
     },
   })
 }
