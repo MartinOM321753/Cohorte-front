@@ -17,6 +17,7 @@ import {
   getDocumentoUrl,
   imprimirEtiquetaDocumento,
   listarImpresorasDocumentos,
+  type ContenidoCodigo,
 } from '../api/documentos.api'
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
@@ -255,11 +256,13 @@ export function useImprimirEtiquetaDocumento() {
       idDocumento,
       impresora,
       configuracionId,
+      contenido,
     }: {
       idDocumento: number
       impresora: string
       configuracionId?: number
-    }) => imprimirEtiquetaDocumento(idDocumento, impresora, configuracionId),
+      contenido?: ContenidoCodigo
+    }) => imprimirEtiquetaDocumento(idDocumento, impresora, configuracionId, contenido),
     onSuccess: () => toast.success('Etiqueta enviada a la impresora'),
     onError: () => toast.error('No se pudo imprimir la etiqueta'),
   })

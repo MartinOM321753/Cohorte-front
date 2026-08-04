@@ -215,12 +215,30 @@ export async function downloadDocumentoBlob(
 
 // ─── Impresión de etiquetas ──────────────────────────────────────────────────
 
+/**
+ * Qué se codifica dentro del símbolo de una etiqueta de documento: el enlace para
+ * abrirlo al escanearlo, o solo su código. En Code 128 el backend ignora la
+ * elección y manda siempre el código — el enlace no cabe en una etiqueta lineal.
+ */
+export type ContenidoCodigo = 'ENLACE' | 'CODIGO'
+
+function paramsEtiqueta(
+  configuracionId?: number,
+  contenido: ContenidoCodigo = 'ENLACE',
+): Record<string, string | number> {
+  const params: Record<string, string | number> = { incluirEnlace: String(contenido === 'ENLACE') }
+  if (configuracionId) params.configuracionId = configuracionId
+  return params
+}
+
 export async function getZplEtiquetaDocumento(
   idDocumento: number,
   configuracionId?: number,
+  contenido: ContenidoCodigo = 'ENLACE',
 ): Promise<string> {
-  const params = configuracionId ? { configuracionId } : undefined
-  const res = await api.get<string>(`/documentos/${idDocumento}/etiqueta/zpl`, { params })
+  const res = await api.get<string>(`/documentos/${idDocumento}/etiqueta/zpl`, {
+    params: paramsEtiqueta(configuracionId, contenido),
+  })
   return res.data
 }
 
@@ -228,25 +246,44 @@ export async function imprimirEtiquetaDocumento(
   idDocumento: number,
   impresora: string,
   configuracionId?: number,
+  contenido: ContenidoCodigo = 'ENLACE',
 ): Promise<void> {
   const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
 
   if (await isAgentAvailable()) {
-    const zpl = await getZplEtiquetaDocumento(idDocumento, configuracionId)
+    const zpl = await getZplEtiquetaDocumento(idDocumento, configuracionId, contenido)
     await imprimirLocal(impresora, zpl)
   } else {
-    const params: Record<string, string | number> = { impresora }
-    if (configuracionId) params.configuracionId = configuracionId
-    await api.post(`/documentos/${idDocumento}/etiqueta/imprimir`, null, { params })
+    await api.post(`/documentos/${idDocumento}/etiqueta/imprimir`, null, {
+      params: { impresora, ...paramsEtiqueta(configuracionId, contenido) },
+    })
   }
 }
 
 export async function getLabelDataDocumento(
   idDocumento: number,
   configuracionId?: number,
+  contenido: ContenidoCodigo = 'ENLACE',
 ): Promise<PrintableLabelBatchDTO> {
-  const params = configuracionId ? { configuracionId } : undefined
-  const res = await api.get<ApiResponse<PrintableLabelBatchDTO>>(`/documentos/${idDocumento}/etiqueta/datos`, { params })
+  const res = await api.get<ApiResponse<PrintableLabelBatchDTO>>(
+    `/documentos/${idDocumento}/etiqueta/datos`,
+    { params: paramsEtiqueta(configuracionId, contenido) },
+  )
+  return res.data.data
+}
+
+/**
+ * Datos de varias etiquetas de una sola vez, para impresión en lote.
+ * El backend devuelve las etiquetas en el mismo orden en que se envían los identificadores.
+ */
+export async function getLabelDataDocumentos(
+  idsDocumento: number[],
+  configuracionId?: number,
+  contenido: ContenidoCodigo = 'ENLACE',
+): Promise<PrintableLabelBatchDTO> {
+  const res = await api.get<ApiResponse<PrintableLabelBatchDTO>>('/documentos/etiquetas/datos', {
+    params: { ids: idsDocumento.join(','), ...paramsEtiqueta(configuracionId, contenido) },
+  })
   return res.data.data
 }
 

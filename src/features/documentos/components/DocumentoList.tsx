@@ -24,8 +24,9 @@ import { cn } from '@/lib/utils'
 import type { DocumentoResponseDTO, PrintableLabelBatchDTO } from '@/types/api'
 import { useDeleteDocumento, useListarImpresorasDocumentos, useImprimirEtiquetaDocumento, useAdjuntarArchivo } from '../hooks/useDocumentos'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
-import { downloadDocumentoBlob, getLabelDataDocumento } from '../api/documentos.api'
+import { downloadDocumentoBlob, getLabelDataDocumento, type ContenidoCodigo } from '../api/documentos.api'
 import { PrintableLabelsView } from '@/components/print/PrintableLabelsView'
+import { SelectorContenidoCodigo } from './SelectorContenidoCodigo'
 import { toast } from 'sonner'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -136,6 +137,7 @@ export function DocumentoList({
     localStorage.getItem('zebra-printer-name') ?? ''
   )
   const [selectedConfig, setSelectedConfig] = useState<string>('')
+  const [contenido, setContenido] = useState<ContenidoCodigo>('ENLACE')
   const deleteMutation = useDeleteDocumento()
   const { data: impresoras } = useListarImpresorasDocumentos()
   const { data: configuraciones } = useGetConfiguracionesActivas()
@@ -189,7 +191,7 @@ export function DocumentoList({
     const configId = selectedConfig ? Number(selectedConfig) : undefined
     if (selectedPrinter === '__browser__') {
       try {
-        const data = await getLabelDataDocumento(printDoc.id, configId)
+        const data = await getLabelDataDocumento(printDoc.id, configId, contenido)
         setPrintDoc(null)
         setBrowserPrintData(data)
       } catch (err: any) {
@@ -204,6 +206,7 @@ export function DocumentoList({
         idDocumento: printDoc.id,
         impresora: selectedPrinter,
         configuracionId: configId,
+        contenido,
       },
       { onSuccess: () => setPrintDoc(null) },
     )
@@ -470,6 +473,14 @@ export function DocumentoList({
               <p className="text-xs text-amber-600">
                 No hay configuraciones de etiqueta. Cree una en Configuración &gt; Etiquetas.
               </p>
+            )}
+
+            {configuraciones && configuraciones.length > 0 && (
+              <SelectorContenidoCodigo
+                tipoCodigo={configuraciones.find((c) => String(c.id) === selectedConfig)?.tipoCodigo}
+                value={contenido}
+                onChange={setContenido}
+              />
             )}
           </div>
 
