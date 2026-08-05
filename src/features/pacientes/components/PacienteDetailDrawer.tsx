@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { DocumentoUploader } from '@/features/documentos/components/DocumentoUploader'
 import { DocumentoList } from '@/features/documentos/components/DocumentoList'
 import { CrearEtiquetaButton } from '@/features/documentos/components/CrearEtiquetaButton'
+import { ImprimirEtiquetasLoteButton } from '@/features/documentos/components/ImprimirEtiquetasLoteButton'
 import {
   useDocumentosPacienteTipo,
 } from '@/features/documentos/hooks/useDocumentos'
@@ -171,6 +172,10 @@ export function PacienteDetailDrawer({
                 Femenino
               </span>
             ) : null}
+
+            <div className="ml-auto">
+              <ImprimirEtiquetasLoteButton pacienteUUID={uuid} />
+            </div>
           </div>
         </SheetHeader>
 

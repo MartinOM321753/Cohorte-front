@@ -1187,6 +1187,8 @@ export interface ConfiguracionEtiquetaResponse {
   margenSuperiorMm: number
   tipoCodigo: TipoCodigo
   moduloCodigo: number
+  /** Ancho de la barra angosta en dots. Solo aplica a Code 128 (^BY en ZPL). */
+  anchoBarraCodigo: number
   tamanoFuenteNombre: number
   tamanoFuenteEtiqueta: number
   espaciadoNombre: number
@@ -1219,6 +1221,8 @@ export interface ConfiguracionEtiquetaRequest {
   margenSuperiorMm: number
   tipoCodigo: TipoCodigo
   moduloCodigo: number
+  /** Ancho de la barra angosta en dots. Solo aplica a Code 128 (^BY en ZPL). */
+  anchoBarraCodigo: number
   tamanoFuenteNombre: number
   tamanoFuenteEtiqueta: number
   espaciadoNombre: number

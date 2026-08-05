@@ -78,6 +78,7 @@ const DEFAULT_FORM: ConfiguracionEtiquetaRequest = {
   margenSuperiorMm: 0,
   tipoCodigo: 'DATAMATRIX',
   moduloCodigo: 0,
+  anchoBarraCodigo: 2,
   tamanoFuenteNombre: 0,
   tamanoFuenteEtiqueta: 0,
   espaciadoNombre: 0,
@@ -356,6 +357,7 @@ export default function EtiquetasConfigPanel() {
       margenSuperiorMm: config.margenSuperiorMm,
       tipoCodigo: config.tipoCodigo,
       moduloCodigo: config.moduloCodigo,
+      anchoBarraCodigo: config.anchoBarraCodigo ?? 2,
       tamanoFuenteNombre: config.tamanoFuenteNombre,
       tamanoFuenteEtiqueta: config.tamanoFuenteEtiqueta,
       espaciadoNombre: config.espaciadoNombre,
@@ -656,8 +658,56 @@ export default function EtiquetasConfigPanel() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="cfg-modulo">Tamaño del módulo</Label>
-                <NumInput id="cfg-modulo" value={form.moduloCodigo} placeholder="6" min="1" max="20" onChange={(v) => updateField('moduloCodigo', v)} />
+                {/* El QR se imprime con ^BQN,2,<módulo> y esa magnificación solo
+                    llega a 10; los demás códigos admiten el tope general. */}
+                <NumInput
+                  id="cfg-modulo"
+                  value={form.moduloCodigo}
+                  placeholder="6"
+                  min="1"
+                  max={form.tipoCodigo === 'QR_CODE' ? '10' : '60'}
+                  onChange={(v) => updateField('moduloCodigo', v)}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {form.tipoCodigo === 'CODE_128' ? (
+                    <>
+                      En Code 128 este valor es la <strong>altura</strong> de las barras: a{' '}
+                      {form.dpi || 203} dpi mide{' '}
+                      {((form.moduloCodigo || 0) * 10 * 25.4 / (form.dpi || 203)).toFixed(1)} mm.
+                      Máximo 60.
+                    </>
+                  ) : (
+                    <>
+                      Dots por módulo. A {form.dpi || 203} dpi, cada módulo mide{' '}
+                      {((form.moduloCodigo || 0) * 25.4 / (form.dpi || 203)).toFixed(2)} mm.
+                      {form.tipoCodigo === 'QR_CODE' ? ' Máximo 10 para QR.' : ' Máximo 60.'}
+                    </>
+                  )}
+                </p>
               </div>
+
+              {/* El ancho de barra es ^BY en ZPL: solo interviene en los códigos
+                  lineales, en DataMatrix y QR el tamaño va en el módulo. */}
+              {form.tipoCodigo === 'CODE_128' && (
+                <div className="space-y-1">
+                  <Label htmlFor="cfg-ancho-barra">Ancho de barra</Label>
+                  <NumInput
+                    id="cfg-ancho-barra"
+                    value={form.anchoBarraCodigo}
+                    placeholder="2"
+                    min="1"
+                    max="10"
+                    onChange={(v) => updateField('anchoBarraCodigo', v)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Dots de la barra angosta; es lo que ensancha el código. A{' '}
+                    {form.dpi || 203} dpi, un código de 12 caracteres ocupa{' '}
+                    {((11 * 12 + 35) * (form.anchoBarraCodigo || 2) * 25.4 / (form.dpi || 203)).toFixed(1)} mm
+                    de ancho, sobre {((form.anchoMm || 0) - 2 * (form.margenIzquierdoMm || 0)).toFixed(1)} mm
+                    disponibles. Máximo 10.
+                  </p>
+                </div>
+              )}
             </div>
 
             <Separator />
