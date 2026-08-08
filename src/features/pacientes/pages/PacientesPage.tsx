@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ArrowRightLeft,
   Building2,
   CalendarDays,
   Search,
@@ -7,12 +8,14 @@ import {
   UserRound,
   UserRoundPlus,
 } from "lucide-react";
-import { useGetPacientesPaginados } from "../hooks/useGetPacientes";
+import { useGetPacientesPaginados, useParticipantesConRegistrosPropios } from "../hooks/useGetPacientes";
 import { useToggleActivoPaciente, useCrearAccesoPaciente } from "../hooks/useCreatePaciente";
 import { useGetInstitucionesVisibles } from "@/features/instituciones/hooks/useInstituciones";
 import { PacientesTable } from "../components/PacientesTable";
 import { PacienteFormModal } from "../components/PacienteFormModal";
 import { PacienteImportModal } from "../components/PacienteImportModal";
+import { ReasignarInstitucionModal } from "../components/ReasignarInstitucionModal";
+import { MisRegistrosParticipanteModal } from "../components/MisRegistrosParticipanteModal";
 import { PacienteDetailDrawer } from "../components/PacienteDetailDrawer";
 import { CitaIlamyEventForm } from "@/features/citas/components/CitaIlamyEventForm";
 import { SomatometriaFormModal } from "@/features/somatometria/components/SomatometriaFormModal";
@@ -100,6 +103,13 @@ export default function PacientesPage() {
     null,
   );
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isReasignarOpen, setIsReasignarOpen] = useState(false);
+  const [uuidRegistrosPropios, setUuidRegistrosPropios] = useState<string | null>(null);
+
+  // Participantes que esta sede ya no gestiona pero de los que conserva registros.
+  // Van aparte de la tabla a propósito: no se pueden gestionar, solo consultar lo
+  // propio, y mezclarlos arriba haría creer que siguen a cargo.
+  const { data: conRegistrosPropios = [] } = useParticipantesConRegistrosPropios();
   const [isCitaModalOpen, setIsCitaModalOpen] = useState(false);
   const [patientToSchedule, setPatientToSchedule] = useState<Paciente | null>(
     null,
@@ -168,6 +178,17 @@ export default function PacientesPage() {
               >
                 <Upload className="h-4 w-4" strokeWidth={1.75} />
                 <span className="hidden sm:inline">Importar</span>
+              </Button>
+            )}
+            {puedeEditarPaciente && (
+              <Button
+                variant="outline"
+                onClick={() => setIsReasignarOpen(true)}
+                className="gap-2 text-[13px] h-9"
+                title="Mover participantes a otra institución del grupo"
+              >
+                <ArrowRightLeft className="h-4 w-4" strokeWidth={1.75} />
+                <span className="hidden sm:inline">Reasignar institución</span>
               </Button>
             )}
             {puedeCrearCita && (
@@ -306,6 +327,44 @@ export default function PacientesPage() {
         totalElements={totalElements}
       />
 
+      {conRegistrosPropios.length > 0 && (
+        <section className="space-y-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
+              Participantes que ya no gestionas ({conRegistrosPropios.length})
+            </p>
+            <p className="text-[12px] text-[var(--imss-ink-500)]">
+              Pertenecen a otra institución, pero conservas los registros que les hiciste.
+              Puedes consultarlos, no modificarlos.
+            </p>
+          </div>
+          <ul className="divide-y rounded-md border">
+            {conRegistrosPropios.map((p) => (
+              <li key={p.uuid}>
+                <button
+                  type="button"
+                  onClick={() => setUuidRegistrosPropios(p.uuid)}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-[var(--imss-green-50)]"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13px] font-medium">
+                      {p.persona.nombre} {p.persona.apellidoPaterno} {p.persona.apellidoMaterno ?? ""}
+                    </span>
+                    <span className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--imss-ink-300)]">
+                      <span className="font-mono">{p.folio}</span>
+                      {p.institucionNombre && <span>{p.institucionNombre}</span>}
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                    Ver mis registros
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Drawer detalle */}
       <PacienteDetailDrawer
         open={isDrawerOpen}
@@ -325,6 +384,14 @@ export default function PacientesPage() {
 
       {/* Modal importar */}
       <PacienteImportModal open={isImportOpen} onOpenChange={setIsImportOpen} />
+
+      <MisRegistrosParticipanteModal
+        uuid={uuidRegistrosPropios}
+        onClose={() => setUuidRegistrosPropios(null)}
+      />
+
+      {/* Modal reasignar institución en lote */}
+      <ReasignarInstitucionModal open={isReasignarOpen} onOpenChange={setIsReasignarOpen} />
 
       {/* Modal agendar cita */}
       <CitaIlamyEventForm
