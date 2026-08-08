@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { pacienteCreateSchema, pacienteEditSchema, type PacienteFormData, CURP_REGEX } from '../schemas/paciente.schema'
-import { useCreatePaciente, useUpdatePaciente } from '../hooks/useCreatePaciente'
+import { useCreatePaciente, useUpdatePaciente, useCambiarInstitucionPaciente } from '../hooks/useCreatePaciente'
+import { useGetInstitucionesParaRegistro, useElegibilidadCambioInstitucion } from '../hooks/useGetPacientes'
 import {
   TIPO_RECLUTAMIENTO_LABELS,
   ESTADO_CONTACTO_LABELS,
@@ -59,6 +60,7 @@ const MEDIO_CONTACTO_OPTIONS = (
   .map(([value, label]) => ({ value, label }))
 
 const DEFAULT_VALUES: PacienteFormData = {
+  idInstitucion: null,
   folio: '',
   nombre: '',
   segundoNombre: '',
@@ -103,11 +105,34 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
     control,
     reset,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PacienteFormData>({
     resolver: zodResolver(isEdit ? pacienteEditSchema : pacienteCreateSchema),
     defaultValues: DEFAULT_VALUES,
   })
+
+  const { data: institucionesRegistro = [] } = useGetInstitucionesParaRegistro({ enabled: open })
+  const { data: elegibilidad } = useElegibilidadCambioInstitucion(paciente?.uuid, { enabled: open && isEdit })
+  const cambiarInstitucionMutation = useCambiarInstitucionPaciente()
+
+  // Al editar, la institución solo se puede tocar mientras nada ate al
+  // participante a la actual. Ver ParticipanteTitularidadService.
+  const institucionBloqueada = isEdit && !elegibilidad?.puedeCambiar
+
+  const idInstitucion = watch('idInstitucion')
+  const institucionSeleccionada = useMemo(
+    () => institucionesRegistro.find((i) => i.id === idInstitucion),
+    [institucionesRegistro, idInstitucion],
+  )
+
+  // La institución del usuario viene preseleccionada. Se hace en efecto y no en
+  // los valores por omisión porque la lista llega del servidor después de abrir.
+  useEffect(() => {
+    if (!open || isEdit || idInstitucion != null || institucionesRegistro.length === 0) return
+    const propia = institucionesRegistro.find((i) => i.propia) ?? institucionesRegistro[0]
+    setValue('idInstitucion', propia.id)
+  }, [open, isEdit, idInstitucion, institucionesRegistro, setValue])
 
   const tipoReclutamiento = watch('tipoReclutamiento')
   const curpValue = (watch('curp') ?? '').trim().toUpperCase()
@@ -118,6 +143,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
     if (open) {
       if (paciente) {
         reset({
+          idInstitucion: paciente.institucionId ?? null,
           folio: paciente.folio,
           nombre: paciente.persona.nombre,
           segundoNombre: paciente.persona.segundoNombre ?? '',
@@ -143,6 +169,8 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
 
   const onSubmit = async (formData: PacienteFormData) => {
     const payload: PacienteRequestDTO = {
+      // Solo al registrar: el backend ignora este campo al actualizar.
+      idInstitucion: isEdit ? undefined : formData.idInstitucion ?? undefined,
       folio: formData.folio,
       persona: {
         nombre: formData.nombre,
@@ -165,6 +193,17 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
     }
 
     if (isEdit && paciente) {
+      // El cambio de institución va primero y por su propio endpoint: PUT /pacientes
+      // ignora ese campo a propósito. Si está bloqueado, el backend lo rechaza y no
+      // se toca nada más — más predecible que dejar los datos guardados a medias.
+      const cambioInstitucion =
+        formData.idInstitucion != null && formData.idInstitucion !== paciente.institucionId
+      if (cambioInstitucion) {
+        await cambiarInstitucionMutation.mutateAsync({
+          uuid: paciente.uuid,
+          idInstitucion: formData.idInstitucion as number,
+        })
+      }
       await updateMutation.mutateAsync({ id: paciente.id, data: payload })
     } else {
       await createMutation.mutateAsync(payload)
@@ -330,6 +369,58 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--imss-ink-300)]">
               Datos del expediente
             </p>
+
+            {/* Institución. Solo aparece si hay más de una opción: con una sola no
+                hay nada que elegir. Al editar se muestra pero no se cambia — mover
+                a alguien de sede dejaría su historial en la anterior. */}
+            {institucionesRegistro.length > 1 && (
+              <div className="space-y-1.5">
+                <Label className="text-[13px]">Institución</Label>
+                <Controller
+                  name="idInstitucion"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value != null ? String(field.value) : ''}
+                      onValueChange={(v) => v && field.onChange(Number(v))}
+                      disabled={institucionBloqueada}
+                    >
+                      <SelectTrigger className="h-9 text-[13px]">
+                        <SelectValue placeholder="Seleccione la institución" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {institucionesRegistro.map((op) => (
+                          <SelectItem key={op.id} value={String(op.id)}>
+                            {op.nombre}{op.propia ? ' (la tuya)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {institucionBloqueada ? (
+                  <p className="text-[11px] text-amber-600">
+                    {elegibilidad?.motivo ??
+                      'No se puede cambiar la institución de este participante.'}{' '}
+                    Cambiarla dejaría ese historial en la sede anterior.
+                  </p>
+                ) : isEdit ? (
+                  <p className="text-[11px] text-[var(--imss-ink-300)]">
+                    Se puede cambiar: el participante todavía no tiene registros que lo aten a
+                    su institución actual.
+                  </p>
+                ) : institucionSeleccionada && !institucionSeleccionada.visible ? (
+                  <p className="text-[11px] text-amber-600">
+                    Este participante quedará bajo {institucionSeleccionada.nombre} y no aparecerá
+                    en tus listados: puedes registrarlo ahí, pero no ves el padrón de esa sede.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-[var(--imss-ink-300)]">
+                    Institución a la que pertenecerá el participante.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="folio" className="text-[13px]">

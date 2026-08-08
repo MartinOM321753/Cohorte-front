@@ -1,5 +1,32 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio, getPacientesPaginados, getMiPacienteUuid } from '../api/pacientes.api'
+import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio, getPacientesPaginados, getMiPacienteUuid, getInstitucionesParaRegistro, getElegibilidadCambioInstitucion, getParticipantesConRegistrosPropios, getMisRegistrosDeParticipante } from '../api/pacientes.api'
+
+/**
+ * Si el participante todavía puede cambiar de institución. Se consulta al abrir
+ * la edición; la decisión real la vuelve a tomar el backend al guardar, porque
+ * entre una cosa y otra alguien pudo registrarle un estudio.
+ */
+export function useElegibilidadCambioInstitucion(uuid: string | null | undefined, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['pacientes', 'cambio-institucion', uuid],
+    queryFn: () => getElegibilidadCambioInstitucion(uuid as string),
+    enabled: (options?.enabled ?? true) && !!uuid,
+  })
+}
+
+/**
+ * Instituciones a las que el usuario puede asignar un participante nuevo.
+ * Solo se consulta con el formulario abierto: cambia poco y no vale la pena
+ * mantenerla cargada.
+ */
+export function useGetInstitucionesParaRegistro(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['pacientes', 'instituciones-registro'],
+    queryFn: getInstitucionesParaRegistro,
+    enabled: options?.enabled ?? true,
+    staleTime: 5 * 60 * 1000,
+  })
+}
 
 export function useGetPacientes(
   params?: { buscar?: string; activos?: boolean; incluirJerarquia?: boolean },
@@ -65,5 +92,24 @@ export function useGetPacientesPaginados(params: {
     queryKey: ['pacientes', 'paginado', params],
     queryFn: () => getPacientesPaginados(params),
     placeholderData: keepPreviousData,
+  })
+}
+
+
+/** Participantes fuera de tu alcance de los que conservas registros. */
+export function useParticipantesConRegistrosPropios(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['pacientes', 'con-registros-propios'],
+    queryFn: getParticipantesConRegistrosPropios,
+    enabled: options?.enabled ?? true,
+    staleTime: 60_000,
+  })
+}
+
+export function useMisRegistrosDeParticipante(uuid: string | null) {
+  return useQuery({
+    queryKey: ['pacientes', 'mis-registros', uuid],
+    queryFn: () => getMisRegistrosDeParticipante(uuid as string),
+    enabled: !!uuid,
   })
 }

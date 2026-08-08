@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createPaciente, updatePaciente, deletePaciente, toggleActivoPaciente, crearAccesoPaciente } from '../api/pacientes.api'
+import { createPaciente, updatePaciente, deletePaciente, toggleActivoPaciente, crearAccesoPaciente, cambiarInstitucionPaciente, reasignarInstitucionPacientes } from '../api/pacientes.api'
 import { PacienteRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -79,6 +79,41 @@ export function useCrearAccesoPaciente() {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message ?? 'Error al crear la cuenta de acceso')
+    },
+  })
+}
+
+export function useCambiarInstitucionPaciente() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ uuid, idInstitucion }: { uuid: string; idInstitucion: number }) =>
+      cambiarInstitucionPaciente(uuid, idInstitucion),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] })
+      toast.success('Institución del participante actualizada')
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message ?? 'Error al cambiar la institución')
+    },
+  })
+}
+
+/**
+ * Reasignación en lote. No muestra toast de éxito: el resultado se presenta en el
+ * modal con el detalle de los rechazados, que es lo que hay que revisar.
+ */
+export function useReasignarInstitucion() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ uuids, idInstitucion }: { uuids: string[]; idInstitucion: number }) =>
+      reasignarInstitucionPacientes(uuids, idInstitucion),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message ?? 'Error al reasignar la institución')
     },
   })
 }

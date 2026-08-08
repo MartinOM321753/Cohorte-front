@@ -1,5 +1,14 @@
 import axiosInstance from '@/lib/axiosInstance'
-import { ApiResponse, Paciente, PacienteRequestDTO, PaginatedResponse } from '@/types/api'
+import {
+  ApiResponse,
+  ElegibilidadCambioInstitucion,
+  InstitucionRegistroOpcion,
+  MisRegistrosParticipante,
+  Paciente,
+  PacienteRequestDTO,
+  PaginatedResponse,
+  ResumenReasignacion,
+} from '@/types/api'
 
 /**
  * Get all pacientes with optional pagination and filtering
@@ -51,6 +60,65 @@ export async function getMiPacienteUuid(): Promise<string> {
  */
 export async function getPacienteByFolio(folio: string): Promise<Paciente> {
   const response = await axiosInstance.get<ApiResponse<Paciente>>(`/pacientes/folio/${folio}`)
+  return response.data.data
+}
+
+/**
+ * Instituciones a las que el usuario puede asignar un participante nuevo.
+ * La marcada como `propia` es la que debe venir preseleccionada.
+ */
+export async function getInstitucionesParaRegistro(): Promise<InstitucionRegistroOpcion[]> {
+  const response = await axiosInstance.get<ApiResponse<InstitucionRegistroOpcion[]>>(
+    '/pacientes/instituciones-registro',
+  )
+  return response.data.data
+}
+
+/**
+ * Participantes que ya no gestionas pero de los que conservas registros. Aparecen
+ * cuando te revocaron el acceso: dejaste de gestionarlos, pero lo que registraste
+ * sigue siendo tuyo.
+ */
+export async function getParticipantesConRegistrosPropios(): Promise<Paciente[]> {
+  const response = await axiosInstance.get<ApiResponse<Paciente[]>>('/pacientes/con-registros-propios')
+  return response.data.data
+}
+
+/** Solo lo que tu institución le registró a ese participante. */
+export async function getMisRegistrosDeParticipante(uuid: string): Promise<MisRegistrosParticipante> {
+  const response = await axiosInstance.get<ApiResponse<MisRegistrosParticipante>>(
+    `/pacientes/uuid/${uuid}/mis-registros`,
+  )
+  return response.data.data
+}
+
+/** ¿Se puede cambiar de institución a este participante, y si no, qué lo impide? */
+export async function getElegibilidadCambioInstitucion(
+  uuid: string,
+): Promise<ElegibilidadCambioInstitucion> {
+  const response = await axiosInstance.get<ApiResponse<ElegibilidadCambioInstitucion>>(
+    `/pacientes/uuid/${uuid}/cambio-institucion`,
+  )
+  return response.data.data
+}
+
+export async function cambiarInstitucionPaciente(uuid: string, idInstitucion: number): Promise<Paciente> {
+  const response = await axiosInstance.put<ApiResponse<Paciente>>(
+    `/pacientes/uuid/${uuid}/institucion`,
+    { idInstitucion },
+  )
+  return response.data.data
+}
+
+/** Reasignación en lote. Los que no se puedan mover vuelven en el detalle con su motivo. */
+export async function reasignarInstitucionPacientes(
+  uuids: string[],
+  idInstitucion: number,
+): Promise<ResumenReasignacion> {
+  const response = await axiosInstance.put<ApiResponse<ResumenReasignacion>>(
+    '/pacientes/reasignar-institucion',
+    { uuids, idInstitucion },
+  )
   return response.data.data
 }
 
