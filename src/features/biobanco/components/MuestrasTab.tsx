@@ -9,6 +9,7 @@ import { useGetMuestras, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslad
 import { getLabelDataEtiqueta, getLabelDataAlicuotas, getLabelDataLoteCompleto } from '../api/biobanco.api'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
 import { PrintableLabelsView } from '@/components/print/PrintableLabelsView'
+import { SedeBadge } from '@/components/common/SedeBadge'
 import type { PrintableLabelBatchDTO } from '@/types/api'
 import { MuestraFormModal } from './MuestraFormModal'
 import { GenerarAlicuotasModal } from './GenerarAlicuotasModal'
@@ -381,6 +382,10 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
             <div className="flex-1 min-w-0">
               <CardTitle className="text-base font-mono leading-tight">{muestra.etiqueta}</CardTitle>
               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <SedeBadge
+                  idInstitucion={muestra.idInstitucion}
+                  nombreInstitucion={muestra.nombreInstitucion}
+                />
                 {muestra.tipoMuestra && (
                   <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground border rounded-full px-2 py-0.5">
                     <FlaskConical className="h-2.5 w-2.5" />
@@ -574,6 +579,10 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
               {muestra.etiqueta}
             </CardTitle>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <SedeBadge
+                idInstitucion={muestra.idInstitucion}
+                nombreInstitucion={muestra.nombreInstitucion}
+              />
               {muestra.numeroAlicuota != null && muestra.totalAlicuotas != null && (
                 <span className="inline-flex items-center text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-full px-2 py-0.5">
                   Alíc. {muestra.numeroAlicuota}/{muestra.totalAlicuotas}

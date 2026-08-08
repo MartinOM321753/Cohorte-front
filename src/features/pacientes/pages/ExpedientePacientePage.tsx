@@ -62,6 +62,7 @@ import {
 import { DocumentoUploader } from '@/features/documentos/components/DocumentoUploader'
 import { DocumentoList } from '@/features/documentos/components/DocumentoList'
 import { CrearEtiquetaButton } from '@/features/documentos/components/CrearEtiquetaButton'
+import { SedeBadge } from '@/components/common/SedeBadge'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 import type {
@@ -1041,7 +1042,13 @@ function CitasCard({
                         {cita.fecha ? formatDate(cita.fecha, 'HH:mm') : '—'}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-[var(--imss-ink-900)]">
-                        {cita.tipo || <span className="italic text-[var(--imss-ink-300)]">Cita médica</span>}
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          {cita.tipo || <span className="italic text-[var(--imss-ink-300)]">Cita médica</span>}
+                          <SedeBadge
+                            uuidInstitucion={cita.institucionUuid}
+                            nombreInstitucion={cita.institucionNombre}
+                          />
+                        </span>
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-[var(--imss-ink-500)]">
                         {cita.profesional || '—'}
@@ -1674,7 +1681,15 @@ function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUu
                     <td className="px-4 py-2.5 font-mono text-[12px] text-[var(--imss-ink-900)]">
                       {estudio.fechaEstudio ? formatDate(estudio.fechaEstudio, 'dd/MM/yyyy') : '—'}
                     </td>
-                    <td className="px-4 py-2.5 text-[13px] font-medium text-[var(--imss-ink-900)]">{estudio.tipoEstudio}</td>
+                    <td className="px-4 py-2.5 text-[13px] font-medium text-[var(--imss-ink-900)]">
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        {estudio.tipoEstudio}
+                        <SedeBadge
+                          idInstitucion={estudio.institucionId}
+                          nombreInstitucion={estudio.institucionNombre}
+                        />
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5 text-[13px] text-[var(--imss-ink-500)] max-w-[140px] truncate">{estudio.usuarioRealiza}</td>
                     <td className="px-4 py-2.5 text-center">
                       <span className="inline-flex items-center justify-center rounded-full bg-[var(--muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--imss-ink-500)]">

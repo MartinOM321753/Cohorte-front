@@ -23,6 +23,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SedeBadge } from '@/components/common/SedeBadge'
 
 // Se calcula en cada uso, no una sola vez al importar el modulo: asi la fecha no
 // se queda congelada en la hora en que se cargo la pagina, y respeta el horario
@@ -142,8 +143,30 @@ export function EstudiosTab() {
                 {(estudios || []).map((e: EstudioListDTO) => (
                   <TableRow key={e.id}>
                     <TableCell className="font-mono">{String(e.fechaEstudio || '').slice(0, 16).replace('T', ' ')}</TableCell>
-                    <TableCell>{e.tipoEstudio}</TableCell>
-                    <TableCell className="truncate max-w-[160px]">{e.paciente}</TableCell>
+                    <TableCell>
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        {e.tipoEstudio}
+                        <SedeBadge
+                          idInstitucion={e.institucionId}
+                          nombreInstitucion={e.institucionNombre}
+                        />
+                      </span>
+                    </TableCell>
+                    {/* Cuando el participante ya no está al alcance —permiso revocado— se
+                        muestra el registro pero sin invitar a abrirlo: el enlace rebotaría
+                        y parecería un error. El estudio sigue siendo de esta institución. */}
+                    <TableCell className="truncate max-w-[160px]">
+                      {e.pacienteAlcanzable === false ? (
+                        <span
+                          className="italic text-muted-foreground"
+                          title="El participante pertenece a otra institución y ya no está a tu alcance"
+                        >
+                          Participante de otra institución
+                        </span>
+                      ) : (
+                        e.paciente
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"

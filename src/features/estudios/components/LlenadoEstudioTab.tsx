@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ReactNode } from 'react'
-import { AlertCircle, Check, ChevronsUpDown, ClipboardList, Info, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertCircle, Check, ChevronsUpDown, ClipboardList, Eye, Info, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/authStore'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
@@ -161,6 +161,10 @@ export function LlenadoEstudioTab() {
   const [selectedPacienteUUID, setSelectedPacienteUUID] = useState('')
   const [selectedTipoId, setSelectedTipoId] = useState<number>(0)
   const [editingEstudioId, setEditingEstudioId] = useState<number | null>(null)
+  // Un estudio de otra sede se abre para consultarlo, no para editarlo: guardar
+  // rebotaria con 403 y ya se llenaron los campos para nada. Ver ParticipanteAccesoService.
+  const [soloLectura, setSoloLectura] = useState(false)
+  const idInstitucionPropia = useAuthStore((s) => s.user?.institucion?.id)
   const [docEstudioId, setDocEstudioId] = useState<number | null>(null)
 
   // ── Grupo mode state ──────────────────────────────────
@@ -369,6 +373,7 @@ export function LlenadoEstudioTab() {
     })
     setSelectedTipoId(0)
     setEditingEstudioId(null)
+    setSoloLectura(false)
     setModoCaptura('NORMAL')
     setGrupos([])
     setGruposError(null)
@@ -557,22 +562,33 @@ export function LlenadoEstudioTab() {
                         >
                           <Paperclip className="h-3.5 w-3.5" strokeWidth={1.75} />
                         </Button>
-                        {puedeEditar && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Editar estudio"
-                            onClick={() => {
-                              setEditingEstudioId(e.id)
-                              setSelectedTipoId(e.tipoEstudioid)
-                              setValue('idTipoEstudio', e.tipoEstudioid)
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          </Button>
-                        )}
+                        {(() => {
+                          const ajeno = e.institucionId != null
+                            && idInstitucionPropia != null
+                            && e.institucionId !== idInstitucionPropia
+                          if (!puedeEditar && !ajeno) return null
+                          return (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title={ajeno
+                                ? `Consultar — registrado por ${e.institucionNombre ?? 'otra institución'}`
+                                : 'Editar estudio'}
+                              onClick={() => {
+                                setSoloLectura(ajeno)
+                                setEditingEstudioId(e.id)
+                                setSelectedTipoId(e.tipoEstudioid)
+                                setValue('idTipoEstudio', e.tipoEstudioid)
+                              }}
+                            >
+                              {ajeno
+                                ? <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+                                : <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                            </Button>
+                          )
+                        })()}
                         {isAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -630,6 +646,19 @@ export function LlenadoEstudioTab() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4 p-4">
+          {soloLectura && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+              <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" />
+              <p className="text-[12px] leading-snug text-amber-800">
+                Estás consultando un estudio registrado por otra institución. Puedes verlo
+                completo, pero solo la sede que lo realizó puede modificarlo.
+              </p>
+            </div>
+          )}
+
+          {/* Un fieldset deshabilitado apaga todos los campos de golpe, sin tener que
+              tocar cada control uno por uno. */}
+          <fieldset disabled={soloLectura} className="space-y-4 border-0 p-0 m-0 disabled:opacity-70">
           {/* Paciente */}
           <FormField label="Participante" required error={errors.pacienteUUID?.message as string}>
             <div className="flex items-center gap-2">
@@ -872,12 +901,15 @@ export function LlenadoEstudioTab() {
             )}
           </FormField>
 
+          </fieldset>
+
           <div className="flex items-center justify-end gap-2 pt-1">
             <Button type="button" variant="ghost" onClick={resetForm} disabled={isPending}>
               {editingEstudioId ? 'Cancelar' : 'Limpiar'}
             </Button>
             <Button
               type="submit"
+              className={soloLectura ? 'hidden' : undefined}
               disabled={isPending || (selectedTipoId > 0 && parametrosList.length === 0)}
             >
               {isPending ? (
