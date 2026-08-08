@@ -115,6 +115,11 @@ export interface PacienteRequestDTO {
   folio?: string
   persona: PersonaRequestDTO
   reclutamiento: ReclutamientoParticipanteRequestDTO
+  /**
+   * Institución a la que quedará asignado. Si se omite, la del usuario. El backend
+   * la valida contra el conjunto autorizado y la ignora al actualizar.
+   */
+  idInstitucion?: number
 }
 
 // ============================================
@@ -219,6 +224,9 @@ export interface Cita {
   fechaCreacion?: string
   paciente?: PacienteResumenDTO
   usuarioAgenda?: UsuarioResumenDTO
+  /** Sede que registró; puede no ser la del usuario. */
+  institucionUuid?: string
+  institucionNombre?: string
 }
 
 /** Slim projection returned by GET /citas/paciente/{uuid}/resumen */
@@ -229,6 +237,9 @@ export interface CitaResumen {
   tipo: string | null
   estado: string       // "Programada" | "No_Asistio" | "Completada" | "Cancelada"
   profesional: string | null
+  /** Sede que agendó; puede no ser la del usuario. */
+  institucionUuid?: string | null
+  institucionNombre?: string | null
 }
 
 export interface CitaRequestDTO {
@@ -344,6 +355,14 @@ export interface EstudioListDTO {
   tipoEstudioid: number
   cantidadResultados?: number
   cantidadAdjuntos?: number
+  /** Sede que realizó el estudio; puede no ser la del usuario. */
+  institucionId?: number
+  institucionNombre?: string
+  /**
+   * false → el participante ya no está al alcance (permiso revocado). El estudio
+   * sigue siendo de esta institución, pero su expediente no se puede abrir.
+   */
+  pacienteAlcanzable?: boolean
 }
 
 /** Full detail DTO — returned by GET /estudios/{id} */
@@ -999,6 +1018,85 @@ export interface PermisoAccesoPacientes {
   fechaOtorgamiento: string
 }
 
+/**
+ * Autorización para que una institución hija registre participantes a nombre de
+ * otras de su mismo grupo. Es independiente de `PermisoAccesoPacientes`: aquella
+ * decide quién ve el padrón de otra sede, esta quién puede darlo de alta.
+ */
+export interface PermisoRegistroParticipantes {
+  id: number
+  institucionOtorgaId: number
+  institucionOtorgaNombre: string
+  institucionRecibeId: number
+  institucionRecibeNombre: string
+  habilitado: boolean
+  fechaOtorgamiento: string
+}
+
+/** Una fila de «lo que mi institución le registró» a un participante. */
+export interface RegistroPropio {
+  id: number
+  fecha: string | null
+  descripcion: string | null
+}
+
+/**
+ * Lo que UNA institución registró a un participante que ya no gestiona. No es el
+ * expediente: el historial completo le corresponde a la institución dueña.
+ */
+export interface MisRegistrosParticipante {
+  pacienteUuid: string
+  folio: string
+  nombreCompleto: string
+  institucionActualNombre: string | null
+  estudios: RegistroPropio[]
+  muestras: RegistroPropio[]
+  citas: RegistroPropio[]
+  somatometrias: RegistroPropio[]
+  examenes: RegistroPropio[]
+}
+
+/** Un tipo de registro que ata al participante con su institución actual. */
+export interface VinculoInstitucion {
+  tipo: string
+  etiqueta: string
+  cantidad: number
+}
+
+/**
+ * Un participante solo cambia de institución mientras nada lo ate a la actual.
+ * Cuando no se puede, llega el detalle con conteos para saber qué lo impide.
+ */
+export interface ElegibilidadCambioInstitucion {
+  puedeCambiar: boolean
+  vinculos: VinculoInstitucion[]
+  motivo: string | null
+}
+
+export interface ResultadoReasignacion {
+  uuid: string
+  folio: string | null
+  movido: boolean
+  motivo: string | null
+}
+
+export interface ResumenReasignacion {
+  solicitados: number
+  movidos: number
+  rechazados: number
+  detalle: ResultadoReasignacion[]
+}
+
+/** Opción del desplegable de institución al registrar un participante. */
+export interface InstitucionRegistroOpcion {
+  id: number
+  nombre: string
+  /** Es la institución del usuario; viene preseleccionada. */
+  propia: boolean
+  /** Si es false, el participante no aparecerá en los listados del usuario. */
+  visible: boolean
+}
+
 export interface TipoInstitucionRequestDTO {
   nombre: string
 }
@@ -1124,6 +1222,9 @@ export interface Somatometria {
   observaciones?: string | null
   usuarioRegistraNombre?: string | null
   fechaRegistro: string         // ISO datetime
+  /** Sede que registró; puede no ser la del usuario. */
+  institucionUuid?: string
+  institucionNombre?: string
 }
 
 export interface SomatometriaRequestDTO {

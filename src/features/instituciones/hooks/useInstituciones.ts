@@ -25,6 +25,10 @@ import {
   getPermisosAccesoPacientesRecibidos,
   otorgarPermisoAccesoPacientes,
   revocarPermisoAccesoPacientes,
+  getPermisosRegistroOtorgados,
+  getPermisosRegistroRecibidos,
+  otorgarPermisoRegistro,
+  revocarPermisoRegistro,
 } from '../api/instituciones.api'
 import { InstitucionRequestDTO, ModuloSistema, TipoInstitucionRequestDTO } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -313,6 +317,56 @@ export function useRevocarPermisoAccesoPacientes(idInstitucion: number | null) {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al revocar el permiso')
+    },
+  })
+}
+
+// ── Permisos de registro de participantes ────────────────────────────────────
+
+export function useGetPermisosRegistroOtorgados(idInstitucion: number | null) {
+  return useQuery({
+    queryKey: ['instituciones', 'permisos-registro', 'otorgados', idInstitucion],
+    queryFn: () => getPermisosRegistroOtorgados(idInstitucion as number),
+    enabled: idInstitucion != null,
+  })
+}
+
+export function useGetPermisosRegistroRecibidos(idInstitucion: number | null) {
+  return useQuery({
+    queryKey: ['instituciones', 'permisos-registro', 'recibidos', idInstitucion],
+    queryFn: () => getPermisosRegistroRecibidos(idInstitucion as number),
+    enabled: idInstitucion != null,
+  })
+}
+
+export function useOtorgarPermisoRegistro(idInstitucion: number | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (idInstitucionRecibe: number) =>
+      otorgarPermisoRegistro(idInstitucion as number, idInstitucionRecibe),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instituciones', 'permisos-registro', 'otorgados', idInstitucion] })
+      queryClient.invalidateQueries({ queryKey: ['pacientes', 'instituciones-registro'] })
+      toast.success('Autorización otorgada: esta sede ya puede registrar participantes en el grupo')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al otorgar la autorización')
+    },
+  })
+}
+
+export function useRevocarPermisoRegistro(idInstitucion: number | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (idInstitucionRecibe: number) =>
+      revocarPermisoRegistro(idInstitucion as number, idInstitucionRecibe),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instituciones', 'permisos-registro', 'otorgados', idInstitucion] })
+      queryClient.invalidateQueries({ queryKey: ['pacientes', 'instituciones-registro'] })
+      toast.success('Autorización revocada')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al revocar la autorización')
     },
   })
 }

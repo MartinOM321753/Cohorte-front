@@ -11,13 +11,13 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Users, AlertCircle, Network } from 'lucide-react'
+import { UserPlus, AlertCircle, Network } from 'lucide-react'
 import {
   useGetInstitucionesHijas,
-  useGetPermisosAccesoPacientesOtorgados,
-  useGetPermisosAccesoPacientesRecibidos,
-  useOtorgarPermisoAccesoPacientes,
-  useRevocarPermisoAccesoPacientes,
+  useGetPermisosRegistroOtorgados,
+  useGetPermisosRegistroRecibidos,
+  useOtorgarPermisoRegistro,
+  useRevocarPermisoRegistro,
 } from '../hooks/useInstituciones'
 import { Institucion } from '@/types/api'
 
@@ -28,22 +28,26 @@ interface Props {
 }
 
 /**
- * Gestiona, desde la perspectiva de una institución padre, qué instituciones hijas
- * pueden ver a SUS pacientes. Por defecto una hija NO ve los pacientes del padre —
- * solo si el padre otorga el permiso explícito aquí (tabla `permiso_acceso_pacientes`).
+ * Autoriza, desde la institución padre, a qué hijas se les permite registrar
+ * participantes a nombre de otras sedes del grupo — el propio padre y las
+ * hermanas.
  *
- * También muestra (solo lectura) qué permisos ha recibido esta institución de sus
- * propias instituciones ancestras, para que quede claro de dónde viene el acceso.
+ * Se diferencia del permiso de acceso a pacientes por su alcance: aquel abre el
+ * padrón de la institución que otorga, y este el del grupo entero — el padre y
+ * todas sus hijas.
+ *
+ * Sin autorización cada sede registra y atiende únicamente lo suyo y lo de sus
+ * descendientes, que es como venía funcionando.
  */
-export function PermisosAccesoPacientesModal({ open, onOpenChange, institucion }: Props) {
+export function PermisosRegistroParticipantesModal({ open, onOpenChange, institucion }: Props) {
   const idInstitucion = institucion?.id ?? null
 
   const { data: hijas = [], isLoading: isLoadingHijas } = useGetInstitucionesHijas(open ? idInstitucion : null)
-  const { data: otorgados = [], isLoading: isLoadingOtorgados } = useGetPermisosAccesoPacientesOtorgados(open ? idInstitucion : null)
-  const { data: recibidos = [] } = useGetPermisosAccesoPacientesRecibidos(open ? idInstitucion : null)
+  const { data: otorgados = [], isLoading: isLoadingOtorgados } = useGetPermisosRegistroOtorgados(open ? idInstitucion : null)
+  const { data: recibidos = [] } = useGetPermisosRegistroRecibidos(open ? idInstitucion : null)
 
-  const otorgarMutation = useOtorgarPermisoAccesoPacientes(idInstitucion)
-  const revocarMutation = useRevocarPermisoAccesoPacientes(idInstitucion)
+  const otorgarMutation = useOtorgarPermisoRegistro(idInstitucion)
+  const revocarMutation = useRevocarPermisoRegistro(idInstitucion)
 
   const permisoPorHija = useMemo(() => {
     const map = new Map<number, typeof otorgados[number]>()
@@ -69,12 +73,12 @@ export function PermisosAccesoPacientesModal({ open, onOpenChange, institucion }
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Permisos de acceso a pacientes
+            <UserPlus className="h-5 w-5 text-primary" />
+            Registro de participantes en el grupo
           </DialogTitle>
           <DialogDescription>
             {institucion
-              ? <>Define qué instituciones hijas pueden <strong>ver y atender</strong> a los participantes de <strong>{institucion.nombre}</strong>. Por defecto, una hija no tiene acceso a los del padre.</>
+              ? <>Define qué instituciones hijas pueden registrar participantes a nombre de <strong>{institucion.nombre}</strong> y de las demás hijas. Sin esta autorización, cada sede solo registra para sí misma.</>
               : 'Selecciona una institución'}
           </DialogDescription>
         </DialogHeader>
@@ -83,7 +87,7 @@ export function PermisosAccesoPacientesModal({ open, onOpenChange, institucion }
           <Alert>
             <Network className="h-4 w-4" />
             <AlertDescription>
-              Esta institución ya puede ver pacientes de:{' '}
+              Esta institución ya puede registrar participantes en el grupo de:{' '}
               {recibidos.map(p => p.institucionOtorgaNombre).join(', ')}
             </AlertDescription>
           </Alert>
@@ -115,7 +119,7 @@ export function PermisosAccesoPacientesModal({ open, onOpenChange, institucion }
                     <span className="text-sm font-medium">{hija.nombre}</span>
                     {checked && (
                       <Badge variant="outline" className="w-fit text-[10px] mt-0.5">
-                        Atiende a los participantes de {institucion?.nombre}
+                        Registra para {institucion?.nombre} y las demás hijas
                       </Badge>
                     )}
                   </div>
@@ -129,6 +133,12 @@ export function PermisosAccesoPacientesModal({ open, onOpenChange, institucion }
             })}
           </div>
         )}
+
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Esta autorización abre el grupo completo: la hija podrá dar de alta participantes a
+          nombre del padre y de sus hermanas, y también verlos y atenderlos. Sería incoherente
+          dejarla registrar en una sede que después no puede abrir.
+        </p>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>

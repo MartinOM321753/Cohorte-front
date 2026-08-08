@@ -7,6 +7,7 @@ import {
   InstitucionModuloPermiso,
   ModuloSistema,
   PermisoAccesoPacientes,
+  PermisoRegistroParticipantes,
   TipoInstitucionCatalogo,
   TipoInstitucionRequestDTO,
 } from '@/types/api'
@@ -183,6 +184,39 @@ export async function otorgarPermisoAccesoPacientes(idInstitucion: number, idIns
 export async function revocarPermisoAccesoPacientes(idInstitucion: number, idInstitucionRecibe: number) {
   const response = await api.delete<ApiResponse<PermisoAccesoPacientes>>(
     `${BASE}/${idInstitucion}/permisos-pacientes/revocar/${idInstitucionRecibe}`,
+  )
+  return response.data.data
+}
+
+// ============================================
+// PERMISOS DE REGISTRO DE PARTICIPANTES
+// (institución padre autoriza a una hija a registrar dentro del grupo)
+// ============================================
+
+export async function getPermisosRegistroOtorgados(idInstitucion: number) {
+  const response = await api.get<ApiResponse<PermisoRegistroParticipantes[]>>(
+    `${BASE}/${idInstitucion}/permisos-registro/otorgados`,
+  )
+  return response.data.data
+}
+
+export async function getPermisosRegistroRecibidos(idInstitucion: number) {
+  const response = await api.get<ApiResponse<PermisoRegistroParticipantes[]>>(
+    `${BASE}/${idInstitucion}/permisos-registro/recibidos`,
+  )
+  return response.data.data
+}
+
+export async function otorgarPermisoRegistro(idInstitucion: number, idInstitucionRecibe: number) {
+  const response = await api.post<ApiResponse<PermisoRegistroParticipantes>>(
+    `${BASE}/${idInstitucion}/permisos-registro/otorgar/${idInstitucionRecibe}`,
+  )
+  return response.data.data
+}
+
+export async function revocarPermisoRegistro(idInstitucion: number, idInstitucionRecibe: number) {
+  const response = await api.delete<ApiResponse<PermisoRegistroParticipantes>>(
+    `${BASE}/${idInstitucion}/permisos-registro/revocar/${idInstitucionRecibe}`,
   )
   return response.data.data
 }
