@@ -2,39 +2,39 @@ import { useQuery } from '@tanstack/react-query'
 import type { CatalogoTipo } from '../types/cobertura.types'
 import * as api from '../api/cobertura.api'
 
-export const useCobertura = (tipo: CatalogoTipo) =>
+export const useCobertura = (tipo: CatalogoTipo, idInstitucion?: number) =>
   useQuery({
-    queryKey: ['cobertura', tipo],
-    queryFn: () => api.getCobertura(tipo),
+    queryKey: ['cobertura', tipo, idInstitucion],
+    queryFn: () => api.getCobertura(tipo, idInstitucion),
     staleTime: 5 * 60_000,
   })
 
-export const useDistribucion = (tipo: CatalogoTipo) =>
+export const useDistribucion = (tipo: CatalogoTipo, idInstitucion?: number) =>
   useQuery({
-    queryKey: ['cobertura-dist', tipo],
-    queryFn: () => api.getDistribucion(tipo),
+    queryKey: ['cobertura-dist', tipo, idInstitucion],
+    queryFn: () => api.getDistribucion(tipo, idInstitucion),
     staleTime: 5 * 60_000,
   })
 
-export const usePendientes = (tipoId: number | null, catalogoTipo: CatalogoTipo) =>
+export const usePendientes = (tipoId: number | null, catalogoTipo: CatalogoTipo, idInstitucion?: number) =>
   useQuery({
-    queryKey: ['cobertura-pendientes', tipoId, catalogoTipo],
-    queryFn: () => api.getPendientes(tipoId!, catalogoTipo),
+    queryKey: ['cobertura-pendientes', tipoId, catalogoTipo, idInstitucion],
+    queryFn: () => api.getPendientes(tipoId!, catalogoTipo, idInstitucion),
     enabled: tipoId !== null,
     staleTime: 60_000,
   })
 
-export const useGrupo = (k: number | null, catalogoTipo: CatalogoTipo) =>
+export const useGrupo = (k: number | null, catalogoTipo: CatalogoTipo, idInstitucion?: number) =>
   useQuery({
-    queryKey: ['cobertura-grupo', k, catalogoTipo],
-    queryFn: () => api.getGrupo(k!, catalogoTipo),
+    queryKey: ['cobertura-grupo', k, catalogoTipo, idInstitucion],
+    queryFn: () => api.getGrupo(k!, catalogoTipo, idInstitucion),
     enabled: k !== null,
     staleTime: 60_000,
   })
 
-export const useMatriz = (catalogoTipo: CatalogoTipo) =>
+export const useMatriz = (catalogoTipo: CatalogoTipo, idInstitucion?: number) =>
   useQuery({
-    queryKey: ['cobertura-matriz', catalogoTipo],
-    queryFn: () => api.getMatriz(catalogoTipo),
+    queryKey: ['cobertura-matriz', catalogoTipo, idInstitucion],
+    queryFn: () => api.getMatriz(catalogoTipo, idInstitucion),
     staleTime: 5 * 60_000,
   })
