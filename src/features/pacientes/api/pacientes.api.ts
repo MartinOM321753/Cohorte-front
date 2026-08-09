@@ -48,6 +48,17 @@ export async function getPacienteByUUID(uuid: string): Promise<Paciente> {
 }
 
 /**
+ * Identidad del participante para rotular una pantalla de consulta. A diferencia
+ * de {@link getPacienteByUUID}, responde también para los de solo consulta: los
+ * que esta institución ya no gestiona pero de los que conserva registros. Trae
+ * `soloConsulta` para que la pantalla sepa que solo puede leer.
+ */
+export async function getPacienteBasicoByUUID(uuid: string): Promise<Paciente> {
+  const response = await axiosInstance.get<ApiResponse<Paciente>>(`/pacientes/uuid/${uuid}/basico`)
+  return response.data.data
+}
+
+/**
  * Resuelve el UUID del propio expediente para el rol PACIENTE (sin conocerlo de antemano).
  */
 export async function getMiPacienteUuid(): Promise<string> {
@@ -187,6 +198,8 @@ export async function getPacientesPaginados(params: {
 export async function buscarPacientes(params: {
   q?: string
   incluirJerarquia?: boolean
+  /** Incluye, marcados, los participantes que ya no gestionas pero con registros tuyos. */
+  incluirSoloConsulta?: boolean
 }): Promise<PacientesPaginados> {
   const response = await axiosInstance.get<ApiResponse<PacientesPaginados>>(
     '/pacientes/buscar',

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRightLeft,
   Building2,
@@ -15,7 +16,6 @@ import { PacientesTable } from "../components/PacientesTable";
 import { PacienteFormModal } from "../components/PacienteFormModal";
 import { PacienteImportModal } from "../components/PacienteImportModal";
 import { ReasignarInstitucionModal } from "../components/ReasignarInstitucionModal";
-import { MisRegistrosParticipanteModal } from "../components/MisRegistrosParticipanteModal";
 import { PacienteDetailDrawer } from "../components/PacienteDetailDrawer";
 import { CitaIlamyEventForm } from "@/features/citas/components/CitaIlamyEventForm";
 import { SomatometriaFormModal } from "@/features/somatometria/components/SomatometriaFormModal";
@@ -45,6 +45,7 @@ const ESTADO_OPCIONES: { valor: EstadoFiltro; label: string }[] = [
 ];
 
 export default function PacientesPage() {
+  const navigate = useNavigate();
   const [incluirJerarquia, setIncluirJerarquia] = useState(false);
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>("activos");
   const [idInstitucionFiltro, setIdInstitucionFiltro] = useState<number | null>(
@@ -104,7 +105,6 @@ export default function PacientesPage() {
   );
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isReasignarOpen, setIsReasignarOpen] = useState(false);
-  const [uuidRegistrosPropios, setUuidRegistrosPropios] = useState<string | null>(null);
 
   // Participantes que esta sede ya no gestiona pero de los que conserva registros.
   // Van aparte de la tabla a propósito: no se pueden gestionar, solo consultar lo
@@ -335,7 +335,7 @@ export default function PacientesPage() {
             </p>
             <p className="text-[12px] text-[var(--imss-ink-500)]">
               Pertenecen a otra institución, pero conservas los registros que les hiciste.
-              Puedes consultarlos, no modificarlos.
+              Al abrirlos verás únicamente lo tuyo, sin poder modificarlo.
             </p>
           </div>
           <ul className="divide-y rounded-md border">
@@ -343,7 +343,7 @@ export default function PacientesPage() {
               <li key={p.uuid}>
                 <button
                   type="button"
-                  onClick={() => setUuidRegistrosPropios(p.uuid)}
+                  onClick={() => navigate(`/estudios?paciente=${p.uuid}`)}
                   className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-[var(--imss-green-50)]"
                 >
                   <span className="min-w-0">
@@ -356,7 +356,7 @@ export default function PacientesPage() {
                     </span>
                   </span>
                   <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                    Ver mis registros
+                    Consultar
                   </span>
                 </button>
               </li>
@@ -385,10 +385,6 @@ export default function PacientesPage() {
       {/* Modal importar */}
       <PacienteImportModal open={isImportOpen} onOpenChange={setIsImportOpen} />
 
-      <MisRegistrosParticipanteModal
-        uuid={uuidRegistrosPropios}
-        onClose={() => setUuidRegistrosPropios(null)}
-      />
 
       {/* Modal reasignar institución en lote */}
       <ReasignarInstitucionModal open={isReasignarOpen} onOpenChange={setIsReasignarOpen} />

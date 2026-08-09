@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio, getPacientesPaginados, getMiPacienteUuid, getInstitucionesParaRegistro, getElegibilidadCambioInstitucion, getParticipantesConRegistrosPropios, getMisRegistrosDeParticipante } from '../api/pacientes.api'
+import { getPacientes, getPacientesActivos, getPacienteById, getPacienteByUUID, getPacienteByFolio, getPacientesPaginados, getMiPacienteUuid, getInstitucionesParaRegistro, getElegibilidadCambioInstitucion, getParticipantesConRegistrosPropios } from '../api/pacientes.api'
 
 /**
  * Si el participante todavía puede cambiar de institución. Se consulta al abrir
@@ -106,10 +106,3 @@ export function useParticipantesConRegistrosPropios(options?: { enabled?: boolea
   })
 }
 
-export function useMisRegistrosDeParticipante(uuid: string | null) {
-  return useQuery({
-    queryKey: ['pacientes', 'mis-registros', uuid],
-    queryFn: () => getMisRegistrosDeParticipante(uuid as string),
-    enabled: !!uuid,
-  })
-}

@@ -107,6 +107,11 @@ export interface Paciente {
   institucionId?: number
   institucionNombre?: string
   propiaInstitucion?: boolean
+  /**
+   * true → ya no gestionas a este participante pero conservas registros suyos.
+   * Se puede consultar lo propio; no registrar ni actualizar.
+   */
+  soloConsulta?: boolean
   tieneAcceso?: boolean
 }
 

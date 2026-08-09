@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
@@ -7,6 +8,7 @@ import {
   Check,
   ChevronsUpDown,
   ClipboardList,
+  Eye,
   Filter,
   Info,
   Minus,
@@ -29,6 +31,7 @@ import {
   useUpdateResultadoExamen,
 } from '../hooks/useExamenes'
 import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
+import { getPacienteBasicoByUUID } from '@/features/pacientes/api/pacientes.api'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -171,6 +174,8 @@ export function ResultadosExamenTab() {
   const [docsResultadoId, setDocsResultadoId] = useState<number | null>(null)
   const [selectedPacienteLabel, setSelectedPacienteLabel] = useState<string | null>(null)
   const [selectedPacienteSexo, setSelectedPacienteSexo] = useState<'M' | 'F' | null>(null)
+  // Participante que ya no se gestiona: se le consulta lo propio, no se le registra.
+  const [pacienteSoloConsulta, setPacienteSoloConsulta] = useState(false)
   const [filterExamenId, setFilterExamenId] = useState<string>('all')
   const { data: examenes, isLoading: isLoadingExamenes } = useGetExamenes()
   const saveMutation   = useSaveResultadoExamen()
@@ -212,6 +217,33 @@ export function ResultadosExamenTab() {
   )
 
   useEffect(() => { setFilterExamenId('all') }, [watchedPacienteUUID])
+
+  // Al llegar desde «Participantes que ya no gestionas» el uuid viene en la URL:
+  // ese participante no aparece en la búsqueda normal, así que se preselecciona.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const uuidDeLaUrl = searchParams.get('paciente')
+
+  useEffect(() => {
+    if (!uuidDeLaUrl) return
+    setValue('pacienteUUID', uuidDeLaUrl)
+    // El parámetro se consume: si se queda en la URL, «Cambiar» vuelve a
+    // preseleccionar al mismo y no hay forma de salir de esta consulta.
+    setSearchParams((prev) => {
+      const siguiente = new URLSearchParams(prev)
+      siguiente.delete('paciente')
+      return siguiente
+    }, { replace: true })
+    getPacienteBasicoByUUID(uuidDeLaUrl)
+      .then((p) => {
+        setSelectedPacienteLabel([p.folio, [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')]
+          .filter(Boolean).join(' — '))
+        setSelectedPacienteSexo(p.persona?.sexo === 'M' ? 'M' : p.persona?.sexo === 'F' ? 'F' : null)
+        setPacienteSoloConsulta(!!p.soloConsulta)
+      })
+      // Si no se pudo resolver quién es, no se ofrece registrar: es preferible una
+      // pantalla de solo lectura a un alta que el backend va a rechazar.
+      .catch(() => setPacienteSoloConsulta(true))
+  }, [uuidDeLaUrl, setValue, setSearchParams])
 
   const {
     data: resultados,
@@ -268,6 +300,9 @@ export function ResultadosExamenTab() {
     setEditingId(null)
     setSelectedPacienteLabel(null)
     setSelectedPacienteSexo(null)
+    // El modo de solo consulta es del participante, no de la pantalla: al soltarlo
+    // hay que soltarlo también, o el siguiente hereda una restricción que no le toca.
+    setPacienteSoloConsulta(false)
     reset({ ...freshDefaults(horarioActivo), usuarioRegistroUUID: userUuid })
   }
 
@@ -302,7 +337,9 @@ export function ResultadosExamenTab() {
   const isEditing = editingId !== null
 
 
-  const showForm = puedeCrear || (puedeEditarExamen && isEditing)
+  // A un participante de solo consulta no se le registra nada: el formulario
+  // desaparece y queda el historial de lo que esta institución le hizo.
+  const showForm = (puedeCrear || (puedeEditarExamen && isEditing)) && !pacienteSoloConsulta
 
   return (
     <div className="space-y-4">
@@ -310,8 +347,10 @@ export function ResultadosExamenTab() {
         <div className="flex items-center gap-2 max-w-md">
           <PacienteSearchCombobox
             value={watchedPacienteUUID || null}
+            incluirSoloConsulta
             onChange={(uuid) => setValue('pacienteUUID', uuid)}
             onSelectPaciente={(p) => {
+              setPacienteSoloConsulta(!!p.soloConsulta)
               const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
               setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
               setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
@@ -342,6 +381,15 @@ export function ResultadosExamenTab() {
                 ? selectedPacienteLabel
                 : 'Busca un participante para ver sus resultados.'}
             </div>
+            {pacienteSoloConsulta && (
+              <div className="mt-1 inline-flex items-start gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-1">
+                <Eye className="mt-0.5 h-3 w-3 shrink-0 text-amber-700" />
+                <span className="text-[11px] leading-snug text-amber-800">
+                  Ya no gestionas a este participante. Se muestran únicamente los resultados que
+                  registró tu institución; no se le pueden agregar ni modificar.
+                </span>
+              </div>
+            )}
           </div>
           {watchedPacienteUUID && (
             <div className="flex items-center gap-2">
@@ -441,7 +489,7 @@ export function ResultadosExamenTab() {
                             >
                               <Paperclip className="h-3.5 w-3.5" />
                             </Button>
-                            {(puedeEditarExamen || editingId === r.id) && (
+                            {(puedeEditarExamen || editingId === r.id) && !pacienteSoloConsulta && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -457,7 +505,7 @@ export function ResultadosExamenTab() {
                                 }
                               </Button>
                             )}
-                            {puedeEliminar && (
+                            {puedeEliminar && !pacienteSoloConsulta && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
@@ -513,7 +561,7 @@ export function ResultadosExamenTab() {
       </Card>
 
       {/* ── Panel derecho: formulario ── */}
-      {(puedeCrear || (puedeEditarExamen && isEditing)) && <Card className="lg:col-span-2">
+      {showForm && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">
             {isEditing ? 'Editar resultado' : 'Registrar resultado'}
@@ -533,10 +581,15 @@ export function ResultadosExamenTab() {
           <FormField label="Participante" required error={errors.pacienteUUID?.message}>
             <div className="flex items-center gap-2">
               <div className="flex-1">
+                {/* También ofrece los de solo consulta: quien puede registrar nunca ve
+                    el buscador de arriba, así que sin esto no tendría por dónde
+                    llegar a ellos. Al elegir uno, el formulario se retira solo. */}
                 <PacienteSearchCombobox
                   value={watchedPacienteUUID}
+                  incluirSoloConsulta
                   onChange={(uuid) => setValue('pacienteUUID', uuid)}
                   onSelectPaciente={(p) => {
+                    setPacienteSoloConsulta(!!p.soloConsulta)
                     const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno].filter(Boolean).join(' ')
                     setSelectedPacienteLabel(`${p.folio} — ${nombre}`)
                     setSelectedPacienteSexo((p.persona?.sexo as 'M' | 'F') ?? null)
@@ -717,7 +770,9 @@ export function ResultadosExamenTab() {
         </form>
       </Card>}
 
-      {/* ── Modal de documentos del resultado ── */}
+      {/* Modal de documentos del resultado. Los adjuntos se leen siempre que se
+          pueda leer el resultado, pero no se añaden ni se borran sobre un
+          participante que ya no se gestiona: eso es modificar el expediente. */}
       <DocumentosDialog
         entidad="resultadoExamen"
         resultadoExamenId={docsResultadoId ?? 0}
@@ -726,8 +781,8 @@ export function ResultadosExamenTab() {
         titulo={`Documentos — Resultado #${docsResultadoId}`}
         descripcion="Sube y consulta los documentos adjuntos de este resultado de examen."
         usuarioUUID={userUuid}
-        canDelete={puedeEliminarDocs}
-        canUpload={puedeSubirDocs}
+        canDelete={puedeEliminarDocs && !pacienteSoloConsulta}
+        canUpload={puedeSubirDocs && !pacienteSoloConsulta}
       />
     </div>
     </div>
