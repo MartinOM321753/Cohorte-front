@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Plus, Edit, MapPin, Phone, User, AlertCircle, CheckCircle2, XCircle, Search, Network, ShieldCheck, Tag, Users, UserPlus } from 'lucide-react'
+import { Plus, Edit, MapPin, Phone, User, AlertCircle, CheckCircle2, XCircle, Search, Network, ShieldCheck, Tag, Users, UserPlus, Eye } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useGetInstitucionesPaginado, useGetInstitucionesGestionables, useGetInstitucionesGestionablesEstado, useSearchInstituciones, useToggleInstitucion } from '../hooks/useInstituciones'
 import { InstitucionFormModal } from './InstitucionFormModal'
 import { InstitucionModulosModal } from './InstitucionModulosModal'
 import { PermisosAccesoPacientesModal } from './PermisosAccesoPacientesModal'
 import { PermisosRegistroParticipantesModal } from './PermisosRegistroParticipantesModal'
+import { VisibilidadHijasModal } from './VisibilidadHijasModal'
 import { TiposInstitucionModal } from './TiposInstitucionModal'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,8 @@ export function InstitucionesTab() {
   const [isPermisosOpen, setIsPermisosOpen] = useState(false)
   const [registroInstitucion, setRegistroInstitucion] = useState<Institucion | null>(null)
   const [isRegistroOpen, setIsRegistroOpen] = useState(false)
+  const [visibilidadInstitucion, setVisibilidadInstitucion] = useState<Institucion | null>(null)
+  const [isVisibilidadOpen, setIsVisibilidadOpen] = useState(false)
   const [isTiposOpen, setIsTiposOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
@@ -97,6 +100,16 @@ export function InstitucionesTab() {
   const handleRegistroClose = () => {
     setIsRegistroOpen(false)
     setRegistroInstitucion(null)
+  }
+
+  const handleOpenVisibilidad = (institucion: Institucion) => {
+    setVisibilidadInstitucion(institucion)
+    setIsVisibilidadOpen(true)
+  }
+
+  const handleVisibilidadClose = () => {
+    setIsVisibilidadOpen(false)
+    setVisibilidadInstitucion(null)
   }
 
   const handleToggle = async (id: number) => {
@@ -316,6 +329,18 @@ export function InstitucionesTab() {
                       </Button>
                     )}
 
+                    {puedeEditar && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenVisibilidad(institucion)}
+                        disabled={!gestionablesSet.has(institucion.id)}
+                        title="Elegir de qué instituciones hijas se ven los participantes"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
+
                     {puedeEliminar && institucion.activo ? (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -425,6 +450,12 @@ export function InstitucionesTab() {
         open={isRegistroOpen}
         onOpenChange={(open) => { if (!open) handleRegistroClose(); else setIsRegistroOpen(true) }}
         institucion={registroInstitucion}
+      />
+
+      <VisibilidadHijasModal
+        open={isVisibilidadOpen}
+        onOpenChange={(open) => { if (!open) handleVisibilidadClose(); else setIsVisibilidadOpen(true) }}
+        institucion={visibilidadInstitucion}
       />
 
       <TiposInstitucionModal open={isTiposOpen} onOpenChange={setIsTiposOpen} />

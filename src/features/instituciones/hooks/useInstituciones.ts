@@ -29,6 +29,9 @@ import {
   getPermisosRegistroRecibidos,
   otorgarPermisoRegistro,
   revocarPermisoRegistro,
+  getVisibilidadHijas,
+  fijarVisibilidadHija,
+  fijarVisibilidadDefecto,
 } from '../api/instituciones.api'
 import { InstitucionRequestDTO, ModuloSistema, TipoInstitucionRequestDTO } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -367,6 +370,67 @@ export function useRevocarPermisoRegistro(idInstitucion: number | null) {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al revocar la autorización')
+    },
+  })
+}
+
+// ── Visibilidad de instituciones hijas ───────────────────────────────────────
+
+export function useGetVisibilidadHijas(idInstitucion: number | null) {
+  return useQuery({
+    queryKey: ['instituciones', 'visibilidad-hijas', idInstitucion],
+    queryFn: () => getVisibilidadHijas(idInstitucion as number),
+    enabled: idInstitucion != null,
+  })
+}
+
+/**
+ * Cambiar lo que una institución ve invalida bastante más que esta pantalla: el
+ * alcance de participantes alimenta búsquedas, cobertura y el destino de los
+ * registros nuevos. Se vacían esas cachés en lugar de esperar a que caduquen,
+ * porque si no el usuario ve el interruptor cambiado y los listados iguales.
+ */
+function invalidarAlcance(queryClient: ReturnType<typeof useQueryClient>, idInstitucion: number | null) {
+  queryClient.invalidateQueries({ queryKey: ['instituciones', 'visibilidad-hijas', idInstitucion] })
+  queryClient.invalidateQueries({ queryKey: ['pacientes'] })
+  queryClient.invalidateQueries({ queryKey: ['instituciones', 'visibles'] })
+  queryClient.invalidateQueries({ queryKey: ['cobertura'] })
+}
+
+export function useFijarVisibilidadHija(idInstitucion: number | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idHija, verParticipantes }: { idHija: number; verParticipantes: boolean }) =>
+      fijarVisibilidadHija(idInstitucion as number, idHija, verParticipantes),
+    onSuccess: (_data, variables) => {
+      invalidarAlcance(queryClient, idInstitucion)
+      toast.success(
+        variables.verParticipantes
+          ? 'Se verán los participantes de esta institución hija'
+          : 'Se dejarán de ver los participantes de esta institución hija',
+      )
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al cambiar la visibilidad')
+    },
+  })
+}
+
+export function useFijarVisibilidadDefecto(idInstitucion: number | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (verParticipantes: boolean) =>
+      fijarVisibilidadDefecto(idInstitucion as number, verParticipantes),
+    onSuccess: (_data, verParticipantes) => {
+      invalidarAlcance(queryClient, idInstitucion)
+      toast.success(
+        verParticipantes
+          ? 'Se verán los participantes de todas las hijas'
+          : 'Se dejarán de ver los participantes de las hijas',
+      )
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al cambiar la visibilidad')
     },
   })
 }
