@@ -1280,6 +1280,9 @@ export interface SpringPage<T> {
 // ============================================
 export type TipoCodigo = 'DATAMATRIX' | 'CODE_128' | 'QR_CODE'
 export type DisposicionEtiqueta = 'NOMBRE_CODIGO_ETIQUETA' | 'CODIGO_NOMBRE_ETIQUETA' | 'CODIGO_ETIQUETA' | 'NOMBRE_ETIQUETA_CODIGO'
+/** Soporte físico: hoja suelta impresa por el navegador, o rollo enviado como ZPL. */
+export type TipoMedio = 'HOJA_AVERY' | 'ROLLO_ZEBRA'
+export type TamanoHoja = 'CARTA' | 'A4'
 
 export interface ConfiguracionEtiquetaResponse {
   id: number
@@ -1314,6 +1317,34 @@ export interface ConfiguracionEtiquetaResponse {
   espacioVerticalMm: number
   margenPaginaSuperiorMm: number
   margenPaginaIzquierdoMm: number
+
+  tipoMedio: TipoMedio
+  tamanoHoja: TamanoHoja
+  /**
+   * Medidas de acomodo tal como están guardadas. Cero significa "no capturado".
+   * Son las que el formulario devuelve al backend: no deben confundirse con las
+   * `*Efectivo*`, o guardar una edición congelaría el valor deducido y a partir
+   * de ahí cambiar el tamaño dejaría de mover el acomodo.
+   */
+  pasoHorizontalMm: number
+  pasoVerticalMm: number
+  margenDerechoMm: number
+  margenInferiorMm: number
+  /** Las mismas medidas ya resueltas. Son las que se usan para dibujar. */
+  pasoHorizontalEfectivoMm: number
+  pasoVerticalEfectivoMm: number
+  margenDerechoEfectivoMm: number
+  margenInferiorEfectivoMm: number
+  carrilesRolloEfectivo: number
+  /** Corrección de calibración de la impresora, aplicada a la hoja completa. */
+  ajusteXMm: number
+  ajusteYMm: number
+  hojaAnchoMm: number
+  hojaAltoMm: number
+  carrilesRollo: number
+  anchoCabezalMm: number
+  offsetLhXDots: number
+  offsetLhYDots: number
 }
 
 export interface ConfiguracionEtiquetaRequest {
@@ -1343,9 +1374,25 @@ export interface ConfiguracionEtiquetaRequest {
   espacioVerticalMm: number
   margenPaginaSuperiorMm: number
   margenPaginaIzquierdoMm: number
+
+  tipoMedio?: TipoMedio
+  tamanoHoja?: TamanoHoja
+  /** Cero significa "dedúcelo de tamaño + separación", como antes del campo. */
+  pasoHorizontalMm?: number
+  pasoVerticalMm?: number
+  margenDerechoMm?: number
+  margenInferiorMm?: number
+  ajusteXMm?: number
+  ajusteYMm?: number
+  carrilesRollo?: number
+  anchoCabezalMm?: number
+  offsetLhXDots?: number
+  offsetLhYDots?: number
 }
 
 export interface LabelDataDTO {
+  /** Id de la muestra o documento. Necesario para acomodar por carriles. */
+  id?: number
   etiqueta: string
   nombre: string
   codigoDatos: string
