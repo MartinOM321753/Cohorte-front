@@ -799,7 +799,7 @@ function TipoRow({
 
       {editingTipo && (
         <div className="border-t bg-muted/10 px-4 py-3 space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 @sm:grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Nombre</Label>
               <Input value={editNombre} onChange={(e) => setEditNombre(e.target.value)} maxLength={100} className="h-8 text-sm" />

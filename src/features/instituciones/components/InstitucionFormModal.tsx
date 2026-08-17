@@ -399,7 +399,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
           </div>
 
           {/* Estado + Ciudad ─────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Estado <span className="text-destructive">*</span></Label>
               <Controller
@@ -469,7 +469,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
 
             {!showMap && (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
                   <div className="space-y-1">
                     <Input
                       type="number"
@@ -553,7 +553,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
           </div>
 
           {/* Responsable + Teléfono ──────────────────────────────────── */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Responsable de contacto</Label>
               <Input {...register('responsable')} sanitize="nombre" placeholder="Nombre del contacto" maxLength={100} />
