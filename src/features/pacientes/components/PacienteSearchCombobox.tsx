@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/command'
 import { useDebounce } from '@/hooks/useDebounce'
 import { buscarPacientes } from '../api/pacientes.api'
-import { getPacienteByUUID } from '../api/pacientes.api'
+import { getPacienteBasicoByUUID } from '../api/pacientes.api'
 import type { Paciente } from '@/types/api'
 
 interface PacienteSearchComboboxProps {
@@ -27,6 +27,8 @@ interface PacienteSearchComboboxProps {
   placeholder?: string
   disabled?: boolean
   incluirJerarquia?: boolean
+  /** Ofrece también los de solo consulta, marcados. Para paneles de historial, no de alta. */
+  incluirSoloConsulta?: boolean
   modal?: boolean
   className?: string
   /** 'default' = botón combobox clásico; 'search' = input tipo barra de búsqueda */
@@ -56,6 +58,7 @@ export function PacienteSearchCombobox({
   placeholder = 'Buscar participante…',
   disabled = false,
   incluirJerarquia = true,
+  incluirSoloConsulta = false,
   modal = false,
   className,
   variant = 'default',
@@ -74,6 +77,7 @@ export function PacienteSearchCombobox({
     buscarPacientes({
       q: debouncedSearch || undefined,
       incluirJerarquia,
+      incluirSoloConsulta,
     })
       .then((data) => {
         if (!cancelled) setResults(data.content)
@@ -85,7 +89,7 @@ export function PacienteSearchCombobox({
         if (!cancelled) setLoading(false)
       })
     return () => { cancelled = true }
-  }, [open, debouncedSearch, incluirJerarquia])
+  }, [open, debouncedSearch, incluirJerarquia, incluirSoloConsulta])
 
   useEffect(() => {
     if (!value) {
@@ -99,7 +103,9 @@ export function PacienteSearchCombobox({
     }
     if (selectedLabel) return
     let cancelled = false
-    getPacienteByUUID(value)
+    // Endpoint «básico»: solo la identidad. El de expediente responde 404 para los
+    // de solo consulta y el desplegable acabaría mostrando el UUID crudo.
+    getPacienteBasicoByUUID(value)
       .then((p) => {
         if (!cancelled) setSelectedLabel(getLabel(p))
       })
@@ -179,6 +185,11 @@ export function PacienteSearchCombobox({
                         <UserX className="mr-1.5 h-3 w-3 shrink-0 text-muted-foreground" />
                       )}
                       <span className="truncate text-[13px]">{label}</span>
+                      {p.soloConsulta && (
+                        <span className="ml-auto shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                          solo consulta
+                        </span>
+                      )}
                     </CommandItem>
                   )
                 })}

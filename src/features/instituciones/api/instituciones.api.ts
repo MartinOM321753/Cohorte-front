@@ -7,6 +7,7 @@ import {
   InstitucionModuloPermiso,
   ModuloSistema,
   PermisoAccesoPacientes,
+  PermisoRegistroParticipantes,
   TipoInstitucionCatalogo,
   TipoInstitucionRequestDTO,
 } from '@/types/api'
@@ -183,6 +184,82 @@ export async function otorgarPermisoAccesoPacientes(idInstitucion: number, idIns
 export async function revocarPermisoAccesoPacientes(idInstitucion: number, idInstitucionRecibe: number) {
   const response = await api.delete<ApiResponse<PermisoAccesoPacientes>>(
     `${BASE}/${idInstitucion}/permisos-pacientes/revocar/${idInstitucionRecibe}`,
+  )
+  return response.data.data
+}
+
+// ============================================
+// PERMISOS DE REGISTRO DE PARTICIPANTES
+// (institución padre autoriza a una hija a registrar dentro del grupo)
+// ============================================
+
+export async function getPermisosRegistroOtorgados(idInstitucion: number) {
+  const response = await api.get<ApiResponse<PermisoRegistroParticipantes[]>>(
+    `${BASE}/${idInstitucion}/permisos-registro/otorgados`,
+  )
+  return response.data.data
+}
+
+export async function getPermisosRegistroRecibidos(idInstitucion: number) {
+  const response = await api.get<ApiResponse<PermisoRegistroParticipantes[]>>(
+    `${BASE}/${idInstitucion}/permisos-registro/recibidos`,
+  )
+  return response.data.data
+}
+
+export async function otorgarPermisoRegistro(idInstitucion: number, idInstitucionRecibe: number) {
+  const response = await api.post<ApiResponse<PermisoRegistroParticipantes>>(
+    `${BASE}/${idInstitucion}/permisos-registro/otorgar/${idInstitucionRecibe}`,
+  )
+  return response.data.data
+}
+
+export async function revocarPermisoRegistro(idInstitucion: number, idInstitucionRecibe: number) {
+  const response = await api.delete<ApiResponse<PermisoRegistroParticipantes>>(
+    `${BASE}/${idInstitucion}/permisos-registro/revocar/${idInstitucionRecibe}`,
+  )
+  return response.data.data
+}
+
+// ============================================
+// VISIBILIDAD DE INSTITUCIONES HIJAS
+// (una institución decide de qué hijas quiere ver los participantes)
+// ============================================
+
+export interface EstadoVisibilidadHija {
+  idHija: number
+  nombre: string
+  verParticipantes: boolean
+  /** Hay una decisión guardada para esta hija; si no, se está aplicando el valor por defecto. */
+  decisionExplicita: boolean
+  usuarioUuid: string | null
+  fechaActualizacion: string | null
+}
+
+export async function getVisibilidadHijas(idInstitucion: number) {
+  const response = await api.get<ApiResponse<EstadoVisibilidadHija[]>>(
+    `${BASE}/${idInstitucion}/visibilidad-hijas`,
+  )
+  return response.data.data
+}
+
+export async function fijarVisibilidadHija(
+  idInstitucion: number,
+  idHija: number,
+  verParticipantes: boolean,
+) {
+  const response = await api.put<ApiResponse<EstadoVisibilidadHija[]>>(
+    `${BASE}/${idInstitucion}/visibilidad-hijas/${idHija}`,
+    { verParticipantes },
+  )
+  return response.data.data
+}
+
+/** Decide de golpe sobre todas las hijas, presentes y futuras. */
+export async function fijarVisibilidadDefecto(idInstitucion: number, verParticipantes: boolean) {
+  const response = await api.put<ApiResponse<EstadoVisibilidadHija[]>>(
+    `${BASE}/${idInstitucion}/visibilidad-hijas/defecto`,
+    { verParticipantes },
   )
   return response.data.data
 }

@@ -53,6 +53,12 @@ const DialogContent = React.forwardRef<
       ref={ref}
       data-slot="dialog-content"
       className={cn(
+        // Contenedor de consulta: dentro de un diálogo, los cortes por viewport
+        // (sm:, md:) mienten. Un diálogo de 410 px de ancho en una pantalla de
+        // 1400 satisface `md:` y acaba usando cuatro columnas donde no caben,
+        // con las etiquetas partidas en dos renglones. Marcándolo como
+        // contenedor, las variantes @sm/@md miden el diálogo y no la pantalla.
+        '@container',
         // Mobile: nearly fullscreen with small margin + rounded corners so it reads as a modal
         'fixed inset-2 z-50 flex flex-col rounded-[10px] border border-border bg-card shadow-[0_16px_48px_oklch(0.2_0.02_156/0.22),0_4px_12px_oklch(0.2_0.02_156/0.10)] p-4 overflow-y-auto custom-scrollbar',
         // Tablet+: centered modal

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ReactNode } from 'react'
-import { AlertCircle, Check, ChevronsUpDown, ClipboardList, Info, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertCircle, Check, ChevronsUpDown, ClipboardList, Eye, Info, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/authStore'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
@@ -22,6 +23,7 @@ import {
   useUpdateEstudio,
 } from '../hooks/useEstudios'
 import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
+import { getPacienteBasicoByUUID } from '@/features/pacientes/api/pacientes.api'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -161,7 +163,23 @@ export function LlenadoEstudioTab() {
   const [selectedPacienteUUID, setSelectedPacienteUUID] = useState('')
   const [selectedTipoId, setSelectedTipoId] = useState<number>(0)
   const [editingEstudioId, setEditingEstudioId] = useState<number | null>(null)
+  // Un estudio de otra sede se abre para consultarlo, no para editarlo: guardar
+  // rebotaria con 403 y ya se llenaron los campos para nada. Ver ParticipanteAccesoService.
+  const [soloLectura, setSoloLectura] = useState(false)
+  // Participante que ya no se gestiona: se le consulta lo propio, no se le registra.
+  const [pacienteSoloConsulta, setPacienteSoloConsulta] = useState(false)
+
+  // Al llegar desde «Participantes que ya no gestionas» el uuid viene en la URL:
+  // ese participante no aparece en la búsqueda normal, así que se preselecciona.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const uuidDeLaUrl = searchParams.get('paciente')
+  const idInstitucionPropia = useAuthStore((s) => s.user?.institucion?.id)
   const [docEstudioId, setDocEstudioId] = useState<number | null>(null)
+  // Los adjuntos se leen siempre que se pueda leer el estudio, pero solo se
+  // añaden o borran sobre un estudio propio de un participante que se gestiona:
+  // adjuntar un archivo es modificar el expediente. El backend aplica la misma
+  // regla; esto evita ofrecer un botón que va a rebotar.
+  const [docEstudioSoloLectura, setDocEstudioSoloLectura] = useState(false)
 
   // ── Grupo mode state ──────────────────────────────────
   const [modoCaptura, setModoCaptura] = useState<ModoCaptura>('NORMAL')
@@ -227,6 +245,29 @@ export function LlenadoEstudioTab() {
   const [selectedPacienteSexo, setSelectedPacienteSexo] = useState<'M' | 'F' | undefined>(undefined)
 
   // ── Pre-populate base fields when editing ──────────────
+  useEffect(() => {
+    if (!uuidDeLaUrl) return
+    setSelectedPacienteUUID(uuidDeLaUrl)
+    setValue('pacienteUUID', uuidDeLaUrl)
+    // El parámetro se consume: si se queda en la URL, «Cambiar participante» vuelve
+    // a preseleccionar al mismo y no hay forma de salir de esta consulta.
+    setSearchParams((prev) => {
+      const siguiente = new URLSearchParams(prev)
+      siguiente.delete('paciente')
+      return siguiente
+    }, { replace: true })
+    getPacienteBasicoByUUID(uuidDeLaUrl)
+      .then((p) => {
+        setSelectedPacienteNombre([p.persona?.nombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
+          .filter(Boolean).join(' '))
+        setSelectedPacienteSexo(p.persona?.sexo)
+        setPacienteSoloConsulta(!!p.soloConsulta)
+      })
+      // Si no se pudo resolver quién es, no se ofrece registrar: es preferible una
+      // pantalla de solo lectura a un alta que el backend va a rechazar.
+      .catch(() => setPacienteSoloConsulta(true))
+  }, [uuidDeLaUrl, setValue, setSearchParams])
+
   useEffect(() => {
     if (!estudioEditar || !editingEstudioId) return
     setValue('pacienteUUID', estudioEditar.paciente?.uuid ?? '')
@@ -369,6 +410,9 @@ export function LlenadoEstudioTab() {
     })
     setSelectedTipoId(0)
     setEditingEstudioId(null)
+    setSoloLectura(false)
+    // pacienteSoloConsulta NO se toca aquí: es una condición del participante, no del
+    // formulario. Cerrar un estudio no cambia a quién se está consultando.
     setModoCaptura('NORMAL')
     setGrupos([])
     setGruposError(null)
@@ -379,6 +423,7 @@ export function LlenadoEstudioTab() {
     setSelectedPacienteUUID('')
     setSelectedPacienteNombre('')
     setSelectedPacienteSexo(undefined)
+    setPacienteSoloConsulta(false)
     reset({ pacienteUUID: '', idTipoEstudio: 0, fechaEstudio: fechaPorDefecto(), observaciones: '' })
   }
 
@@ -451,7 +496,13 @@ export function LlenadoEstudioTab() {
 
   const isPending = createMutation.isPending || updateMutation.isPending
 
-  const showForm = puedeCrear || (puedeEditar && !!editingEstudioId)
+  // El panel derecho tiene dos oficios y conviene no confundirlos: con un estudio
+  // abierto es el detalle —que puede ser de solo lectura—, y sin él es el alta. A un
+  // participante que ya no se gestiona se le puede abrir un estudio para verlo, pero
+  // nunca se le ofrece el alta.
+  const showForm = editingEstudioId != null
+    ? (puedeEditar || soloLectura)
+    : (puedeCrear && !pacienteSoloConsulta)
 
   return (
     <div className="space-y-4">
@@ -459,8 +510,10 @@ export function LlenadoEstudioTab() {
         <div className="flex items-center gap-2 max-w-md">
           <PacienteSearchCombobox
             value={selectedPacienteUUID || null}
+            incluirSoloConsulta
             onChange={(uuid) => setSelectedPacienteUUID(uuid)}
             onSelectPaciente={(p) => {
+              setPacienteSoloConsulta(!!p.soloConsulta)
               const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
                 .filter(Boolean).join(' ')
               setSelectedPacienteNombre(nombre)
@@ -488,8 +541,8 @@ export function LlenadoEstudioTab() {
         titulo="Documentos del estudio"
         descripcion="Sube y consulta los archivos adjuntos a este estudio médico."
         usuarioUUID={userUuid}
-        canDelete={isAdmin}
-        canUpload={canUploadEstudio}
+        canDelete={isAdmin && !docEstudioSoloLectura}
+        canUpload={canUploadEstudio && !docEstudioSoloLectura}
       />
 
       {/* LEFT — patient study history */}
@@ -502,6 +555,15 @@ export function LlenadoEstudioTab() {
                 ? `Estudios de ${selectedPacienteNombre || '…'}`
                 : 'Seleccione un participante para ver su historial.'}
             </div>
+            {pacienteSoloConsulta && (
+              <div className="mt-1 inline-flex items-start gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-1">
+                <Eye className="mt-0.5 h-3 w-3 shrink-0 text-amber-700" />
+                <span className="text-[11px] leading-snug text-amber-800">
+                  Ya no gestionas a este participante. Se muestran únicamente los estudios que
+                  registró tu institución; no se le pueden agregar ni modificar.
+                </span>
+              </div>
+            )}
           </div>
           {selectedPacienteUUID && (
             <Badge variant="secondary" className="font-mono">{(historial || []).length}</Badge>
@@ -553,27 +615,50 @@ export function LlenadoEstudioTab() {
                           size="icon"
                           className="h-7 w-7"
                           title="Documentos adjuntos"
-                          onClick={() => setDocEstudioId(e.id)}
+                          onClick={() => {
+                            const ajeno = e.institucionId != null
+                              && idInstitucionPropia != null
+                              && e.institucionId !== idInstitucionPropia
+                            setDocEstudioSoloLectura(ajeno || pacienteSoloConsulta)
+                            setDocEstudioId(e.id)
+                          }}
                         >
                           <Paperclip className="h-3.5 w-3.5" strokeWidth={1.75} />
                         </Button>
-                        {puedeEditar && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Editar estudio"
-                            onClick={() => {
-                              setEditingEstudioId(e.id)
-                              setSelectedTipoId(e.tipoEstudioid)
-                              setValue('idTipoEstudio', e.tipoEstudioid)
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          </Button>
-                        )}
-                        {isAdmin && (
+                        {(() => {
+                          const ajeno = e.institucionId != null
+                            && idInstitucionPropia != null
+                            && e.institucionId !== idInstitucionPropia
+                          // Dos motivos distintos para no dejar editar: el estudio es de
+                          // otra sede, o el participante ya no se gestiona. En ambos el
+                          // registro se abre igual, para verlo.
+                          const soloVer = ajeno || pacienteSoloConsulta
+                          if (!puedeEditar && !soloVer) return null
+                          return (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title={ajeno
+                                ? `Consultar — registrado por ${e.institucionNombre ?? 'otra institución'}`
+                                : pacienteSoloConsulta
+                                  ? 'Consultar — ya no gestionas a este participante'
+                                  : 'Editar estudio'}
+                              onClick={() => {
+                                setSoloLectura(soloVer)
+                                setEditingEstudioId(e.id)
+                                setSelectedTipoId(e.tipoEstudioid)
+                                setValue('idTipoEstudio', e.tipoEstudioid)
+                              }}
+                            >
+                              {soloVer
+                                ? <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+                                : <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                            </Button>
+                          )
+                        })()}
+                        {isAdmin && !pacienteSoloConsulta && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -617,30 +702,58 @@ export function LlenadoEstudioTab() {
       </Card>
 
       {/* RIGHT — fill form */}
-      {(puedeCrear || (puedeEditar && editingEstudioId)) && <Card className="lg:col-span-2">
+      {showForm && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">
-            {editingEstudioId ? 'Editar estudio' : 'Registrar estudio'}
+            {!editingEstudioId
+              ? 'Registrar estudio'
+              : soloLectura ? 'Consultar estudio' : 'Editar estudio'}
           </div>
           <div className="text-xs text-muted-foreground">
-            {editingEstudioId
-              ? 'Modifica los resultados del estudio seleccionado.'
-              : 'Selecciona la plantilla para cargar el formulario.'}
+            {!editingEstudioId
+              ? 'Selecciona la plantilla para cargar el formulario.'
+              : soloLectura
+                ? 'Solo lectura: los campos están bloqueados.'
+                : 'Modifica los resultados del estudio seleccionado.'}
           </div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4 p-4">
+          {/* Dos motivos distintos para el modo lectura y conviene decir cuál es: el
+              usuario que lee «otra institución» sobre un estudio que él mismo capturó
+              piensa que la aplicación se equivocó. */}
+          {soloLectura && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+              <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" />
+              <p className="text-[12px] leading-snug text-amber-800">
+                {pacienteSoloConsulta
+                  ? <>Ya no gestionas a este participante. Puedes consultar el estudio que
+                      registró tu institución, pero no modificarlo.</>
+                  : <>Estás consultando un estudio registrado por otra institución. Puedes verlo
+                      completo, pero solo la sede que lo realizó puede modificarlo.</>}
+              </p>
+            </div>
+          )}
+
+          {/* Un fieldset deshabilitado apaga todos los campos de golpe, sin tener que
+              tocar cada control uno por uno. */}
+          <fieldset disabled={soloLectura} className="space-y-4 border-0 p-0 m-0 disabled:opacity-70">
           {/* Paciente */}
           <FormField label="Participante" required error={errors.pacienteUUID?.message as string}>
             <div className="flex items-center gap-2">
               <div className="flex-1">
+                {/* También ofrece los de solo consulta: quien puede registrar nunca ve
+                    el buscador de arriba, así que sin esto no tendría por dónde
+                    llegar a ellos. Al elegir uno, el formulario se retira solo. */}
                 <PacienteSearchCombobox
                   value={selectedPacienteUUID}
+                  incluirSoloConsulta
                   onChange={(uuid) => {
                     setSelectedPacienteUUID(uuid)
                     setValue('pacienteUUID', uuid)
                   }}
                   onSelectPaciente={(p) => {
+                    setPacienteSoloConsulta(!!p.soloConsulta)
                     const nombre = [p.persona?.nombre, p.persona?.segundoNombre, p.persona?.apellidoPaterno, p.persona?.apellidoMaterno]
                       .filter(Boolean).join(' ')
                     setSelectedPacienteNombre(nombre)
@@ -872,12 +985,15 @@ export function LlenadoEstudioTab() {
             )}
           </FormField>
 
+          </fieldset>
+
           <div className="flex items-center justify-end gap-2 pt-1">
             <Button type="button" variant="ghost" onClick={resetForm} disabled={isPending}>
               {editingEstudioId ? 'Cancelar' : 'Limpiar'}
             </Button>
             <Button
               type="submit"
+              className={soloLectura ? 'hidden' : undefined}
               disabled={isPending || (selectedTipoId > 0 && parametrosList.length === 0)}
             >
               {isPending ? (

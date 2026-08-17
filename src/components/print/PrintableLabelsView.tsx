@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Eraser, FilePlus2, Printer, Wand2, X } from 'lucide-react'
+import { AlertTriangle, Eraser, FilePlus2, Printer, SquareDashed, Wand2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Dialog,
   DialogContent,
@@ -10,11 +11,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { BarcodeRenderer } from './BarcodeRenderer'
-import type {
-  ConfiguracionEtiquetaResponse,
-  DisposicionEtiqueta,
-  LabelDataDTO,
-} from '@/types/api'
+import { crearMedidor } from './codigoSimbolo'
+import { ESTILOS_HOJA, imprimirHoja, resolverGeometria } from './hojaImpresion'
+import { layoutEtiqueta } from './layoutEtiqueta'
+import type { ConfiguracionEtiquetaResponse, LabelDataDTO } from '@/types/api'
 
 interface PrintableLabelsViewProps {
   etiquetas: LabelDataDTO[]
@@ -23,33 +23,16 @@ interface PrintableLabelsViewProps {
   onClose: () => void
 }
 
-type ElementoEtiqueta = 'NOMBRE' | 'CODIGO' | 'ETIQUETA'
-
-/** Carta, en milímetros. Coincide con `@page { size: letter }`. */
-const ANCHO_HOJA_MM = 215.9
-const ALTO_HOJA_MM = 279.4
-
 /** Índice de la etiqueta que ocupa la casilla, o `null` si está libre. */
 type Casilla = number | null
 
-function getOrdenElementos(disposicion: DisposicionEtiqueta): ElementoEtiqueta[] {
-  switch (disposicion) {
-    case 'NOMBRE_CODIGO_ETIQUETA': return ['NOMBRE', 'CODIGO', 'ETIQUETA']
-    case 'CODIGO_NOMBRE_ETIQUETA': return ['CODIGO', 'NOMBRE', 'ETIQUETA']
-    case 'CODIGO_ETIQUETA': return ['CODIGO', 'ETIQUETA']
-    case 'NOMBRE_ETIQUETA_CODIGO': return ['NOMBRE', 'ETIQUETA', 'CODIGO']
-    default: return ['NOMBRE', 'CODIGO', 'ETIQUETA']
-  }
-}
-
-function dotsToMm(dots: number, dpi: number): number {
-  return dots / dpi * 25.4
-}
-
-function dotsToPt(dots: number, dpi: number): number {
-  return dots / dpi * 72
-}
-
+/**
+ * Contenido de una etiqueta, ya resuelto por el maquetado.
+ *
+ * Cada elemento sale con posición y tamaño absolutos dentro del recuadro. El
+ * recuadro recorta, así que aunque el maquetado marque desborde, lo que se
+ * imprime nunca invade la etiqueta de al lado.
+ */
 function LabelCell({
   label,
   config,
@@ -57,122 +40,69 @@ function LabelCell({
   label: LabelDataDTO
   config: ConfiguracionEtiquetaResponse
 }) {
-  const orden = getOrdenElementos(config.disposicion)
-  const fontNombrePt = dotsToPt(config.tamanoFuenteNombre, config.dpi)
-  const fontEtiquetaPt = dotsToPt(config.tamanoFuenteEtiqueta, config.dpi)
-  const gapNombreMm = dotsToMm(config.espaciadoNombre, config.dpi)
-  const gapCodigoMm = dotsToMm(config.espaciadoCodigo, config.dpi)
-  const gapEtiquetaMm = dotsToMm(config.espaciadoEtiqueta, config.dpi)
-  const marginLeftMm = config.margenIzquierdoMm
-  const marginTopMm = config.margenSuperiorMm
-
-  // La impresora reserva para cada texto exactamente el alto de su fuente en dots
-  // y después aplica el espaciado. Si aquí se dejara el interlineado por omisión,
-  // cada renglón ocuparía de más y ese sobrante se sumaría al espacio configurado.
-  const altoNombreMm = dotsToMm(config.tamanoFuenteNombre, config.dpi)
-  const altoEtiquetaMm = dotsToMm(config.tamanoFuenteEtiqueta, config.dpi)
+  const maquetado = useMemo(() => {
+    const medir = crearMedidor(label.codigoDatos, config.tipoCodigo, config.moduloCodigo, config.dpi)
+    return layoutEtiqueta(config, medir)
+  }, [label.codigoDatos, config])
 
   return (
-    <div
-      style={{
-        width: `${config.anchoMm}mm`,
-        height: `${config.altoMm}mm`,
-        padding: `${marginTopMm}mm ${marginLeftMm}mm 0 ${marginLeftMm}mm`,
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box',
-      }}
-    >
-      {orden.map((elem) => {
-        switch (elem) {
-          case 'NOMBRE':
-            if (!config.mostrarNombre) return null
-            return (
-              <div
-                key="nombre"
-                style={{
-                  fontSize: `${fontNombrePt}pt`,
-                  height: `${altoNombreMm}mm`,
-                  lineHeight: `${altoNombreMm}mm`,
-                  marginBottom: `${gapNombreMm}mm`,
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
-                  textOverflow: 'ellipsis',
-                  textAlign: 'center',
-                }}
-              >
-                {label.nombre}
-              </div>
-            )
-          case 'CODIGO':
-            if (!config.mostrarCodigo) return null
-            return (
-              <div
-                key="codigo"
-                style={{
-                  marginBottom: `${gapCodigoMm}mm`,
-                  display: 'flex',
-                  justifyContent: 'center',
-                }}
-              >
-                <BarcodeRenderer
-                  data={label.codigoDatos}
-                  tipo={config.tipoCodigo}
-                  modulo={config.moduloCodigo}
-                  anchoBarra={config.anchoBarraCodigo ?? 2}
-                  dpi={config.dpi}
-                />
-              </div>
-            )
-          case 'ETIQUETA':
-            if (!config.mostrarEtiqueta) return null
-            return (
-              <div
-                key="etiqueta"
-                style={{
-                  fontSize: `${fontEtiquetaPt}pt`,
-                  height: `${altoEtiquetaMm}mm`,
-                  lineHeight: `${altoEtiquetaMm}mm`,
-                  marginBottom: `${gapEtiquetaMm}mm`,
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
-                  textOverflow: 'ellipsis',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                }}
-              >
-                {label.etiqueta}
-              </div>
-            )
-          default:
-            return null
+    <>
+      {maquetado.elementos.map((elem) => {
+        const base: React.CSSProperties = {
+          left: `${elem.leftMm}mm`,
+          top: `${elem.topMm}mm`,
+          width: `${elem.anchoMm}mm`,
+          height: `${elem.altoMm}mm`,
         }
-      })}
-    </div>
-  )
-}
 
-/**
- * El HTML que se imprime es el mismo que se ve en pantalla, así que las ayudas
- * visuales de la cuadrícula (bordes de guía, rayado de las casillas ya usadas,
- * numeración, reducción de la vista) se anulan aquí. Lo que sale en el papel es
- * únicamente el contenido de las etiquetas, en la posición elegida.
- */
-function buildPrintHtml(printAreaHtml: string): string {
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Etiquetas</title>
-<style>
-  @page { size: letter; margin: 0; }
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; color: #000; background: #fff; }
-  svg { display: block; width: 100%; height: 100%; }
-  .zoom-hoja { width: auto !important; height: auto !important; overflow: visible !important; margin: 0 !important; }
-  .hoja { transform: none !important; box-shadow: none !important; }
-  .casilla { border: none !important; outline: none !important; opacity: 1 !important; background: transparent !important; }
-  .solo-pantalla { display: none !important; }
-</style>
-</head><body>${printAreaHtml}</body></html>`
+        if (elem.tipo === 'CODIGO') {
+          return (
+            <div key="codigo" className="elemento" style={base}>
+              <BarcodeRenderer
+                data={label.codigoDatos}
+                tipo={config.tipoCodigo}
+                modulo={config.moduloCodigo}
+                escalaDots={elem.escalaDots ?? 1}
+                dpi={config.dpi}
+              />
+            </div>
+          )
+        }
+
+        const esEtiqueta = elem.tipo === 'ETIQUETA'
+        return (
+          <div
+            key={elem.tipo}
+            className={`elemento elemento-texto${esEtiqueta ? ' elemento-mono' : ''}`}
+            style={{
+              ...base,
+              fontSize: `${elem.fontPt}pt`,
+              lineHeight: `${elem.altoMm}mm`,
+            }}
+          >
+            {esEtiqueta ? label.etiqueta : label.nombre}
+          </div>
+        )
+      })}
+
+      {maquetado.desbordado && (
+        <span
+          className="solo-pantalla"
+          style={{
+            position: 'absolute',
+            right: '1px',
+            bottom: '1px',
+            fontSize: '8px',
+            color: '#dc2626',
+            fontWeight: 600,
+          }}
+          title="El contenido no cabe en la etiqueta ni en su tamaño mínimo; se recorta al imprimir"
+        >
+          !
+        </span>
+      )}
+    </>
+  )
 }
 
 export function PrintableLabelsView({
@@ -183,8 +113,8 @@ export function PrintableLabelsView({
 }: PrintableLabelsViewProps) {
   const printRef = useRef<HTMLDivElement>(null)
 
-  const cols = config.etiquetasPorFila
-  const rows = config.filasPorPagina
+  const geo = useMemo(() => resolverGeometria(config), [config])
+  const { cols, rows } = geo
   const porPagina = Math.max(1, cols * rows)
 
   // Distribución sobre la hoja. `casillas` cubre todas las páginas seguidas;
@@ -192,6 +122,11 @@ export function PrintableLabelsView({
   const [casillas, setCasillas] = useState<Casilla[]>([])
   const [bloqueadas, setBloqueadas] = useState<Set<number>>(new Set())
   const [escala, setEscala] = useState(0.7)
+  // Dibuja el contorno de cada recuadro también en el papel. Sirve para ver,
+  // sobre la hoja de etiquetas, cuánto se separa cada recuadro de su troquel:
+  // sin él solo se ve el contenido y hay que adivinar dónde cree el sistema que
+  // está la etiqueta.
+  const [marcoCalibracion, setMarcoCalibracion] = useState(false)
   const [origen, setOrigen] = useState<number | null>(null)
   const [destino, setDestino] = useState<number | null>(null)
   const puntoPresionado = useRef<{ x: number; y: number } | null>(null)
@@ -288,31 +223,34 @@ export function PrintableLabelsView({
   const handlePrint = useCallback(() => {
     const content = printRef.current?.innerHTML
     if (!content) return
-
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) return
-
-    printWindow.document.open()
-    printWindow.document.write(buildPrintHtml(content))
-    printWindow.document.close()
-
-    printWindow.addEventListener('afterprint', () => printWindow.close())
-    setTimeout(() => {
-      printWindow.focus()
-      printWindow.print()
-    }, 250)
-  }, [])
+    imprimirHoja(content, geo.hojaAnchoMm, geo.hojaAltoMm, 'Etiquetas')
+  }, [geo.hojaAnchoMm, geo.hojaAltoMm])
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-auto">
+        <style>{ESTILOS_HOJA}</style>
+
         <DialogHeader>
           <DialogTitle>Vista previa de impresión</DialogTitle>
           <DialogDescription>
             {etiquetas.length} etiqueta(s) · {cols} por fila · {rows} filas por página ·{' '}
-            {paginas} hoja(s)
+            {paginas} hoja(s) · paso {geo.pasoHorizontalMm.toFixed(1)} ×{' '}
+            {geo.pasoVerticalMm.toFixed(1)} mm
           </DialogDescription>
         </DialogHeader>
+
+        {(geo.desbordaAncho || geo.desbordaAlto) && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              La cuadrícula no cabe en la hoja: ocupa {geo.anchoOcupadoMm.toFixed(1)} ×{' '}
+              {geo.altoOcupadoMm.toFixed(1)} mm sobre una hoja de {geo.hojaAnchoMm} ×{' '}
+              {geo.hojaAltoMm} mm. Revisa el paso, los márgenes de página y las etiquetas por
+              fila en <strong>Configuración &gt; Etiquetas</strong>.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Barra de herramientas de la cuadrícula */}
         <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
@@ -344,6 +282,17 @@ export function PrintableLabelsView({
             Agregar hoja
           </Button>
 
+          <Button
+            variant={marcoCalibracion ? 'default' : 'outline'}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setMarcoCalibracion((v) => !v)}
+            title="Imprime el contorno de cada recuadro para compararlo contra el troquel de la hoja"
+          >
+            <SquareDashed className="h-3.5 w-3.5" />
+            Marco de calibración
+          </Button>
+
           <div className="flex items-center gap-1 border-l pl-2">
             {[0.5, 0.7, 1].map((v) => (
               <Button
@@ -359,39 +308,41 @@ export function PrintableLabelsView({
           </div>
         </div>
 
+        <p className="text-[12px] text-muted-foreground">
+          Al imprimir, elige <strong>Márgenes: Ninguno</strong> y <strong>Escala: 100 %</strong>.
+          Cualquier ajuste automático del navegador encoge la hoja y desplaza las etiquetas.
+        </p>
+
+        {marcoCalibracion && (
+          <Alert>
+            <SquareDashed className="h-4 w-4" />
+            <AlertDescription className="text-[12px]">
+              El contorno de cada recuadro saldrá impreso. Imprime sobre una hoja de etiquetas y
+              mira, columna por columna, hacia qué lado se separa el marco del troquel:
+              <br />• Si <strong>todas</strong> se separan lo mismo, sobra corregir el corrimiento
+              (ajuste X).
+              <br />• Si la separación <strong>crece</strong> de la primera a la cuarta, lo que
+              falla es el paso.
+              <br />
+              Acuérdate de apagarlo antes de imprimir etiquetas de verdad.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="overflow-auto" ref={printRef}>
           {Array.from({ length: paginas }).map((_, pageIdx) => (
             <div
               key={pageIdx}
-              className="zoom-hoja mx-auto mb-4"
-              style={{
-                width: `${ANCHO_HOJA_MM * escala}mm`,
-                height: `${ALTO_HOJA_MM * escala}mm`,
-                overflow: 'hidden',
-              }}
+              className="hoja-zoom mx-auto mb-4"
+              style={
+                {
+                  '--hoja-ancho': `${geo.hojaAnchoMm}mm`,
+                  '--hoja-alto': `${geo.hojaAltoMm}mm`,
+                  '--escala': escala,
+                } as React.CSSProperties
+              }
             >
-              <div
-                className="hoja"
-                style={{
-                  width: `${ANCHO_HOJA_MM}mm`,
-                  height: `${ALTO_HOJA_MM}mm`,
-                  transform: `scale(${escala})`,
-                  transformOrigin: 'top left',
-                  paddingTop: `${config.margenPaginaSuperiorMm}mm`,
-                  paddingLeft: `${config.margenPaginaIzquierdoMm}mm`,
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${cols}, ${config.anchoMm}mm)`,
-                  gridAutoRows: `${config.altoMm}mm`,
-                  columnGap: `${config.espacioHorizontalMm}mm`,
-                  rowGap: `${config.espacioVerticalMm}mm`,
-                  alignContent: 'start',
-                  justifyContent: 'start',
-                  pageBreakAfter: pageIdx < paginas - 1 ? 'always' : undefined,
-                  boxSizing: 'border-box',
-                  backgroundColor: '#fff',
-                  color: '#000',
-                }}
-              >
+              <div className="hoja">
                 {casillas
                   .slice(pageIdx * porPagina, (pageIdx + 1) * porPagina)
                   .map((valor, k) => {
@@ -399,10 +350,17 @@ export function PrintableLabelsView({
                     const label = valor !== null ? etiquetas[valor] : null
                     const bloqueada = bloqueadas.has(i)
 
+                    // Posición desde el origen de la hoja: el desfase de una fila
+                    // no se hereda a la siguiente.
+                    const col = k % cols
+                    const fila = Math.floor(k / cols)
+                    const leftMm = geo.origenXMm + col * geo.pasoHorizontalMm
+                    const topMm = geo.origenYMm + fila * geo.pasoVerticalMm
+
                     return (
                       <div
                         key={i}
-                        className="casilla"
+                        className={`casilla${marcoCalibracion ? ' con-marco' : ''}`}
                         draggable={!!label}
                         onDragStart={(e) => {
                           if (!label) return
@@ -444,11 +402,16 @@ export function PrintableLabelsView({
                               : 'Posición libre — clic para marcarla como ya usada'
                         }
                         style={{
-                          position: 'relative',
+                          left: `${leftMm}mm`,
+                          top: `${topMm}mm`,
+                          width: `${config.anchoMm}mm`,
                           height: `${config.altoMm}mm`,
                           border: destino === i ? '2px solid #16a34a' : '1px dashed #d1d5db',
+                          // Igual que en la impresión: outline, para que activar
+                          // el marco no mueva ni un poco el contenido.
+                          outline: marcoCalibracion ? '0.25mm solid #000' : undefined,
+                          outlineOffset: marcoCalibracion ? '-0.25mm' : undefined,
                           borderRadius: '2px',
-                          backgroundColor: '#fff',
                           opacity: origen === i ? 0.35 : 1,
                           cursor: label ? 'grab' : 'pointer',
                         }}

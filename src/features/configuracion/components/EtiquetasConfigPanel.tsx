@@ -38,8 +38,11 @@ import {
   Power,
   PowerOff,
   Printer,
+  Ruler,
   Star,
 } from 'lucide-react'
+import { CalibracionDialog, type ResultadoVernier } from '@/components/print/CalibracionDialog'
+import type { ResultadoCalibracion } from '@/components/print/HojaCalibracion'
 import {
   useGetConfiguracionesEtiqueta,
   useCreateConfiguracionEtiqueta,
@@ -52,7 +55,10 @@ import type {
   ConfiguracionEtiquetaRequest,
   TipoCodigo,
   DisposicionEtiqueta,
+  TipoMedio,
+  TamanoHoja,
 } from '@/types/api'
+import { calcularCierre, PRESETS_HOJA } from './presetsHoja'
 
 const TIPOS_CODIGO: { value: TipoCodigo; label: string }[] = [
   { value: 'DATAMATRIX', label: 'DataMatrix' },
@@ -93,6 +99,69 @@ const DEFAULT_FORM: ConfiguracionEtiquetaRequest = {
   espacioVerticalMm: 2.0,
   margenPaginaSuperiorMm: 12.7,
   margenPaginaIzquierdoMm: 4.8,
+  tipoMedio: 'HOJA_AVERY',
+  tamanoHoja: 'CARTA',
+  // Cero significa "dedúcelo de tamaño + separación": una configuración nueva se
+  // comporta como antes hasta que se capture el paso real de la hoja.
+  pasoHorizontalMm: 0,
+  pasoVerticalMm: 0,
+  margenDerechoMm: 0,
+  margenInferiorMm: 0,
+  ajusteXMm: 0,
+  ajusteYMm: 0,
+  carrilesRollo: 0,
+  anchoCabezalMm: 104.0,
+  offsetLhXDots: 0,
+  offsetLhYDots: 0,
+}
+
+/**
+ * Pasa una configuración guardada al formulario que se manda al backend.
+ *
+ * Se centraliza porque el formulario tiene que llevar todos los campos: los que
+ * no viaje se guardan con su valor por omisión y se pierde lo que hubiera. Ya
+ * pasó con la sección de página, y volvería a pasar con el paso y la calibración.
+ */
+function configAFormulario(config: ConfiguracionEtiquetaResponse): ConfiguracionEtiquetaRequest {
+  return {
+    nombre: config.nombre,
+    predeterminada: config.predeterminada,
+    anchoMm: config.anchoMm,
+    altoMm: config.altoMm,
+    dpi: config.dpi,
+    etiquetasPorFila: config.etiquetasPorFila,
+    margenIzquierdoMm: config.margenIzquierdoMm,
+    margenSuperiorMm: config.margenSuperiorMm,
+    tipoCodigo: config.tipoCodigo,
+    moduloCodigo: config.moduloCodigo,
+    anchoBarraCodigo: config.anchoBarraCodigo ?? 2,
+    tamanoFuenteNombre: config.tamanoFuenteNombre,
+    tamanoFuenteEtiqueta: config.tamanoFuenteEtiqueta,
+    espaciadoNombre: config.espaciadoNombre,
+    espaciadoCodigo: config.espaciadoCodigo,
+    espaciadoEtiqueta: config.espaciadoEtiqueta,
+    mostrarNombre: config.mostrarNombre,
+    mostrarCodigo: config.mostrarCodigo,
+    mostrarEtiqueta: config.mostrarEtiqueta,
+    disposicion: config.disposicion,
+    filasPorPagina: config.filasPorPagina,
+    espacioHorizontalMm: config.espacioHorizontalMm,
+    espacioVerticalMm: config.espacioVerticalMm,
+    margenPaginaSuperiorMm: config.margenPaginaSuperiorMm,
+    margenPaginaIzquierdoMm: config.margenPaginaIzquierdoMm,
+    tipoMedio: config.tipoMedio ?? 'HOJA_AVERY',
+    tamanoHoja: config.tamanoHoja ?? 'CARTA',
+    pasoHorizontalMm: config.pasoHorizontalMm ?? 0,
+    pasoVerticalMm: config.pasoVerticalMm ?? 0,
+    margenDerechoMm: config.margenDerechoMm ?? 0,
+    margenInferiorMm: config.margenInferiorMm ?? 0,
+    ajusteXMm: config.ajusteXMm ?? 0,
+    ajusteYMm: config.ajusteYMm ?? 0,
+    carrilesRollo: config.carrilesRollo ?? 0,
+    anchoCabezalMm: config.anchoCabezalMm ?? 104.0,
+    offsetLhXDots: config.offsetLhXDots ?? 0,
+    offsetLhYDots: config.offsetLhYDots ?? 0,
+  }
 }
 
 function getOrdenElementos(disposicion: DisposicionEtiqueta): ('NOMBRE' | 'CODIGO' | 'ETIQUETA')[] {
@@ -333,6 +402,47 @@ export default function EtiquetasConfigPanel() {
   const [editTarget, setEditTarget] = useState<ConfiguracionEtiquetaResponse | null>(null)
   const [form, setForm] = useState<ConfiguracionEtiquetaRequest>({ ...DEFAULT_FORM })
   const [formError, setFormError] = useState('')
+  const [calibrando, setCalibrando] = useState<ConfiguracionEtiquetaResponse | null>(null)
+
+  /**
+   * Guarda la corrección medida en el papel. Solo toca el paso y los ajustes:
+   * el resto de la configuración viaja tal como estaba, porque el formulario
+   * completo es lo que el backend espera y lo que no se manda se pierde.
+   */
+  function aplicarCalibracion(config: ConfiguracionEtiquetaResponse, r: ResultadoCalibracion) {
+    updateMutation.mutate(
+      {
+        id: config.id,
+        dto: {
+          ...configAFormulario(config),
+          pasoHorizontalMm: Number(r.pasoHorizontalMm.toFixed(2)),
+          pasoVerticalMm: Number(r.pasoVerticalMm.toFixed(2)),
+          ajusteXMm: Number(r.ajusteXMm.toFixed(2)),
+          ajusteYMm: Number(r.ajusteYMm.toFixed(2)),
+        },
+      },
+      { onSuccess: () => setCalibrando(null) },
+    )
+  }
+
+  /**
+   * Guarda el paso leído en la hoja vernier. A diferencia de la calibración, aquí
+   * el paso no se deduce de una medición sino que el operador eligió la fila que
+   * coincide con los troqueles, así que se toma tal cual.
+   */
+  function aplicarVernier(config: ConfiguracionEtiquetaResponse, r: ResultadoVernier) {
+    updateMutation.mutate(
+      {
+        id: config.id,
+        dto: {
+          ...configAFormulario(config),
+          pasoHorizontalMm: Number(r.pasoHorizontalMm.toFixed(2)),
+          ajusteXMm: Number(r.ajusteXMm.toFixed(2)),
+        },
+      },
+      { onSuccess: () => setCalibrando(null) },
+    )
+  }
 
   const activas = configuraciones.filter((c) => c.activo)
   const inactivas = configuraciones.filter((c) => !c.activo)
@@ -346,33 +456,7 @@ export default function EtiquetasConfigPanel() {
 
   function openEdit(config: ConfiguracionEtiquetaResponse) {
     setEditTarget(config)
-    setForm({
-      nombre: config.nombre,
-      predeterminada: config.predeterminada,
-      anchoMm: config.anchoMm,
-      altoMm: config.altoMm,
-      dpi: config.dpi,
-      etiquetasPorFila: config.etiquetasPorFila,
-      margenIzquierdoMm: config.margenIzquierdoMm,
-      margenSuperiorMm: config.margenSuperiorMm,
-      tipoCodigo: config.tipoCodigo,
-      moduloCodigo: config.moduloCodigo,
-      anchoBarraCodigo: config.anchoBarraCodigo ?? 2,
-      tamanoFuenteNombre: config.tamanoFuenteNombre,
-      tamanoFuenteEtiqueta: config.tamanoFuenteEtiqueta,
-      espaciadoNombre: config.espaciadoNombre,
-      espaciadoCodigo: config.espaciadoCodigo,
-      espaciadoEtiqueta: config.espaciadoEtiqueta,
-      mostrarNombre: config.mostrarNombre,
-      mostrarCodigo: config.mostrarCodigo,
-      mostrarEtiqueta: config.mostrarEtiqueta,
-      disposicion: config.disposicion,
-      filasPorPagina: config.filasPorPagina,
-      espacioHorizontalMm: config.espacioHorizontalMm,
-      espacioVerticalMm: config.espacioVerticalMm,
-      margenPaginaSuperiorMm: config.margenPaginaSuperiorMm,
-      margenPaginaIzquierdoMm: config.margenPaginaIzquierdoMm,
-    })
+    setForm(configAFormulario(config))
     setFormError('')
     setOpenForm(true)
   }
@@ -432,6 +516,53 @@ export default function EtiquetasConfigPanel() {
 
   const isPending = createMutation.isPending || updateMutation.isPending
 
+  const esHoja = (form.tipoMedio ?? 'HOJA_AVERY') === 'HOJA_AVERY'
+
+  /**
+   * Vuelca un modelo del catálogo sobre el formulario.
+   *
+   * Solo toca la geometría: el código, las fuentes y la disposición son
+   * decisiones del usuario que no dependen de qué hoja se compró, y pisarlas
+   * obligaría a recapturarlas cada vez que se corrige el acomodo.
+   */
+  function aplicarPreset(id: string) {
+    const p = PRESETS_HOJA.find((x) => x.id === id)
+    if (!p) return
+    setForm((prev) => ({
+      ...prev,
+      tipoMedio: 'HOJA_AVERY',
+      tamanoHoja: p.tamanoHoja,
+      anchoMm: p.anchoMm,
+      altoMm: p.altoMm,
+      etiquetasPorFila: p.columnas,
+      filasPorPagina: p.filas,
+      margenPaginaIzquierdoMm: p.margenPaginaIzquierdoMm,
+      margenPaginaSuperiorMm: p.margenPaginaSuperiorMm,
+      pasoHorizontalMm: p.pasoHorizontalMm,
+      pasoVerticalMm: p.pasoVerticalMm,
+      // El preset describe la hoja de fábrica; cualquier corrección medida
+      // contra la impresora deja de ser válida y se reinicia.
+      ajusteXMm: 0,
+      ajusteYMm: 0,
+      nombre: prev.nombre.trim() ? prev.nombre : p.nombre,
+    }))
+    setFormError('')
+  }
+
+  /** Sobrantes de la hoja con los valores capturados; sirve de comprobación. */
+  const cierre = useMemo(() => {
+    if (!esHoja || !form.anchoMm || !form.altoMm) return null
+    const pasoH = form.pasoHorizontalMm || form.anchoMm + form.espacioHorizontalMm
+    const pasoV = form.pasoVerticalMm || form.altoMm + form.espacioVerticalMm
+    return calcularCierre(
+      form.tamanoHoja ?? 'CARTA',
+      form.anchoMm, form.altoMm,
+      form.etiquetasPorFila, form.filasPorPagina,
+      form.margenPaginaIzquierdoMm, form.margenPaginaSuperiorMm,
+      pasoH, pasoV,
+    )
+  }, [esHoja, form])
+
   function renderRow(config: ConfiguracionEtiquetaResponse, dimmed = false) {
     const tipoLabel = TIPOS_CODIGO.find((t) => t.value === config.tipoCodigo)?.label ?? config.tipoCodigo
     const visibles: string[] = []
@@ -442,8 +573,13 @@ export default function EtiquetasConfigPanel() {
     return (
       <TableRow key={config.id} className={dimmed ? 'opacity-60' : ''}>
         <TableCell className="font-medium">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {config.nombre}
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
+              {config.tipoMedio === 'ROLLO_ZEBRA'
+                ? `Rollo · ${config.carrilesRolloEfectivo || config.carrilesRollo || 1} carril(es)`
+                : `Hoja · ${config.etiquetasPorFila}×${config.filasPorPagina}`}
+            </Badge>
             {config.predeterminada && (
               <Badge variant="default" className="text-[10px] px-1.5 py-0">
                 <Star className="h-3 w-3 mr-0.5" /> Predeterminada
@@ -477,6 +613,17 @@ export default function EtiquetasConfigPanel() {
                 className="text-muted-foreground hover:text-amber-500"
               >
                 <Star className="h-4 w-4" />
+              </Button>
+            )}
+            {puedeEditar && config.activo && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setCalibrando(config)}
+                title="Calibrar contra la impresora"
+                className="text-muted-foreground hover:text-sky-600"
+              >
+                <Ruler className="h-4 w-4" />
               </Button>
             )}
             {puedeEditar && (
@@ -605,9 +752,53 @@ export default function EtiquetasConfigPanel() {
 
             <Separator />
 
+            {/* Perfil: decide qué campos de acomodo tienen sentido. Antes una
+                misma configuración servía a la hoja y al rollo, y campos como
+                "etiquetas por fila" significaban dos cosas a la vez. */}
+            <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Tipo de medio</Label>
+                <Select
+                  value={form.tipoMedio ?? 'HOJA_AVERY'}
+                  onValueChange={(v) => updateField('tipoMedio', v as TipoMedio)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HOJA_AVERY">Hoja de etiquetas (navegador)</SelectItem>
+                    <SelectItem value="ROLLO_ZEBRA">Rollo Zebra (ZPL)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {esHoja && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Partir de una hoja del catálogo</Label>
+                  <Select value="" onValueChange={aplicarPreset}>
+                    <SelectTrigger><SelectValue placeholder="Elegir modelo…" /></SelectTrigger>
+                    <SelectContent>
+                      {PRESETS_HOJA.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <div>
+                            <div>{p.nombre}</div>
+                            <div className="text-[11px] text-muted-foreground">{p.equivalencias}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Rellena tamaño, cuadrícula, paso y márgenes. Lo del código y las fuentes no se
+                    toca.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             {/* Dimensiones */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Dimensiones</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2 @md:grid-cols-4">
               <div className="space-y-1">
                 <Label htmlFor="cfg-ancho">Ancho (mm)</Label>
                 <NumInput id="cfg-ancho" value={form.anchoMm} placeholder="33" step="0.5" min="10" max="200" onChange={(v) => updateField('anchoMm', v)} />
@@ -620,21 +811,28 @@ export default function EtiquetasConfigPanel() {
                 <Label htmlFor="cfg-dpi">DPI</Label>
                 <NumInput id="cfg-dpi" value={form.dpi} placeholder="203" min="150" max="600" onChange={(v) => updateField('dpi', v)} />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="cfg-por-fila">Etiquetas/fila</Label>
-                <NumInput id="cfg-por-fila" value={form.etiquetasPorFila} placeholder="3" min="1" max="12" onChange={(v) => updateField('etiquetasPorFila', v)} />
-              </div>
             </div>
 
-            {/* Margenes */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Márgenes internos de la etiqueta: delimitan el área donde cabe el
+                contenido. El derecho e inferior en cero se resuelven solos —el
+                derecho toma el izquierdo y el inferior queda a cero— que es como
+                se venía calculando antes de que estos campos existieran. */}
+            <div className="grid grid-cols-2 gap-3 @md:grid-cols-4">
               <div className="space-y-1">
                 <Label htmlFor="cfg-margen-izq">Margen izquierdo (mm)</Label>
-                <NumInput id="cfg-margen-izq" value={form.margenIzquierdoMm} placeholder="2.5" step="0.5" min="0" max="20" onChange={(v) => updateField('margenIzquierdoMm', v)} />
+                <NumInput id="cfg-margen-izq" value={form.margenIzquierdoMm} placeholder="2.5" step="0.1" min="0" max="20" onChange={(v) => updateField('margenIzquierdoMm', v)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="cfg-margen-der">Margen derecho (mm)</Label>
+                <NumInput id="cfg-margen-der" value={form.margenDerechoMm ?? 0} placeholder="0" step="0.1" min="0" max="20" onChange={(v) => updateField('margenDerechoMm', v)} />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="cfg-margen-sup">Margen superior (mm)</Label>
-                <NumInput id="cfg-margen-sup" value={form.margenSuperiorMm} placeholder="2" step="0.5" min="0" max="20" onChange={(v) => updateField('margenSuperiorMm', v)} />
+                <NumInput id="cfg-margen-sup" value={form.margenSuperiorMm} placeholder="2" step="0.1" min="0" max="20" onChange={(v) => updateField('margenSuperiorMm', v)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="cfg-margen-inf">Margen inferior (mm)</Label>
+                <NumInput id="cfg-margen-inf" value={form.margenInferiorMm ?? 0} placeholder="0" step="0.1" min="0" max="20" onChange={(v) => updateField('margenInferiorMm', v)} />
               </div>
             </div>
 
@@ -642,7 +840,7 @@ export default function EtiquetasConfigPanel() {
 
             {/* Código de barras */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Código de barras</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>Tipo de código</Label>
                 <Select value={form.tipoCodigo} onValueChange={(v) => updateField('tipoCodigo', v as TipoCodigo)}>
@@ -714,13 +912,13 @@ export default function EtiquetasConfigPanel() {
 
             {/* Tamanos de fuente */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tamaño de fuentes</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
               <div className="space-y-1">
-                <Label htmlFor="cfg-font-nombre">Fuente del nombre (px)</Label>
+                <Label htmlFor="cfg-font-nombre">Fuente nombre (px)</Label>
                 <NumInput id="cfg-font-nombre" value={form.tamanoFuenteNombre} placeholder="16" min="8" max="72" onChange={(v) => updateField('tamanoFuenteNombre', v)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cfg-font-etiqueta">Fuente de la etiqueta (px)</Label>
+                <Label htmlFor="cfg-font-etiqueta">Fuente etiqueta (px)</Label>
                 <NumInput id="cfg-font-etiqueta" value={form.tamanoFuenteEtiqueta} placeholder="16" min="8" max="72" onChange={(v) => updateField('tamanoFuenteEtiqueta', v)} />
               </div>
             </div>
@@ -729,17 +927,17 @@ export default function EtiquetasConfigPanel() {
 
             {/* Espaciado entre elementos */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Espaciado entre elementos (dots)</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 @sm:grid-cols-3">
               <div className="space-y-1">
-                <Label htmlFor="cfg-gap-nombre">Después del nombre</Label>
+                <Label htmlFor="cfg-gap-nombre">Tras el nombre</Label>
                 <NumInput id="cfg-gap-nombre" value={form.espaciadoNombre} placeholder="4" min="0" max="50" onChange={(v) => updateField('espaciadoNombre', v)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cfg-gap-codigo">Después del código</Label>
+                <Label htmlFor="cfg-gap-codigo">Tras el código</Label>
                 <NumInput id="cfg-gap-codigo" value={form.espaciadoCodigo} placeholder="10" min="0" max="50" onChange={(v) => updateField('espaciadoCodigo', v)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cfg-gap-etiqueta">Después de la etiqueta</Label>
+                <Label htmlFor="cfg-gap-etiqueta">Tras la etiqueta</Label>
                 <NumInput id="cfg-gap-etiqueta" value={form.espaciadoEtiqueta} placeholder="4" min="0" max="50" onChange={(v) => updateField('espaciadoEtiqueta', v)} />
               </div>
             </div>
@@ -803,37 +1001,121 @@ export default function EtiquetasConfigPanel() {
 
             <Separator />
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Configuración de página (impresora estándar)
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Estos valores solo aplican al imprimir desde el navegador (hojas tipo Avery).
-              </p>
-            </div>
+            {esHoja ? (
+              <>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Acomodo en la hoja
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    El <strong>paso</strong> es la distancia de un borde de etiqueta al mismo borde
+                    de la siguiente, no el hueco entre ellas. Es el dato que trae la ficha del
+                    fabricante y el único que posiciona bien la cuadrícula.
+                  </p>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Filas por página</Label>
-                <Input type="number" min={1} max={30} value={form.filasPorPagina} onChange={(e) => updateField('filasPorPagina', Number(e.target.value))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Espacio horizontal (mm)</Label>
-                <Input type="number" min={0} max={50} step={0.1} value={form.espacioHorizontalMm} onChange={(e) => updateField('espacioHorizontalMm', Number(e.target.value))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Espacio vertical (mm)</Label>
-                <Input type="number" min={0} max={50} step={0.1} value={form.espacioVerticalMm} onChange={(e) => updateField('espacioVerticalMm', Number(e.target.value))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Margen superior página (mm)</Label>
-                <Input type="number" min={0} max={50} step={0.1} value={form.margenPaginaSuperiorMm} onChange={(e) => updateField('margenPaginaSuperiorMm', Number(e.target.value))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Margen izquierdo página (mm)</Label>
-                <Input type="number" min={0} max={50} step={0.1} value={form.margenPaginaIzquierdoMm} onChange={(e) => updateField('margenPaginaIzquierdoMm', Number(e.target.value))} />
-              </div>
-            </div>
+                <div className="grid grid-cols-2 gap-3 @md:grid-cols-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tamaño de hoja</Label>
+                    <Select
+                      value={form.tamanoHoja ?? 'CARTA'}
+                      onValueChange={(v) => updateField('tamanoHoja', v as TamanoHoja)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CARTA">Carta (215.9 × 279.4 mm)</SelectItem>
+                        <SelectItem value="A4">A4 (210 × 297 mm)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Filas por página</Label>
+                    <Input type="number" min={1} max={30} value={form.filasPorPagina} onChange={(e) => updateField('filasPorPagina', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Columnas</Label>
+                    <Input type="number" min={1} max={12} value={form.etiquetasPorFila} onChange={(e) => updateField('etiquetasPorFila', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Paso horizontal (mm)</Label>
+                    <Input type="number" min={0} max={250} step={0.01} value={form.pasoHorizontalMm ?? 0} onChange={(e) => updateField('pasoHorizontalMm', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Paso vertical (mm)</Label>
+                    <Input type="number" min={0} max={250} step={0.01} value={form.pasoVerticalMm ?? 0} onChange={(e) => updateField('pasoVerticalMm', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Margen izq. página (mm)</Label>
+                    <Input type="number" min={0} max={50} step={0.01} value={form.margenPaginaIzquierdoMm} onChange={(e) => updateField('margenPaginaIzquierdoMm', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Margen sup. página (mm)</Label>
+                    <Input type="number" min={0} max={50} step={0.01} value={form.margenPaginaSuperiorMm} onChange={(e) => updateField('margenPaginaSuperiorMm', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Ajuste X (mm)</Label>
+                    <Input type="number" min={-20} max={20} step={0.01} value={form.ajusteXMm ?? 0} onChange={(e) => updateField('ajusteXMm', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Ajuste Y (mm)</Label>
+                    <Input type="number" min={-20} max={20} step={0.01} value={form.ajusteYMm ?? 0} onChange={(e) => updateField('ajusteYMm', Number(e.target.value))} />
+                  </div>
+                </div>
+
+                {/* Comprobación al vuelo: una hoja se troquela simétrica, así que
+                    los sobrantes tienen que coincidir con los márgenes. */}
+                {cierre && (
+                  <Alert variant={cierre.simetrico ? 'default' : 'destructive'}>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-[12px]">
+                      Con estos valores sobran <strong>{cierre.margenDerechoMm} mm</strong> a la
+                      derecha y <strong>{cierre.margenInferiorMm} mm</strong> abajo.{' '}
+                      {cierre.simetrico
+                        ? 'Coinciden con los márgenes capturados, que es lo que se espera de una hoja troquelada.'
+                        : 'No coinciden con los márgenes capturados. Las hojas se troquelan simétricas, así que probablemente el paso o algún margen esté mal.'}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Rollo y cabezal
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    La Zebra avanza el papel por filas completas: los carriles deciden cuántas
+                    etiquetas se consumen en cada avance, sin importar cuántas se manden.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 @md:grid-cols-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Carriles del rollo</Label>
+                    <Input type="number" min={1} max={12} value={form.carrilesRollo || 1} onChange={(e) => updateField('carrilesRollo', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Cabezal (mm)</Label>
+                    <Input type="number" min={10} max={300} step={0.1} value={form.anchoCabezalMm ?? 104} onChange={(e) => updateField('anchoCabezalMm', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Origen X (dots)</Label>
+                    <Input type="number" min={-600} max={600} value={form.offsetLhXDots ?? 0} onChange={(e) => updateField('offsetLhXDots', Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Origen Y (dots)</Label>
+                    <Input type="number" min={-600} max={600} value={form.offsetLhYDots ?? 0} onChange={(e) => updateField('offsetLhYDots', Number(e.target.value))} />
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  El origen (<code>^LH</code>) corrige dónde empieza a imprimir la Zebra. Sin él, el
+                  formato hereda el que la impresora tenga guardado de un trabajo anterior, y el
+                  margen izquierdo sale distinto en cada máquina. A {form.dpi || 203} dpi, 1 mm son{' '}
+                  {Math.round((form.dpi || 203) / 25.4)} dots.
+                </p>
+              </>
+            )}
 
             {formError && (
               <p className="flex items-center gap-1 text-xs text-destructive">
@@ -851,6 +1133,17 @@ export default function EtiquetasConfigPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {calibrando && (
+        <CalibracionDialog
+          configuracion={calibrando}
+          open
+          onClose={() => setCalibrando(null)}
+          onAplicar={(r) => aplicarCalibracion(calibrando, r)}
+          onAplicarVernier={(r) => aplicarVernier(calibrando, r)}
+          guardando={updateMutation.isPending}
+        />
+      )}
     </Card>
   )
 }

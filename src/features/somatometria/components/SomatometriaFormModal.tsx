@@ -27,6 +27,7 @@ import {
 } from '../hooks/useSomatometria'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import { formatDate } from '@/lib/utils'
+import { SedeBadge } from '@/components/common/SedeBadge'
 import type { Somatometria } from '@/types/api'
 
 // ─── Form Modal ────────────────────────────────────────────────────────────────
@@ -395,7 +396,13 @@ export function SomatometriaHistorialDialog({
                     className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--imss-green-50)]"
                   >
                     <td className="px-3 py-2.5 font-mono text-[12px] text-[var(--imss-ink-900)]">
-                      {formatDate(s.fechaMedicion, 'dd/MM/yyyy HH:mm')}
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        {formatDate(s.fechaMedicion, 'dd/MM/yyyy HH:mm')}
+                        <SedeBadge
+                          uuidInstitucion={s.institucionUuid}
+                          nombreInstitucion={s.institucionNombre}
+                        />
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 text-[var(--imss-ink-900)]">
                       {s.pesoKg != null ? `${s.pesoKg} kg` : '—'}

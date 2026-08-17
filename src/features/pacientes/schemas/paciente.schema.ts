@@ -4,6 +4,12 @@ import { esMayorDeEdadConTolerancia } from '@/components/ui/date-time-picker'
 export const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/
 
 const basePacienteSchema = z.object({
+  /**
+   * Institución a la que se asigna el participante. Solo se elige al registrar;
+   * al editar el campo se muestra deshabilitado y el backend ignora el valor.
+   */
+  idInstitucion: z.number().optional().nullable(),
+
   folio: z.string()
     .trim()
     .max(50, 'Máximo 50 caracteres')

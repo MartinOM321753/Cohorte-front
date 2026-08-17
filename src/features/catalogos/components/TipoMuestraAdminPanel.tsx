@@ -396,7 +396,7 @@ export function TipoMuestraAdminPanel() {
 
 function TipoFormFields({ form, onChange }: { form: TipoForm; onChange: (f: TipoForm) => void }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 @sm:grid-cols-3 gap-3">
       <div className="space-y-1">
         <Label className="text-xs">Nombre *</Label>
         <Input
@@ -430,7 +430,7 @@ function TipoFormFields({ form, onChange }: { form: TipoForm; onChange: (f: Tipo
 
 function TuboFormFields({ form, onChange }: { form: TuboForm; onChange: (f: TuboForm) => void }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 @sm:grid-cols-4 gap-3">
       <div className="space-y-1">
         <Label className="text-xs">Nombre del tubo *</Label>
         <Input
