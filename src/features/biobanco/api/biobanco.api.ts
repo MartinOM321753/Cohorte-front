@@ -602,6 +602,34 @@ export async function imprimirAlicuotas(idMuestraPadre: number, impresora: strin
   return response.data.data
 }
 
+/**
+ * Imprime con las etiquetas en los carriles que el operador acomodó.
+ *
+ * Solo tiene sentido contra el agente local: es el que habla con la Zebra. Si el
+ * agente no está, no hay forma de mandar un acomodo —los endpoints de impresión
+ * del servidor imprimen en secuencia— y se avisa en vez de imprimir mal.
+ */
+export async function imprimirAcomodado(
+  impresora: string,
+  slots: (number | null)[],
+  configuracionId?: number,
+  marcoDepuracion = false,
+): Promise<number> {
+  const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
+  if (!(await isAgentAvailable())) {
+    throw new Error(
+      'El agente de impresión local no está disponible. El acomodo por carriles necesita el agente para hablar con la Zebra.',
+    )
+  }
+  const response = await api.post<ApiResponse<ZplLoteResponse>>(
+    '/almacenamiento/muestras/etiquetas/zpl-acomodado',
+    { configuracionId, slots, marcoDepuracion },
+  )
+  const { zpl, total } = response.data.data
+  await imprimirLocal(impresora, zpl)
+  return total
+}
+
 export async function imprimirLoteCompleto(idMuestraPadre: number, impresora: string, configuracionId?: number): Promise<number> {
   const { isAgentAvailable, imprimirLocal } = await import('@/lib/printAgent')
 

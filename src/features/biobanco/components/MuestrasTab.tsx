@@ -6,7 +6,8 @@ import {
   EyeOff, Eye, Ban,
 } from 'lucide-react'
 import { useGetMuestras, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto } from '../hooks/useBiobanco'
-import { getLabelDataEtiqueta, getLabelDataAlicuotas, getLabelDataLoteCompleto } from '../api/biobanco.api'
+import { getLabelDataEtiqueta, getLabelDataAlicuotas, getLabelDataLoteCompleto, imprimirAcomodado } from '../api/biobanco.api'
+import { AcomodoCarrilesDialog } from '@/components/print/AcomodoCarrilesDialog'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
 import { PrintableLabelsView } from '@/components/print/PrintableLabelsView'
 import { SedeBadge } from '@/components/common/SedeBadge'
@@ -579,9 +580,14 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
               {muestra.etiqueta}
             </CardTitle>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {/* Siempre visible: una misma muestra padre puede tener alícuotas
+                  generadas por cada institución por la que ha pasado, y ocultar
+                  las propias las volvería indistinguibles de las ajenas. */}
               <SedeBadge
                 idInstitucion={muestra.idInstitucion}
                 nombreInstitucion={muestra.nombreInstitucion}
+                mostrarSiempre
+                accion="Generada por"
               />
               {muestra.numeroAlicuota != null && muestra.totalAlicuotas != null && (
                 <span className="inline-flex items-center text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-full px-2 py-0.5">
@@ -733,6 +739,9 @@ export function MuestrasTab() {
   const imprimirLoteMut = useImprimirLoteCompleto()
 
   const [browserPrintData, setBrowserPrintData] = useState<PrintableLabelBatchDTO | null>(null)
+  // Lote a acomodar sobre los carriles del rollo antes de mandarlo a la Zebra.
+  const [acomodoRollo, setAcomodoRollo] = useState<PrintableLabelBatchDTO | null>(null)
+  const [enviandoAcomodo, setEnviandoAcomodo] = useState(false)
 
   const [selectedPrinter, setSelectedPrinter] = useState<string>(() =>
     localStorage.getItem('zebra-printer-name') ?? ''
@@ -877,6 +886,26 @@ export function MuestrasTab() {
     }
   }
 
+  /**
+   * En rollo, antes de imprimir un lote se abre el acomodo por carriles.
+   *
+   * La Zebra avanza el papel por filas completas: mandar el lote directo deja en
+   * blanco los carriles sobrantes de la última fila, y esos troqueles se pierden.
+   * Pasar por el acomodo permite decidir en qué carril cae cada etiqueta.
+   */
+  const abrirAcomodoRollo = async (
+    cargar: () => Promise<PrintableLabelBatchDTO>,
+  ): Promise<boolean> => {
+    try {
+      const data = await cargar()
+      if (data.etiquetas.some((e) => e.id == null)) return false
+      setAcomodoRollo(data)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const handlePrintAlicuotas = async (id: number) => {
     if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta. Cree una en Configuración > Etiquetas.'); return }
     if (isBrowserPrint) {
@@ -890,6 +919,10 @@ export function MuestrasTab() {
     }
     const imp = selectedPrinter || impresoras[0]
     if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
+
+    if (await abrirAcomodoRollo(() => getLabelDataAlicuotas(id, resolvedConfigId))) return
+
+    // Si no se pudo preparar el acomodo, se imprime en secuencia como antes.
     try {
       const total = await imprimirAlicuotasMut.mutateAsync({ idMuestraPadre: id, impresora: imp, configuracionId: resolvedConfigId })
       toast.success(`${total} etiqueta(s) enviada(s) a la impresora`)
@@ -912,12 +945,34 @@ export function MuestrasTab() {
     }
     const imp = selectedPrinter || impresoras[0]
     if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
+
+    if (await abrirAcomodoRollo(() => getLabelDataLoteCompleto(id, resolvedConfigId))) return
+
     try {
       const total = await imprimirLoteMut.mutateAsync({ idMuestraPadre: id, impresora: imp, configuracionId: resolvedConfigId })
       toast.success(`${total} etiqueta(s) enviada(s) a la impresora (padre + alícuotas)`)
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Error al imprimir lote'
       toast.error(msg)
+    }
+  }
+
+  /** Manda a la Zebra el acomodo que el operador armó en la cuadrícula. */
+  const enviarAcomodo = async (slots: (number | null)[], marcoDepuracion: boolean) => {
+    if (!acomodoRollo) return
+    const imp = selectedPrinter || impresoras[0]
+    if (!imp) { toast.error('No hay impresoras disponibles. Verifique la conexión.'); return }
+
+    setEnviandoAcomodo(true)
+    try {
+      const ids = slots.map((s) => (s === null ? null : acomodoRollo.etiquetas[s].id ?? null))
+      const total = await imprimirAcomodado(imp, ids, resolvedConfigId, marcoDepuracion)
+      toast.success(`${total} etiqueta(s) enviada(s) a la impresora`)
+      setAcomodoRollo(null)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Error al imprimir')
+    } finally {
+      setEnviandoAcomodo(false)
     }
   }
 
@@ -1233,6 +1288,17 @@ export function MuestrasTab() {
           etiquetas={browserPrintData.etiquetas}
           configuracion={browserPrintData.configuracion}
           onClose={() => setBrowserPrintData(null)}
+        />
+      )}
+
+      {acomodoRollo && (
+        <AcomodoCarrilesDialog
+          open={true}
+          etiquetas={acomodoRollo.etiquetas}
+          carriles={acomodoRollo.configuracion.carrilesRolloEfectivo || acomodoRollo.configuracion.carrilesRollo || 1}
+          onClose={() => setAcomodoRollo(null)}
+          onImprimir={enviarAcomodo}
+          imprimiendo={enviandoAcomodo}
         />
       )}
 
