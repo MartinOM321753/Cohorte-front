@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ListaChipsEditable } from '@/components/common/ListaChipsEditable'
 import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -39,6 +40,20 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+
+/**
+ * Misma normalizacion que NormalizadorAlias en el backend, para rechazar un
+ * duplicado en el momento en vez de dejar que falle al guardar.
+ */
+function normalizarAlias(v: string): string {
+  return v
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s\u00a0]+/g, ' ')
+    .toUpperCase()
+}
+
 const DEFAULT_VALUES: ExamenFormData = {
   nombreExamen: '',
   descripcion: '',
@@ -55,6 +70,7 @@ export function ExamenesTab() {
   const puedeEditar = hasPermiso('EXAMENES_CATALOGO_EDITAR')
   const puedeEliminar = hasPermiso('EXAMENES_CATALOGO_ELIMINAR')
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [alias, setAlias] = useState<string[]>([])
   /** Cambia al limpiar/cancelar para forzar el remount del formulario y
    *  limpiar visualmente los inputs type="number" (React no actualiza el DOM
    *  cuando se pasa undefined a un input controlado con valueAsNumber). */
@@ -91,11 +107,13 @@ export function ExamenesTab() {
       valorMinHombres: examen.valorMinHombres,
       valorMaxHombres: examen.valorMaxHombres,
     })
+    setAlias(examen.alias ?? [])
   }
 
   const handleCancel = () => {
     setEditingId(null)
     reset(DEFAULT_VALUES)
+    setAlias([])
     // Incrementar la key fuerza el unmount+remount de <form> → los inputs
     // type="number" quedan completamente vacíos sin importar el estado anterior
     setFormKey((k) => k + 1)
@@ -110,6 +128,7 @@ export function ExamenesTab() {
       valorMaxMujeres: data.valorMaxMujeres,
       valorMinHombres: data.valorMinHombres,
       valorMaxHombres: data.valorMaxHombres,
+      alias,
     }
 
     if (isEditing) {
@@ -121,6 +140,7 @@ export function ExamenesTab() {
       createMutation.mutate(payload, {
         onSuccess: () => {
           reset(DEFAULT_VALUES)
+          setAlias([])
           setFormKey((k) => k + 1)
         },
       })
@@ -323,6 +343,15 @@ export function ExamenesTab() {
               </FormField>
             </div>
           </div>
+
+          <ListaChipsEditable
+            valores={alias}
+            onChange={setAlias}
+            etiqueta="Alias de instrumento"
+            ayuda="Nombre exacto de la columna tal como la exporta el aparato. Se usa para la carga masiva; se comparan sin acentos ni mayúsculas y no pueden repetirse entre exámenes de la institución."
+            placeholder="Ej. GLU"
+            normalizar={normalizarAlias}
+          />
 
           <div className="space-y-3">
             <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

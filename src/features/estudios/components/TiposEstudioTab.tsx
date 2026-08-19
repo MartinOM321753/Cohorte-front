@@ -1,3 +1,4 @@
+import { ListaChipsEditable } from '@/components/common/ListaChipsEditable'
 import { useState, useMemo } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
@@ -55,6 +56,21 @@ import {
 import { cn } from '@/lib/utils'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
 
+/**
+ * Misma normalizacion que NormalizadorAlias en el backend: mayusculas, sin
+ * acentos y con los espacios colapsados. Se replica aqui para que el formulario
+ * rechace un duplicado en el momento, en vez de dejar que falle al guardar.
+ */
+function normalizarAlias(v: string): string {
+  return v
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')  // tildes ya separadas por NFD
+    .replace(/[\s\u00a0]+/g, ' ')      // incluye el espacio duro de Excel
+    .toUpperCase()
+}
+
+
 interface PendingParametro {
   key: string
   nombre: string
@@ -108,6 +124,7 @@ export function TiposEstudioTab() {
   const [paramValorMinHombres, setParamValorMinHombres] = useState('')
   const [paramValorMaxHombres, setParamValorMaxHombres] = useState('')
   const [paramOpciones, setParamOpciones] = useState<string[]>([])
+  const [paramAlias, setParamAlias] = useState<string[]>([])
   const [paramOpcionInput, setParamOpcionInput] = useState('')
   const [paramError, setParamError] = useState('')
   const [paramRangoError, setParamRangoError] = useState('')
@@ -123,6 +140,7 @@ export function TiposEstudioTab() {
   const [peValMinHombres, setPeValMinHombres] = useState('')
   const [peValMaxHombres, setPeValMaxHombres] = useState('')
   const [peOpciones, setPeOpciones] = useState<string[]>([])
+  const [peAlias, setPeAlias] = useState<string[]>([])
   const [peOpcionInput, setPeOpcionInput] = useState('')
   const [peError, setPeError] = useState('')
   const [peRangoError, setPeRangoError] = useState('')
@@ -168,6 +186,7 @@ export function TiposEstudioTab() {
         valorMinHombres: paramTipo === 'NUMERICO' && paramValorMinHombres !== '' ? paramValorMinHombres : undefined,
         valorMaxHombres: paramTipo === 'NUMERICO' && paramValorMaxHombres !== '' ? paramValorMaxHombres : undefined,
         opciones: paramTipo === 'TEXTO_OPCIONES' ? [...paramOpciones] : undefined,
+        alias: [...paramAlias],
       },
     ])
     setParamNombre('')
@@ -178,6 +197,7 @@ export function TiposEstudioTab() {
     setParamValorMinHombres('')
     setParamValorMaxHombres('')
     setParamOpciones([])
+    setParamAlias([])
     setParamOpcionInput('')
   }
 
@@ -219,6 +239,7 @@ export function TiposEstudioTab() {
       valorMinHombres: peTipo === 'NUMERICO' && peValMinHombres !== '' ? peValMinHombres : undefined,
       valorMaxHombres: peTipo === 'NUMERICO' && peValMaxHombres !== '' ? peValMaxHombres : undefined,
       opciones: peTipo === 'TEXTO_OPCIONES' ? [...peOpciones] : undefined,
+      alias: [...peAlias],
     }))
     setPendingEditKey(null)
     setPeError('')
@@ -435,6 +456,16 @@ export function TiposEstudioTab() {
                               compact
                             />
                           )}
+                          {/* Alias: aplican a cualquier tipo de parámetro, así que
+                              van fuera del condicional de opciones. */}
+                          <ListaChipsEditable
+                            valores={peAlias}
+                            onChange={setPeAlias}
+                            etiqueta="Alias de instrumento"
+                            ayuda="Nombre exacto de la columna tal como la exporta el aparato. Se usa para la carga masiva; se comparan sin acentos ni mayúsculas."
+                            placeholder="Ej. SYS"
+                            normalizar={normalizarAlias}
+                          />
                           {peTipo === 'TEXTO_OPCIONES' && (
                             <div className="col-span-2 space-y-1.5">
                               <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>
@@ -564,6 +595,15 @@ export function TiposEstudioTab() {
                   error={paramRangoError}
                 />
               )}
+              {/* Alias: aplican a cualquier tipo de parámetro. */}
+              <ListaChipsEditable
+                valores={paramAlias}
+                onChange={setParamAlias}
+                etiqueta="Alias de instrumento"
+                ayuda="Nombre exacto de la columna tal como la exporta el aparato. Se usa para la carga masiva; se comparan sin acentos ni mayúsculas."
+                placeholder="Ej. SYS"
+                normalizar={normalizarAlias}
+              />
               {/* Opciones configurables — solo para TEXTO_OPCIONES */}
               {paramTipo === 'TEXTO_OPCIONES' && (
                 <div className="col-span-2 space-y-1.5">
@@ -909,6 +949,7 @@ function EditableParametroRow({
   const [valMaxHombres, setValMaxHombres] = useState(parametro.valorMaxHombres != null ? String(parametro.valorMaxHombres) : '')
   const [opciones, setOpciones]       = useState<string[]>(parametro.opciones ?? [])
   const [opcionInput, setOpcionInput] = useState('')
+  const [alias, setAlias]             = useState<string[]>(parametro.alias ?? [])
   const [error,  setError]            = useState('')
   const [rangoError, setRangoError]   = useState('')
 
@@ -922,6 +963,7 @@ function EditableParametroRow({
     setValMaxHombres(parametro.valorMaxHombres != null ? String(parametro.valorMaxHombres) : '')
     setOpciones(parametro.opciones ?? [])
     setOpcionInput('')
+    setAlias(parametro.alias ?? [])
     setError('')
     setRangoError('')
     setEditing(true)
@@ -953,6 +995,9 @@ function EditableParametroRow({
         valorMinHombres: tipo === 'NUMERICO' && valMinHombres !== '' ? Number(valMinHombres) : undefined,
         valorMaxHombres: tipo === 'NUMERICO' && valMaxHombres !== '' ? Number(valMaxHombres) : undefined,
         opciones: tipo === 'TEXTO_OPCIONES' ? opciones : undefined,
+        // Los alias no dependen del tipo: cualquier parametro puede venir de un
+        // instrumento. Se envia siempre para que vaciar la lista tambien persista.
+        alias,
       },
       { onSuccess: () => setEditing(false) }
     )
@@ -996,6 +1041,18 @@ function EditableParametroRow({
               compact
             />
           )}
+          {/* Alias de instrumento — aplica a cualquier tipo de parámetro */}
+          <div className="col-span-2">
+            <ListaChipsEditable
+              valores={alias}
+              onChange={setAlias}
+              etiqueta="Alias de instrumento"
+              ayuda="Nombre exacto de la columna tal como la exporta el aparato. Se usa para la carga masiva; se comparan sin acentos ni mayúsculas."
+              placeholder="Ej. SYS"
+              normalizar={normalizarAlias}
+            />
+          </div>
+
           {/* Opciones — solo para TEXTO_OPCIONES */}
           {tipo === 'TEXTO_OPCIONES' && (
             <div className="col-span-2 space-y-1.5">
@@ -1156,6 +1213,7 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
   const [valMaxHombres, setValMaxHombres] = useState('')
   const [opciones, setOpciones]       = useState<string[]>([])
   const [opcionInput, setOpcionInput] = useState('')
+  const [alias, setAlias]             = useState<string[]>([])
   const [error, setError]             = useState('')
   const [rangoError, setRangoError]   = useState('')
 
@@ -1179,8 +1237,9 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
         valorMinHombres: tipo === 'NUMERICO' && valMinHombres !== '' ? Number(valMinHombres) : undefined,
         valorMaxHombres: tipo === 'NUMERICO' && valMaxHombres !== '' ? Number(valMaxHombres) : undefined,
         opciones: tipo === 'TEXTO_OPCIONES' ? opciones : undefined,
+        alias,
       },
-      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setOpcionInput('') } }
+      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setOpcionInput(''); setAlias([]) } }
     )
   }
 
@@ -1225,6 +1284,15 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
             compact
           />
         )}
+        {/* Alias: aplican a cualquier tipo de parámetro. */}
+        <ListaChipsEditable
+          valores={alias}
+          onChange={setAlias}
+          etiqueta="Alias de instrumento"
+          ayuda="Nombre exacto de la columna tal como la exporta el aparato. Se usa para la carga masiva; se comparan sin acentos ni mayúsculas."
+          placeholder="Ej. SYS"
+          normalizar={normalizarAlias}
+        />
         {tipo === 'TEXTO_OPCIONES' && (
           <div className="col-span-2 space-y-1.5">
             <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>

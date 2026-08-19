@@ -286,6 +286,8 @@ export interface ParametroEstudio {
   valorMaxHombres?: number | null
   /** Opciones predefinidas — solo aplica a tipo TEXTO_OPCIONES */
   opciones?: string[] | null
+  /** Nombres con los que los instrumentos titulan la columna de este parámetro. */
+  alias?: string[] | null
 }
 
 export interface ParametroEstudioRequestDTO {
@@ -299,6 +301,11 @@ export interface ParametroEstudioRequestDTO {
   valorMaxHombres?: number | null
   /** Lista de valores válidos — solo cuando tipo == TEXTO_OPCIONES */
   opciones?: string[]
+  /**
+   * Alias de columna para la carga masiva. La lista reemplaza la anterior.
+   * Se comparan sin acentos, mayúsculas ni espacios de sobra.
+   */
+  alias?: string[]
 }
 
 export interface TipoEstudio {
@@ -406,6 +413,8 @@ export interface Examen {
   valorMaxMujeres?: number
   valorMinHombres?: number
   valorMaxHombres?: number
+  /** Nombres con los que los instrumentos titulan la columna de este examen. */
+  alias?: string[] | null
   activo: boolean
 }
 
@@ -417,6 +426,11 @@ export interface ExamenRequestDTO {
   valorMaxMujeres?: number
   valorMinHombres?: number
   valorMaxHombres?: number
+  /**
+   * Alias de columna para la carga masiva. La lista reemplaza la anterior.
+   * Dentro de una institución, un alias pertenece a un solo examen.
+   */
+  alias?: string[]
 }
 
 export interface ResultadoExamen {
