@@ -99,6 +99,7 @@ const LABELS: Record<string, string> = {
   MUESTRAS_EDITAR:   'Editar muestras',
   MUESTRAS_ELIMINAR: 'Eliminar muestras',
   MUESTRAS_IMPRIMIR: 'Imprimir etiquetas de muestras',
+  MUESTRAS_ESCANEAR: 'Buscar muestras leyendo su etiqueta',
 
   // Tipos de muestra
   TIPOS_MUESTRA_ACCEDER: 'Tab Tipos de muestra',

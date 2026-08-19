@@ -406,6 +406,12 @@ export const SECCIONES: Seccion[] = [
             descripcion: 'Habilita el selector de impresora y las llamadas al servicio de impresión. Si se desmarca, la tab de muestras oculta los botones y no dispara ninguna llamada a /impresoras.',
             permisos: ['MUESTRAS_IMPRIMIR'],
           },
+          {
+            id: 'escanear',
+            label: 'Buscar leyendo la etiqueta',
+            descripcion: 'Habilita el botón de escaneo: cámara del dispositivo o lector de códigos conectado. Localiza la muestra en el listado y abre su edición. Sin este permiso el botón no aparece y el endpoint responde 403.',
+            permisos: ['MUESTRAS_ESCANEAR'],
+          },
         ],
       },
       {
