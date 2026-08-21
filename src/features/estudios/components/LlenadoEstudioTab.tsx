@@ -1158,25 +1158,37 @@ function ParametroInput({
         // BOOLEANO
         <div className="flex items-center gap-2 pt-1">
           {isStandalone ? (
-            <Switch
-              checked={Boolean(standaloneValue)}
-              onCheckedChange={(checked) => onStandaloneChange!(checked)}
-            />
+            <>
+              <Switch
+                checked={Boolean(standaloneValue)}
+                onCheckedChange={(checked) => onStandaloneChange!(checked)}
+              />
+              <span className="text-sm text-muted-foreground">
+                {standaloneValue ? 'Sí' : 'No'}
+              </span>
+            </>
           ) : (
             <Controller
               name={fieldName}
               control={control}
               render={({ field }) => (
-                <Switch
-                  checked={field.value ?? false}
-                  onCheckedChange={field.onChange}
-                />
+                <>
+                  <Switch
+                    checked={field.value ?? false}
+                    onCheckedChange={field.onChange}
+                  />
+                  {/* La etiqueta tiene que vivir dentro del Controller, que es el
+                      unico sitio donde se conoce el valor. Cuando estaba fuera no
+                      podia leerlo y decia siempre "Si / No": un rotulo fijo que
+                      encima se entendia como el orden del interruptor
+                      —izquierda Si, derecha No—, justo al reves de lo que hace. */}
+                  <span className="text-sm text-muted-foreground">
+                    {field.value ? 'Sí' : 'No'}
+                  </span>
+                </>
               )}
             />
           )}
-          <span className="text-sm text-muted-foreground">
-            {isStandalone ? (standaloneValue ? 'Sí' : 'No') : 'Sí / No'}
-          </span>
         </div>
       )}
       {rangeWarning && (

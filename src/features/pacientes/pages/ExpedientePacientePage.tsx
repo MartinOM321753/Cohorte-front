@@ -1153,7 +1153,19 @@ function CampoParametro({
   onChange: (v: string | number | boolean) => void
 }) {
   if (parametro.tipo === 'BOOLEANO') {
-    return <Switch checked={Boolean(valor ?? false)} onCheckedChange={onChange} />
+    const activo = Boolean(valor ?? false)
+    return (
+      // El ancho fijo es el mismo de los demas campos, para que la columna de
+      // valores quede alineada aunque este control no sea un recuadro.
+      <div className="flex w-36 items-center gap-2">
+        <Switch checked={activo} onCheckedChange={onChange} />
+        {/* El interruptor por si solo unicamente dice encendido o apagado; el
+            rotulo dice cual de los dos significa. */}
+        <span className="text-[13px] text-[var(--imss-ink-500)]">
+          {activo ? 'Sí' : 'No'}
+        </span>
+      </div>
+    )
   }
 
   if (parametro.tipo === 'TEXTO_OPCIONES') {
