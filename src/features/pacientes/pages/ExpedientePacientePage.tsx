@@ -1,4 +1,5 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -1133,6 +1134,57 @@ interface ExpedienteGrupo {
   valores: Record<number, string | number | boolean>
 }
 
+/**
+ * Campo de captura de un parametro, segun su tipo.
+ *
+ * <p>Vive aparte porque la edicion normal y la de grupos dibujan exactamente el
+ * mismo campo: cuando estaba duplicado, las dos copias se olvidaron de
+ * TEXTO_OPCIONES y ese parametro se enviaba sin valor.</p>
+ */
+function CampoParametro({
+  parametro,
+  valor,
+  onChange,
+}: {
+  parametro: ParametroEstudio
+  valor: string | number | boolean | undefined
+  onChange: (v: string | number | boolean) => void
+}) {
+  if (parametro.tipo === 'BOOLEANO') {
+    return <Switch checked={Boolean(valor ?? false)} onCheckedChange={onChange} />
+  }
+
+  if (parametro.tipo === 'TEXTO_OPCIONES') {
+    return (
+      <Select
+        value={String(valor ?? '')}
+        // El <select> oculto de Radix emite "" al sincronizarse; eso no es una
+        // eleccion del usuario y borraria el valor guardado.
+        onValueChange={(v) => { if (v !== '') onChange(v) }}
+      >
+        <SelectTrigger className="w-36 h-8 text-[13px]">
+          <SelectValue placeholder="Seleccione…" />
+        </SelectTrigger>
+        <SelectContent>
+          {(parametro.opciones ?? []).map((op) => (
+            <SelectItem key={op} value={op}>{op}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    )
+  }
+
+  return (
+    <Input
+      type={parametro.tipo === 'NUMERICO' ? 'number' : 'text'}
+      step="any"
+      value={(valor as string | number) ?? ''}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-36 h-8 text-[13px]"
+    />
+  )
+}
+
 function EstudioDetalleDialog({
   estudioId,
   open,
@@ -1204,9 +1256,10 @@ function EstudioDetalleDialog({
         const param = parametrosList.find((p) => p.nombre === r.parametro)
         if (!param) continue
         const val =
-          param.tipo === 'NUMERICO' ? (r.valorNumerico ?? '') :
-          param.tipo === 'TEXTO'    ? (r.valorTexto    ?? '') :
-                                      (r.valorBooleano ?? false)
+          param.tipo === 'NUMERICO'       ? (r.valorNumerico ?? '') :
+          param.tipo === 'TEXTO'          ? (r.valorTexto    ?? '') :
+          param.tipo === 'TEXTO_OPCIONES' ? (r.valorTexto    ?? '') :
+                                            (r.valorBooleano ?? false)
         gruposMap.get(code)!.valores[param.id] = val
       }
       setEditGrupos([...gruposMap.values()].sort((a, b) => a.orden - b.orden))
@@ -1217,9 +1270,10 @@ function EstudioDetalleDialog({
         const param = parametrosList.find((p) => p.nombre === r.parametro)
         if (!param) continue
         vals[param.id] =
-          param.tipo === 'NUMERICO' ? (r.valorNumerico ?? '') :
-          param.tipo === 'TEXTO'    ? (r.valorTexto    ?? '') :
-                                      (r.valorBooleano ?? false)
+          param.tipo === 'NUMERICO'       ? (r.valorNumerico ?? '') :
+          param.tipo === 'TEXTO'          ? (r.valorTexto    ?? '') :
+          param.tipo === 'TEXTO_OPCIONES' ? (r.valorTexto    ?? '') :
+                                            (r.valorBooleano ?? false)
       }
       setEditValores(vals)
     }
@@ -1259,7 +1313,7 @@ function EstudioDetalleDialog({
             return [{
               idParametro:   p.id,
               valorNumerico: p.tipo === 'NUMERICO' ? Number(val)  : undefined,
-              valorTexto:    p.tipo === 'TEXTO'    ? String(val)  : undefined,
+              valorTexto:    p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' ? String(val) : undefined,
               valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
             }]
           })
@@ -1270,7 +1324,7 @@ function EstudioDetalleDialog({
               return [{
                 idParametro:   p.id,
                 valorNumerico: p.tipo === 'NUMERICO' ? Number(val)  : undefined,
-                valorTexto:    p.tipo === 'TEXTO'    ? String(val)  : undefined,
+                valorTexto:    p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' ? String(val) : undefined,
                 valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
                 grupoCodigo:   grupo.grupoCodigo,
                 grupoEtiqueta: grupo.grupoEtiqueta,
@@ -1495,24 +1549,11 @@ function EstudioDetalleDialog({
                         <span className="flex-1 text-[13px] text-[var(--imss-ink-700)]">
                           {p.nombre}{p.unidad ? ` (${p.unidad})` : ''}
                         </span>
-                        {p.tipo === 'BOOLEANO' ? (
-                          <Switch
-                            checked={Boolean(editValores[p.id] ?? false)}
-                            onCheckedChange={(v) =>
-                              setEditValores((prev) => ({ ...prev, [p.id]: v }))
-                            }
-                          />
-                        ) : (
-                          <Input
-                            type={p.tipo === 'NUMERICO' ? 'number' : 'text'}
-                            step="any"
-                            value={(editValores[p.id] as string | number) ?? ''}
-                            onChange={(e) =>
-                              setEditValores((prev) => ({ ...prev, [p.id]: e.target.value }))
-                            }
-                            className="w-36 h-8 text-[13px]"
-                          />
-                        )}
+                        <CampoParametro
+                          parametro={p}
+                          valor={editValores[p.id]}
+                          onChange={(v) => setEditValores((prev) => ({ ...prev, [p.id]: v }))}
+                        />
                       </div>
                     ))}
                   </div>
@@ -1532,36 +1573,19 @@ function EstudioDetalleDialog({
                               <span className="flex-1 text-[13px] text-[var(--imss-ink-700)]">
                                 {p.nombre}{p.unidad ? ` (${p.unidad})` : ''}
                               </span>
-                              {p.tipo === 'BOOLEANO' ? (
-                                <Switch
-                                  checked={Boolean(grupo.valores[p.id] ?? false)}
-                                  onCheckedChange={(v) =>
-                                    setEditGrupos((prev) =>
-                                      prev.map((g, i) =>
-                                        i === gIdx
-                                          ? { ...g, valores: { ...g.valores, [p.id]: v } }
-                                          : g
-                                      )
+                              <CampoParametro
+                                parametro={p}
+                                valor={grupo.valores[p.id]}
+                                onChange={(v) =>
+                                  setEditGrupos((prev) =>
+                                    prev.map((g, i) =>
+                                      i === gIdx
+                                        ? { ...g, valores: { ...g.valores, [p.id]: v } }
+                                        : g
                                     )
-                                  }
-                                />
-                              ) : (
-                                <Input
-                                  type={p.tipo === 'NUMERICO' ? 'number' : 'text'}
-                                  step="any"
-                                  value={(grupo.valores[p.id] as string | number) ?? ''}
-                                  onChange={(e) =>
-                                    setEditGrupos((prev) =>
-                                      prev.map((g, i) =>
-                                        i === gIdx
-                                          ? { ...g, valores: { ...g.valores, [p.id]: e.target.value } }
-                                          : g
-                                      )
-                                    )
-                                  }
-                                  className="w-36 h-8 text-[13px]"
-                                />
-                              )}
+                                  )
+                                }
+                              />
                             </div>
                           ))}
                         </div>
