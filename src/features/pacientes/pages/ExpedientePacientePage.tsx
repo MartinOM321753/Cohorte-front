@@ -1,5 +1,9 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { useEffect, useMemo, useState } from 'react'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -1132,6 +1136,69 @@ interface ExpedienteGrupo {
   valores: Record<number, string | number | boolean>
 }
 
+/**
+ * Campo de captura de un parametro, segun su tipo.
+ *
+ * <p>Vive aparte porque la edicion normal y la de grupos dibujan exactamente el
+ * mismo campo: cuando estaba duplicado, las dos copias se olvidaron de
+ * TEXTO_OPCIONES y ese parametro se enviaba sin valor.</p>
+ */
+function CampoParametro({
+  parametro,
+  valor,
+  onChange,
+}: {
+  parametro: ParametroEstudio
+  valor: string | number | boolean | undefined
+  onChange: (v: string | number | boolean) => void
+}) {
+  if (parametro.tipo === 'BOOLEANO') {
+    const activo = Boolean(valor ?? false)
+    return (
+      // El ancho fijo es el mismo de los demas campos, para que la columna de
+      // valores quede alineada aunque este control no sea un recuadro.
+      <div className="flex w-36 items-center gap-2">
+        <Switch checked={activo} onCheckedChange={onChange} />
+        {/* El interruptor por si solo unicamente dice encendido o apagado; el
+            rotulo dice cual de los dos significa. */}
+        <span className="text-[13px] text-[var(--imss-ink-500)]">
+          {activo ? 'Sí' : 'No'}
+        </span>
+      </div>
+    )
+  }
+
+  if (parametro.tipo === 'TEXTO_OPCIONES') {
+    return (
+      <Select
+        value={String(valor ?? '')}
+        // El <select> oculto de Radix emite "" al sincronizarse; eso no es una
+        // eleccion del usuario y borraria el valor guardado.
+        onValueChange={(v) => { if (v !== '') onChange(v) }}
+      >
+        <SelectTrigger className="w-36 h-8 text-[13px]">
+          <SelectValue placeholder="Seleccione…" />
+        </SelectTrigger>
+        <SelectContent>
+          {(parametro.opciones ?? []).map((op) => (
+            <SelectItem key={op} value={op}>{op}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    )
+  }
+
+  return (
+    <Input
+      type={parametro.tipo === 'NUMERICO' ? 'number' : 'text'}
+      step="any"
+      value={(valor as string | number) ?? ''}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-36 h-8 text-[13px]"
+    />
+  )
+}
+
 function EstudioDetalleDialog({
   estudioId,
   open,
@@ -1149,6 +1216,20 @@ function EstudioDetalleDialog({
 }) {
   // ── All hooks first (unconditionally) ──────────────────────────────────────
   const [mode, setMode]               = useState<'view' | 'edit'>('view')
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo)   days.push(0)
+    if (!horarioActivo.lunes)     days.push(1)
+    if (!horarioActivo.martes)    days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves)    days.push(4)
+    if (!horarioActivo.viernes)   days.push(5)
+    if (!horarioActivo.sabado)    days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
+
   const [docsOpen, setDocsOpen]       = useState(false)
   const [editFecha, setEditFecha]     = useState('')
   const [editObs, setEditObs]         = useState('')
@@ -1173,7 +1254,11 @@ function EstudioDetalleDialog({
   // Pre-fill base fields
   useEffect(() => {
     if (!estudio || !open) return
-    setEditFecha(String(estudio.fechaEstudio ?? '').slice(0, 10))
+    // 16 caracteres, no 10: fechaEstudio es un LocalDateTime y recortarlo a la
+    // fecha dejaba fuera la hora. Al guardar se enviaba "2026-08-07" y el backend
+    // no podia deserializarlo, asi que editar un resultado desde aqui fallaba
+    // aunque no se tocara la fecha.
+    setEditFecha(String(estudio.fechaEstudio ?? '').slice(0, 16))
     setEditObs(estudio.observaciones ?? '')
   }, [estudio, open])
 
@@ -1199,9 +1284,10 @@ function EstudioDetalleDialog({
         const param = parametrosList.find((p) => p.nombre === r.parametro)
         if (!param) continue
         const val =
-          param.tipo === 'NUMERICO' ? (r.valorNumerico ?? '') :
-          param.tipo === 'TEXTO'    ? (r.valorTexto    ?? '') :
-                                      (r.valorBooleano ?? false)
+          param.tipo === 'NUMERICO'       ? (r.valorNumerico ?? '') :
+          param.tipo === 'TEXTO'          ? (r.valorTexto    ?? '') :
+          param.tipo === 'TEXTO_OPCIONES' ? (r.valorTexto    ?? '') :
+                                            (r.valorBooleano ?? false)
         gruposMap.get(code)!.valores[param.id] = val
       }
       setEditGrupos([...gruposMap.values()].sort((a, b) => a.orden - b.orden))
@@ -1212,9 +1298,10 @@ function EstudioDetalleDialog({
         const param = parametrosList.find((p) => p.nombre === r.parametro)
         if (!param) continue
         vals[param.id] =
-          param.tipo === 'NUMERICO' ? (r.valorNumerico ?? '') :
-          param.tipo === 'TEXTO'    ? (r.valorTexto    ?? '') :
-                                      (r.valorBooleano ?? false)
+          param.tipo === 'NUMERICO'       ? (r.valorNumerico ?? '') :
+          param.tipo === 'TEXTO'          ? (r.valorTexto    ?? '') :
+          param.tipo === 'TEXTO_OPCIONES' ? (r.valorTexto    ?? '') :
+                                            (r.valorBooleano ?? false)
       }
       setEditValores(vals)
     }
@@ -1254,7 +1341,7 @@ function EstudioDetalleDialog({
             return [{
               idParametro:   p.id,
               valorNumerico: p.tipo === 'NUMERICO' ? Number(val)  : undefined,
-              valorTexto:    p.tipo === 'TEXTO'    ? String(val)  : undefined,
+              valorTexto:    p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' ? String(val) : undefined,
               valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
             }]
           })
@@ -1265,7 +1352,7 @@ function EstudioDetalleDialog({
               return [{
                 idParametro:   p.id,
                 valorNumerico: p.tipo === 'NUMERICO' ? Number(val)  : undefined,
-                valorTexto:    p.tipo === 'TEXTO'    ? String(val)  : undefined,
+                valorTexto:    p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' ? String(val) : undefined,
                 valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
                 grupoCodigo:   grupo.grupoCodigo,
                 grupoEtiqueta: grupo.grupoEtiqueta,
@@ -1273,6 +1360,15 @@ function EstudioDetalleDialog({
               }]
             })
           )
+
+    // Guarda: fechaEstudio es un LocalDateTime en el backend, asi que un valor sin
+    // hora se rechaza al deserializar. Ya paso una vez —el campo se cargaba
+    // recortado a 10 caracteres— y el usuario solo veia un error del servidor sin
+    // saber que corregir. Mas vale detenerlo aqui con un motivo legible.
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(editFecha)) {
+      toast.error('La fecha del estudio debe incluir la hora. Vuelve a seleccionarla.')
+      return
+    }
 
     const payload: EstudioMedicoRequestDTO = {
       pacienteUUID:      estudio.paciente?.uuid ?? '',
@@ -1439,13 +1535,21 @@ function EstudioDetalleDialog({
                 {/* Fecha */}
                 <div className="space-y-1.5">
                   <label className="text-[12px] font-medium text-[var(--imss-ink-700)]">
-                    Fecha del estudio
+                    Fecha y hora del estudio
                   </label>
-                  <Input
-                    type="date"
+                  {/* Mismo componente que el panel de Estudios medicos: calendario y
+                      hora por separado, con el horario configurado de la institucion.
+                      El <input type="datetime-local"> que habia antes dependia del
+                      formato del navegador y no respetaba ese horario. */}
+                  <DateTimePicker
                     value={editFecha}
-                    onChange={(e) => setEditFecha(e.target.value)}
-                    className="h-8 text-[13px]"
+                    onChange={setEditFecha}
+                    placeholder="Selecciona fecha y hora"
+                    timeStepMinutes={1}
+                    maxDateTime={new Date()}
+                    minHour={horarioActivo?.horaInicio ?? 8}
+                    maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+                    disabledDaysOfWeek={disabledDaysOfWeek}
                   />
                 </div>
 
@@ -1481,24 +1585,11 @@ function EstudioDetalleDialog({
                         <span className="flex-1 text-[13px] text-[var(--imss-ink-700)]">
                           {p.nombre}{p.unidad ? ` (${p.unidad})` : ''}
                         </span>
-                        {p.tipo === 'BOOLEANO' ? (
-                          <Switch
-                            checked={Boolean(editValores[p.id] ?? false)}
-                            onCheckedChange={(v) =>
-                              setEditValores((prev) => ({ ...prev, [p.id]: v }))
-                            }
-                          />
-                        ) : (
-                          <Input
-                            type={p.tipo === 'NUMERICO' ? 'number' : 'text'}
-                            step="any"
-                            value={(editValores[p.id] as string | number) ?? ''}
-                            onChange={(e) =>
-                              setEditValores((prev) => ({ ...prev, [p.id]: e.target.value }))
-                            }
-                            className="w-36 h-8 text-[13px]"
-                          />
-                        )}
+                        <CampoParametro
+                          parametro={p}
+                          valor={editValores[p.id]}
+                          onChange={(v) => setEditValores((prev) => ({ ...prev, [p.id]: v }))}
+                        />
                       </div>
                     ))}
                   </div>
@@ -1518,36 +1609,19 @@ function EstudioDetalleDialog({
                               <span className="flex-1 text-[13px] text-[var(--imss-ink-700)]">
                                 {p.nombre}{p.unidad ? ` (${p.unidad})` : ''}
                               </span>
-                              {p.tipo === 'BOOLEANO' ? (
-                                <Switch
-                                  checked={Boolean(grupo.valores[p.id] ?? false)}
-                                  onCheckedChange={(v) =>
-                                    setEditGrupos((prev) =>
-                                      prev.map((g, i) =>
-                                        i === gIdx
-                                          ? { ...g, valores: { ...g.valores, [p.id]: v } }
-                                          : g
-                                      )
+                              <CampoParametro
+                                parametro={p}
+                                valor={grupo.valores[p.id]}
+                                onChange={(v) =>
+                                  setEditGrupos((prev) =>
+                                    prev.map((g, i) =>
+                                      i === gIdx
+                                        ? { ...g, valores: { ...g.valores, [p.id]: v } }
+                                        : g
                                     )
-                                  }
-                                />
-                              ) : (
-                                <Input
-                                  type={p.tipo === 'NUMERICO' ? 'number' : 'text'}
-                                  step="any"
-                                  value={(grupo.valores[p.id] as string | number) ?? ''}
-                                  onChange={(e) =>
-                                    setEditGrupos((prev) =>
-                                      prev.map((g, i) =>
-                                        i === gIdx
-                                          ? { ...g, valores: { ...g.valores, [p.id]: e.target.value } }
-                                          : g
-                                      )
-                                    )
-                                  }
-                                  className="w-36 h-8 text-[13px]"
-                                />
-                              )}
+                                  )
+                                }
+                              />
                             </div>
                           ))}
                         </div>
@@ -1605,10 +1679,36 @@ function EstudioDetalleDialog({
 }
 
 // ── Estudios card ─────────────────────────────────────────────────────────────
-function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUuid: string }) {
+function EstudiosCard({ pacienteUUID, userUuid, pacienteSoloConsulta }: {
+  pacienteUUID: string
+  userUuid: string
+  /** El participante ya no lo gestiona esta institucion: se consulta, no se modifica. */
+  pacienteSoloConsulta: boolean
+}) {
   const canSee = useSectionAccess('estudios')
   const { hasPermiso } = useAuthStore()
-  const canEdit       = hasPermiso('ESTUDIOS_EDITAR')
+  const idInstitucionPropia = useAuthStore((s) => s.user?.institucion?.id)
+  const tienePermisoEditar = hasPermiso('ESTUDIOS_EDITAR')
+
+  /**
+   * Un estudio se puede modificar solo desde la sede que lo registro.
+   *
+   * <p>El permiso del rol no basta: el backend rechaza la escritura de un
+   * estudio ajeno, y hasta ahora el lapiz se ofrecia igual. El usuario llenaba
+   * el formulario y descubria que no podia guardarlo, que es la peor forma de
+   * enterarse. Misma regla que en el panel de Estudios medicos.</p>
+   */
+  const puedeEditarEstudio = useCallback((institucionIdEstudio?: number | null) => {
+    if (!tienePermisoEditar) return false
+    if (pacienteSoloConsulta) return false
+    const ajeno = institucionIdEstudio != null
+      && idInstitucionPropia != null
+      && institucionIdEstudio !== idInstitucionPropia
+    return !ajeno
+  }, [tienePermisoEditar, pacienteSoloConsulta, idInstitucionPropia])
+
+  // Solo gobierna el boton de alta, que no depende de ningun estudio concreto.
+  const canEdit       = tienePermisoEditar && !pacienteSoloConsulta
   const canUpload     = hasPermiso('DOCUMENTOS_SUBIR')
   const canDeleteDocs = hasPermiso('DOCUMENTOS_ELIMINAR')
   const navigate    = useNavigate()
@@ -1616,6 +1716,9 @@ function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUu
 
   // Dialog state
   const [viewingId,  setViewingId]  = useState<number | null>(null)
+  // El dialogo solo recibe el id, pero para decidir si es editable hace falta
+  // saber de que sede vino el estudio.
+  const estudioSeleccionado = estudios.find((e) => e.id === viewingId)
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view')
   const [docsId,     setDocsId]     = useState<number | null>(null)
 
@@ -1717,7 +1820,7 @@ function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUu
                         >
                           <Paperclip className="h-3 w-3" strokeWidth={1.75} />
                         </button>
-                        {canEdit && (
+                        {puedeEditarEstudio(estudio.institucionId) && (
                           <button
                             onClick={() => openEdit(estudio.id)}
                             className="flex h-6 w-6 items-center justify-center rounded text-[var(--imss-ink-400)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
@@ -1741,7 +1844,7 @@ function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUu
         open={viewingId !== null}
         initialMode={dialogMode}
         onClose={() => setViewingId(null)}
-        canEdit={canEdit}
+        canEdit={puedeEditarEstudio(estudioSeleccionado?.institucionId)}
         userUuid={userUuid}
       />
 
@@ -2477,7 +2580,7 @@ export default function ExpedientePacientePage() {
             pacienteSexo={paciente.persona.sexo}
           />
           <CitasCard    pacienteUUID={uuid} onAgendar={() => setCitaModalOpen(true)} />
-          <EstudiosCard pacienteUUID={uuid} userUuid={userUuid} />
+          <EstudiosCard pacienteUUID={uuid} userUuid={userUuid} pacienteSoloConsulta={!!paciente.soloConsulta} />
           <ExamenesCard pacienteUUID={uuid} pacienteSexo={paciente.persona.sexo} />
          
          
