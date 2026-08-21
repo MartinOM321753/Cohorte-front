@@ -1,7 +1,7 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -1643,10 +1643,36 @@ function EstudioDetalleDialog({
 }
 
 // ── Estudios card ─────────────────────────────────────────────────────────────
-function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUuid: string }) {
+function EstudiosCard({ pacienteUUID, userUuid, pacienteSoloConsulta }: {
+  pacienteUUID: string
+  userUuid: string
+  /** El participante ya no lo gestiona esta institucion: se consulta, no se modifica. */
+  pacienteSoloConsulta: boolean
+}) {
   const canSee = useSectionAccess('estudios')
   const { hasPermiso } = useAuthStore()
-  const canEdit       = hasPermiso('ESTUDIOS_EDITAR')
+  const idInstitucionPropia = useAuthStore((s) => s.user?.institucion?.id)
+  const tienePermisoEditar = hasPermiso('ESTUDIOS_EDITAR')
+
+  /**
+   * Un estudio se puede modificar solo desde la sede que lo registro.
+   *
+   * <p>El permiso del rol no basta: el backend rechaza la escritura de un
+   * estudio ajeno, y hasta ahora el lapiz se ofrecia igual. El usuario llenaba
+   * el formulario y descubria que no podia guardarlo, que es la peor forma de
+   * enterarse. Misma regla que en el panel de Estudios medicos.</p>
+   */
+  const puedeEditarEstudio = useCallback((institucionIdEstudio?: number | null) => {
+    if (!tienePermisoEditar) return false
+    if (pacienteSoloConsulta) return false
+    const ajeno = institucionIdEstudio != null
+      && idInstitucionPropia != null
+      && institucionIdEstudio !== idInstitucionPropia
+    return !ajeno
+  }, [tienePermisoEditar, pacienteSoloConsulta, idInstitucionPropia])
+
+  // Solo gobierna el boton de alta, que no depende de ningun estudio concreto.
+  const canEdit       = tienePermisoEditar && !pacienteSoloConsulta
   const canUpload     = hasPermiso('DOCUMENTOS_SUBIR')
   const canDeleteDocs = hasPermiso('DOCUMENTOS_ELIMINAR')
   const navigate    = useNavigate()
@@ -1654,6 +1680,9 @@ function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUu
 
   // Dialog state
   const [viewingId,  setViewingId]  = useState<number | null>(null)
+  // El dialogo solo recibe el id, pero para decidir si es editable hace falta
+  // saber de que sede vino el estudio.
+  const estudioSeleccionado = estudios.find((e) => e.id === viewingId)
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view')
   const [docsId,     setDocsId]     = useState<number | null>(null)
 
@@ -1755,7 +1784,7 @@ function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUu
                         >
                           <Paperclip className="h-3 w-3" strokeWidth={1.75} />
                         </button>
-                        {canEdit && (
+                        {puedeEditarEstudio(estudio.institucionId) && (
                           <button
                             onClick={() => openEdit(estudio.id)}
                             className="flex h-6 w-6 items-center justify-center rounded text-[var(--imss-ink-400)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
@@ -1779,7 +1808,7 @@ function EstudiosCard({ pacienteUUID, userUuid }: { pacienteUUID: string; userUu
         open={viewingId !== null}
         initialMode={dialogMode}
         onClose={() => setViewingId(null)}
-        canEdit={canEdit}
+        canEdit={puedeEditarEstudio(estudioSeleccionado?.institucionId)}
         userUuid={userUuid}
       />
 
@@ -2515,7 +2544,7 @@ export default function ExpedientePacientePage() {
             pacienteSexo={paciente.persona.sexo}
           />
           <CitasCard    pacienteUUID={uuid} onAgendar={() => setCitaModalOpen(true)} />
-          <EstudiosCard pacienteUUID={uuid} userUuid={userUuid} />
+          <EstudiosCard pacienteUUID={uuid} userUuid={userUuid} pacienteSoloConsulta={!!paciente.soloConsulta} />
           <ExamenesCard pacienteUUID={uuid} pacienteSexo={paciente.persona.sexo} />
          
          
