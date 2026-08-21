@@ -1,4 +1,6 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useEffect, useMemo, useState, useCallback } from 'react'
@@ -1202,6 +1204,20 @@ function EstudioDetalleDialog({
 }) {
   // ── All hooks first (unconditionally) ──────────────────────────────────────
   const [mode, setMode]               = useState<'view' | 'edit'>('view')
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+  const disabledDaysOfWeek = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const days: number[] = []
+    if (!horarioActivo.domingo)   days.push(0)
+    if (!horarioActivo.lunes)     days.push(1)
+    if (!horarioActivo.martes)    days.push(2)
+    if (!horarioActivo.miercoles) days.push(3)
+    if (!horarioActivo.jueves)    days.push(4)
+    if (!horarioActivo.viernes)   days.push(5)
+    if (!horarioActivo.sabado)    days.push(6)
+    return days.length > 0 ? days : undefined
+  }, [horarioActivo])
+
   const [docsOpen, setDocsOpen]       = useState(false)
   const [editFecha, setEditFecha]     = useState('')
   const [editObs, setEditObs]         = useState('')
@@ -1509,11 +1525,19 @@ function EstudioDetalleDialog({
                   <label className="text-[12px] font-medium text-[var(--imss-ink-700)]">
                     Fecha y hora del estudio
                   </label>
-                  <Input
-                    type="datetime-local"
+                  {/* Mismo componente que el panel de Estudios medicos: calendario y
+                      hora por separado, con el horario configurado de la institucion.
+                      El <input type="datetime-local"> que habia antes dependia del
+                      formato del navegador y no respetaba ese horario. */}
+                  <DateTimePicker
                     value={editFecha}
-                    onChange={(e) => setEditFecha(e.target.value)}
-                    className="h-8 text-[13px]"
+                    onChange={setEditFecha}
+                    placeholder="Selecciona fecha y hora"
+                    timeStepMinutes={1}
+                    maxDateTime={new Date()}
+                    minHour={horarioActivo?.horaInicio ?? 8}
+                    maxHour={(horarioActivo?.horaFin ?? 17) - 1}
+                    disabledDaysOfWeek={disabledDaysOfWeek}
                   />
                 </div>
 
