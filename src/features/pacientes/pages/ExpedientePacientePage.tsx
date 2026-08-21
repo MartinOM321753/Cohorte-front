@@ -1,4 +1,5 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
@@ -1173,7 +1174,11 @@ function EstudioDetalleDialog({
   // Pre-fill base fields
   useEffect(() => {
     if (!estudio || !open) return
-    setEditFecha(String(estudio.fechaEstudio ?? '').slice(0, 10))
+    // 16 caracteres, no 10: fechaEstudio es un LocalDateTime y recortarlo a la
+    // fecha dejaba fuera la hora. Al guardar se enviaba "2026-08-07" y el backend
+    // no podia deserializarlo, asi que editar un resultado desde aqui fallaba
+    // aunque no se tocara la fecha.
+    setEditFecha(String(estudio.fechaEstudio ?? '').slice(0, 16))
     setEditObs(estudio.observaciones ?? '')
   }, [estudio, open])
 
@@ -1273,6 +1278,15 @@ function EstudioDetalleDialog({
               }]
             })
           )
+
+    // Guarda: fechaEstudio es un LocalDateTime en el backend, asi que un valor sin
+    // hora se rechaza al deserializar. Ya paso una vez —el campo se cargaba
+    // recortado a 10 caracteres— y el usuario solo veia un error del servidor sin
+    // saber que corregir. Mas vale detenerlo aqui con un motivo legible.
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(editFecha)) {
+      toast.error('La fecha del estudio debe incluir la hora. Vuelve a seleccionarla.')
+      return
+    }
 
     const payload: EstudioMedicoRequestDTO = {
       pacienteUUID:      estudio.paciente?.uuid ?? '',
@@ -1439,10 +1453,10 @@ function EstudioDetalleDialog({
                 {/* Fecha */}
                 <div className="space-y-1.5">
                   <label className="text-[12px] font-medium text-[var(--imss-ink-700)]">
-                    Fecha del estudio
+                    Fecha y hora del estudio
                   </label>
                   <Input
-                    type="date"
+                    type="datetime-local"
                     value={editFecha}
                     onChange={(e) => setEditFecha(e.target.value)}
                     className="h-8 text-[13px]"
