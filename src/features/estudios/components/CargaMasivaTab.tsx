@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle, Check, CheckCircle2, ChevronsUpDown, FileSpreadsheet, FileUp,
   Loader2, Upload, Wand2, X,
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { CeldaCarga } from './CeldaCarga'
 import { confirmarCarga, previsualizarCarga, revalidarCarga } from '../api/cargaMasiva.api'
 import { useGetTiposEstudio } from '../hooks/useEstudios'
+import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import type {
   ColumnaReconocida, PoliticaDuplicados, PrevisualizacionCarga, ResultadoCarga, TablaCarga,
 } from '@/types/api'
@@ -40,6 +41,23 @@ function tamano(bytes: number): string {
 
 export function CargaMasivaTab() {
   const { data: tipos = [] } = useGetTiposEstudio()
+  const { data: horarioActivo } = useGetConfiguracionHorarioActiva()
+
+  // El mismo horario que aplica el formulario de captura: si aquí se ofrecieran
+  // las 24 horas, la carga masiva sería una puerta para registrar estudios en
+  // horas en las que no se atiende.
+  const diasDeshabilitados = useMemo(() => {
+    if (!horarioActivo) return undefined
+    const dias: number[] = []
+    if (!horarioActivo.domingo)   dias.push(0)
+    if (!horarioActivo.lunes)     dias.push(1)
+    if (!horarioActivo.martes)    dias.push(2)
+    if (!horarioActivo.miercoles) dias.push(3)
+    if (!horarioActivo.jueves)    dias.push(4)
+    if (!horarioActivo.viernes)   dias.push(5)
+    if (!horarioActivo.sabado)    dias.push(6)
+    return dias.length > 0 ? dias : undefined
+  }, [horarioActivo])
   const inputArchivo = useRef<HTMLInputElement>(null)
 
   const [idTipo, setIdTipo] = useState<string>('')
@@ -116,6 +134,7 @@ export function CargaMasivaTab() {
       setPrevia(r)
       setTabla(r.tabla)
       setTablaOriginal(r.tabla)
+      primeraCarga.current = true
     } catch (e: any) {
       setPrevia(null)
       setTabla(null)
@@ -153,24 +172,55 @@ export function CargaMasivaTab() {
     })
   }, [])
 
-  async function revalidar() {
+  /**
+   * Vuelve a preguntar al servidor si los datos son válidos.
+   *
+   * @param avisar false cuando la dispara la propia escritura del usuario: un
+   *        aviso por cada tecleo sería insoportable.
+   */
+  async function revalidar(avisar = true) {
     if (!tabla || !previa) return
     setCargando(true)
     try {
       const r = await revalidarCarga(tabla, previa.idTipoEstudio)
       setPrevia(r)
       setResultado(null)
+      if (!avisar) return
       if (r.resumen.filasConProblemas === 0) {
         toast.success('Ya no queda nada por corregir')
       } else {
         toast.warning(`Todavía hay ${r.resumen.filasConProblemas} fila(s) por corregir`)
       }
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'No se pudo revalidar')
+      if (avisar) toast.error(e?.response?.data?.message ?? 'No se pudo revalidar')
     } finally {
       setCargando(false)
     }
   }
+
+  /**
+   * Revalida sola en cuanto el usuario deja de escribir.
+   *
+   * <p>La validación sigue siendo del servidor —repetir aquí las reglas de qué es
+   * un número o qué opción vale acabaría dando dos respuestas distintas para el
+   * mismo dato—, pero obligar a pulsar un botón para ver si la corrección sirvió
+   * deja el error rojo en pantalla mientras el valor ya está bien.</p>
+   *
+   * <p>La espera es lo que evita una petición por tecla. Se mide desde la última
+   * pulsación, así que escribir seguido no dispara nada hasta parar.</p>
+   */
+  const primeraCarga = useRef(true)
+  useEffect(() => {
+    if (!tabla || !previa) return
+    // Justo después de leer el archivo la previsualización ya está recién hecha.
+    if (primeraCarga.current) { primeraCarga.current = false; return }
+
+    const t = setTimeout(() => { void revalidar(false) }, 600)
+    return () => clearTimeout(t)
+    // Solo la tabla: incluir `previa` provocaría un ciclo, porque revalidar la
+    // sustituye.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabla])
 
   async function confirmar() {
     if (!tabla || !previa) return
@@ -437,7 +487,7 @@ export function CargaMasivaTab() {
 
       {previa && !estructuraRota && tabla && !resultado && (
         <>
-          <ResumenCarga previa={previa} onRevalidar={revalidar} cargando={cargando} />
+          <ResumenCarga previa={previa} onRevalidar={() => revalidar()} cargando={cargando} />
 
           {/* Los duplicados no son un error: son una decision. Por eso el bloque
               solo aparece cuando los hay, y con OMITIR ya marcado. */}
@@ -493,6 +543,9 @@ export function CargaMasivaTab() {
             previa={previa}
             tabla={tabla}
             tablaOriginal={tablaOriginal}
+            minHour={horarioActivo?.horaInicio}
+            maxHour={horarioActivo?.horaFin != null ? horarioActivo.horaFin - 1 : undefined}
+            diasDeshabilitados={diasDeshabilitados}
             erroresPorCelda={erroresPorCelda}
             filasConErrorPorColumna={filasConErrorPorColumna}
             onEditarCelda={editarCelda}
@@ -543,7 +596,7 @@ function ResumenCarga({ previa, onRevalidar, cargando }: {
           </span>
         )}
 
-        <Button size="sm" variant="outline" onClick={onRevalidar} disabled={cargando} className="ml-auto">
+        <Button size="sm" variant="outline" onClick={() => onRevalidar()} disabled={cargando} className="ml-auto">
           {cargando && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
           Volver a validar
         </Button>
@@ -556,11 +609,14 @@ function ResumenCarga({ previa, onRevalidar, cargando }: {
 
 function TablaEditable({
   previa, tabla, tablaOriginal, erroresPorCelda, filasConErrorPorColumna,
-  onEditarCelda, onCorregirColumna,
+  onEditarCelda, onCorregirColumna, minHour, maxHour, diasDeshabilitados,
 }: {
   previa: PrevisualizacionCarga
   tabla: TablaCarga
   tablaOriginal: TablaCarga | null
+  minHour?: number
+  maxHour?: number
+  diasDeshabilitados?: number[]
   erroresPorCelda: Map<string, string>
   filasConErrorPorColumna: Map<number, Set<number>>
   onEditarCelda: (iFila: number, iCol: number, valor: string) => void
@@ -617,7 +673,7 @@ function TablaEditable({
                 {columnasVisibles.map((c) => (
                   <th key={c.indice}
                       className={cn('border-b px-2 py-2 text-left align-top',
-                        c.esFecha ? 'min-w-[380px]' : 'min-w-[130px]')}>
+                        c.esFecha ? 'min-w-[395px]' : 'min-w-[130px]')}>
                     <div className="font-medium">{c.titulo}</div>
                     {c.sub && <div className="font-normal text-muted-foreground">{c.sub}</div>}
                     <CorregirColumna
@@ -646,6 +702,9 @@ function TablaEditable({
                           esFecha={c.esFecha}
                           fechaNormalizada={previa.filas[iFila]?.fecha}
                           crudoOriginal={tablaOriginal?.filas[iFila]?.[c.indice]}
+                          minHour={minHour}
+                          maxHour={maxHour}
+                          diasDeshabilitados={diasDeshabilitados}
                           canonico={previa.filas[iFila]?.valores
                             .find((v) => v.idParametro === c.idParametro)?.canonico}
                           valor={tabla.filas[iFila]?.[c.indice] ?? ''}

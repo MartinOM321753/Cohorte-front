@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle, CheckCircle2, FileSpreadsheet, FileUp, Loader2, Upload, Wand2, X,
 } from 'lucide-react'
@@ -96,6 +96,7 @@ export function CargaMasivaExamenesTab() {
       setPrevia(r)
       setTabla(r.tabla)
       setTablaOriginal(r.tabla)
+      primeraCarga.current = true
     } catch (e: any) {
       limpiarAnalisis()
       toast.error(e?.response?.data?.message ?? 'No se pudo leer el archivo')
@@ -104,24 +105,39 @@ export function CargaMasivaExamenesTab() {
     }
   }
 
-  async function revalidar() {
+  /** @param avisar false cuando la dispara la escritura: un aviso por tecla molesta. */
+  async function revalidar(avisar = true) {
     if (!tabla) return
     setCargando(true)
     try {
       const r = await revalidarCargaExamenes(tabla)
       setPrevia(r)
       setResultado(null)
+      if (!avisar) return
       if (r.resumen.resultadosConError === 0 && r.resumen.filasInservibles === 0) {
         toast.success('Ya no queda nada por corregir')
       } else {
         toast.warning('Todavía hay datos por corregir')
       }
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'No se pudo revalidar')
+      if (avisar) toast.error(e?.response?.data?.message ?? 'No se pudo revalidar')
     } finally {
       setCargando(false)
     }
   }
+
+  /**
+   * Revalida sola al dejar de escribir, para que el error desaparezca en cuanto
+   * el valor deja de estarlo. Quien decide si vale sigue siendo el servidor.
+   */
+  const primeraCarga = useRef(true)
+  useEffect(() => {
+    if (!tabla || !previa) return
+    if (primeraCarga.current) { primeraCarga.current = false; return }
+    const t = setTimeout(() => { void revalidar(false) }, 600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabla])
 
   async function confirmar() {
     if (!tabla) return
@@ -401,7 +417,7 @@ export function CargaMasivaExamenesTab() {
                 </span>
               )}
 
-              <Button size="sm" variant="outline" onClick={revalidar} disabled={cargando} className="ml-auto">
+              <Button size="sm" variant="outline" onClick={() => revalidar()} disabled={cargando} className="ml-auto">
                 {cargando && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
                 Volver a validar
               </Button>
@@ -477,7 +493,7 @@ export function CargaMasivaExamenesTab() {
                       {columnasVisibles.map((c) => (
                         <th key={c.indice}
                           className={cn('border-b px-2 py-2 text-left align-top',
-                            c.esFecha ? 'min-w-[380px]' : 'min-w-[130px]')}>
+                            c.esFecha ? 'min-w-[395px]' : 'min-w-[130px]')}>
                           <div className="font-medium">{c.titulo}</div>
                           {c.sub && <div className="font-normal text-muted-foreground">{c.sub}</div>}
                           <CorregirColumna

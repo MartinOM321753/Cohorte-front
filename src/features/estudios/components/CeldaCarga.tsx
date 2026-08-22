@@ -26,6 +26,7 @@ const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
 
 export function CeldaCarga({
   tipo, opciones, valor, error, onChange, esFecha, fechaNormalizada, canonico, crudoOriginal,
+  minHour, maxHour, diasDeshabilitados,
 }: {
   /** Ausente en las columnas de control (folio y fecha). */
   tipo?: TipoParametro
@@ -49,6 +50,10 @@ export function CeldaCarga({
   fechaNormalizada?: string | null
   /** El texto tal como venía en el archivo, antes de cualquier corrección. */
   crudoOriginal?: string
+  /** Horario configurado de la institución, para no ofrecer horas fuera de él. */
+  minHour?: number
+  maxHour?: number
+  diasDeshabilitados?: number[]
 }) {
   // ── Fecha ────────────────────────────────────────────────────────────────
   if (esFecha) {
@@ -58,16 +63,19 @@ export function CeldaCarga({
     const enCalendario = ISO.test(valor) ? valor : (fechaNormalizada ?? '')
     const original = crudoOriginal ?? valor
     return (
-      // El selector reparte 180px para la fecha, 92 para la hora y 68 para los
-      // minutos: por debajo de ~365px los recorta y las horas salen como "0C".
-      <div className="w-[365px] space-y-1">
+      // El selector reparte 180px para la fecha, 98 para la hora y 74 para los
+      // minutos: por debajo de ~380px los recorta y las horas salen cortadas.
+      <div className="w-[380px] space-y-1">
         <DateTimePicker
           value={enCalendario}
           onChange={onChange}
           placeholder="Selecciona fecha y hora"
           timeStepMinutes={1}
-          minHour={0}
-          maxHour={23}
+          // Mismo horario que la captura manual: ofrecer las 24 horas aquí
+          // permitiría registrar por carga masiva algo que el formulario no deja.
+          minHour={minHour ?? 8}
+          maxHour={maxHour ?? 17}
+          disabledDaysOfWeek={diasDeshabilitados}
           className={error ? 'border-destructive' : undefined}
         />
         {/* Un archivo puede traer la fecha sin hora y el estudio se registraría a
