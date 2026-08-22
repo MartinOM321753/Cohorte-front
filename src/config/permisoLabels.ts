@@ -47,6 +47,7 @@ const LABELS: Record<string, string> = {
   ESTUDIOS_CREAR:            'Registrar resultados de estudio',
   ESTUDIOS_EDITAR:           'Editar resultados de estudio',
   ESTUDIOS_ELIMINAR:         'Eliminar estudios',
+  ESTUDIOS_CARGA_MASIVA:     'Cargar resultados desde un archivo',
   ESTUDIOS_TIPOS_CREAR:      'Crear tipos en catálogo de estudios',
   ESTUDIOS_TIPOS_EDITAR:     'Editar tipos en catálogo de estudios',
   ESTUDIOS_TIPOS_ELIMINAR:   'Eliminar tipos en catálogo de estudios',

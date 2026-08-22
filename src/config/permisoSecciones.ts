@@ -257,6 +257,12 @@ export const SECCIONES: Seccion[] = [
             label: 'Editar resultados',
             permisos: ['ESTUDIOS_EDITAR', 'PACIENTES_LOOKUP', 'UNIDADES_LOOKUP'],
           },
+          {
+            id: 'carga-masiva',
+            label: 'Cargar resultados desde un archivo',
+            descripcion: 'Permite subir el archivo que exporta un instrumento y registrar de golpe los resultados de muchos participantes. Se revisa antes de guardar.',
+            permisos: ['ESTUDIOS_CARGA_MASIVA', 'ESTUDIOS_TIPOS_LOOKUP'],
+          },
           { id: 'eliminar', label: 'Eliminar estudios',     permisos: ['ESTUDIOS_ELIMINAR'] },
         ],
       },
