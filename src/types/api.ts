@@ -1492,6 +1492,8 @@ export interface FilaPrevisualizada {
   errorParticipante: string | null
   fecha: string | null
   errorFecha: string | null
+  /** Estudio ya registrado para este participante, tipo y día; null si no hay. */
+  idEstudioExistente: number | null
   valores: ValorPrevisualizado[]
 }
 
@@ -1501,6 +1503,8 @@ export interface ResumenCarga {
   filasConProblemas: number
   columnasReconocidas: number
   columnasIgnoradas: number
+  /** Filas que chocan con un estudio ya registrado. */
+  filasDuplicadas: number
 }
 
 export interface PrevisualizacionCarga {
@@ -1520,4 +1524,24 @@ export interface PrevisualizacionCarga {
   indiceFecha: number
   filas: FilaPrevisualizada[]
   resumen: ResumenCarga
+}
+
+/** Qué hacer con las filas que chocan con un estudio ya registrado. */
+export type PoliticaDuplicados = 'OMITIR' | 'REEMPLAZAR'
+
+export interface DetalleCarga {
+  numeroDeFila: number
+  folio: string
+  nombreParticipante: string
+  fecha: string
+  /** REGISTRADO, REEMPLAZADO u OMITIDO. */
+  accion: string
+  idEstudio: number
+}
+
+export interface ResultadoCarga {
+  registrados: number
+  reemplazados: number
+  omitidosPorDuplicado: number
+  detalle: DetalleCarga[]
 }

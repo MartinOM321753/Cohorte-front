@@ -1,5 +1,7 @@
 import axiosInstance from '@/lib/axiosInstance'
-import { ApiResponse, PrevisualizacionCarga, TablaCarga } from '@/types/api'
+import {
+  ApiResponse, PoliticaDuplicados, PrevisualizacionCarga, ResultadoCarga, TablaCarga,
+} from '@/types/api'
 
 /**
  * Sube el archivo del instrumento y devuelve lo que se guardaría.
@@ -36,6 +38,24 @@ export async function revalidarCarga(
   const res = await axiosInstance.post<ApiResponse<PrevisualizacionCarga>>(
     '/estudios/carga-masiva/revalidar',
     { idTipoEstudio, tabla },
+  )
+  return res.data.data
+}
+
+/**
+ * Guarda la carga. Es la única llamada de este módulo que escribe.
+ *
+ * El servidor vuelve a validar la tabla entera antes de escribir, así que no
+ * basta con que la pantalla crea que todo está bien.
+ */
+export async function confirmarCarga(
+  tabla: TablaCarga,
+  idTipoEstudio: number,
+  politicaDuplicados: PoliticaDuplicados,
+): Promise<ResultadoCarga> {
+  const res = await axiosInstance.post<ApiResponse<ResultadoCarga>>(
+    '/estudios/carga-masiva/confirmar',
+    { idTipoEstudio, tabla, politicaDuplicados },
   )
   return res.data.data
 }

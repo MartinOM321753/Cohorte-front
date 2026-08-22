@@ -8,9 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { previsualizarCarga, revalidarCarga } from '../api/cargaMasiva.api'
+import { confirmarCarga, previsualizarCarga, revalidarCarga } from '../api/cargaMasiva.api'
 import { useGetTiposEstudio } from '../hooks/useEstudios'
-import type { PrevisualizacionCarga, TablaCarga } from '@/types/api'
+import type { PoliticaDuplicados, PrevisualizacionCarga, ResultadoCarga, TablaCarga } from '@/types/api'
 
 /**
  * Carga masiva de resultados de estudios.
@@ -31,6 +31,10 @@ export function CargaMasivaTab() {
   const [archivo, setArchivo] = useState<File | null>(null)
   const [previa, setPrevia] = useState<PrevisualizacionCarga | null>(null)
   const [cargando, setCargando] = useState(false)
+  const [resultado, setResultado] = useState<ResultadoCarga | null>(null)
+  // Omitir por defecto: reemplazar destruye lo ya registrado y tiene que
+  // elegirse a proposito.
+  const [politica, setPolitica] = useState<PoliticaDuplicados>('OMITIR')
 
   // La tabla que el usuario va editando. Vive aquí y no en la previsualización
   // porque cambia con cada tecla, mientras que la previsualización solo se
@@ -91,6 +95,7 @@ export function CargaMasivaTab() {
     try {
       const r = await revalidarCarga(tabla, previa.idTipoEstudio)
       setPrevia(r)
+      setResultado(null)
       if (r.resumen.filasConProblemas === 0) {
         toast.success('Ya no queda nada por corregir')
       } else {
@@ -103,7 +108,26 @@ export function CargaMasivaTab() {
     }
   }
 
+  async function confirmar() {
+    if (!tabla || !previa) return
+    setCargando(true)
+    try {
+      const r = await confirmarCarga(tabla, previa.idTipoEstudio, politica)
+      setResultado(r)
+      toast.success(
+        `${r.registrados} registrado(s)`
+        + (r.reemplazados ? `, ${r.reemplazados} reemplazado(s)` : '')
+        + (r.omitidosPorDuplicado ? `, ${r.omitidosPorDuplicado} omitido(s)` : ''),
+      )
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'No se pudo guardar la carga')
+    } finally {
+      setCargando(false)
+    }
+  }
+
   function reiniciar() {
+    setResultado(null)
     setPrevia(null)
     setTabla(null)
     setArchivo(null)
@@ -223,9 +247,108 @@ export function CargaMasivaTab() {
         </Card>
       )}
 
-      {previa && !estructuraRota && tabla && (
+      {resultado && (
+        <Card className="border-emerald-500/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              Carga guardada
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-[13px]">
+            <p>
+              {resultado.registrados} registrado(s)
+              {resultado.reemplazados > 0 && `, ${resultado.reemplazados} reemplazado(s)`}
+              {resultado.omitidosPorDuplicado > 0
+                && `, ${resultado.omitidosPorDuplicado} omitido(s) por estar ya registrados`}
+            </p>
+            {/* El detalle por fila es lo que permite averiguar cuales fueron
+                los omitidos; un total suelto no sirve para nada. */}
+            <div className="max-h-52 overflow-auto rounded border">
+              <table className="w-full text-[12px]">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-2 py-1 text-left font-medium">Fila</th>
+                    <th className="px-2 py-1 text-left font-medium">Participante</th>
+                    <th className="px-2 py-1 text-left font-medium">Fecha</th>
+                    <th className="px-2 py-1 text-left font-medium">Resultado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultado.detalle.map((d) => (
+                    <tr key={d.numeroDeFila} className="border-t">
+                      <td className="px-2 py-1 text-muted-foreground">{d.numeroDeFila}</td>
+                      <td className="px-2 py-1">{d.folio} — {d.nombreParticipante}</td>
+                      <td className="px-2 py-1">{d.fecha?.replace('T', ' ')}</td>
+                      <td className={`px-2 py-1 ${d.accion === 'OMITIDO' ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                        {d.accion === 'REGISTRADO' ? 'Registrado'
+                          : d.accion === 'REEMPLAZADO' ? 'Reemplazado'
+                          : 'Omitido (ya existía)'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Button variant="outline" size="sm" onClick={reiniciar}>Cargar otro archivo</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {previa && !estructuraRota && tabla && !resultado && (
         <>
           <ResumenCarga previa={previa} onRevalidar={revalidar} cargando={cargando} />
+
+          {/* Los duplicados no son un error: son una decision. Por eso el bloque
+              solo aparece cuando los hay, y con OMITIR ya marcado. */}
+          {previa.resumen.filasDuplicadas > 0 && (
+            <Card className="border-amber-500/40">
+              <CardContent className="space-y-2 py-4 text-[13px]">
+                <p className="flex items-center gap-2 font-medium">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  {previa.resumen.filasDuplicadas} de {previa.resumen.totalFilas} fila(s) ya tienen
+                  un estudio de este tipo ese mismo día
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant={politica === 'OMITIR' ? 'default' : 'outline'}
+                    onClick={() => setPolitica('OMITIR')}
+                  >
+                    No tocarlas
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={politica === 'REEMPLAZAR' ? 'destructive' : 'outline'}
+                    onClick={() => setPolitica('REEMPLAZAR')}
+                  >
+                    Reemplazar sus resultados
+                  </Button>
+                </div>
+                {politica === 'REEMPLAZAR' && (
+                  <p className="text-destructive">
+                    Los resultados que ya estaban registrados en esos estudios se perderán.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-end">
+            <Button
+              onClick={confirmar}
+              disabled={cargando || previa.resumen.filasConProblemas > 0 || previa.resumen.totalFilas === 0}
+              title={previa.resumen.filasConProblemas > 0
+                ? 'Corrige los datos marcados antes de guardar'
+                : undefined}
+            >
+              {cargando
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              Guardar {previa.resumen.totalFilas - (politica === 'OMITIR' ? previa.resumen.filasDuplicadas : 0)} estudio(s)
+            </Button>
+          </div>
+
           <TablaEditable
             previa={previa}
             tabla={tabla}
