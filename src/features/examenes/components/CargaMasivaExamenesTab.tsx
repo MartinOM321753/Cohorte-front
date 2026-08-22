@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { CeldaCarga } from '@/features/estudios/components/CeldaCarga'
 import {
   confirmarCargaExamenes, previsualizarCargaExamenes, revalidarCargaExamenes,
 } from '../api/cargaMasivaExamenes.api'
@@ -199,9 +200,9 @@ export function CargaMasivaExamenesTab() {
 
   const columnasVisibles = useMemo(() => {
     if (!previa) return []
-    const cols: Array<{ indice: number; titulo: string; sub?: string }> = []
+    const cols: Array<{ indice: number; titulo: string; sub?: string; esFecha?: boolean }> = []
     if (previa.indiceFolio >= 0) cols.push({ indice: previa.indiceFolio, titulo: 'Participante' })
-    if (previa.indiceFecha >= 0) cols.push({ indice: previa.indiceFecha, titulo: 'Fecha' })
+    if (previa.indiceFecha >= 0) cols.push({ indice: previa.indiceFecha, titulo: 'Fecha', esFecha: true })
     previa.columnas.forEach((c) => cols.push({
       indice: c.indice,
       titulo: c.unidad ? `${c.nombreExamen} (${c.unidad})` : c.nombreExamen,
@@ -493,23 +494,23 @@ export function CargaMasivaExamenesTab() {
                           const esFolio = c.indice === previa.indiceFolio
                           return (
                             <td key={c.indice} className="border-b px-1 py-1 align-top">
-                              <Input
-                                value={tabla.filas[iFila]?.[c.indice] ?? ''}
-                                onChange={(e) => editarCelda(iFila, c.indice, e.target.value)}
-                                title={error ?? (duplicada ? 'Ya hay un resultado registrado' : undefined)}
-                                className={cn('h-7 text-[12px]',
-                                  error && 'border-destructive bg-destructive/5',
-                                  !error && duplicada && 'border-amber-500/60')}
-                              />
+                              {/* Los valores de laboratorio son siempre numericos, asi
+                                  que aqui el unico control especial es el de la fecha. */}
+                              <div className={cn(!error && duplicada && 'rounded ring-1 ring-amber-500/60')}
+                                   title={!error && duplicada ? 'Ya hay un resultado registrado' : undefined}>
+                                <CeldaCarga
+                                  tipo={c.esFecha ? undefined : 'NUMERICO'}
+                                  esFecha={c.esFecha}
+                                  fechaNormalizada={previa.filas[iFila]?.fecha}
+                                  valor={tabla.filas[iFila]?.[c.indice] ?? ''}
+                                  error={error}
+                                  onChange={(v) => editarCelda(iFila, c.indice, v)}
+                                />
+                              </div>
                               {esFolio && !error && previa.filas[iFila]?.nombreParticipante && (
                                 <div className="truncate px-1 pt-0.5 text-[11px] text-muted-foreground"
                                      title={previa.filas[iFila].nombreParticipante!}>
                                   {previa.filas[iFila].nombreParticipante}
-                                </div>
-                              )}
-                              {error && (
-                                <div className="px-1 pt-0.5 text-[11px] leading-tight text-destructive">
-                                  {error}
                                 </div>
                               )}
                             </td>

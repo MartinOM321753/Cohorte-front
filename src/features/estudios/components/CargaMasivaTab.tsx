@@ -13,9 +13,12 @@ import {
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { CeldaCarga } from './CeldaCarga'
 import { confirmarCarga, previsualizarCarga, revalidarCarga } from '../api/cargaMasiva.api'
 import { useGetTiposEstudio } from '../hooks/useEstudios'
-import type { PoliticaDuplicados, PrevisualizacionCarga, ResultadoCarga, TablaCarga } from '@/types/api'
+import type {
+  ColumnaReconocida, PoliticaDuplicados, PrevisualizacionCarga, ResultadoCarga, TablaCarga,
+} from '@/types/api'
 
 /**
  * Carga masiva de resultados de estudios.
@@ -557,11 +560,17 @@ function TablaEditable({
   // Solo se muestran las columnas que significan algo. Las ignoradas ocuparían
   // ancho para nada: no se van a guardar ni se pueden corregir.
   const columnasVisibles = useMemo(() => {
-    const cols: Array<{ indice: number; titulo: string; sub?: string }> = []
+    const cols: Array<{
+      indice: number; titulo: string; sub?: string
+      tipo?: ColumnaReconocida['tipo']; opciones?: string[]; esFecha?: boolean
+      idParametro?: number
+    }> = []
     if (previa.indiceFolio >= 0) cols.push({ indice: previa.indiceFolio, titulo: 'Participante' })
-    if (previa.indiceFecha >= 0) cols.push({ indice: previa.indiceFecha, titulo: 'Fecha' })
-    previa.columnas.forEach((c) =>
-      cols.push({ indice: c.indice, titulo: c.nombreParametro, sub: c.encabezado }))
+    if (previa.indiceFecha >= 0) cols.push({ indice: previa.indiceFecha, titulo: 'Fecha', esFecha: true })
+    previa.columnas.forEach((c) => cols.push({
+      indice: c.indice, titulo: c.nombreParametro, sub: c.encabezado,
+      tipo: c.tipo, opciones: c.opciones, idParametro: c.idParametro,
+    }))
     return cols
   }, [previa])
 
@@ -620,13 +629,16 @@ function TablaEditable({
                     const esFolio = c.indice === previa.indiceFolio
                     return (
                       <td key={c.indice} className="border-b px-1 py-1 align-top">
-                        <Input
-                          value={tabla.filas[iFila]?.[c.indice] ?? ''}
-                          onChange={(e) => onEditarCelda(iFila, c.indice, e.target.value)}
-                          title={error ?? undefined}
-                          className={`h-7 text-[12px] ${
-                            error ? 'border-destructive bg-destructive/5' : ''
-                          }`}
+                        <CeldaCarga
+                          tipo={c.tipo}
+                          opciones={c.opciones}
+                          esFecha={c.esFecha}
+                          fechaNormalizada={previa.filas[iFila]?.fecha}
+                          canonico={previa.filas[iFila]?.valores
+                            .find((v) => v.idParametro === c.idParametro)?.canonico}
+                          valor={tabla.filas[iFila]?.[c.indice] ?? ''}
+                          error={error}
+                          onChange={(v) => onEditarCelda(iFila, c.indice, v)}
                         />
                         {/* El nombre resuelto es la única forma de notar que un
                             folio correcto apunta a otra persona. */}
@@ -634,11 +646,6 @@ function TablaEditable({
                           <div className="truncate px-1 pt-0.5 text-[11px] text-muted-foreground"
                                title={previa.filas[iFila].nombreParticipante!}>
                             {previa.filas[iFila].nombreParticipante}
-                          </div>
-                        )}
-                        {error && (
-                          <div className="px-1 pt-0.5 text-[11px] leading-tight text-destructive">
-                            {error}
                           </div>
                         )}
                       </td>

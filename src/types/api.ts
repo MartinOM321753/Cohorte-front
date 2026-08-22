@@ -1475,6 +1475,8 @@ export interface ColumnaReconocida {
   tipo: TipoParametro
   /** El alias que hizo la coincidencia, para poder explicarla. */
   aliasUsado: string | null
+  /** Las configuradas en el catálogo; solo vienen en TEXTO_OPCIONES. */
+  opciones: string[]
 }
 
 export interface ValorPrevisualizado {
@@ -1482,6 +1484,12 @@ export interface ValorPrevisualizado {
   crudo: string
   /** null si el valor se entendió. */
   error: string | null
+  /**
+   * Para los parámetros de selección, la opción del catálogo a la que
+   * corresponde. La resuelve el servidor porque la comparación ignora acentos
+   * y mayúsculas, y repetir esa regla aquí crearía dos criterios distintos.
+   */
+  canonico: string | null
 }
 
 export interface FilaPrevisualizada {
