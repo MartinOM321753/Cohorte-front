@@ -1,13 +1,18 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { AlertCircle, CheckCircle2, FileUp, Loader2, Upload, Wand2, X } from 'lucide-react'
+import {
+  AlertCircle, Check, CheckCircle2, ChevronsUpDown, FileSpreadsheet, FileUp,
+  Loader2, Upload, Wand2, X,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 import { confirmarCarga, previsualizarCarga, revalidarCarga } from '../api/cargaMasiva.api'
 import { useGetTiposEstudio } from '../hooks/useEstudios'
 import type { PoliticaDuplicados, PrevisualizacionCarga, ResultadoCarga, TablaCarga } from '@/types/api'
@@ -23,11 +28,20 @@ import type { PoliticaDuplicados, PrevisualizacionCarga, ResultadoCarga, TablaCa
  * un número: manda la tabla corregida y vuelve a preguntar. Si validara por su
  * cuenta acabaría teniendo reglas distintas de las que de verdad mandan.</p>
  */
+/** Tamano legible; los bytes crudos no le dicen nada a nadie. */
+function tamano(bytes: number): string {
+  return bytes < 1024 * 1024
+    ? `${(bytes / 1024).toFixed(1)} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function CargaMasivaTab() {
   const { data: tipos = [] } = useGetTiposEstudio()
   const inputArchivo = useRef<HTMLInputElement>(null)
 
   const [idTipo, setIdTipo] = useState<string>('')
+  const [tipoAbierto, setTipoAbierto] = useState(false)
+  const [arrastrando, setArrastrando] = useState(false)
   const [archivo, setArchivo] = useState<File | null>(null)
   const [previa, setPrevia] = useState<PrevisualizacionCarga | null>(null)
   const [cargando, setCargando] = useState(false)
@@ -42,6 +56,48 @@ export function CargaMasivaTab() {
   const [tabla, setTabla] = useState<TablaCarga | null>(null)
 
   const tiposActivos = useMemo(() => tipos.filter((t) => t.activo !== false), [tipos])
+
+  // ── Elegir el archivo ────────────────────────────────────────────────────
+
+  /**
+   * Comprueba extension y tamano antes de subir nada.
+   *
+   * <p>El servidor los rechaza igual, pero esperar a que suba diez megas para
+   * decir que el formato no vale es tiempo perdido y, con una conexion mala,
+   * mucho tiempo perdido.</p>
+   */
+  function elegirArchivo(f: File | undefined) {
+    if (!f) return
+    const ext = f.name.slice(f.name.lastIndexOf('.')).toLowerCase()
+    if (!['.csv', '.xlsx'].includes(ext)) {
+      toast.error('Formato no admitido. Sube un CSV o un Excel (.xlsx).')
+      return
+    }
+    if (f.size > 10 * 1024 * 1024) {
+      toast.error('El archivo no puede pasar de 10 MB.')
+      return
+    }
+    setArchivo(f)
+    // La previsualizacion anterior era de otro archivo; dejarla en pantalla
+    // haria creer que corresponde al recien elegido.
+    setPrevia(null)
+    setTabla(null)
+    setResultado(null)
+  }
+
+  const soltarArchivo = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setArrastrando(false)
+    elegirArchivo(e.dataTransfer.files[0])
+  }, [])
+
+  function quitarArchivo() {
+    setArchivo(null)
+    setPrevia(null)
+    setTabla(null)
+    setResultado(null)
+    if (inputArchivo.current) inputArchivo.current.value = ''
+  }
 
   // ── Subir ────────────────────────────────────────────────────────────────
 
@@ -177,29 +233,104 @@ export function CargaMasivaTab() {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-[240px] flex-1 space-y-1.5">
-              <label className="text-[12px] font-medium">Tipo de estudio</label>
-              <Select value={idTipo} onValueChange={(v) => { setIdTipo(v); reiniciar() }}>
-                <SelectTrigger><SelectValue placeholder="Selecciona el tipo…" /></SelectTrigger>
-                <SelectContent>
-                  {tiposActivos.map((t) => (
-                    <SelectItem key={t.id} value={String(t.id)}>{t.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <label className="text-[12px] font-medium">Tipo de estudio</label>
+            {/* Buscador y no un desplegable simple: el catálogo pasa de veinte
+                plantillas y recorrerlas a ojo es más lento que escribir. */}
+            <Popover open={tipoAbierto} onOpenChange={setTipoAbierto}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={tipoAbierto}
+                  className="w-full justify-between text-sm font-normal"
+                >
+                  <span className="truncate">
+                    {idTipo
+                      ? tiposActivos.find((t) => String(t.id) === idTipo)?.nombre ?? '…'
+                      : 'Buscar tipo de estudio…'}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar tipo de estudio…" />
+                  <CommandList>
+                    <CommandEmpty>No se encontró el tipo de estudio.</CommandEmpty>
+                    <CommandGroup>
+                      {tiposActivos.map((t) => (
+                        <CommandItem
+                          key={t.id}
+                          value={t.nombre}
+                          onSelect={() => {
+                            setIdTipo(String(t.id))
+                            reiniciar()
+                            setTipoAbierto(false)
+                          }}
+                        >
+                          <Check className={cn('mr-2 h-4 w-4 shrink-0',
+                            idTipo === String(t.id) ? 'opacity-100' : 'opacity-0')} />
+                          <span className="truncate">{t.nombre}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
 
-            <div className="min-w-[240px] flex-1 space-y-1.5">
-              <label className="text-[12px] font-medium">Archivo (.csv o .xlsx)</label>
-              <Input
+          {archivo ? (
+            <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
+              <FileSpreadsheet className="h-8 w-8 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-foreground">{archivo.name}</p>
+                <p className="text-[11px] text-muted-foreground">{tamano(archivo.size)}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={quitarArchivo}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => inputArchivo.current?.click()}
+              onKeyDown={(e) => e.key === 'Enter' && inputArchivo.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setArrastrando(true) }}
+              onDragLeave={() => setArrastrando(false)}
+              onDrop={soltarArchivo}
+              className={cn(
+                'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 transition-colors',
+                arrastrando
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border text-muted-foreground hover:border-primary/60 hover:bg-muted/30',
+              )}
+            >
+              <Upload className="h-8 w-8 opacity-50" />
+              <div className="text-center text-[13px]">
+                <span className="font-medium text-foreground">Haz clic</span> o arrastra el archivo aquí
+              </div>
+              <p className="text-[11px] opacity-60">CSV o Excel (.xlsx) — máximo 10 MB</p>
+              <input
                 ref={inputArchivo}
                 type="file"
                 accept=".csv,.xlsx"
-                onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); setPrevia(null) }}
+                className="hidden"
+                onChange={(e) => { elegirArchivo(e.target.files?.[0]); e.target.value = '' }}
               />
             </div>
+          )}
 
+          <div className="flex flex-wrap items-center gap-3">
             <Button onClick={subir} disabled={!archivo || !idTipo || cargando}>
               {cargando
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
