@@ -79,7 +79,11 @@ export default function BiobancoPage() {
     setActiveTab(value)
   }
 
-  const gridCols = tabs.length <= 4 ? `sm:grid-cols-${tabs.length}` : tabs.length === 5 ? 'sm:grid-cols-5' : 'sm:grid-cols-6'
+  // Tailwind solo genera las clases que encuentra escritas literalmente, asi
+  // que `sm:grid-cols-${n}` nunca llegaba al CSS y la barra se quedaba en una
+  // columna. Los casos 5 y 6 si funcionaban por estar escritos a mano; con esto
+  // deja de hacer falta enumerarlos.
+  const columnasPestanas = { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,7 +102,10 @@ export default function BiobancoPage() {
 
       <TooltipProvider delayDuration={100}>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className={`flex overflow-x-auto scrollbar-none gap-1 sm:grid sm:w-full ${gridCols}`}>
+          <TabsList
+            className="flex overflow-x-auto scrollbar-none gap-1 sm:grid sm:w-full"
+            style={columnasPestanas}
+          >
             {tabs.map((tab) => {
               const disabled = tab.dataDep && !tab.dataDep.enabled
               if (disabled) {

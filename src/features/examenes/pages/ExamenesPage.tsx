@@ -27,8 +27,14 @@ export default function ExamenesPage() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* El reparto de columnas va en style porque Tailwind solo genera las
+            clases que encuentra escritas literalmente: `grid-cols-${n}` se arma
+            al vuelo, nunca llega al CSS y la barra acaba en una sola columna. */}
         {tabs.length > 1 && (
-          <TabsList className={`grid w-full grid-cols-${tabs.length}`}>
+          <TabsList
+            className="grid w-full"
+            style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+          >
             {tabs.map((t) => (
               <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
             ))}
