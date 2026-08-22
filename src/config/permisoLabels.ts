@@ -60,6 +60,7 @@ const LABELS: Record<string, string> = {
   EXAMENES_CREAR:            'Registrar resultados de examen',
   EXAMENES_EDITAR:           'Editar resultados de examen',
   EXAMENES_ELIMINAR:         'Eliminar resultados de examen',
+  EXAMENES_CARGA_MASIVA:     'Cargar resultados desde un archivo',
   EXAMENES_CATALOGO_CREAR:   'Crear exámenes en catálogo',
   EXAMENES_CATALOGO_EDITAR:  'Editar exámenes en catálogo',
   EXAMENES_CATALOGO_ELIMINAR:'Eliminar exámenes en catálogo',

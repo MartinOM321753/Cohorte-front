@@ -1545,3 +1545,62 @@ export interface ResultadoCarga {
   omitidosPorDuplicado: number
   detalle: DetalleCarga[]
 }
+
+// ── Carga masiva de laboratorio ──────────────────────────────────────────────
+
+export interface ColumnaExamenCarga {
+  indice: number
+  encabezado: string
+  idExamen: number
+  nombreExamen: string
+  unidad: string | null
+  aliasUsado: string | null
+}
+
+export interface ValorExamenCarga {
+  idExamen: number
+  crudo: string
+  /** La celda venía en blanco: ese examen no se hizo. No es un error. */
+  vacio: boolean
+  error: string | null
+  /** Resultado ya registrado para ese participante, examen y día. */
+  idResultadoExistente: number | null
+}
+
+export interface FilaExamenesCarga {
+  numeroDeFila: number
+  folio: string
+  uuidParticipante: string | null
+  nombreParticipante: string | null
+  errorParticipante: string | null
+  fecha: string | null
+  errorFecha: string | null
+  valores: ValorExamenCarga[]
+}
+
+/** Se cuentan resultados y no filas: es lo que se va a escribir. */
+export interface ResumenCargaExamenes {
+  totalFilas: number
+  filasInservibles: number
+  resultadosListos: number
+  resultadosConError: number
+  celdasVacias: number
+  resultadosDuplicados: number
+  columnasReconocidas: number
+  columnasIgnoradas: number
+}
+
+export interface PrevisualizacionCargaExamenes {
+  problemasDeEstructura: string[]
+  columnasIgnoradas: string[]
+  /** Exámenes del catálogo que este archivo no trae. Informativo, no un error. */
+  examenesNoIncluidos: string[]
+  ordenDeFecha: string | null
+  fechaAmbigua: boolean
+  columnas: ColumnaExamenCarga[]
+  tabla: TablaCarga
+  indiceFolio: number
+  indiceFecha: number
+  filas: FilaExamenesCarga[]
+  resumen: ResumenCargaExamenes
+}

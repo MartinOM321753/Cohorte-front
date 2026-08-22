@@ -315,6 +315,12 @@ export const SECCIONES: Seccion[] = [
             label: 'Editar resultados',
             permisos: ['EXAMENES_EDITAR', 'PACIENTES_LOOKUP', 'UNIDADES_LOOKUP'],
           },
+          {
+            id: 'carga-masiva',
+            label: 'Cargar resultados desde un archivo',
+            descripcion: 'Permite subir el archivo que entrega el laboratorio y registrar de golpe los resultados de muchos participantes. Cada columna se reconoce por los alias del examen. Se revisa antes de guardar.',
+            permisos: ['EXAMENES_CARGA_MASIVA', 'EXAMENES_LOOKUP'],
+          },
           { id: 'eliminar', label: 'Eliminar resultados',  permisos: ['EXAMENES_ELIMINAR'] },
         ],
       },
