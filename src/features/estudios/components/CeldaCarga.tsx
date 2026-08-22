@@ -47,7 +47,9 @@ export function CeldaCarga({
   // ── Fecha ────────────────────────────────────────────────────────────────
   if (esFecha) {
     return (
-      <div className="min-w-[210px] space-y-1">
+      // El selector reparte 180px para la fecha, 92 para la hora y 68 para los
+      // minutos: por debajo de ~365px los recorta y las horas salen como "0C".
+      <div className="w-[365px] space-y-1">
         <DateTimePicker
           value={fechaNormalizada ?? ''}
           onChange={onChange}

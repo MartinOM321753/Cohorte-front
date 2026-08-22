@@ -606,7 +606,9 @@ function TablaEditable({
                   Fila
                 </th>
                 {columnasVisibles.map((c) => (
-                  <th key={c.indice} className="min-w-[130px] border-b px-2 py-2 text-left align-top">
+                  <th key={c.indice}
+                      className={cn('border-b px-2 py-2 text-left align-top',
+                        c.esFecha ? 'min-w-[380px]' : 'min-w-[130px]')}>
                     <div className="font-medium">{c.titulo}</div>
                     {c.sub && <div className="font-normal text-muted-foreground">{c.sub}</div>}
                     <CorregirColumna
