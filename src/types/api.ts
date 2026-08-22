@@ -1454,3 +1454,70 @@ export interface ConfiguracionHorarioRequest {
   domingo: boolean
   activa?: boolean
 }
+
+// ============================================
+// CARGA MASIVA DE RESULTADOS
+// ============================================
+
+/** La tabla tal como se leyó del archivo; se devuelve editada al revalidar. */
+export interface TablaCarga {
+  encabezados: string[]
+  filas: string[][]
+  /** Número de fila real dentro del archivo, para señalar el problema donde el usuario lo va a buscar. */
+  numerosDeFila: number[]
+}
+
+export interface ColumnaReconocida {
+  indice: number
+  encabezado: string
+  idParametro: number
+  nombreParametro: string
+  tipo: TipoParametro
+  /** El alias que hizo la coincidencia, para poder explicarla. */
+  aliasUsado: string | null
+}
+
+export interface ValorPrevisualizado {
+  idParametro: number
+  crudo: string
+  /** null si el valor se entendió. */
+  error: string | null
+}
+
+export interface FilaPrevisualizada {
+  numeroDeFila: number
+  folio: string
+  uuidParticipante: string | null
+  nombreParticipante: string | null
+  errorParticipante: string | null
+  fecha: string | null
+  errorFecha: string | null
+  valores: ValorPrevisualizado[]
+}
+
+export interface ResumenCarga {
+  totalFilas: number
+  filasListas: number
+  filasConProblemas: number
+  columnasReconocidas: number
+  columnasIgnoradas: number
+}
+
+export interface PrevisualizacionCarga {
+  idTipoEstudio: number
+  nombreTipoEstudio: string
+  /** Si trae algo, no se puede continuar: el archivo no encaja con el tipo. */
+  problemasDeEstructura: string[]
+  /** Columnas que no corresponden a nada; se ignorarán al guardar. */
+  columnasIgnoradas: string[]
+  /** Parámetros que ninguna columna reclamó; detienen la carga. */
+  parametrosSinColumna: string[]
+  ordenDeFecha: string | null
+  fechaAmbigua: boolean
+  columnas: ColumnaReconocida[]
+  tabla: TablaCarga
+  indiceFolio: number
+  indiceFecha: number
+  filas: FilaPrevisualizada[]
+  resumen: ResumenCarga
+}
