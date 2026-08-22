@@ -57,6 +57,10 @@ export function CargaMasivaTab() {
   // porque cambia con cada tecla, mientras que la previsualización solo se
   // renueva al revalidar.
   const [tabla, setTabla] = useState<TablaCarga | null>(null)
+  // El archivo tal como se leyó. Se guarda aparte porque `tabla` va cambiando con
+  // cada corrección, y para poder decir "en el archivo venía X" hace falta la
+  // versión que nadie ha tocado.
+  const [tablaOriginal, setTablaOriginal] = useState<TablaCarga | null>(null)
 
   const tiposActivos = useMemo(() => tipos.filter((t) => t.activo !== false), [tipos])
 
@@ -111,6 +115,7 @@ export function CargaMasivaTab() {
       const r = await previsualizarCarga(archivo, Number(idTipo))
       setPrevia(r)
       setTabla(r.tabla)
+      setTablaOriginal(r.tabla)
     } catch (e: any) {
       setPrevia(null)
       setTabla(null)
@@ -189,6 +194,7 @@ export function CargaMasivaTab() {
     setResultado(null)
     setPrevia(null)
     setTabla(null)
+    setTablaOriginal(null)
     setArchivo(null)
     if (inputArchivo.current) inputArchivo.current.value = ''
   }
@@ -486,6 +492,7 @@ export function CargaMasivaTab() {
           <TablaEditable
             previa={previa}
             tabla={tabla}
+            tablaOriginal={tablaOriginal}
             erroresPorCelda={erroresPorCelda}
             filasConErrorPorColumna={filasConErrorPorColumna}
             onEditarCelda={editarCelda}
@@ -548,10 +555,12 @@ function ResumenCarga({ previa, onRevalidar, cargando }: {
 // ── Tabla editable ─────────────────────────────────────────────────────────
 
 function TablaEditable({
-  previa, tabla, erroresPorCelda, filasConErrorPorColumna, onEditarCelda, onCorregirColumna,
+  previa, tabla, tablaOriginal, erroresPorCelda, filasConErrorPorColumna,
+  onEditarCelda, onCorregirColumna,
 }: {
   previa: PrevisualizacionCarga
   tabla: TablaCarga
+  tablaOriginal: TablaCarga | null
   erroresPorCelda: Map<string, string>
   filasConErrorPorColumna: Map<number, Set<number>>
   onEditarCelda: (iFila: number, iCol: number, valor: string) => void
@@ -636,6 +645,7 @@ function TablaEditable({
                           opciones={c.opciones}
                           esFecha={c.esFecha}
                           fechaNormalizada={previa.filas[iFila]?.fecha}
+                          crudoOriginal={tablaOriginal?.filas[iFila]?.[c.indice]}
                           canonico={previa.filas[iFila]?.valores
                             .find((v) => v.idParametro === c.idParametro)?.canonico}
                           valor={tabla.filas[iFila]?.[c.indice] ?? ''}

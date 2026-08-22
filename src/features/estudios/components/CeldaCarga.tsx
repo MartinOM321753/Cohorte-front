@@ -21,8 +21,11 @@ import type { TipoParametro } from '@/types/api'
  * Lo que cambia es cómo se escribe: un desplegable no puede producir una opción
  * inexistente, y un calendario no puede producir una fecha con el mes cambiado.</p>
  */
+/** Lo que produce el calendario: 2026-08-25T09:30 */
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
+
 export function CeldaCarga({
-  tipo, opciones, valor, error, onChange, esFecha, fechaNormalizada, canonico,
+  tipo, opciones, valor, error, onChange, esFecha, fechaNormalizada, canonico, crudoOriginal,
 }: {
   /** Ausente en las columnas de control (folio y fecha). */
   tipo?: TipoParametro
@@ -39,19 +42,27 @@ export function CeldaCarga({
    */
   canonico?: string | null
   /**
-   * La fecha ya interpretada por el servidor, en formato ISO. Es lo que entiende
-   * el calendario; el texto crudo del archivo puede venir en cualquier formato.
+   * La fecha ya interpretada por el servidor, en formato ISO. Solo sirve como
+   * lectura inicial: en cuanto el usuario elige una en el calendario, la que
+   * manda es la de `valor`.
    */
   fechaNormalizada?: string | null
+  /** El texto tal como venía en el archivo, antes de cualquier corrección. */
+  crudoOriginal?: string
 }) {
   // ── Fecha ────────────────────────────────────────────────────────────────
   if (esFecha) {
+    // En cuanto el usuario elige una fecha, el valor de la tabla pasa a ISO y es
+    // el que manda. Seguir mostrando el del servidor haría que cambiar la hora no
+    // se viera: la previsualización no se recalcula hasta volver a validar.
+    const enCalendario = ISO.test(valor) ? valor : (fechaNormalizada ?? '')
+    const original = crudoOriginal ?? valor
     return (
       // El selector reparte 180px para la fecha, 92 para la hora y 68 para los
       // minutos: por debajo de ~365px los recorta y las horas salen como "0C".
       <div className="w-[365px] space-y-1">
         <DateTimePicker
-          value={fechaNormalizada ?? ''}
+          value={enCalendario}
           onChange={onChange}
           placeholder="Selecciona fecha y hora"
           timeStepMinutes={1}
@@ -60,15 +71,17 @@ export function CeldaCarga({
           className={error ? 'border-destructive' : undefined}
         />
         {/* Un archivo puede traer la fecha sin hora y el estudio se registraría a
-            las 00:00 sin que nadie lo note. Enseñar el texto original permite
-            distinguir "vino así" de "alguien lo eligió". */}
-        {!error && valor && (
-          <p className="px-1 text-[11px] text-muted-foreground">En el archivo: {valor}</p>
+            las 00:00 sin que nadie lo note. Se enseña el texto ORIGINAL del
+            archivo, no el valor actual: si mostrara el actual, tras elegir una
+            fecha repetiría lo que ya se ve en el calendario y dejaría de servir
+            para comparar. */}
+        {!error && original && (
+          <p className="px-1 text-[11px] text-muted-foreground">En el archivo: {original}</p>
         )}
         {error && (
           <p className="flex items-start gap-1 px-1 text-[11px] leading-tight text-destructive">
             <AlertCircle className="mt-px h-3 w-3 shrink-0" />
-            <span>No se entendió «{valor}». Elige la fecha.</span>
+            <span>No se entendió «{original}». Elige la fecha.</span>
           </p>
         )}
       </div>
@@ -80,7 +93,7 @@ export function CeldaCarga({
     const activo = ['SI', 'SÍ', 'S', 'TRUE', 'T', 'VERDADERO', 'V', '1', 'X', 'YES', 'Y']
       .includes(valor.trim().toUpperCase())
     return (
-      <div className="flex w-28 items-center gap-2">
+      <div className="flex h-9 w-28 items-center gap-2">
         <Switch
           checked={activo}
           onCheckedChange={(v) => onChange(v ? 'Si' : 'No')}
@@ -101,7 +114,7 @@ export function CeldaCarga({
     return (
       <div className="min-w-[150px] space-y-1">
         <Select value={seleccion} onValueChange={(v) => { if (v !== '') onChange(v) }}>
-          <SelectTrigger className={cn('h-7 text-[12px]', error && 'border-destructive bg-destructive/5')}>
+          <SelectTrigger className={cn('h-9 text-[12px]', error && 'border-destructive bg-destructive/5')}>
             <SelectValue placeholder="Elige una opción…" />
           </SelectTrigger>
           <SelectContent>
@@ -126,7 +139,9 @@ export function CeldaCarga({
         onChange={(e) => onChange(e.target.value)}
         title={error ?? undefined}
         inputMode={tipo === 'NUMERICO' ? 'decimal' : undefined}
-        className={cn('h-7 text-[12px]', error && 'border-destructive bg-destructive/5')}
+        // 36px es la altura del selector de fecha, que es un componente
+        // compartido: se igualan los demas a el y no al reves.
+        className={cn('h-9 text-[12px]', error && 'border-destructive bg-destructive/5')}
       />
       {error && (
         <div className="px-1 pt-0.5 text-[11px] leading-tight text-destructive">{error}</div>

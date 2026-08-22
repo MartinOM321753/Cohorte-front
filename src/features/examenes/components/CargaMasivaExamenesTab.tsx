@@ -41,6 +41,9 @@ export function CargaMasivaExamenesTab() {
   const [arrastrando, setArrastrando] = useState(false)
   const [previa, setPrevia] = useState<PrevisualizacionCargaExamenes | null>(null)
   const [tabla, setTabla] = useState<TablaCarga | null>(null)
+  // El archivo tal como se leyó: `tabla` cambia con cada corrección y para poder
+  // decir "en el archivo venía X" hace falta la versión que nadie ha tocado.
+  const [tablaOriginal, setTablaOriginal] = useState<TablaCarga | null>(null)
   const [resultado, setResultado] = useState<ResultadoCarga | null>(null)
   const [politica, setPolitica] = useState<PoliticaDuplicados>('OMITIR')
   const [cargando, setCargando] = useState(false)
@@ -73,6 +76,7 @@ export function CargaMasivaExamenesTab() {
   function limpiarAnalisis() {
     setPrevia(null)
     setTabla(null)
+    setTablaOriginal(null)
     setResultado(null)
   }
 
@@ -91,6 +95,7 @@ export function CargaMasivaExamenesTab() {
       const r = await previsualizarCargaExamenes(archivo)
       setPrevia(r)
       setTabla(r.tabla)
+      setTablaOriginal(r.tabla)
     } catch (e: any) {
       limpiarAnalisis()
       toast.error(e?.response?.data?.message ?? 'No se pudo leer el archivo')
@@ -504,6 +509,7 @@ export function CargaMasivaExamenesTab() {
                                   tipo={c.esFecha ? undefined : 'NUMERICO'}
                                   esFecha={c.esFecha}
                                   fechaNormalizada={previa.filas[iFila]?.fecha}
+                                  crudoOriginal={tablaOriginal?.filas[iFila]?.[c.indice]}
                                   valor={tabla.filas[iFila]?.[c.indice] ?? ''}
                                   error={error}
                                   onChange={(v) => editarCelda(iFila, c.indice, v)}
