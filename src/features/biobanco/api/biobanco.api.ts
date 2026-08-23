@@ -689,3 +689,28 @@ export async function getVista3DCaja(idCaja: number) {
   )
   return response.data.data
 }
+
+// ── Lectura de etiquetas (cámara o lector de códigos) ────────────────────────
+
+export interface MuestraEscaneadaDTO {
+  muestra: MuestraDetalleDTO
+  /** Id de la muestra padre cuando la escaneada es una alícuota; null si es padre. */
+  idMuestraPadre: number | null
+  /** La muestra solo aparece con la vista de histórico encendida. */
+  requiereHistorico: boolean
+}
+
+/**
+ * Resuelve el contenido de una etiqueta leída.
+ *
+ * La etiqueta viaja como parámetro y no en la ruta porque lleva diagonales
+ * ("C1/001103/F4"): en la ruta partiría el path, y codificada como %2F la
+ * rechaza el contenedor antes de llegar al controlador.
+ */
+export async function buscarMuestraPorEtiqueta(etiqueta: string): Promise<MuestraEscaneadaDTO> {
+  const response = await api.get<ApiResponse<MuestraEscaneadaDTO>>(
+    '/almacenamiento/muestras/buscar-por-etiqueta',
+    { params: { etiqueta } },
+  )
+  return response.data.data
+}

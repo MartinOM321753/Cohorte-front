@@ -1,11 +1,13 @@
-import { useState, useMemo, Fragment } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
 import {
   Plus, Edit, Trash2, Search, TestTube, AlertCircle,
   Paperclip, ArrowRightFromLine, History, FlaskConical,
   ChevronDown, ChevronUp, MapPinOff, ClipboardList, X, Printer, Tag,
-  EyeOff, Eye, Ban, Boxes,
+  EyeOff, Eye, Ban, Boxes, ScanLine,
 } from 'lucide-react'
-import { useGetMuestras, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto } from '../hooks/useBiobanco'
+import { useGetMuestras, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta } from '../hooks/useBiobanco'
+import { EscanearEtiquetaModal } from './EscanearEtiquetaModal'
+import { useLectorCodigos } from '../hooks/useLectorCodigos'
 import { getLabelDataEtiqueta, getLabelDataAlicuotas, getLabelDataLoteCompleto, imprimirAcomodado } from '../api/biobanco.api'
 import { AcomodoCarrilesDialog } from '@/components/print/AcomodoCarrilesDialog'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
@@ -380,6 +382,36 @@ interface PadreCardProps {
   actions: SharedActions
 }
 
+/**
+ * Envoltorio que identifica cada tarjeta en el DOM y la enmarca cuando fue la
+ * localizada por el lector.
+ *
+ * El `data-muestra-id` es lo que permite hacer scroll hasta ella sin sacar una
+ * ref por tarjeta, que con las alícuotas apareciendo y desapareciendo del grid
+ * sería un mapa de refs que hay que limpiar a mano.
+ *
+ * Conserva `h-full` porque este div pasa a ser la celda del grid: sin él, la
+ * tarjeta deja de estirarse y las alturas de la fila se descuadran.
+ */
+function MarcoLocalizada({ id, resaltada, children }: {
+  id: number
+  resaltada: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      data-muestra-id={id}
+      className={`h-full rounded-lg transition-all duration-500 ${
+        resaltada
+          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg'
+          : 'ring-0'
+      }`}
+    >
+      {children}
+    </div>
+  )
+}
+
 function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, actions }: PadreCardProps) {
   const isOrigen = trasladoInfo ? trasladoInfo.institucionOrigenId === actions.myInstitucionId : undefined
   const badge = trasladoInfo ? activeBadge(trasladoInfo.estado, isOrigen) : null
@@ -727,6 +759,8 @@ export function MuestrasTab() {
   const puedeDarBaja = useAuthStore((s) => s.hasPermiso('MUESTRAS_DAR_BAJA'))
   const canUploadMuestra = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
   const puedeImprimir = useAuthStore((s) => s.hasPermiso('MUESTRAS_IMPRIMIR'))
+  const puedeEscanear = useAuthStore((s) => s.hasPermiso('MUESTRAS_ESCANEAR'))
+  const puedeEditarMuestra = useAuthStore((s) => s.hasPermiso('MUESTRAS_EDITAR'))
 
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
@@ -741,6 +775,12 @@ export function MuestrasTab() {
   const [generarAlicuotasMuestra, setGenerarAlicuotasMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [hideDevueltasHuerfanas, setHideDevueltasHuerfanas] = useState(true)
   const [incluirHistorico, setIncluirHistorico] = useState(false)
+
+  // ── Búsqueda por etiqueta leída ────────────────────────────────────────────
+  const [escanerAbierto, setEscanerAbierto] = useState(false)
+  const [errorEscaneo, setErrorEscaneo] = useState<string | null>(null)
+  /** Muestra localizada por el último escaneo: se resalta hasta que se toque otra cosa. */
+  const [resaltadaId, setResaltadaId] = useState<number | null>(null)
 
   const { data: muestras, isLoading } = useGetMuestras({ incluirHistorico })
   const { data: traslados = [] } = useGetAllTraslados()
@@ -833,14 +873,8 @@ export function MuestrasTab() {
     }).length
   }, [padres, myInstitucionId])
 
-  const filteredPadres = padres.filter((m) => {
-    if (hideDevueltasHuerfanas && m.idMuestraPadre != null) {
-      const esExterna = m.idInstitucion != null && m.idInstitucion !== myInstitucionId
-      const fueraDeMiBiobanco = m.idInstitucionActual != null && m.idInstitucionActual !== myInstitucionId
-      if (esExterna && fueraDeMiBiobanco) return false
-    }
-    const term = searchTerm.toLowerCase()
-    if (!term) return true
+  /** Coincidencia de una muestra suelta contra el texto buscado. */
+  const coincide = (m: MuestraDetalleDTO, term: string) => {
     const pacienteStr = m.paciente ? `${m.paciente.folio} ${m.paciente.nombreCompleto}` : ''
     return (
       m.etiqueta.toLowerCase().includes(term) ||
@@ -849,7 +883,57 @@ export function MuestrasTab() {
       (m.tipoMuestra?.nombre ?? '').toLowerCase().includes(term) ||
       (m.tuboMuestra?.nombre ?? '').toLowerCase().includes(term)
     )
-  })
+  }
+
+  /*
+   * El filtro corre sobre las muestras padre, pero las alícuotas no están en esa
+   * lista: viven plegadas dentro de su padre. Comparar solo contra la padre hacía
+   * que buscar la etiqueta de una alícuota vaciara la pantalla — la padre no
+   * coincide, desaparece, y con ella la alícuota que sí coincidía.
+   *
+   * Una padre se conserva si coincide ella o si coincide alguna de sus alícuotas,
+   * y en ese segundo caso se despliega sola: mostrarla plegada dejaría al usuario
+   * mirando una tarjeta que no dice nada de lo que buscó.
+   */
+  const { filteredPadres, expandidasPorBusqueda } = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    const porBusqueda = new Set<number>()
+
+    const lista = padres.filter((m) => {
+      if (hideDevueltasHuerfanas && m.idMuestraPadre != null) {
+        const esExterna = m.idInstitucion != null && m.idInstitucion !== myInstitucionId
+        const fueraDeMiBiobanco = m.idInstitucionActual != null && m.idInstitucionActual !== myInstitucionId
+        if (esExterna && fueraDeMiBiobanco) return false
+      }
+      if (!term) return true
+      if (coincide(m, term)) return true
+
+      const alicuotaCoincide = (alicuotasByPadre.get(m.id) ?? []).some((a) => coincide(a, term))
+      if (alicuotaCoincide) porBusqueda.add(m.id)
+      return alicuotaCoincide
+    })
+
+    return { filteredPadres: lista, expandidasPorBusqueda: porBusqueda }
+  }, [padres, alicuotasByPadre, searchTerm, hideDevueltasHuerfanas, myInstitucionId])
+
+  /*
+   * Las padres que solo coinciden por una alicuota se despliegan solas.
+   *
+   * Se siembra en el estado en lugar de calcularlo en el render: si `isExpanded`
+   * fuera derivado, el boton de plegar dejaria de responder en esas tarjetas
+   * —al quitarla de expandedIds seguiria expandida por la busqueda—. Sembrandolo,
+   * el toggle vuelve a mandar y el usuario puede cerrarla si quiere.
+   */
+  useEffect(() => {
+    if (expandidasPorBusqueda.size === 0) return
+    setExpandedIds((prev) => {
+      const faltantes = [...expandidasPorBusqueda].filter((id) => !prev.has(id))
+      if (faltantes.length === 0) return prev   // sin cambios: React no re-renderiza
+      const next = new Set(prev)
+      faltantes.forEach((id) => next.add(id))
+      return next
+    })
+  }, [expandidasPorBusqueda])
 
   const toggleExpanded = (id: number) =>
     setExpandedIds((prev) => {
@@ -859,6 +943,89 @@ export function MuestrasTab() {
     })
 
   const handleEdit = (m: MuestraDetalleDTO) => { setEditingMuestra(m); setIsMuestraModalOpen(true) }
+
+  // ── Escaneo: de la etiqueta al formulario de edición ───────────────────────
+
+  const buscarPorEtiqueta = useBuscarMuestraPorEtiqueta()
+
+  /**
+   * La muestra recién localizada, en espera de que la fila exista en el DOM.
+   *
+   * Hace falta un paso intermedio porque entre resolver la etiqueta y poder
+   * hacer scroll pasan varios renders: puede que haya que encender el histórico
+   * —lo que vuelve a pedir la lista al servidor—, limpiar el filtro de texto y
+   * desplegar la muestra padre. Intentar el scroll en el mismo tick no encuentra
+   * nada. Este efecto reintenta cuando la lista cambia.
+   */
+  const pendienteDeLocalizar = useRef<{ id: number; abrirEdicion: boolean } | null>(null)
+
+  const resolverEtiqueta = useCallback(async (codigo: string) => {
+    setErrorEscaneo(null)
+    try {
+      const res = await buscarPorEtiqueta.mutateAsync(codigo)
+      const m = res.muestra
+
+      // La lista se deja en condiciones de mostrarla antes de buscarla.
+      if (res.requiereHistorico) setIncluirHistorico(true)
+      // Una alícuota huérfana devuelta está oculta tras su propio filtro.
+      setHideDevueltasHuerfanas(false)
+      // El texto de la etiqueta queda en la búsqueda: es lo que pidió el usuario
+      // —que quede indexada— y de paso deja la lista reducida a lo pertinente.
+      setSearchTerm(m.etiqueta)
+      // Si es alícuota, su fila solo existe con la muestra padre desplegada.
+      if (res.idMuestraPadre != null) {
+        setExpandedIds((prev) => new Set(prev).add(res.idMuestraPadre as number))
+      }
+
+      setResaltadaId(m.id)
+      pendienteDeLocalizar.current = { id: m.id, abrirEdicion: puedeEditarMuestra }
+      setEscanerAbierto(false)
+      toast.success(`Muestra ${m.etiqueta} localizada`)
+    } catch (e: any) {
+      const msg = e?.response?.data?.message
+        || 'No se pudo resolver la etiqueta leída.'
+      setErrorEscaneo(msg)
+      // Si el escáner está cerrado (lector físico) el error se ve como aviso;
+      // con la cámara abierta se pinta dentro del modal y no se interrumpe.
+      if (!escanerAbierto) toast.error(msg)
+    }
+  }, [buscarPorEtiqueta, puedeEditarMuestra, escanerAbierto])
+
+  // Lector conectado: funciona con el listado a la vista, sin abrir nada.
+  useLectorCodigos({
+    activo: puedeEscanear && !escanerAbierto && !isMuestraModalOpen,
+    onLectura: resolverEtiqueta,
+  })
+
+  const temporizadorEdicion = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sin array de dependencias a propósito: se reintenta en cada render hasta que
+  // la fila aparece. El temporizador NO se limpia aquí — este efecto vuelve a
+  // correr constantemente y su limpieza cancelaría el diálogo antes de abrirlo.
+  useEffect(() => {
+    const pendiente = pendienteDeLocalizar.current
+    if (!pendiente) return
+
+    const nodo = document.querySelector<HTMLElement>(`[data-muestra-id="${pendiente.id}"]`)
+    if (!nodo) return   // aún no está pintada; el próximo render lo reintenta
+
+    pendienteDeLocalizar.current = null
+    nodo.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    if (!pendiente.abrirEdicion) return
+    // Se deja terminar el desplazamiento antes de abrir el diálogo: si se abre
+    // encima, el usuario no llega a ver dónde estaba la muestra.
+    temporizadorEdicion.current = setTimeout(() => {
+      const encontrada = muestras?.find((m) => m.id === pendiente.id)
+      if (encontrada) handleEdit(encontrada)
+    }, 550)
+  })
+
+  // Cancelar solo al desmontar: si el usuario sale de la tab a medio camino, no
+  // debe abrirse un diálogo sobre otra pantalla.
+  useEffect(() => () => {
+    if (temporizadorEdicion.current) clearTimeout(temporizadorEdicion.current)
+  }, [])
   const handleDelete = async (id: number) => { await deleteMuestraMutation.mutateAsync(id) }
   const handleDarBaja = async (id: number, motivo: string) => {
     if (!motivo || motivo.trim().length === 0) return
@@ -1110,10 +1277,33 @@ export function MuestrasTab() {
           <Input
             placeholder="Buscar por etiqueta, participante, tipo..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setResaltadaId(null) }}
             className="pl-10"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => { setSearchTerm(''); setResaltadaId(null) }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted"
+              title="Limpiar búsqueda"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
+
+        {puedeEscanear && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setErrorEscaneo(null); setEscanerAbierto(true) }}
+            className="text-xs"
+            title="Leer la etiqueta con la cámara. Si tienes un lector conectado, dispara directamente sobre la etiqueta sin abrir nada."
+          >
+            <ScanLine className="h-3.5 w-3.5 mr-1" />
+            Escanear etiqueta
+          </Button>
+        )}
         {huerfanasDevueltasCount > 0 && (
           <Button
             variant="outline"
@@ -1184,37 +1374,48 @@ export function MuestrasTab() {
 
             return (
               <Fragment key={muestra.id}>
-                {esAlicuotaHuerfana ? (
-                  <AlicuotaCard
-                    muestra={muestra}
-                    trasladoInfo={trasladosActivos.get(muestra.id)}
-                    actions={actions}
-                  />
-                ) : (
-                  <PadreCard
-                    muestra={muestra}
-                    numAlicuotas={alicuotas.length}
-                    trasladoInfo={trasladosActivos.get(muestra.id)}
-                    isExpanded={isExpanded}
-                    onToggle={() => toggleExpanded(muestra.id)}
-                    actions={actions}
-                  />
-                )}
+                <MarcoLocalizada id={muestra.id} resaltada={resaltadaId === muestra.id}>
+                  {esAlicuotaHuerfana ? (
+                    <AlicuotaCard
+                      muestra={muestra}
+                      trasladoInfo={trasladosActivos.get(muestra.id)}
+                      actions={actions}
+                    />
+                  ) : (
+                    <PadreCard
+                      muestra={muestra}
+                      numAlicuotas={alicuotas.length}
+                      trasladoInfo={trasladosActivos.get(muestra.id)}
+                      isExpanded={isExpanded}
+                      onToggle={() => toggleExpanded(muestra.id)}
+                      actions={actions}
+                    />
+                  )}
+                </MarcoLocalizada>
 
                 {/* Celdas adicionales: alícuotas — fluyen en el mismo grid */}
                 {!esAlicuotaHuerfana && isExpanded && alicuotas.map((ali) => (
-                  <AlicuotaCard
-                    key={ali.id}
-                    muestra={ali}
-                    trasladoInfo={trasladosActivos.get(ali.id)}
-                    actions={actions}
-                  />
+                  <MarcoLocalizada key={ali.id} id={ali.id} resaltada={resaltadaId === ali.id}>
+                    <AlicuotaCard
+                      muestra={ali}
+                      trasladoInfo={trasladosActivos.get(ali.id)}
+                      actions={actions}
+                    />
+                  </MarcoLocalizada>
                 ))}
               </Fragment>
             )
           })}
         </div>
       )}
+
+      <EscanearEtiquetaModal
+        open={escanerAbierto}
+        onOpenChange={(v) => { setEscanerAbierto(v); if (!v) setErrorEscaneo(null) }}
+        onCodigo={resolverEtiqueta}
+        errorBusqueda={errorEscaneo}
+        buscando={buscarPorEtiqueta.isPending}
+      />
 
       <MuestraFormModal
         open={isMuestraModalOpen}

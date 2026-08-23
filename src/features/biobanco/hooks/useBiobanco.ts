@@ -66,6 +66,7 @@ import {
   imprimirEtiqueta,
   imprimirAlicuotas,
   imprimirLoteCompleto,
+  buscarMuestraPorEtiqueta,
 } from '../api/biobanco.api'
 import {
   RefrigeradorRequestDTO,
@@ -992,5 +993,19 @@ export function useGetVista3DCaja(idCaja: number | null, options?: { enabled?: b
     queryKey: ['vista-3d', 'caja', idCaja],
     queryFn: () => getVista3DCaja(idCaja as number),
     enabled: idCaja != null && (options?.enabled ?? true),
+  })
+}
+
+/**
+ * Resuelve una etiqueta leída con la cámara o con un lector conectado.
+ *
+ * Es una mutación y no una query a propósito: cada disparo del lector es un
+ * evento, no un dato que deba quedar cacheado. Con `useQuery` habría que
+ * inventar una clave por código y el segundo escaneo del mismo tubo devolvería
+ * la respuesta vieja en vez de volver a preguntar.
+ */
+export function useBuscarMuestraPorEtiqueta() {
+  return useMutation({
+    mutationFn: (etiqueta: string) => buscarMuestraPorEtiqueta(etiqueta),
   })
 }
