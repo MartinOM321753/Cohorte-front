@@ -1165,6 +1165,17 @@ export interface TrasladoMuestra {
   autorizadoPor: UsuarioTrasladoResumen
   recibidoPor?: UsuarioTrasladoResumen | null
   grupoTraslado?: string | null
+  /**
+   * Qué forma tiene esta fila cuando está en EN_DEVOLUCION.
+   *
+   * En un préstamo de ida, quien tiene la muestra está en `institucionDestino`.
+   * En un movimiento de devolución —la fila que crea la propia devolución para
+   * las alícuotas— está en `institucionOrigen`. Sin distinguirlo, las etiquetas
+   * salen invertidas y el botón de confirmar se le ofrece a quien envía.
+   */
+  esMovimientoDevolucion?: boolean
+  /** A dónde vuelve la muestra si la devolución lleva atajo, en vez de al prestador. */
+  idInstitucionDestinoDevolucion?: number | null
   estado: 'ENVIADA' | 'RECIBIDA' | 'EN_DEVOLUCION' | 'DEVUELTA' | 'CANCELADO'
   fechaTraslado: string
   fechaRetorno?: string | null
