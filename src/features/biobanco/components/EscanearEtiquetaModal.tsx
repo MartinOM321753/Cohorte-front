@@ -46,8 +46,21 @@ export function EscanearEtiquetaModal({
   errorBusqueda,
   buscando,
 }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null)
+  /**
+   * El <video> como estado y no como ref, a propósito.
+   *
+   * El diálogo monta su contenido en un portal, así que la primera vez que corre
+   * el efecto de arranque el elemento todavía no existe. Con una ref eso pasaba
+   * desapercibido: el efecto salía por la guarda y, como sus dependencias ya no
+   * volvían a cambiar, no reintentaba nunca. La primera apertura funcionaba de
+   * casualidad —la cámara aún no estaba elegida, así que el efecto volvía a
+   * correr al llegar el id, ya con el vídeo montado— y la segunda se quedaba en
+   * negro. Con estado, montar el elemento provoca un render y el efecto arranca.
+   */
+  const [video, setVideo] = useState<HTMLVideoElement | null>(null)
   const controlsRef = useRef<{ stop: () => void } | null>(null)
+  /** El stream que montó ZXing, para poder soltarlo sin depender del elemento. */
+  const streamRef = useRef<MediaStream | null>(null)
 
   const [camaras, setCamaras] = useState<MediaDeviceInfo[]>([])
   const [camaraId, setCamaraId] = useState<string>('')
@@ -71,12 +84,25 @@ export function EscanearEtiquetaModal({
   const detener = useCallback(() => {
     controlsRef.current?.stop()
     controlsRef.current = null
+    // stop() de ZXing corta el bucle de decodificación, pero las pistas del
+    // MediaStream siguen vivas: el led del portátil se queda encendido y el
+    // dispositivo tomado. Se sueltan a mano.
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
   }, [])
 
   // Enumerar cámaras. Los navegadores no dan las etiquetas de los dispositivos
   // hasta que se concede el permiso, así que primero se pide y luego se listan.
+  //
+  // Solo la primera vez. Repetirlo en cada apertura provocaba una carrera con el
+  // efecto de abajo: al reabrir, la cámara ya estaba elegida, así que los dos
+  // efectos arrancaban a la vez; este pedía getUserMedia del mismo dispositivo
+  // —que devuelve la pista que ya está en uso— y al pararla mataba el stream que
+  // el otro acababa de montar. De ahí que la primera vez funcionara y la segunda
+  // se viera en negro: la primera vez no hay cámara elegida todavía y el orden
+  // queda forzado.
   useEffect(() => {
-    if (!open) return
+    if (!open || camaras.length > 0) return
     let cancelado = false
 
     ;(async () => {
@@ -105,11 +131,11 @@ export function EscanearEtiquetaModal({
     })()
 
     return () => { cancelado = true }
-  }, [open])
+  }, [open, camaras.length])
 
   // Arrancar la decodificación sobre la cámara elegida.
   useEffect(() => {
-    if (!open || !camaraId || !videoRef.current) return
+    if (!open || !camaraId || !video) return
     let cancelado = false
     setIniciando(true)
 
@@ -118,7 +144,7 @@ export function EscanearEtiquetaModal({
     const lector = new BrowserMultiFormatReader(hints)
 
     lector
-      .decodeFromVideoDevice(camaraId, videoRef.current, (resultado) => {
+      .decodeFromVideoDevice(camaraId, video, (resultado) => {
         if (resultado) emitir(resultado.getText())
         // El callback también recibe "no encontrado" en cada fotograma sin
         // código: no es un error y no debe pintarse en pantalla.
@@ -126,6 +152,9 @@ export function EscanearEtiquetaModal({
       .then((controls) => {
         if (cancelado) { controls.stop(); return }
         controlsRef.current = controls
+        // ZXing monta el stream dentro del elemento; se guarda aquí para poder
+        // soltarlo después sin tener que alcanzar el <video>.
+        streamRef.current = (video.srcObject as MediaStream | null) ?? null
         setIniciando(false)
       })
       .catch(() => {
@@ -135,7 +164,7 @@ export function EscanearEtiquetaModal({
       })
 
     return () => { cancelado = true; detener() }
-  }, [open, camaraId, emitir, detener])
+  }, [open, camaraId, video, emitir, detener])
 
   // Soltar la cámara al cerrar: si no, el led sigue encendido y el dispositivo
   // queda tomado para el resto de la sesión.
@@ -180,7 +209,7 @@ export function EscanearEtiquetaModal({
         ) : (
           <div className="relative overflow-hidden rounded-md border bg-black">
             <video
-              ref={videoRef}
+              ref={setVideo}
               className="h-64 w-full object-cover"
               muted
               playsInline
