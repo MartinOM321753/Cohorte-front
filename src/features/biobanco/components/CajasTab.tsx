@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Plus, Edit, Trash2, Grid3X3, Package, MapPin } from 'lucide-react'
+import { Plus, Edit, Trash2, Grid3X3, Package, MapPin, Boxes } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useGetCajas, useDeleteCaja } from '../hooks/useBiobanco'
 import { CajaFormModal } from './CajaFormModal'
 import { PosicionesModal } from './PosicionesModal'
+import { ExplorarBiobanco3DModal } from './ubicacion3d/ExplorarBiobanco3DModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,6 +27,7 @@ export function CajasTab() {
   const [isPosicionesModalOpen, setIsPosicionesModalOpen] = useState(false)
   const [selectedCaja, setSelectedCaja] = useState<any>(null)
   const [editingCaja, setEditingCaja] = useState<any>(null)
+  const [explorando3D, setExplorando3D] = useState<number | null>(null)
 
   const hasPermiso = useAuthStore((s) => s.hasPermiso)
   const puedeCrear = hasPermiso('CAJAS_CREAR')
@@ -168,7 +170,7 @@ export function CajasTab() {
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -177,6 +179,17 @@ export function CajasTab() {
                   >
                     <Grid3X3 className="mr-1 h-3 w-3" />
                     Ver Posiciones
+                  </Button>
+                  {/* Recorrido 3D: abre directo en esta caja y deja subir al piso
+                      y al refrigerador que la alojan. */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExplorando3D(caja.id)}
+                    title="Recorrer en 3D"
+                    className="text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                  >
+                    <Boxes className="h-3 w-3" />
                   </Button>
                   {puedeEditar && (
                     <Button
@@ -221,6 +234,12 @@ export function CajasTab() {
           ))}
         </div>
       )}
+
+      <ExplorarBiobanco3DModal
+        open={explorando3D !== null}
+        onOpenChange={(open) => !open && setExplorando3D(null)}
+        idCajaInicial={explorando3D}
+      />
 
       <CajaFormModal
         open={isCajaModalOpen}

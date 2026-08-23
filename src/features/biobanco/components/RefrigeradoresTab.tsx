@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Plus, Edit, Trash2, Layers } from 'lucide-react'
+import { Plus, Edit, Trash2, Layers, Boxes } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useGetRefrigeradores, useDeleteRefrigerador } from '../hooks/useBiobanco'
 import { RefrigeradorFormModal } from './RefrigeradorFormModal'
 import { PisosFormModal } from './PisosFormModal'
+import { ExplorarBiobanco3DModal } from './ubicacion3d/ExplorarBiobanco3DModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +28,7 @@ export function RefrigeradoresTab() {
   const [isPisosModalOpen, setIsPisosModalOpen] = useState(false)
   const [selectedRefrigerador, setSelectedRefrigerador] = useState<any>(null)
   const [editingRefrigerador, setEditingRefrigerador] = useState<any>(null)
+  const [explorando3D, setExplorando3D] = useState<number | null>(null)
 
   const hasPermiso = useAuthStore((s) => s.hasPermiso)
   const puedeCrear = hasPermiso('REFRIGERADORES_CREAR')
@@ -167,7 +169,24 @@ export function RefrigeradoresTab() {
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {/* El recorrido 3D es de solo lectura: se ofrece a cualquiera que
+                      pueda ver el refrigerador, no solo a quien puede editarlo. */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExplorando3D(refrigerador.id)}
+                    disabled={refrigerador.totalPisos === 0}
+                    title={
+                      refrigerador.totalPisos === 0
+                        ? 'Sin pisos que recorrer'
+                        : 'Recorrer en 3D'
+                    }
+                    className="text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                  >
+                    <Boxes className="mr-1 h-3 w-3" />
+                    Ver en 3D
+                  </Button>
                   {puedeEditar && (
                     <Button
                       variant="outline"
@@ -221,6 +240,12 @@ export function RefrigeradoresTab() {
           ))}
         </div>
       )}
+
+      <ExplorarBiobanco3DModal
+        open={explorando3D !== null}
+        onOpenChange={(open) => !open && setExplorando3D(null)}
+        idRefrigeradorInicial={explorando3D}
+      />
 
       <RefrigeradorFormModal
         open={isRefrigeradorModalOpen}
