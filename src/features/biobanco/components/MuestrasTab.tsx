@@ -3,7 +3,7 @@ import {
   Plus, Edit, Trash2, Search, TestTube, AlertCircle,
   Paperclip, ArrowRightFromLine, History, FlaskConical,
   ChevronDown, ChevronUp, MapPinOff, ClipboardList, X, Printer, Tag,
-  EyeOff, Eye, Ban,
+  EyeOff, Eye, Ban, Boxes,
 } from 'lucide-react'
 import { useGetMuestras, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto } from '../hooks/useBiobanco'
 import { getLabelDataEtiqueta, getLabelDataAlicuotas, getLabelDataLoteCompleto, imprimirAcomodado } from '../api/biobanco.api'
@@ -16,6 +16,7 @@ import { MuestraFormModal } from './MuestraFormModal'
 import { GenerarAlicuotasModal } from './GenerarAlicuotasModal'
 import { TrasladarMuestraModal } from './TrasladarMuestraModal'
 import { HistorialTrasladosModal } from './HistorialTrasladosModal'
+import { UbicacionMuestra3DModal } from './ubicacion3d/UbicacionMuestra3DModal'
 import { DocumentosDialog } from '@/features/documentos/components/DocumentosDialog'
 import { EstudiosMuestraPanel } from './EstudiosMuestraPanel'
 import { useAuthStore } from '@/stores/authStore'
@@ -109,6 +110,7 @@ interface SharedActions {
   onPrintEtiqueta: (id: number) => void
   onPrintAlicuotas: (id: number) => void
   onPrintLoteCompleto: (id: number) => void
+  onVerUbicacion3D: (m: MuestraDetalleDTO) => void
 }
 
 function DarDeBajaButton({
@@ -272,6 +274,19 @@ function MuestraFooter({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {/* El 3D solo tiene sentido cuando la muestra esta fisicamente aqui y en
+          una posicion: prestada o sin posicion, la tarjeta ya dice donde esta. */}
+      {muestra.ubicacion && !isPrestada && !noEnMiPosesion && (
+        <Button
+          variant="outline" size="sm"
+          onClick={() => actions.onVerUbicacion3D(muestra)}
+          title="Ver ubicación en 3D"
+          className="text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+        >
+          <Boxes className="h-3 w-3" />
+        </Button>
       )}
 
       <Button variant="outline" size="sm" onClick={() => actions.onHistorial(muestra)} title="Historial de traslados">
@@ -718,6 +733,7 @@ export function MuestrasTab() {
   const [isMuestraModalOpen, setIsMuestraModalOpen] = useState(false)
   const [editingMuestra, setEditingMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [docMuestraId, setDocMuestraId] = useState<number | null>(null)
+  const [ubicacion3DMuestra, setUbicacion3DMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [trasladandoMuestra, setTrasladandoMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [pendingTraslado, setPendingTraslado] = useState<MuestraDetalleDTO | null>(null)
   const [historialMuestra, setHistorialMuestra] = useState<MuestraDetalleDTO | null>(null)
@@ -996,6 +1012,7 @@ export function MuestrasTab() {
     onPrintEtiqueta: handlePrintEtiqueta,
     onPrintAlicuotas: handlePrintAlicuotas,
     onPrintLoteCompleto: handlePrintLoteCompleto,
+    onVerUbicacion3D: setUbicacion3DMuestra,
   }
 
   if (isLoading) {
@@ -1242,6 +1259,12 @@ export function MuestrasTab() {
         open={historialMuestra !== null}
         onOpenChange={(open) => !open && setHistorialMuestra(null)}
         muestra={historialMuestra}
+      />
+      <UbicacionMuestra3DModal
+        open={ubicacion3DMuestra !== null}
+        onOpenChange={(open) => !open && setUbicacion3DMuestra(null)}
+        idMuestra={ubicacion3DMuestra?.id ?? null}
+        etiqueta={ubicacion3DMuestra?.etiqueta}
       />
       <DocumentosDialog
         open={docMuestraId !== null}
