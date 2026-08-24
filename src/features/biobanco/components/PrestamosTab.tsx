@@ -464,6 +464,12 @@ export function PrestamosTab() {
     const seen = new Set<number>()
     const opts: { id: number; label: string }[] = []
     historialMuestra.forEach((t) => {
+      // Solo cuentan los traslados en los que el destino llegó a tener la
+      // muestra. Un CANCELADO se anuló antes de que confirmara y un ENVIADA
+      // sigue en camino: ofrecer esas instituciones invitaba a devolver la
+      // muestra a una que nunca la tuvo. El servidor lo rechaza desde ahora, así
+      // que además evitamos ofrecer una opción que va a fallar.
+      if (!['RECIBIDA', 'EN_DEVOLUCION', 'DEVUELTA'].includes(t.estado)) return
       const candidatos = [t.institucionOrigen, t.institucionDestino]
       candidatos.forEach((inst) => {
         if (!excluir.has(inst.id) && !seen.has(inst.id)) {
