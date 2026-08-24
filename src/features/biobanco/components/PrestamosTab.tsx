@@ -27,14 +27,19 @@ import { formatDate } from '@/lib/utils'
 
 // ── Helpers de estado ─────────────────────────────────────────────────────────
 
-function estadoBadge(estado: TrasladoMuestra['estado'], isOrigen?: boolean) {
+/**
+ * @param soyElReceptor si esta institución es la que espera la muestra en una
+ *        devolución. No es lo mismo que ser el origen de la fila: en un
+ *        movimiento de devolución el origen es quien la manda.
+ */
+function estadoBadge(estado: TrasladoMuestra['estado'], soyElReceptor?: boolean) {
   switch (estado) {
     case 'ENVIADA':
       return { label: 'Enviada',       cls: 'border-amber-500/40  text-amber-700  dark:text-amber-400  bg-amber-500/10'  }
     case 'RECIBIDA':
       return { label: 'Recibida',      cls: 'border-blue-500/40   text-blue-700   dark:text-blue-400   bg-blue-500/10'   }
     case 'EN_DEVOLUCION':
-      return isOrigen
+      return soyElReceptor
         ? { label: 'Por recibir',    cls: 'border-teal-500/40   text-teal-700   dark:text-teal-400   bg-teal-500/10'   }
         : { label: 'En devolución',  cls: 'border-orange-500/40 text-orange-700 dark:text-orange-400 bg-orange-500/10' }
     case 'DEVUELTA':
@@ -116,8 +121,25 @@ function PrestamoCard({
   puedeDevolver,
 }: PrestamoCardProps) {
   const isOrigen  = traslado.institucionOrigen.id  === myInstitucionId
+
+  /**
+   * Quién recibe la muestra en esta devolución, que es quien debe confirmarla.
+   *
+   * Se lee según la forma de la fila, igual que hace el servidor. Antes se usaba
+   * `isOrigen` para las dos formas: en un movimiento de devolución eso invertía
+   * la etiqueta y le ofrecía "Confirmar retorno" justo a quien envía la muestra
+   * —que el servidor además aceptaba—, firmando el acuse de recibo en nombre
+   * ajeno sobre un estado que ya no se puede deshacer.
+   */
+  const idReceptorDevolucion = traslado.esMovimientoDevolucion
+    ? traslado.institucionDestino.id
+    // Con atajo la muestra no vuelve al prestador sino a un tercero, y es ese
+    // quien confirma. Mirar solo el origen dejaba el botón en manos de quien
+    // recibiría un 403, y se lo quitaba a quien sí podía.
+    : (traslado.idInstitucionDestinoDevolucion ?? traslado.institucionOrigen.id)
+  const soyElReceptor = idReceptorDevolucion === myInstitucionId
   const isDestino = traslado.institucionDestino.id === myInstitucionId
-  const badge = estadoBadge(traslado.estado, isOrigen)
+  const badge = estadoBadge(traslado.estado, soyElReceptor)
   const isActionTarget = actionTrasladoId === traslado.id
 
   return (
@@ -236,7 +258,7 @@ function PrestamoCard({
                 )}
               </>
             )}
-            {traslado.estado === 'EN_DEVOLUCION' && isOrigen && puedeConfirmar && (
+            {traslado.estado === 'EN_DEVOLUCION' && soyElReceptor && puedeConfirmar && (
               <Button
                 size="sm" variant="outline" className="h-7 text-xs"
                 onClick={() => onAction(traslado.id, 'confirmar-devolucion')}
@@ -442,6 +464,12 @@ export function PrestamosTab() {
     const seen = new Set<number>()
     const opts: { id: number; label: string }[] = []
     historialMuestra.forEach((t) => {
+      // Solo cuentan los traslados en los que el destino llegó a tener la
+      // muestra. Un CANCELADO se anuló antes de que confirmara y un ENVIADA
+      // sigue en camino: ofrecer esas instituciones invitaba a devolver la
+      // muestra a una que nunca la tuvo. El servidor lo rechaza desde ahora, así
+      // que además evitamos ofrecer una opción que va a fallar.
+      if (!['RECIBIDA', 'EN_DEVOLUCION', 'DEVUELTA'].includes(t.estado)) return
       const candidatos = [t.institucionOrigen, t.institucionDestino]
       candidatos.forEach((inst) => {
         if (!excluir.has(inst.id) && !seen.has(inst.id)) {

@@ -47,6 +47,7 @@ const LABELS: Record<string, string> = {
   ESTUDIOS_CREAR:            'Registrar resultados de estudio',
   ESTUDIOS_EDITAR:           'Editar resultados de estudio',
   ESTUDIOS_ELIMINAR:         'Eliminar estudios',
+  ESTUDIOS_CARGA_MASIVA:     'Cargar resultados desde un archivo',
   ESTUDIOS_TIPOS_CREAR:      'Crear tipos en catálogo de estudios',
   ESTUDIOS_TIPOS_EDITAR:     'Editar tipos en catálogo de estudios',
   ESTUDIOS_TIPOS_ELIMINAR:   'Eliminar tipos en catálogo de estudios',
@@ -59,6 +60,7 @@ const LABELS: Record<string, string> = {
   EXAMENES_CREAR:            'Registrar resultados de examen',
   EXAMENES_EDITAR:           'Editar resultados de examen',
   EXAMENES_ELIMINAR:         'Eliminar resultados de examen',
+  EXAMENES_CARGA_MASIVA:     'Cargar resultados desde un archivo',
   EXAMENES_CATALOGO_CREAR:   'Crear exámenes en catálogo',
   EXAMENES_CATALOGO_EDITAR:  'Editar exámenes en catálogo',
   EXAMENES_CATALOGO_ELIMINAR:'Eliminar exámenes en catálogo',
@@ -99,6 +101,7 @@ const LABELS: Record<string, string> = {
   MUESTRAS_EDITAR:   'Editar muestras',
   MUESTRAS_ELIMINAR: 'Eliminar muestras',
   MUESTRAS_IMPRIMIR: 'Imprimir etiquetas de muestras',
+  MUESTRAS_ESCANEAR: 'Buscar muestras leyendo su etiqueta',
 
   // Tipos de muestra
   TIPOS_MUESTRA_ACCEDER: 'Tab Tipos de muestra',

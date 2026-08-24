@@ -286,6 +286,8 @@ export interface ParametroEstudio {
   valorMaxHombres?: number | null
   /** Opciones predefinidas — solo aplica a tipo TEXTO_OPCIONES */
   opciones?: string[] | null
+  /** Nombres con los que los instrumentos titulan la columna de este parámetro. */
+  alias?: string[] | null
 }
 
 export interface ParametroEstudioRequestDTO {
@@ -299,6 +301,11 @@ export interface ParametroEstudioRequestDTO {
   valorMaxHombres?: number | null
   /** Lista de valores válidos — solo cuando tipo == TEXTO_OPCIONES */
   opciones?: string[]
+  /**
+   * Alias de columna para la carga masiva. La lista reemplaza la anterior.
+   * Se comparan sin acentos, mayúsculas ni espacios de sobra.
+   */
+  alias?: string[]
 }
 
 export interface TipoEstudio {
@@ -406,6 +413,8 @@ export interface Examen {
   valorMaxMujeres?: number
   valorMinHombres?: number
   valorMaxHombres?: number
+  /** Nombres con los que los instrumentos titulan la columna de este examen. */
+  alias?: string[] | null
   activo: boolean
 }
 
@@ -417,6 +426,11 @@ export interface ExamenRequestDTO {
   valorMaxMujeres?: number
   valorMinHombres?: number
   valorMaxHombres?: number
+  /**
+   * Alias de columna para la carga masiva. La lista reemplaza la anterior.
+   * Dentro de una institución, un alias pertenece a un solo examen.
+   */
+  alias?: string[]
 }
 
 export interface ResultadoExamen {
@@ -1151,6 +1165,17 @@ export interface TrasladoMuestra {
   autorizadoPor: UsuarioTrasladoResumen
   recibidoPor?: UsuarioTrasladoResumen | null
   grupoTraslado?: string | null
+  /**
+   * Qué forma tiene esta fila cuando está en EN_DEVOLUCION.
+   *
+   * En un préstamo de ida, quien tiene la muestra está en `institucionDestino`.
+   * En un movimiento de devolución —la fila que crea la propia devolución para
+   * las alícuotas— está en `institucionOrigen`. Sin distinguirlo, las etiquetas
+   * salen invertidas y el botón de confirmar se le ofrece a quien envía.
+   */
+  esMovimientoDevolucion?: boolean
+  /** A dónde vuelve la muestra si la devolución lleva atajo, en vez de al prestador. */
+  idInstitucionDestinoDevolucion?: number | null
   estado: 'ENVIADA' | 'RECIBIDA' | 'EN_DEVOLUCION' | 'DEVUELTA' | 'CANCELADO'
   fechaTraslado: string
   fechaRetorno?: string | null
@@ -1439,4 +1464,162 @@ export interface ConfiguracionHorarioRequest {
   sabado: boolean
   domingo: boolean
   activa?: boolean
+}
+
+// ============================================
+// CARGA MASIVA DE RESULTADOS
+// ============================================
+
+/** La tabla tal como se leyó del archivo; se devuelve editada al revalidar. */
+export interface TablaCarga {
+  encabezados: string[]
+  filas: string[][]
+  /** Número de fila real dentro del archivo, para señalar el problema donde el usuario lo va a buscar. */
+  numerosDeFila: number[]
+}
+
+export interface ColumnaReconocida {
+  indice: number
+  encabezado: string
+  idParametro: number
+  nombreParametro: string
+  tipo: TipoParametro
+  /** El alias que hizo la coincidencia, para poder explicarla. */
+  aliasUsado: string | null
+  /** Las configuradas en el catálogo; solo vienen en TEXTO_OPCIONES. */
+  opciones: string[]
+}
+
+export interface ValorPrevisualizado {
+  idParametro: number
+  crudo: string
+  /** null si el valor se entendió. */
+  error: string | null
+  /**
+   * Para los parámetros de selección, la opción del catálogo a la que
+   * corresponde. La resuelve el servidor porque la comparación ignora acentos
+   * y mayúsculas, y repetir esa regla aquí crearía dos criterios distintos.
+   */
+  canonico: string | null
+}
+
+export interface FilaPrevisualizada {
+  numeroDeFila: number
+  folio: string
+  uuidParticipante: string | null
+  nombreParticipante: string | null
+  errorParticipante: string | null
+  fecha: string | null
+  errorFecha: string | null
+  /** Estudio ya registrado para este participante, tipo y día; null si no hay. */
+  idEstudioExistente: number | null
+  valores: ValorPrevisualizado[]
+}
+
+export interface ResumenCarga {
+  totalFilas: number
+  filasListas: number
+  filasConProblemas: number
+  columnasReconocidas: number
+  columnasIgnoradas: number
+  /** Filas que chocan con un estudio ya registrado. */
+  filasDuplicadas: number
+}
+
+export interface PrevisualizacionCarga {
+  idTipoEstudio: number
+  nombreTipoEstudio: string
+  /** Si trae algo, no se puede continuar: el archivo no encaja con el tipo. */
+  problemasDeEstructura: string[]
+  /** Columnas que no corresponden a nada; se ignorarán al guardar. */
+  columnasIgnoradas: string[]
+  /** Parámetros que ninguna columna reclamó; detienen la carga. */
+  parametrosSinColumna: string[]
+  ordenDeFecha: string | null
+  fechaAmbigua: boolean
+  columnas: ColumnaReconocida[]
+  tabla: TablaCarga
+  indiceFolio: number
+  indiceFecha: number
+  filas: FilaPrevisualizada[]
+  resumen: ResumenCarga
+}
+
+/** Qué hacer con las filas que chocan con un estudio ya registrado. */
+export type PoliticaDuplicados = 'OMITIR' | 'REEMPLAZAR'
+
+export interface DetalleCarga {
+  numeroDeFila: number
+  folio: string
+  nombreParticipante: string
+  fecha: string
+  /** REGISTRADO, REEMPLAZADO u OMITIDO. */
+  accion: string
+  idEstudio: number
+}
+
+export interface ResultadoCarga {
+  registrados: number
+  reemplazados: number
+  omitidosPorDuplicado: number
+  detalle: DetalleCarga[]
+}
+
+// ── Carga masiva de laboratorio ──────────────────────────────────────────────
+
+export interface ColumnaExamenCarga {
+  indice: number
+  encabezado: string
+  idExamen: number
+  nombreExamen: string
+  unidad: string | null
+  aliasUsado: string | null
+}
+
+export interface ValorExamenCarga {
+  idExamen: number
+  crudo: string
+  /** La celda venía en blanco: ese examen no se hizo. No es un error. */
+  vacio: boolean
+  error: string | null
+  /** Resultado ya registrado para ese participante, examen y día. */
+  idResultadoExistente: number | null
+}
+
+export interface FilaExamenesCarga {
+  numeroDeFila: number
+  folio: string
+  uuidParticipante: string | null
+  nombreParticipante: string | null
+  errorParticipante: string | null
+  fecha: string | null
+  errorFecha: string | null
+  valores: ValorExamenCarga[]
+}
+
+/** Se cuentan resultados y no filas: es lo que se va a escribir. */
+export interface ResumenCargaExamenes {
+  totalFilas: number
+  filasInservibles: number
+  resultadosListos: number
+  resultadosConError: number
+  celdasVacias: number
+  resultadosDuplicados: number
+  columnasReconocidas: number
+  columnasIgnoradas: number
+}
+
+export interface PrevisualizacionCargaExamenes {
+  problemasDeEstructura: string[]
+  columnasIgnoradas: string[]
+  /** Exámenes del catálogo que este archivo no trae. Informativo, no un error. */
+  examenesNoIncluidos: string[]
+  ordenDeFecha: string | null
+  fechaAmbigua: boolean
+  columnas: ColumnaExamenCarga[]
+  tabla: TablaCarga
+  indiceFolio: number
+  indiceFecha: number
+  filas: FilaExamenesCarga[]
+  resumen: ResumenCargaExamenes
 }

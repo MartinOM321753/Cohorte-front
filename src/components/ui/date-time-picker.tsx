@@ -512,7 +512,7 @@ export function DateTimePicker({
         <div className="flex items-center gap-1 shrink-0">
           <Select value={selectedHourStr} onValueChange={setHour} disabled={disabled}>
             {/* 92px: en 78 no cabian icono, valor y chevron, y la hora quedaba oculta */}
-            <SelectTrigger className="w-[92px] shrink-0 text-[13px]">
+            <SelectTrigger className="w-[98px] shrink-0 text-[13px]">
               <ClockIcon className="mr-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <SelectValue placeholder="HH" />
             </SelectTrigger>
@@ -526,7 +526,7 @@ export function DateTimePicker({
           </Select>
           <span className="text-[13px] font-medium text-muted-foreground">:</span>
           <Select value={selectedMinuteStr} onValueChange={setMinute} disabled={disabled}>
-            <SelectTrigger className="w-[68px] shrink-0 text-[13px]">
+            <SelectTrigger className="w-[74px] shrink-0 text-[13px]">
               <SelectValue placeholder="mm" />
             </SelectTrigger>
             <SelectContent className="max-h-64">

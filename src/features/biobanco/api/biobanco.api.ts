@@ -36,6 +36,12 @@ import {
   PrintableLabelBatchDTO,
 } from '@/types/api'
 import { Usuario } from '@/types/api'
+import {
+  Ubicacion3D,
+  Ubicacion3DCaja,
+  Ubicacion3DPiso,
+  Ubicacion3DRefrigerador,
+} from '../components/ubicacion3d/ubicacion3d.types'
 
 // ============================================
 // REFRIGERADORES
@@ -644,6 +650,67 @@ export async function imprimirLoteCompleto(idMuestraPadre: number, impresora: st
     `/almacenamiento/muestras/${idMuestraPadre}/lote-completo/imprimir`,
     null,
     { params }
+  )
+  return response.data.data
+}
+
+// ============================================
+// UBICACIÓN 3D
+// ============================================
+
+export async function getUbicacion3D(idMuestra: number) {
+  const response = await api.get<ApiResponse<Ubicacion3D>>(
+    `/almacenamiento/muestras/${idMuestra}/ubicacion-3d`,
+  )
+  return response.data.data
+}
+
+// ============================================
+// EXPLORACIÓN 3D DEL BIOBANCO (sin muestra objetivo)
+// ============================================
+
+export async function getVista3DRefrigerador(idRefrigerador: number) {
+  const response = await api.get<ApiResponse<Ubicacion3DRefrigerador>>(
+    `/almacenamiento/refrigeradores/${idRefrigerador}/vista-3d`,
+  )
+  return response.data.data
+}
+
+export async function getVista3DPiso(idPiso: number) {
+  const response = await api.get<ApiResponse<Ubicacion3DPiso>>(
+    `/almacenamiento/refrigeradores/pisos/${idPiso}/vista-3d`,
+  )
+  return response.data.data
+}
+
+export async function getVista3DCaja(idCaja: number) {
+  const response = await api.get<ApiResponse<Ubicacion3DCaja>>(
+    `/almacenamiento/cajas/${idCaja}/vista-3d`,
+  )
+  return response.data.data
+}
+
+// ── Lectura de etiquetas (cámara o lector de códigos) ────────────────────────
+
+export interface MuestraEscaneadaDTO {
+  muestra: MuestraDetalleDTO
+  /** Id de la muestra padre cuando la escaneada es una alícuota; null si es padre. */
+  idMuestraPadre: number | null
+  /** La muestra solo aparece con la vista de histórico encendida. */
+  requiereHistorico: boolean
+}
+
+/**
+ * Resuelve el contenido de una etiqueta leída.
+ *
+ * La etiqueta viaja como parámetro y no en la ruta porque lleva diagonales
+ * ("C1/001103/F4"): en la ruta partiría el path, y codificada como %2F la
+ * rechaza el contenedor antes de llegar al controlador.
+ */
+export async function buscarMuestraPorEtiqueta(etiqueta: string): Promise<MuestraEscaneadaDTO> {
+  const response = await api.get<ApiResponse<MuestraEscaneadaDTO>>(
+    '/almacenamiento/muestras/buscar-por-etiqueta',
+    { params: { etiqueta } },
   )
   return response.data.data
 }

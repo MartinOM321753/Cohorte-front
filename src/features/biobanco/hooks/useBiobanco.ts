@@ -56,12 +56,17 @@ import {
   addTuboMuestra,
   updateTuboMuestra,
   deleteTuboMuestra,
+  getUbicacion3D,
+  getVista3DRefrigerador,
+  getVista3DPiso,
+  getVista3DCaja,
   getZplEtiqueta,
   getZplAlicuotas,
   listarImpresoras,
   imprimirEtiqueta,
   imprimirAlicuotas,
   imprimirLoteCompleto,
+  buscarMuestraPorEtiqueta,
 } from '../api/biobanco.api'
 import {
   RefrigeradorRequestDTO,
@@ -941,3 +946,66 @@ export function useImprimirLoteCompleto() {
   })
 }
 
+
+// ============================================
+// HOOK PARA UBICACIÓN 3D
+// ============================================
+
+/**
+ * Escena completa de ubicación de una muestra. Se pide solo cuando el modal
+ * está abierto: la respuesta recorre todo el refrigerador y no vale la pena
+ * traerla mientras la tarjeta solo muestra el texto de la posición.
+ */
+export function useGetUbicacion3D(idMuestra: number | null) {
+  return useQuery({
+    queryKey: ['ubicacion-3d', idMuestra],
+    queryFn: () => getUbicacion3D(idMuestra as number),
+    enabled: idMuestra != null,
+  })
+}
+
+/**
+ * Escenas del explorador libre. Se piden nivel por nivel y no de una vez: al
+ * recorrer un refrigerador entero, traer todas sus cajas y todas sus posiciones
+ * por adelantado sería descargar el biobanco completo para ver una plancha.
+ *
+ * `enabled` deja pedir solo el nivel que se está viendo sin perder la clave de
+ * caché: al volver atrás, la escena ya descargada se reusa sin nueva petición.
+ */
+export function useGetVista3DRefrigerador(idRefrigerador: number | null, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['vista-3d', 'refrigerador', idRefrigerador],
+    queryFn: () => getVista3DRefrigerador(idRefrigerador as number),
+    enabled: idRefrigerador != null && (options?.enabled ?? true),
+  })
+}
+
+export function useGetVista3DPiso(idPiso: number | null, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['vista-3d', 'piso', idPiso],
+    queryFn: () => getVista3DPiso(idPiso as number),
+    enabled: idPiso != null && (options?.enabled ?? true),
+  })
+}
+
+export function useGetVista3DCaja(idCaja: number | null, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['vista-3d', 'caja', idCaja],
+    queryFn: () => getVista3DCaja(idCaja as number),
+    enabled: idCaja != null && (options?.enabled ?? true),
+  })
+}
+
+/**
+ * Resuelve una etiqueta leída con la cámara o con un lector conectado.
+ *
+ * Es una mutación y no una query a propósito: cada disparo del lector es un
+ * evento, no un dato que deba quedar cacheado. Con `useQuery` habría que
+ * inventar una clave por código y el segundo escaneo del mismo tubo devolvería
+ * la respuesta vieja en vez de volver a preguntar.
+ */
+export function useBuscarMuestraPorEtiqueta() {
+  return useMutation({
+    mutationFn: (etiqueta: string) => buscarMuestraPorEtiqueta(etiqueta),
+  })
+}
