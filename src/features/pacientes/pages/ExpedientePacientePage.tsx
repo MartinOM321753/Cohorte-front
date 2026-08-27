@@ -82,6 +82,7 @@ import type {
 } from '@/types/api'
 import { ESTADO_CONTACTO_LABELS, MEDIO_CONTACTO_LABELS } from '@/types/api'
 import { emparejarParametro } from '@/features/estudios/lib/emparejarParametro'
+import { parametrosDelFormulario } from '@/features/estudios/lib/parametrosDelFormulario'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Small helpers
@@ -1245,7 +1246,15 @@ function EstudioDetalleDialog({
   const canDeleteDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
   const canUpload     = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
 
-  const parametrosList: ParametroEstudio[] = parametros ?? []
+  const catalogoParametros: ParametroEstudio[] = parametros ?? []
+
+  // El formulario maneja el catalogo vigente MAS los parametros que ya tienen
+  // resultado en este estudio y hoy no aparecen en el. Lo que no se muestre aqui
+  // no se envia al guardar, y lo que no se envia el servidor lo borra.
+  const parametrosList = useMemo(
+    () => parametrosDelFormulario(catalogoParametros, estudio?.resultados ?? []),
+    [parametros, estudio],
+  )
 
   // Sync view/edit mode when dialog opens
   useEffect(() => {
@@ -1585,6 +1594,14 @@ function EstudioDetalleDialog({
                       <div key={p.id} className="flex items-center gap-3">
                         <span className="flex-1 text-[13px] text-[var(--imss-ink-700)]">
                           {p.nombre}{p.unidad ? ` (${p.unidad})` : ''}
+                          {p.heredado && (
+                            <span
+                              className="ml-2 rounded-sm border border-[var(--border)] px-1.5 py-px align-middle text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--imss-ink-300)]"
+                              title="Este parámetro ya no está en uso. Se muestra porque el estudio tiene un valor capturado con él; si lo borras, se pierde."
+                            >
+                              fuera de uso
+                            </span>
+                          )}
                         </span>
                         <CampoParametro
                           parametro={p}
@@ -1609,6 +1626,14 @@ function EstudioDetalleDialog({
                             <div key={p.id} className="flex items-center gap-3">
                               <span className="flex-1 text-[13px] text-[var(--imss-ink-700)]">
                                 {p.nombre}{p.unidad ? ` (${p.unidad})` : ''}
+                                {p.heredado && (
+                                  <span
+                                    className="ml-2 rounded-sm border border-[var(--border)] px-1.5 py-px align-middle text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--imss-ink-300)]"
+                                    title="Este parámetro ya no está en uso. Se muestra porque el estudio tiene un valor capturado con él; si lo borras, se pierde."
+                                  >
+                                    fuera de uso
+                                  </span>
+                                )}
                               </span>
                               <CampoParametro
                                 parametro={p}

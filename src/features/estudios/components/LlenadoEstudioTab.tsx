@@ -54,6 +54,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import { emparejarParametro } from '@/features/estudios/lib/emparejarParametro'
+import { parametrosDelFormulario } from '@/features/estudios/lib/parametrosDelFormulario'
 
 // ──────────────────────────────────────────────────────────
 // Local types
@@ -200,12 +201,28 @@ export function LlenadoEstudioTab() {
   const updateMutation = useUpdateEstudio(editingEstudioId ?? 0)
   const deleteMutation = useDeleteEstudio()
 
-  const parametrosList: ParametroEstudio[] = parametros ?? []
+  const catalogoParametros: ParametroEstudio[] = parametros ?? []
+
+  // Al editar, el formulario tambien tiene que hacerse cargo de los parametros que
+  // ya tienen resultado en ese estudio y hoy no estan en el catalogo: lo que no se
+  // muestra no se envia, y lo que no se envia el servidor lo borra. En una captura
+  // nueva no hay estudio que editar y la lista es el catalogo tal cual.
+  const parametrosList = useMemo(
+    () => parametrosDelFormulario(catalogoParametros, estudioEditar?.resultados ?? []),
+    [parametros, estudioEditar],
+  )
+
+  // Un parametro fuera de uso nunca se exige: se conserva si trae valor, pero no
+  // bloquea el guardado si alguien decide vaciarlo.
+  const parametrosExigibles = useMemo(
+    () => parametrosList.filter((p) => !p.heredado),
+    [parametrosList],
+  )
 
   // In GRUPOS mode we don't use Zod for param fields — skip them in the schema to avoid blocking submit
   const schema = useMemo(
-    () => buildResultadosSchema(modoCaptura === 'GRUPOS' ? [] : parametrosList),
-    [parametrosList, modoCaptura]
+    () => buildResultadosSchema(modoCaptura === 'GRUPOS' ? [] : parametrosExigibles),
+    [parametrosExigibles, modoCaptura]
   )
 
   const {
@@ -458,7 +475,7 @@ export function LlenadoEstudioTab() {
       // mismas reglas que en modo normal: todo obligatorio salvo BOOLEANO, donde
       // false es un valor válido y por eso nunca está "sin capturar".
       for (const g of grupos) {
-        const faltante = parametrosList.find((p) => {
+        const faltante = parametrosExigibles.find((p) => {
           if (p.tipo === 'BOOLEANO') return false
           const v = g.valores[p.id]
           return v === undefined || v === null || String(v).trim() === ''
