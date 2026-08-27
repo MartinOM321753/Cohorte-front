@@ -201,7 +201,12 @@ export function LlenadoEstudioTab() {
   const updateMutation = useUpdateEstudio(editingEstudioId ?? 0)
   const deleteMutation = useDeleteEstudio()
 
-  const catalogoParametros: ParametroEstudio[] = parametros ?? []
+  // Solo los parametros en uso se ofrecen para capturar. Los retirados llegan por
+  // el otro camino —la union de abajo— y unicamente cuando el estudio que se edita
+  // ya tiene un valor suyo que conservar.
+  const catalogoParametros: ParametroEstudio[] = (parametros ?? []).filter(
+    (p) => p.activo !== false,
+  )
 
   // Al editar, el formulario tambien tiene que hacerse cargo de los parametros que
   // ya tienen resultado en ese estudio y hoy no estan en el catalogo: lo que no se

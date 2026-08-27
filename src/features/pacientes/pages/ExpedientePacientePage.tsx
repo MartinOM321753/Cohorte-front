@@ -1246,7 +1246,11 @@ function EstudioDetalleDialog({
   const canDeleteDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
   const canUpload     = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
 
-  const catalogoParametros: ParametroEstudio[] = parametros ?? []
+  // Igual que en el llenado: se ofrecen los que siguen en uso, y los retirados solo
+  // aparecen si este estudio tiene un valor suyo.
+  const catalogoParametros: ParametroEstudio[] = (parametros ?? []).filter(
+    (p) => p.activo !== false,
+  )
 
   // El formulario maneja el catalogo vigente MAS los parametros que ya tienen
   // resultado en este estudio y hoy no aparecen en el. Lo que no se muestre aqui
