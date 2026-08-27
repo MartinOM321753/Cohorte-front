@@ -337,6 +337,8 @@ export interface ResultadoEstudioRequestDTO {
 
 export interface ResultadoEstudioResponse {
   id: number
+  /** Por aqui se empareja con el parametro. `parametro` es solo su nombre, para mostrar. */
+  idParametro?: number
   parametro: string
   valorNumerico?: number
   valorTexto?: string

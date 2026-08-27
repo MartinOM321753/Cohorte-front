@@ -81,6 +81,7 @@ import type {
   ParametroEstudio,
 } from '@/types/api'
 import { ESTADO_CONTACTO_LABELS, MEDIO_CONTACTO_LABELS } from '@/types/api'
+import { emparejarParametro } from '@/features/estudios/lib/emparejarParametro'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Small helpers
@@ -1281,7 +1282,7 @@ function EstudioDetalleDialog({
             valores: {},
           })
         }
-        const param = parametrosList.find((p) => p.nombre === r.parametro)
+        const param = emparejarParametro(parametrosList, r)
         if (!param) continue
         const val =
           param.tipo === 'NUMERICO'       ? (r.valorNumerico ?? '') :
@@ -1295,7 +1296,7 @@ function EstudioDetalleDialog({
       setEditModo('NORMAL')
       const vals: Record<number, string | number | boolean> = {}
       for (const r of resultados) {
-        const param = parametrosList.find((p) => p.nombre === r.parametro)
+        const param = emparejarParametro(parametrosList, r)
         if (!param) continue
         vals[param.id] =
           param.tipo === 'NUMERICO'       ? (r.valorNumerico ?? '') :

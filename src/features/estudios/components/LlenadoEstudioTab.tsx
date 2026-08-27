@@ -53,6 +53,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
+import { emparejarParametro } from '@/features/estudios/lib/emparejarParametro'
 
 // ──────────────────────────────────────────────────────────
 // Local types
@@ -302,7 +303,7 @@ export function LlenadoEstudioTab() {
             valores: {},
           })
         }
-        const param = parametrosList.find((p) => p.nombre === resultado.parametro)
+        const param = emparejarParametro(parametrosList, resultado)
         if (!param) continue
         const grupo = gruposMap.get(codigo)!
         const val =
@@ -319,7 +320,7 @@ export function LlenadoEstudioTab() {
       // ── Normal mode: fill react-hook-form fields ──
       setModoCaptura('NORMAL')
       for (const resultado of resultados) {
-        const param = parametrosList.find((p) => p.nombre === resultado.parametro)
+        const param = emparejarParametro(parametrosList, resultado)
         if (!param) continue
         if (param.tipo === 'NUMERICO') setValue(`param_${param.id}`, resultado.valorNumerico ?? '')
         else if (param.tipo === 'BOOLEANO') setValue(`param_${param.id}`, resultado.valorBooleano ?? false)
