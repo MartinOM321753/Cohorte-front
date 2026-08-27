@@ -114,6 +114,12 @@ export async function toggleTipoEstudio(id: number): Promise<TipoEstudio> {
   return response.data.data
 }
 
+/** Pone o quita de uso un parámetro. Devuelve el estado en el que quedó. */
+export async function toggleParametroEstudio(id: number): Promise<boolean> {
+  const response = await axiosInstance.put<ApiResponse<boolean>>(`/estudios/parametros/${id}/toggle`)
+  return response.data.data
+}
+
 // ============================================
 // PARÁMETROS DE ESTUDIO
 // ============================================

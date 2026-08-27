@@ -11,6 +11,7 @@ import {
   createTipoEstudio,
   updateTipoEstudio,
   toggleTipoEstudio,
+  toggleParametroEstudio,
   deleteTipoEstudio,
   deleteEstudio,
   createParametroEstudio,
@@ -240,6 +241,29 @@ export function useUpdateParametroEstudio(id: number) {
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error al actualizar parámetro'
+      toast.error(message)
+    },
+  })
+}
+
+/**
+ * Pone o quita de uso un parámetro.
+ *
+ * Se usa cuando el parámetro ya tiene resultados y por eso no se puede eliminar:
+ * deja de ofrecerse al capturar sin tocar lo ya registrado con él.
+ */
+export function useToggleParametroEstudio() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => toggleParametroEstudio(id),
+    onSuccess: (activo) => {
+      queryClient.invalidateQueries({ queryKey: ['tiposEstudio'] })
+      queryClient.invalidateQueries({ queryKey: ['parametros'] })
+      toast.success(activo ? 'Parámetro puesto en uso' : 'Parámetro retirado de uso')
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Error al cambiar el estado del parámetro'
       toast.error(message)
     },
   })

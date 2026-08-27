@@ -29,6 +29,7 @@ import {
   useGetTodosLosTipos,
   useToggleTipoEstudio,
   useUpdateParametroEstudio,
+  useToggleParametroEstudio,
   useUpdateTipoEstudio,
 } from '../hooks/useEstudios'
 
@@ -938,6 +939,8 @@ function EditableParametroRow({
   puedeEliminar: boolean
 }) {
   const updateParametro = useUpdateParametroEstudio(parametro.id)
+  const toggleParametro = useToggleParametroEstudio()
+  const enUso = parametro.activo !== false
 
   const [editing, setEditing]         = useState(false)
   const [nombre, setNombre]           = useState(parametro.nombre)
@@ -1143,11 +1146,14 @@ function EditableParametroRow({
   })()
 
   return (
-    <div className="rounded-md border bg-background px-3 py-2 space-y-1">
+    <div className={cn('rounded-md border bg-background px-3 py-2 space-y-1', !enUso && 'opacity-60')}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm">
           <Hash className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
-          <span className="font-medium">{parametro.nombre}</span>
+          <span className={cn('font-medium', !enUso && 'line-through')}>{parametro.nombre}</span>
+          {!enUso && (
+            <Badge variant="outline" className="text-[10px] font-normal">Fuera de uso</Badge>
+          )}
           {parametro.unidad && (
             <span className="font-mono text-xs text-muted-foreground">({parametro.unidad})</span>
           )}
@@ -1171,6 +1177,23 @@ function EditableParametroRow({
               title="Editar parámetro"
             >
               <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </Button>
+          )}
+          {puedeEditar && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={() => toggleParametro.mutate(parametro.id)}
+              disabled={toggleParametro.isPending}
+              title={enUso
+                ? 'Retirar de uso: deja de pedirse al capturar, y lo ya registrado con él se conserva'
+                : 'Volver a poner en uso'}
+            >
+              {enUso
+                ? <ToggleRight className="h-4 w-4" strokeWidth={1.75} />
+                : <ToggleLeft className="h-4 w-4" strokeWidth={1.75} />}
             </Button>
           )}
           {puedeEliminar && (
