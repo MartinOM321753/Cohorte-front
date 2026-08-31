@@ -8,9 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 
 import type { Elemento } from '../types'
+import { SelectorParametros } from './SelectorParametros'
+
+/** Clave del bloque que admite elegir qué filas se muestran. */
+const BLOQUE_RESULTADOS = 'bloque.estudio.resultados'
 
 interface Props {
   elemento: Elemento | null
+  /** Tipo de estudio al que está ligada la plantilla, si lo está. */
+  idTipoEstudio: number | null
   onCambiar: (cambios: Partial<Elemento>) => void
   onEliminar: () => void
   onSubirCapa: () => void
@@ -24,7 +30,7 @@ interface Props {
  * dijera «píxeles» sería mentira: el resultado va a papel.</p>
  */
 export function PanelPropiedades({
-  elemento, onCambiar, onEliminar, onSubirCapa, onBajarCapa,
+  elemento, idTipoEstudio, onCambiar, onEliminar, onSubirCapa, onBajarCapa,
 }: Props) {
   if (!elemento) {
     return (
@@ -163,6 +169,34 @@ export function PanelPropiedades({
               </SelectContent>
             </Select>
           </div>
+        </div>
+      )}
+
+      {elemento.tipo === 'datos' && (
+        <div className="space-y-3 border-t pt-3">
+          <div className="space-y-1">
+            <Label className="text-[12px]">Si no cabe en la caja</Label>
+            <Select value={elemento.desbordamiento}
+                    onValueChange={(v) => onCambiar({ desbordamiento: v } as Partial<Elemento>)}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="crecer">Crecer y continuar en otra página</SelectItem>
+                <SelectItem value="ajustar">Reducir el texto hasta que quepa</SelectItem>
+                <SelectItem value="recortar">Mostrar solo lo que entra</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {elemento.clave === BLOQUE_RESULTADOS && (
+            <div className="space-y-1">
+              <Label className="text-[12px]">Qué parámetros se muestran</Label>
+              <SelectorParametros
+                idTipoEstudio={idTipoEstudio}
+                seleccion={elemento.seleccion ?? []}
+                onCambiar={(seleccion) => onCambiar({ seleccion } as Partial<Elemento>)}
+              />
+            </div>
+          )}
         </div>
       )}
 

@@ -17,6 +17,8 @@ export interface PlantillaReporte {
   tipoReporte: TipoReporte
   /** JSON del diseño. Los listados lo devuelven vacío para no cargar de más. */
   diseno?: string | null
+  idTipoEstudio?: number | null
+  tipoEstudioNombre?: string | null
   predeterminada: boolean
   activo: boolean
   institucionNombre?: string | null
@@ -28,6 +30,8 @@ export interface PlantillaReporteRequest {
   nombre: string
   descripcion?: string
   tipoReporte: TipoReporte
+  /** Opcional: liga la plantilla a un tipo de estudio para poder elegir parámetros. */
+  idTipoEstudio?: number
   diseno: string
   predeterminada?: boolean
 }

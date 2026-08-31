@@ -12,6 +12,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { useGetTiposEstudio } from '@/features/estudios/hooks/useEstudios'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 
@@ -67,11 +68,13 @@ export default function ReportesPage() {
               key={enEdicion.id}
               disenoInicial={diseno}
               tipoReporte={enEdicion.tipoReporte}
+              idTipoEstudio={enEdicion.idTipoEstudio ?? null}
               guardando={guardar.isPending}
               onGuardar={(d) => guardar.mutate({
                 nombre: enEdicion.nombre,
                 descripcion: enEdicion.descripcion ?? undefined,
                 tipoReporte: enEdicion.tipoReporte,
+                idTipoEstudio: enEdicion.idTipoEstudio ?? undefined,
                 diseno: JSON.stringify(d),
               })}
             />
@@ -192,12 +195,19 @@ function DialogoNuevaPlantilla({ abierto, onCerrar, onCreada }: {
 }) {
   const [nombre, setNombre] = useState('')
   const [tipo, setTipo] = useState<TipoReporte>('ESTUDIO')
+  const [idTipoEstudio, setIdTipoEstudio] = useState<string>('')
   const crear = useCrearPlantilla()
+  const { data: tiposEstudio } = useGetTiposEstudio()
 
   function crearla() {
     if (!nombre.trim()) return
     crear.mutate(
-      { nombre: nombre.trim(), tipoReporte: tipo, diseno: JSON.stringify(disenoVacio()) },
+      {
+        nombre: nombre.trim(),
+        tipoReporte: tipo,
+        idTipoEstudio: tipo === 'ESTUDIO' && idTipoEstudio ? Number(idTipoEstudio) : undefined,
+        diseno: JSON.stringify(disenoVacio()),
+      },
       {
         onSuccess: (creada) => {
           setNombre('')
@@ -235,6 +245,29 @@ function DialogoNuevaPlantilla({ abierto, onCerrar, onCreada }: {
               rehacer el diseño.
             </p>
           </div>
+
+          {tipo === 'ESTUDIO' && (
+            <div className="space-y-1">
+              <Label className="text-[12px]">Tipo de estudio (opcional)</Label>
+              <Select value={idTipoEstudio || 'ninguno'}
+                      onValueChange={(v) => setIdTipoEstudio(v === 'ninguno' ? '' : v)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Cualquier estudio" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ninguno">Cualquier estudio</SelectItem>
+                  {(tiposEstudio ?? []).map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>{t.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Si eliges uno, podrás decidir qué parámetros salen en la tabla de
+                resultados. Si no, la plantilla sirve para cualquier estudio y la
+                tabla muestra todo lo que se haya medido.
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

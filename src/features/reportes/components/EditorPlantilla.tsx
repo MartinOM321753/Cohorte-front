@@ -27,11 +27,13 @@ const ESCALAS = [1.6, 2.2, 2.8, 3.4, 3.78, 4.6]
 interface Props {
   disenoInicial: DisenoReporte
   tipoReporte: TipoReporte
+  /** Tipo de estudio al que está ligada la plantilla, si lo está. */
+  idTipoEstudio: number | null
   guardando: boolean
   onGuardar: (diseno: DisenoReporte) => void
 }
 
-export function EditorPlantilla({ disenoInicial, tipoReporte, guardando, onGuardar }: Props) {
+export function EditorPlantilla({ disenoInicial, tipoReporte, idTipoEstudio, guardando, onGuardar }: Props) {
   const [diseno, setDiseno] = useState<DisenoReporte>(disenoInicial)
   const [paginaIndex, setPaginaIndex] = useState(0)
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null)
@@ -306,6 +308,7 @@ export function EditorPlantilla({ disenoInicial, tipoReporte, guardando, onGuard
             <TabsContent value="propiedades" className="min-h-0 flex-1 overflow-auto">
               <PanelPropiedades
                 elemento={seleccionado}
+                idTipoEstudio={idTipoEstudio}
                 onCambiar={(cambios) => seleccionado && cambiarElemento(seleccionado.id, cambios)}
                 onEliminar={eliminarSeleccionado}
                 onSubirCapa={() => moverCapa(1)}
