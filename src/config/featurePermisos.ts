@@ -27,6 +27,7 @@ export const FEATURE_PERMISOS: Record<string, string[]> = {
   bitacoraAcciones: ['BITACORA_ACCIONES_VER'],
   configuracion:    ['CONFIGURACION_VER'],
   permisos:         ['PERMISOS_VER'],
+  reportes:         ['REPORTES_ACCEDER'],
 }
 
 export type FeatureKey = keyof typeof FEATURE_PERMISOS

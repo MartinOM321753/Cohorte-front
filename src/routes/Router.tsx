@@ -27,6 +27,7 @@ const BitacoraAccionesPage = lazy(() => import('@/features/bitacora/pages/Bitaco
 const CoberturaPage    = lazy(() => import('@/features/cobertura/pages/CoberturaPage'))
 const DocumentoViewPage = lazy(() => import('@/features/documentos/pages/DocumentoViewPage'))
 const PermisosPage     = lazy(() => import('@/features/permisos/pages/PermisosPage'))
+const ReportesPage     = lazy(() => import('@/features/reportes/pages/ReportesPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage     = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
@@ -188,6 +189,16 @@ export function AppRouter() {
               <ProtectedRoute requiredPermiso={permisosFor('configuracion')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <ConfiguracionPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reportes"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('reportes')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ReportesPage />
                 </Suspense>
               </ProtectedRoute>
             }

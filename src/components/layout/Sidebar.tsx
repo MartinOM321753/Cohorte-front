@@ -29,6 +29,7 @@ import {
   UsersRound,
   CircleUserRound,
   X,
+  FileText,
 } from 'lucide-react'
 
 interface NavItem {
@@ -119,6 +120,14 @@ const navItems: NavItem[] = [
     icon: ClipboardList,
     permisos: permisosFor('bitacoraAcciones'),
     modulo: 'BITACORA_ACCIONES',
+    group: 'Sistema',
+  },
+  {
+    label: 'Reportes',
+    href: '/reportes',
+    icon: FileText,
+    permisos: permisosFor('reportes'),
+    modulo: 'REPORTES',
     group: 'Sistema',
   },
   {
