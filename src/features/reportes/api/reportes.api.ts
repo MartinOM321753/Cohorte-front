@@ -54,10 +54,20 @@ export async function emitirReporteEstudio(idEstudio: number): Promise<Blob> {
   return data
 }
 
-/** Qué se puede insertar en una plantilla de ese tipo. */
-export async function listarCampos(tipo: TipoReporte): Promise<CampoReporte[]> {
-  const { data } = await axiosInstance.get<ApiResponse<CampoReporte[]>>('/reportes/campos', {
-    params: { tipo },
-  })
+/**
+ * Qué se puede insertar. Se arma en el servidor desde el catálogo real de la
+ * institución, así que incluye cada tipo de estudio con sus parámetros.
+ */
+export async function listarCampos(): Promise<CampoReporte[]> {
+  const { data } = await axiosInstance.get<ApiResponse<CampoReporte[]>>('/reportes/campos')
   return data.data
+}
+
+/** El PDF del reporte de un participante, con la plantilla elegida. */
+export async function emitirReporteParticipante(uuid: string, idPlantilla: number): Promise<Blob> {
+  const { data } = await axiosInstance.get(`/reportes/participante/${uuid}`, {
+    params: { plantilla: idPlantilla },
+    responseType: 'blob',
+  })
+  return data
 }

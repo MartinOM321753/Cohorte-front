@@ -7,16 +7,36 @@ import {
 import { Button } from '@/components/ui/button'
 import { Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 
-import type { Elemento } from '../types'
+import { Checkbox } from '@/components/ui/checkbox'
+
+import type { ColumnaTabla, Elemento, EstiloTabla } from '../types'
+import { COLUMNAS_TABLA } from '../types'
 import { SelectorParametros } from './SelectorParametros'
 
-/** Clave del bloque que admite elegir qué filas se muestran. */
-const BLOQUE_RESULTADOS = 'bloque.estudio.resultados'
+/**
+ * De qué estudio es un bloque, leído de su propia clave.
+ *
+ * El tipo va dentro de la clave —bloque.estudio.10.resultados— y no en la
+ * plantilla, que es lo que permite tener en la misma hoja la tabla de un estudio
+ * y las evidencias de otro.
+ */
+function tipoEstudioDe(clave: string): number | null {
+  const m = /^bloque\.estudio\.(\d+)\./.exec(clave)
+  return m ? Number(m[1]) : null
+}
+
+/** Solo la tabla de resultados admite elegir qué filas salen. */
+function admiteSeleccion(clave: string): boolean {
+  return /^bloque\.estudio\.\d+\.resultados$/.test(clave)
+}
+
+/** La tabla de resultados y el listado de estudios comparten estilo. */
+function admiteEstilo(clave: string): boolean {
+  return /^bloque\.estudio\.\d+\.resultados$/.test(clave) || clave === 'bloque.estudios.listado'
+}
 
 interface Props {
   elemento: Elemento | null
-  /** Tipo de estudio al que está ligada la plantilla, si lo está. */
-  idTipoEstudio: number | null
   onCambiar: (cambios: Partial<Elemento>) => void
   onEliminar: () => void
   onSubirCapa: () => void
@@ -30,7 +50,7 @@ interface Props {
  * dijera «píxeles» sería mentira: el resultado va a papel.</p>
  */
 export function PanelPropiedades({
-  elemento, idTipoEstudio, onCambiar, onEliminar, onSubirCapa, onBajarCapa,
+  elemento, onCambiar, onEliminar, onSubirCapa, onBajarCapa,
 }: Props) {
   if (!elemento) {
     return (
@@ -187,15 +207,22 @@ export function PanelPropiedades({
             </Select>
           </div>
 
-          {elemento.clave === BLOQUE_RESULTADOS && (
+          {admiteSeleccion(elemento.clave) && (
             <div className="space-y-1">
               <Label className="text-[12px]">Qué parámetros se muestran</Label>
               <SelectorParametros
-                idTipoEstudio={idTipoEstudio}
+                idTipoEstudio={tipoEstudioDe(elemento.clave)}
                 seleccion={elemento.seleccion ?? []}
                 onCambiar={(seleccion) => onCambiar({ seleccion } as Partial<Elemento>)}
               />
             </div>
+          )}
+
+          {admiteEstilo(elemento.clave) && (
+            <EstiloDeTabla
+              estilo={elemento.estilo ?? {}}
+              onCambiar={(estilo) => onCambiar({ estilo } as Partial<Elemento>)}
+            />
           )}
         </div>
       )}
@@ -256,4 +283,86 @@ function rotuloDe(elemento: Elemento): string {
       return elemento.forma === 'rectangulo' ? 'Rectángulo'
            : elemento.forma === 'elipse' ? 'Elipse' : 'Línea'
   }
+}
+
+/**
+ * Cómo se ve una tabla: letra, colores y qué columnas salen.
+ *
+ * Sin tocar nada, la tabla sale con el aspecto de siempre. Lo que se cambia se
+ * guarda; lo que no, lo resuelve el servidor con el mismo valor por defecto, así
+ * que una plantilla vieja no cambia de aspecto al abrirla.
+ */
+function EstiloDeTabla({ estilo, onCambiar }: {
+  estilo: EstiloTabla
+  onCambiar: (estilo: EstiloTabla) => void
+}) {
+  const columnas = estilo.columnas ?? (Object.keys(COLUMNAS_TABLA) as ColumnaTabla[])
+
+  function alternarColumna(col: ColumnaTabla) {
+    const nueva = columnas.includes(col)
+      ? columnas.filter((c) => c !== col)
+      : ([...columnas, col] as ColumnaTabla[])
+    // Quitarlas todas dejaria una tabla de filas vacias; se ignora la ultima.
+    if (nueva.length === 0) return
+    onCambiar({ ...estilo, columnas: nueva })
+  }
+
+  return (
+    <div className="space-y-3 border-t pt-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        Aspecto de la tabla
+      </span>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-[12px]">Letra (pt)</Label>
+          <Input type="number" min={5} max={20} step={0.5} className="h-9"
+                 value={estilo.tamanoPt ?? 9}
+                 onChange={(e) => onCambiar({ ...estilo, tamanoPt: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[12px]">Color del texto</Label>
+          <Input type="color" className="h-9 p-1"
+                 value={estilo.colorTexto ?? '#111111'}
+                 onChange={(e) => onCambiar({ ...estilo, colorTexto: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[12px]">Letra del encabezado</Label>
+          <Input type="color" className="h-9 p-1"
+                 value={estilo.colorEncabezado ?? '#33505c'}
+                 onChange={(e) => onCambiar({ ...estilo, colorEncabezado: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[12px]">Fondo del encabezado</Label>
+          <Input type="color" className="h-9 p-1"
+                 value={estilo.fondoEncabezado ?? '#eef3f5'}
+                 onChange={(e) => onCambiar({ ...estilo, fondoEncabezado: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[12px]">Líneas</Label>
+          <Input type="color" className="h-9 p-1"
+                 value={estilo.colorBorde ?? '#dde5e9'}
+                 onChange={(e) => onCambiar({ ...estilo, colorBorde: e.target.value })} />
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2 text-[12px]">
+        <Switch checked={estilo.mostrarEncabezado ?? true}
+                onCheckedChange={(v) => onCambiar({ ...estilo, mostrarEncabezado: v })} />
+        Mostrar encabezado
+      </label>
+
+      <div className="space-y-1">
+        <Label className="text-[12px]">Columnas</Label>
+        <div className="space-y-1 rounded-md border p-2">
+          {(Object.keys(COLUMNAS_TABLA) as ColumnaTabla[]).map((col) => (
+            <label key={col} className="flex items-center gap-2 text-[12px]">
+              <Checkbox checked={columnas.includes(col)} onCheckedChange={() => alternarColumna(col)} />
+              {COLUMNAS_TABLA[col]}
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }

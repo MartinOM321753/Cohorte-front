@@ -5,7 +5,7 @@ import {
   actualizarPlantilla, crearPlantilla, eliminarPlantilla, establecerPredeterminada,
   listarCampos, listarPlantillas, obtenerPlantilla, togglePlantilla,
 } from '../api/reportes.api'
-import type { PlantillaReporteRequest, TipoReporte } from '../types.api'
+import type { PlantillaReporteRequest } from '../types.api'
 
 const CLAVE = ['plantillasReporte'] as const
 
@@ -99,12 +99,12 @@ export function useEliminarPlantilla() {
  * El catálogo de datos insertables. Viene del servidor a propósito: si el editor
  * tuviera su propia lista, acabaría ofreciendo campos que nadie sabe resolver.
  */
-export function useCamposReporte(tipo: TipoReporte | null) {
+export function useCamposReporte() {
   return useQuery({
-    queryKey: ['camposReporte', tipo],
-    queryFn: () => listarCampos(tipo as TipoReporte),
-    enabled: tipo != null,
-    // El catálogo solo cambia al desplegar: no hay por qué volver a pedirlo.
-    staleTime: Infinity,
+    queryKey: ['camposReporte'],
+    queryFn: listarCampos,
+    // Cambia solo cuando alguien toca el catálogo de estudios, que es raro dentro
+    // de una sesión de diseño.
+    staleTime: 5 * 60 * 1000,
   })
 }

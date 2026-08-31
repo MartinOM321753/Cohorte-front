@@ -83,6 +83,7 @@ import type {
 import { ESTADO_CONTACTO_LABELS, MEDIO_CONTACTO_LABELS } from '@/types/api'
 import { emparejarParametro } from '@/features/estudios/lib/emparejarParametro'
 import { parametrosDelFormulario } from '@/features/estudios/lib/parametrosDelFormulario'
+import { EmitirReporteDialog } from '@/features/reportes/components/EmitirReporteDialog'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Small helpers
@@ -2302,6 +2303,7 @@ export default function ExpedientePacientePage() {
   // vía /pacientes/mi-uuid, reutilizando esta MISMA página en modo lectura (los botones
   // de edición ya se ocultan solos porque PACIENTE no tiene los permisos *_EDITAR).
   const stateUuid: string = (location.state as { uuid?: string } | null)?.uuid ?? ''
+  const [emitirAbierto, setEmitirAbierto] = useState(false)
   const { hasPermiso } = useAuthStore()
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
 
@@ -2474,10 +2476,10 @@ export default function ExpedientePacientePage() {
               variant="outline"
               size="sm"
               className="gap-1.5 text-[13px]"
-              onClick={() => window.print()}
+              onClick={() => setEmitirAbierto(true)}
             >
               <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Exportar PDF
+              Emitir reporte
             </Button>
           </div>
         </div>
@@ -2665,6 +2667,13 @@ export default function ExpedientePacientePage() {
         open={pacienteFormOpen}
         onOpenChange={setPacienteFormOpen}
         paciente={paciente}
+      />
+
+      <EmitirReporteDialog
+        abierto={emitirAbierto}
+        onCerrar={() => setEmitirAbierto(false)}
+        uuidParticipante={uuid}
+        nombreParticipante={nombreCompleto}
       />
     </div>
   )

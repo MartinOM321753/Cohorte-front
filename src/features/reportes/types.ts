@@ -87,19 +87,41 @@ export interface ElementoFigura extends ElementoBase {
   radioMm?: number
 }
 
-/**
- * Marcador de datos. En esta fase solo existe como tipo: el editor todavía no lo
- * ofrece. Se declara desde ya para que el formato guardado no cambie de forma
- * cuando llegue, y las plantillas hechas ahora sigan abriéndose.
- */
+/** Columnas que puede llevar una tabla de resultados. */
+export type ColumnaTabla = 'parametro' | 'valor' | 'unidad' | 'referencia'
+
+export const COLUMNAS_TABLA: Record<ColumnaTabla, string> = {
+  parametro:  'Parámetro',
+  valor:      'Resultado',
+  unidad:     'Unidad',
+  referencia: 'Referencia',
+}
+
+/** Aspecto de una tabla. Todo opcional: sin nada, sale con el aspecto de siempre. */
+export interface EstiloTabla {
+  tamanoPt?: number
+  colorTexto?: string
+  colorEncabezado?: string
+  fondoEncabezado?: string
+  colorBorde?: string
+  mostrarEncabezado?: boolean
+  columnas?: ColumnaTabla[]
+}
+
 export interface ElementoDatos extends ElementoBase {
   tipo: 'datos'
-  /** Qué se inserta: un campo suelto o un bloque. */
+  /**
+   * Qué se inserta. El tipo de estudio va dentro de la clave
+   * —`estudio.10.param.101`—, y por eso una misma hoja puede llevar datos de
+   * estudios distintos.
+   */
   clave: string
   /** Qué hacer cuando el contenido no cabe en la caja. */
   desbordamiento: 'crecer' | 'ajustar' | 'recortar'
-  /** Para bloques: qué filas se muestran. Vacío o ausente = todas. */
+  /** Para bloques con tabla: qué filas se muestran. Vacío o ausente = todas. */
   seleccion?: number[]
+  /** Para bloques con tabla: cómo se ve. */
+  estilo?: EstiloTabla
 }
 
 export type Elemento = ElementoTexto | ElementoImagen | ElementoFigura | ElementoDatos

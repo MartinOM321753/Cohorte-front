@@ -40,10 +40,13 @@ export interface PlantillaReporteRequest {
 export interface CampoReporte {
   clave: string
   rotulo: string
+  /** Para agrupar el panel; en los datos de estudio, el nombre del estudio. */
   grupo: string
   /** CAMPO se mete dentro de un texto; BLOQUE ocupa su propia caja. */
   clase: 'CAMPO' | 'BLOQUE'
   ayuda?: string | null
+  /** De qué estudio viene, si viene de alguno. */
+  idTipoEstudio?: number | null
   /** Solo para bloques: si permite elegir qué filas se muestran. */
   seleccionable: boolean
 }

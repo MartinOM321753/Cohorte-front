@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LienzoReporte } from './LienzoReporte'
 import { PanelDatos } from './PanelDatos'
 import { PanelPropiedades } from './PanelPropiedades'
-import type { CampoReporte, TipoReporte } from '../types.api'
+import type { CampoReporte } from '../types.api'
 import type {
   DisenoReporte, Elemento, FormaFigura, TamanoPagina,
 } from '../types'
@@ -26,14 +26,11 @@ const ESCALAS = [1.6, 2.2, 2.8, 3.4, 3.78, 4.6]
 
 interface Props {
   disenoInicial: DisenoReporte
-  tipoReporte: TipoReporte
-  /** Tipo de estudio al que está ligada la plantilla, si lo está. */
-  idTipoEstudio: number | null
   guardando: boolean
   onGuardar: (diseno: DisenoReporte) => void
 }
 
-export function EditorPlantilla({ disenoInicial, tipoReporte, idTipoEstudio, guardando, onGuardar }: Props) {
+export function EditorPlantilla({ disenoInicial, guardando, onGuardar }: Props) {
   const [diseno, setDiseno] = useState<DisenoReporte>(disenoInicial)
   const [paginaIndex, setPaginaIndex] = useState(0)
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null)
@@ -308,7 +305,6 @@ export function EditorPlantilla({ disenoInicial, tipoReporte, idTipoEstudio, gua
             <TabsContent value="propiedades" className="min-h-0 flex-1 overflow-auto">
               <PanelPropiedades
                 elemento={seleccionado}
-                idTipoEstudio={idTipoEstudio}
                 onCambiar={(cambios) => seleccionado && cambiarElemento(seleccionado.id, cambios)}
                 onEliminar={eliminarSeleccionado}
                 onSubirCapa={() => moverCapa(1)}
@@ -318,7 +314,6 @@ export function EditorPlantilla({ disenoInicial, tipoReporte, idTipoEstudio, gua
 
             <TabsContent value="datos" className="min-h-0 flex-1 overflow-hidden">
               <PanelDatos
-                tipo={tipoReporte}
                 onInsertarEnTexto={insertarEnTexto}
                 onAgregarBloque={agregarBloque}
               />
