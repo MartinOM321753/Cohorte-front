@@ -3,9 +3,9 @@ import { toast } from 'sonner'
 
 import {
   actualizarPlantilla, crearPlantilla, eliminarPlantilla, establecerPredeterminada,
-  listarPlantillas, obtenerPlantilla, togglePlantilla,
+  listarCampos, listarPlantillas, obtenerPlantilla, togglePlantilla,
 } from '../api/reportes.api'
-import type { PlantillaReporteRequest } from '../types.api'
+import type { PlantillaReporteRequest, TipoReporte } from '../types.api'
 
 const CLAVE = ['plantillasReporte'] as const
 
@@ -92,5 +92,19 @@ export function useEliminarPlantilla() {
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'No se pudo eliminar la plantilla')
     },
+  })
+}
+
+/**
+ * El catálogo de datos insertables. Viene del servidor a propósito: si el editor
+ * tuviera su propia lista, acabaría ofreciendo campos que nadie sabe resolver.
+ */
+export function useCamposReporte(tipo: TipoReporte | null) {
+  return useQuery({
+    queryKey: ['camposReporte', tipo],
+    queryFn: () => listarCampos(tipo as TipoReporte),
+    enabled: tipo != null,
+    // El catálogo solo cambia al desplegar: no hay por qué volver a pedirlo.
+    staleTime: Infinity,
   })
 }

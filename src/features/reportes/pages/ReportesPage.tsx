@@ -66,6 +66,7 @@ export default function ReportesPage() {
             <EditorPlantilla
               key={enEdicion.id}
               disenoInicial={diseno}
+              tipoReporte={enEdicion.tipoReporte}
               guardando={guardar.isPending}
               onGuardar={(d) => guardar.mutate({
                 nombre: enEdicion.nombre,

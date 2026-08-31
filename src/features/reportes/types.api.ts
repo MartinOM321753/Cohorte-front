@@ -31,3 +31,15 @@ export interface PlantillaReporteRequest {
   diseno: string
   predeterminada?: boolean
 }
+
+/** Un dato insertable, tal como lo describe el servidor. */
+export interface CampoReporte {
+  clave: string
+  rotulo: string
+  grupo: string
+  /** CAMPO se mete dentro de un texto; BLOQUE ocupa su propia caja. */
+  clase: 'CAMPO' | 'BLOQUE'
+  ayuda?: string | null
+  /** Solo para bloques: si permite elegir qué filas se muestran. */
+  seleccionable: boolean
+}

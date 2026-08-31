@@ -10,8 +10,12 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { LienzoReporte } from './LienzoReporte'
+import { PanelDatos } from './PanelDatos'
 import { PanelPropiedades } from './PanelPropiedades'
+import type { CampoReporte, TipoReporte } from '../types.api'
 import type {
   DisenoReporte, Elemento, FormaFigura, TamanoPagina,
 } from '../types'
@@ -22,11 +26,12 @@ const ESCALAS = [1.6, 2.2, 2.8, 3.4, 3.78, 4.6]
 
 interface Props {
   disenoInicial: DisenoReporte
+  tipoReporte: TipoReporte
   guardando: boolean
   onGuardar: (diseno: DisenoReporte) => void
 }
 
-export function EditorPlantilla({ disenoInicial, guardando, onGuardar }: Props) {
+export function EditorPlantilla({ disenoInicial, tipoReporte, guardando, onGuardar }: Props) {
   const [diseno, setDiseno] = useState<DisenoReporte>(disenoInicial)
   const [paginaIndex, setPaginaIndex] = useState(0)
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null)
@@ -140,6 +145,39 @@ export function EditorPlantilla({ disenoInicial, guardando, onGuardar }: Props) 
       relleno: forma === 'linea' ? undefined : '#e8eef1',
       colorBorde: '#33505c',
       grosorBordeMm: forma === 'linea' ? 0.4 : 0.2,
+    })
+  }
+
+  // ── Insertar datos ────────────────────────────────────────────────────────
+
+  /**
+   * Mete el marcador dentro del texto seleccionado. Si no hay ninguno, crea uno:
+   * es lo que espera quien pulsa un dato sin haber seleccionado nada antes, y
+   * mejor que no pase nada sin explicación.
+   */
+  function insertarEnTexto(clave: string) {
+    const marcador = `{{${clave}}}`
+    if (seleccionado?.tipo === 'texto') {
+      const actual = seleccionado.contenido
+      const separador = actual && !actual.endsWith(' ') ? ' ' : ''
+      cambiarElemento(seleccionado.id, { contenido: actual + separador + marcador } as Partial<Elemento>)
+      return
+    }
+    agregar({
+      ...base(), tipo: 'texto', contenido: marcador,
+      tamanoPt: 11, color: '#111111', alineacion: 'left',
+    })
+  }
+
+  function agregarBloque(campo: CampoReporte) {
+    const { anchoMm } = medidasDe(diseno)
+    agregar({
+      ...base(),
+      anchoMm: anchoMm - diseno.margenes.izquierdoMm - diseno.margenes.derechoMm,
+      altoMm: 60,
+      tipo: 'datos',
+      clave: campo.clave,
+      desbordamiento: 'crecer',
     })
   }
 
@@ -258,14 +296,31 @@ export function EditorPlantilla({ disenoInicial, guardando, onGuardar }: Props) 
           </div>
         </div>
 
-        <aside className="w-72 shrink-0 overflow-auto border-l bg-background">
-          <PanelPropiedades
-            elemento={seleccionado}
-            onCambiar={(cambios) => seleccionado && cambiarElemento(seleccionado.id, cambios)}
-            onEliminar={eliminarSeleccionado}
-            onSubirCapa={() => moverCapa(1)}
-            onBajarCapa={() => moverCapa(-1)}
-          />
+        <aside className="flex w-72 shrink-0 flex-col border-l bg-background">
+          <Tabs defaultValue="propiedades" className="flex min-h-0 flex-1 flex-col">
+            <TabsList className="grid w-full shrink-0 grid-cols-2 rounded-none border-b bg-transparent">
+              <TabsTrigger value="propiedades">Propiedades</TabsTrigger>
+              <TabsTrigger value="datos">Datos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="propiedades" className="min-h-0 flex-1 overflow-auto">
+              <PanelPropiedades
+                elemento={seleccionado}
+                onCambiar={(cambios) => seleccionado && cambiarElemento(seleccionado.id, cambios)}
+                onEliminar={eliminarSeleccionado}
+                onSubirCapa={() => moverCapa(1)}
+                onBajarCapa={() => moverCapa(-1)}
+              />
+            </TabsContent>
+
+            <TabsContent value="datos" className="min-h-0 flex-1 overflow-hidden">
+              <PanelDatos
+                tipo={tipoReporte}
+                onInsertarEnTexto={insertarEnTexto}
+                onAgregarBloque={agregarBloque}
+              />
+            </TabsContent>
+          </Tabs>
         </aside>
       </div>
     </div>

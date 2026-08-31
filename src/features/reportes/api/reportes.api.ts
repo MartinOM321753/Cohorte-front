@@ -1,6 +1,6 @@
 import axiosInstance from '@/lib/axiosInstance'
 import type { ApiResponse } from '@/types/api'
-import type { TipoReporte, PlantillaReporte, PlantillaReporteRequest } from '../types.api'
+import type { TipoReporte, PlantillaReporte, PlantillaReporteRequest, CampoReporte } from '../types.api'
 
 const BASE = '/reportes/plantillas'
 
@@ -52,4 +52,12 @@ export async function emitirReporteEstudio(idEstudio: number): Promise<Blob> {
     responseType: 'blob',
   })
   return data
+}
+
+/** Qué se puede insertar en una plantilla de ese tipo. */
+export async function listarCampos(tipo: TipoReporte): Promise<CampoReporte[]> {
+  const { data } = await axiosInstance.get<ApiResponse<CampoReporte[]>>('/reportes/campos', {
+    params: { tipo },
+  })
+  return data.data
 }
