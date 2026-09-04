@@ -1,0 +1,22 @@
+# Configuracion de pnpm.
+#
+# No hay monorepo: este archivo existe porque pnpm movio su configuracion aqui.
+# Las versiones nuevas ya no leen el campo "pnpm" de package.json, y como los
+# scripts de instalacion no aprobados pasaron de advertencia a error fatal
+# (ERR_PNPM_IGNORED_BUILDS), un pnpm nuevo tumbaba el build sin que nada hubiera
+# cambiado en el codigo.
+#
+# allowBuilds: paquetes autorizados a ejecutar scripts de instalacion. pnpm no
+# los corre por defecto —es una proteccion contra codigo arbitrario en
+# postinstall— y estos dos si los necesitan: compilan binarios nativos sin los
+# cuales Vite no puede construir. Es el nombre nuevo de lo que en package.json
+# se llama "pnpm.onlyBuiltDependencies", y va como MAPA, no como lista.
+#
+# La lista se mantiene en los dos lugares a proposito: el pin actual del
+# Dockerfile (pnpm@10) la lee de package.json e ignora este archivo sin quejarse,
+# y las versiones nuevas la leen de aqui. Verificado con pnpm 10.34.5 y 12.3.2:
+# ambas instalan y ejecutan los dos postinstall. Al subir el pin, se puede borrar
+# el campo de package.json.
+allowBuilds:
+  "@swc/core": true
+  esbuild: true
