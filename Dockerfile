@@ -1,12 +1,22 @@
 # ── Stage 1: Build ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-RUN npm install -g pnpm
+# Version fijada a proposito. Sin fijar, cada build instala el pnpm mas nuevo que
+# exista ese dia, asi que un cambio aguas arriba rompe el build sin que nada haya
+# cambiado aqui. Ya paso: un pnpm nuevo dejo de leer el campo "pnpm" de
+# package.json y convirtio los scripts de build no aprobados en error fatal
+# (ERR_PNPM_IGNORED_BUILDS), tumbando el deploy con el mismo commit que compilaba
+# el dia anterior. El 10.x corresponde al formato del lockfile (lockfileVersion
+# 9.0); subir el pin debe ser una decision deliberada, no un accidente de fecha.
+RUN npm install -g pnpm@10
 
 WORKDIR /app
 
-# Copiar manifiestos primero para cachear dependencias
-COPY package.json pnpm-lock.yaml ./
+# Copiar manifiestos primero para cachear dependencias.
+# pnpm-workspace.yaml va aqui aunque no haya monorepo: es la casa nueva de la
+# configuracion de pnpm y tiene que estar presente ANTES del install, o el
+# install corre sin ella y vuelve el mismo error.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # ARG recibe VITE_API_URL desde docker-compose (definido en el .env raíz)
