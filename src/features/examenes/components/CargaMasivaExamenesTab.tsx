@@ -28,7 +28,7 @@ function tamano(bytes: number): string {
  *
  * <p>Igual que la de estudios en el recorrido —subir, revisar, corregir,
  * guardar— pero sin elegir tipo: un archivo de laboratorio trae varios exámenes
- * a la vez y cada columna se resuelve por su alias.</p>
+ * a la vez y cada columna se resuelve por el nombre del examen o por sus alias.</p>
  *
  * <p>Y con otra unidad de cuenta. Aquí cada celda es un resultado independiente,
  * así que se cuentan resultados y no filas: decir "3 filas listas" cuando cada
@@ -250,8 +250,9 @@ export function CargaMasivaExamenesTab() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Cargar resultados de laboratorio</CardTitle>
           <p className="text-[13px] text-muted-foreground">
-            Sube el archivo que entrega el laboratorio. Cada columna se reconoce por los
-            alias del examen; no hace falta elegir nada. Nada se registra hasta que lo confirmes.
+            Cargue el archivo que entrega el laboratorio. Cada columna se reconoce por el
+            nombre del examen, o por sus alias si los tiene configurados. Nada se registra
+            hasta que lo confirme.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -288,7 +289,7 @@ export function CargaMasivaExamenesTab() {
             >
               <Upload className="h-8 w-8 opacity-50" />
               <div className="text-center text-[13px]">
-                <span className="font-medium text-foreground">Haz clic</span> o arrastra el archivo aquí
+                <span className="font-medium text-foreground">Haga clic</span> o arrastre el archivo aquí
               </div>
               <p className="text-[11px] opacity-60">CSV o Excel (.xlsx) — máximo 10 MB</p>
               <input
@@ -571,7 +572,7 @@ function CorregirColumna({ indice, filasConError, onCorregir }: {
         className="mt-1 flex items-center gap-1 text-[11px] font-normal text-amber-700 hover:underline dark:text-amber-400"
       >
         <Wand2 className="h-3 w-3" />
-        Corregir {filasConError.size} de un jalón
+        Corregir las {filasConError.size} en conjunto
       </button>
     )
   }
