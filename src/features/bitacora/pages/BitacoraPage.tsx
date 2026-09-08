@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
 import { BitacoraFiltros } from '../components/BitacoraFiltros'
 import { BitacoraAccesosTable } from '../components/BitacoraAccesosTable'
 import { BitacoraAccionesTable } from '../components/BitacoraAccionesTable'
@@ -110,7 +112,8 @@ export default function BitacoraPage() {
       />
 
       <Tabs defaultValue="accesos">
-        <TabsList className="h-9">
+        <BarraPestanas>
+          <TabsList className={PISTA_PESTANAS}>
           <TabsTrigger value="accesos" className="text-[13px]">
             Accesos
           </TabsTrigger>
@@ -118,6 +121,7 @@ export default function BitacoraPage() {
             Acciones
           </TabsTrigger>
         </TabsList>
+          </BarraPestanas>
 
         {/* ── Tab: Accesos ───────────────────────────────────────────────────── */}
         <TabsContent value="accesos" className="mt-4 flex flex-col gap-4">

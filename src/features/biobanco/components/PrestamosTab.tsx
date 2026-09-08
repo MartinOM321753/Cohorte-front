@@ -20,7 +20,9 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
 import { TrasladoMuestra, MuestraDetalleDTO } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDate } from '@/lib/utils'
@@ -397,7 +399,7 @@ function PrestamoCard({
             )}
             <div className="flex gap-2">
               <Button size="sm" onClick={onConfirmAction} disabled={isPending} className="h-7 text-xs">
-                {isPending ? 'Guardando...' : 'Confirmar'}
+                {isPending ? 'Guardando…' : 'Confirmar'}
               </Button>
               <Button size="sm" variant="outline" onClick={onCancelAction} className="h-7 text-xs">
                 Cancelar
@@ -615,7 +617,8 @@ export function PrestamosTab() {
       </div>
 
       <Tabs defaultValue="activos" className="w-full">
-        <TabsList className="flex-wrap">
+        <BarraPestanas>
+          <TabsList className={PISTA_PESTANAS}>
           <TabsTrigger value="activos">
             Todos activos {activos.length > 0 && `(${activos.length})`}
           </TabsTrigger>
@@ -636,6 +639,7 @@ export function PrestamosTab() {
             Cancelados {cancelados.length > 0 && `(${cancelados.length})`}
           </TabsTrigger>
         </TabsList>
+          </BarraPestanas>
 
         {/* Todos activos */}
         <TabsContent value="activos" className="space-y-4 mt-4">
@@ -662,7 +666,7 @@ export function PrestamosTab() {
               <CardContent className="flex flex-col items-center justify-center py-8">
                 <ArrowRightFromLine className="h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-muted-foreground text-center">
-                  No tienes muestras enviadas a otras instituciones.
+                  No hay muestras enviadas a otras instituciones.
                 </p>
               </CardContent>
             </Card>
@@ -680,7 +684,7 @@ export function PrestamosTab() {
               <CardContent className="flex flex-col items-center justify-center py-8">
                 <ArrowLeftFromLine className="h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-muted-foreground text-center">
-                  No tienes muestras recibidas de otras instituciones.
+                  No hay muestras recibidas de otras instituciones.
                 </p>
               </CardContent>
             </Card>
