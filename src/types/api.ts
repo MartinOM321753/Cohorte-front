@@ -1005,6 +1005,7 @@ export const MODULOS_SISTEMA = [
   'DOCUMENTOS',
   'BITACORA_ACCESOS',
   'BITACORA_ACCIONES',
+  'REPORTES',
 ] as const
 
 export type ModuloSistema = (typeof MODULOS_SISTEMA)[number]
@@ -1019,8 +1020,9 @@ export const MODULO_LABELS: Record<ModuloSistema, string> = {
   COBERTURA: 'Cobertura',
   SOMATOMETRIA: 'Somatometría',
   DOCUMENTOS: 'Documentos',
-  BITACORA_ACCESOS: 'Bitácora Accesos',
-  BITACORA_ACCIONES: 'Bitácora Acciones',
+  BITACORA_ACCESOS: 'Bitácora de accesos',
+  BITACORA_ACCIONES: 'Bitácora de acciones',
+  REPORTES: 'Reportes',
 }
 
 export interface InstitucionModuloPermiso {
