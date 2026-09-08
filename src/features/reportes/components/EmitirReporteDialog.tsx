@@ -13,6 +13,8 @@ import {
 import { cn } from '@/lib/utils'
 
 import { emitirReporteParticipante } from '../api/reportes.api'
+import { useAuthStore } from '@/stores/authStore'
+
 import { usePlantillasReporte } from '../hooks/useReportes'
 import { TIPO_REPORTE_ROTULOS } from '../types.api'
 
@@ -36,7 +38,12 @@ interface Props {
 export function EmitirReporteDialog({
   abierto, onCerrar, uuidParticipante, nombreParticipante,
 }: Props) {
-  const { data: plantillas, isLoading } = usePlantillasReporte()
+  // Cerrado no hace falta ninguna: se pedían al montar, y este diálogo vive
+  // montado dentro del expediente aunque nadie lo haya abierto.
+  const puedeVerPlantillas = useAuthStore((s) => s.hasPermiso('REPORTES_ACCEDER'))
+  const { data: plantillas, isLoading } = usePlantillasReporte({
+    enabled: abierto && puedeVerPlantillas,
+  })
   const [elegida, setElegida] = useState<string>('')
   const [emitiendo, setEmitiendo] = useState(false)
 
@@ -62,7 +69,7 @@ export function EmitirReporteDialog({
       const url = URL.createObjectURL(blob)
       const ventana = window.open(url, '_blank')
       if (!ventana) {
-        toast.error('El navegador bloqueó la ventana. Permite las ventanas emergentes de este sitio.')
+        toast.error('El navegador bloqueó la ventana. Permita las ventanas emergentes de este sitio.')
       }
       // Se libera después, no de inmediato: revocarla antes de que la pestaña
       // termine de cargar deja el visor en blanco.
@@ -70,7 +77,7 @@ export function EmitirReporteDialog({
       onCerrar()
     } catch (error: any) {
       const mensaje = error?.response?.status === 403
-        ? 'No tienes permiso para emitir reportes.'
+        ? 'No cuenta con permisos para emitir reportes.'
         : 'No se pudo generar el reporte.'
       toast.error(mensaje)
     } finally {
@@ -104,7 +111,7 @@ export function EmitirReporteDialog({
             <div className="space-y-1">
               <Label className="text-[12px]">Plantilla</Label>
               <Select value={elegida} onValueChange={setElegida}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Elige una plantilla" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Elija una plantilla" /></SelectTrigger>
                 <SelectContent>
                   {disponibles.map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>

@@ -1381,7 +1381,7 @@ function EstudioDetalleDialog({
     // recortado a 10 caracteres— y el usuario solo veia un error del servidor sin
     // saber que corregir. Mas vale detenerlo aqui con un motivo legible.
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(editFecha)) {
-      toast.error('La fecha del estudio debe incluir la hora. Vuelve a seleccionarla.')
+      toast.error('La fecha del estudio debe incluir la hora. Selecciónela nuevamente.')
       return
     }
 
@@ -1559,7 +1559,7 @@ function EstudioDetalleDialog({
                   <DateTimePicker
                     value={editFecha}
                     onChange={setEditFecha}
-                    placeholder="Selecciona fecha y hora"
+                    placeholder="Seleccione la fecha y la hora"
                     timeStepMinutes={1}
                     maxDateTime={new Date()}
                     minHour={horarioActivo?.horaInicio ?? 8}
@@ -2307,6 +2307,9 @@ export default function ExpedientePacientePage() {
   const { hasPermiso } = useAuthStore()
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
 
+  // El expediente se reutiliza para el propio participante, que no emite reportes
+  // de sí mismo. Sin esta condición el botón salía para todos.
+  const puedeEmitirReporte = hasPermiso('REPORTES_EMITIR')
   const puedeVerCualquierPaciente = hasPermiso('PACIENTES_ACCEDER') || hasPermiso('PACIENTES_LOOKUP')
   const necesitaUuidPropio = !stateUuid && !puedeVerCualquierPaciente
   const { data: miUuid, isLoading: resolviendoUuidPropio } = useMiPacienteUuid({ enabled: necesitaUuidPropio })
@@ -2472,15 +2475,17 @@ export default function ExpedientePacientePage() {
 
           {/* Actions */}
           <div className="flex gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-[13px]"
-              onClick={() => setEmitirAbierto(true)}
-            >
-              <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Emitir reporte
-            </Button>
+            {puedeEmitirReporte && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-[13px]"
+                onClick={() => setEmitirAbierto(true)}
+              >
+                <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Emitir reporte
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -2669,12 +2674,14 @@ export default function ExpedientePacientePage() {
         paciente={paciente}
       />
 
-      <EmitirReporteDialog
-        abierto={emitirAbierto}
-        onCerrar={() => setEmitirAbierto(false)}
-        uuidParticipante={uuid}
-        nombreParticipante={nombreCompleto}
-      />
+      {puedeEmitirReporte && (
+        <EmitirReporteDialog
+          abierto={emitirAbierto}
+          onCerrar={() => setEmitirAbierto(false)}
+          uuidParticipante={uuid}
+          nombreParticipante={nombreCompleto}
+        />
+      )}
     </div>
   )
 }
