@@ -15,7 +15,7 @@ const schema = z
     nuevaPassword: z
       .string()
       .pipe(strongPasswordSchema),
-    confirmarPassword: z.string().min(1, 'Confirma tu contraseña'),
+    confirmarPassword: z.string().min(1, 'Confirme su contraseña'),
   })
   .refine((d) => d.nuevaPassword === d.confirmarPassword, {
     message: 'Las contraseñas no coinciden',
@@ -64,7 +64,7 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     if (!token) {
       setTokenState('invalid')
-      setTokenError('El enlace no contiene un token válido.')
+      setTokenError('El enlace de recuperación no es válido o ya fue utilizado.')
       return
     }
     validateResetToken(token)
@@ -108,7 +108,7 @@ export default function ResetPasswordPage() {
           </div>
           <h2 style={titleStyle}>¡Contraseña actualizada!</h2>
           <p style={subtitleStyle}>
-            Tu contraseña fue cambiada exitosamente. Ya puedes iniciar sesión con tus
+            Su contraseña se actualizó correctamente. Ya puede iniciar sesión con sus
             nuevas credenciales.
           </p>
           <button style={btnPrimaryStyle(false)} onClick={() => navigate('/login')}>
@@ -174,7 +174,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <h2 style={titleStyle}>Nueva contraseña</h2>
-        <p style={subtitleStyle}>Elige una contraseña segura para tu cuenta institucional.</p>
+        <p style={subtitleStyle}>Elija una contraseña segura para su cuenta institucional.</p>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           {/* Nueva contraseña */}

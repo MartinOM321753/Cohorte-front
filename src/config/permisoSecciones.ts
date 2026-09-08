@@ -205,7 +205,7 @@ export const SECCIONES: Seccion[] = [
           {
             id: 'crear',
             label: 'Agendar citas',
-            descripcion: 'Habilita el formulario de nueva cita (busca participantes, elige médico y tipo)',
+            descripcion: 'Habilita el formulario de nueva cita: búsqueda de participantes y selección de médico y tipo.',
             permisos: ['CITAS_CREAR', 'PACIENTES_LOOKUP', 'USUARIOS_LOOKUP_MEDICOS', 'ESTUDIOS_TIPOS_LOOKUP', 'CITAS_CONFIGURACION_VER'],
           },
           {
@@ -249,7 +249,7 @@ export const SECCIONES: Seccion[] = [
           {
             id: 'crear',
             label: 'Registrar resultados',
-            descripcion: 'Habilita el formulario de nuevo estudio (busca participante + selecciona tipo)',
+            descripcion: 'Habilita el formulario de nuevo estudio: búsqueda de participante y selección de tipo.',
             permisos: ['ESTUDIOS_CREAR', 'PACIENTES_LOOKUP', 'UNIDADES_LOOKUP'],
           },
           {
@@ -260,7 +260,7 @@ export const SECCIONES: Seccion[] = [
           {
             id: 'carga-masiva',
             label: 'Cargar resultados desde un archivo',
-            descripcion: 'Permite subir el archivo que exporta un instrumento y registrar de golpe los resultados de muchos participantes. Se revisa antes de guardar.',
+            descripcion: 'Permite cargar el archivo que exporta un instrumento y registrar en una sola operación los resultados de varios participantes. El contenido se valida antes de guardarse.',
             permisos: ['ESTUDIOS_CARGA_MASIVA', 'ESTUDIOS_TIPOS_LOOKUP'],
           },
           { id: 'eliminar', label: 'Eliminar estudios',     permisos: ['ESTUDIOS_ELIMINAR'] },
@@ -307,7 +307,7 @@ export const SECCIONES: Seccion[] = [
           {
             id: 'crear',
             label: 'Registrar resultados',
-            descripcion: 'Habilita el formulario (busca participante + selecciona examen)',
+            descripcion: 'Habilita el formulario: búsqueda de participante y selección de examen.',
             permisos: ['EXAMENES_CREAR', 'PACIENTES_LOOKUP', 'UNIDADES_LOOKUP'],
           },
           {
@@ -318,7 +318,7 @@ export const SECCIONES: Seccion[] = [
           {
             id: 'carga-masiva',
             label: 'Cargar resultados desde un archivo',
-            descripcion: 'Permite subir el archivo que entrega el laboratorio y registrar de golpe los resultados de muchos participantes. Cada columna se reconoce por los alias del examen. Se revisa antes de guardar.',
+            descripcion: 'Permite cargar el archivo que entrega el laboratorio y registrar en una sola operación los resultados de varios participantes. Cada columna se identifica por el nombre del examen, o por sus alias si se configuraron. El contenido se valida antes de guardarse.',
             permisos: ['EXAMENES_CARGA_MASIVA', 'EXAMENES_LOOKUP'],
           },
           { id: 'eliminar', label: 'Eliminar resultados',  permisos: ['EXAMENES_ELIMINAR'] },
@@ -403,7 +403,7 @@ export const SECCIONES: Seccion[] = [
           {
             id: 'crear',
             label: 'Registrar muestras',
-            descripcion: 'Habilita el formulario (busca participante + selecciona tipo)',
+            descripcion: 'Habilita el formulario: búsqueda de participante y selección de tipo.',
             permisos: ['MUESTRAS_CREAR', 'PACIENTES_LOOKUP'],
           },
           {
@@ -415,7 +415,7 @@ export const SECCIONES: Seccion[] = [
           {
             id: 'imprimir',
             label: 'Imprimir etiquetas',
-            descripcion: 'Habilita el selector de impresora y las llamadas al servicio de impresión. Si se desmarca, la tab de muestras oculta los botones y no dispara ninguna llamada a /impresoras.',
+            descripcion: 'Habilita el selector de impresora y las llamadas al servicio de impresión. Si se desmarca, la pestaña de muestras oculta los botones de impresión y no se comunica con el servicio de impresión.',
             permisos: ['MUESTRAS_IMPRIMIR'],
           },
           {

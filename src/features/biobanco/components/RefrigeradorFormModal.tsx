@@ -204,7 +204,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
               type="submit"
               disabled={isSubmitting || !puedeSubmit}
             >
-              {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
+              {isSubmitting ? 'Guardando…' : (isEditing ? 'Actualizar' : 'Crear')}
             </Button>
           </DialogFooter>
         </form>

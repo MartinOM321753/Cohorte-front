@@ -122,10 +122,10 @@ export function EscanearEtiquetaModal({
         const err = e as DOMException
         setErrorCamara(
           err?.name === 'NotAllowedError'
-            ? 'Permiso de cámara denegado. Puedes escribir la etiqueta a mano abajo, o usar un lector conectado.'
+            ? 'Permiso de cámara denegado. Puede escribir la etiqueta manualmente o utilizar un lector conectado.'
             : err?.name === 'NotFoundError'
-              ? 'Este equipo no tiene cámara. Usa un lector conectado o escribe la etiqueta.'
-              : 'No se pudo abrir la cámara. Usa un lector conectado o escribe la etiqueta.',
+              ? 'Este equipo no tiene cámara. Utilice un lector conectado o escriba la etiqueta.'
+              : 'No fue posible abrir la cámara. Utilice un lector conectado o escriba la etiqueta.',
         )
       }
     })()
@@ -196,8 +196,8 @@ export function EscanearEtiquetaModal({
         <Alert>
           <Keyboard className="h-4 w-4" />
           <AlertDescription className="text-[12px] leading-snug">
-            Si tienes un lector conectado, no hace falta abrir esta ventana: dispara sobre la
-            etiqueta con el listado de muestras a la vista y la búsqueda se hace sola.
+            Si cuenta con un lector conectado, no es necesario abrir esta ventana: escanee la
+            etiqueta con el listado de muestras a la vista y la búsqueda se realiza sola.
           </AlertDescription>
         </Alert>
 

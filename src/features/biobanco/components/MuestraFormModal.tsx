@@ -32,6 +32,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { MuestraDetalleDTO } from '@/types/api'
 import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
+import { etiquetaPosicionCaja } from '../lib/posicionCaja'
 
 const muestraSchema = z.object({
   valor: z.number().min(0, 'El valor debe ser positivo'),
@@ -136,7 +137,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         idPosicionCaja: u?.idPosicionCaja ?? 0,
       })
       if (u) {
-        setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
+        setPosicionLabel(`${u.codigoCaja} — ${etiquetaPosicionCaja(u.fila, u.columna)} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
       } else {
         setPosicionLabel('')
       }
@@ -155,7 +156,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         idPosicionCaja: u?.idPosicionCaja ?? 0,
       })
       if (u) {
-        setPosicionLabel(`${u.codigoCaja} — F${u.fila} C${u.columna} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
+        setPosicionLabel(`${u.codigoCaja} — ${etiquetaPosicionCaja(u.fila, u.columna)} (Piso ${u.numeroPiso}, ${u.codigoRefrigerador})`)
       } else {
         setPosicionLabel('')
       }
@@ -248,7 +249,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
         <DialogContent className="sm:max-w-140 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? 'Editar Muestra Biológica' : 'Registrar Nueva Muestra'}
+              {isEditing ? 'Editar muestra biológica' : 'Registrar Nueva Muestra'}
             </DialogTitle>
             <DialogDescription>
               {isEditing
@@ -279,7 +280,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
               <DateTimePicker
                 value={watchedFechaRecoleccion}
                 onChange={(v) => setValue('fechaRecoleccion', v, { shouldValidate: true })}
-                placeholder="Selecciona fecha y hora"
+                placeholder="Seleccione la fecha y la hora"
                 timeStepMinutes={1}
                 maxDateTime={new Date()}
                 minHour={horarioActivo?.horaInicio ?? 8}
@@ -600,7 +601,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Guardando...' : isEditing ? 'Actualizar' : 'Registrar'}
+                {isSubmitting ? 'Guardando…' : isEditing ? 'Actualizar' : 'Registrar'}
               </Button>
             </DialogFooter>
           </form>

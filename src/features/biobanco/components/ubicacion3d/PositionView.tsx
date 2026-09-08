@@ -3,6 +3,7 @@ import { Leyenda, PistaArrastre, Scene3D } from './Scene3D'
 import { C, Chip, Etiqueta, Prisma, Vial } from './primitives'
 import { useOrbit } from './useOrbit'
 import type { Ubicacion3DCaja, Ubicacion3DPosicion } from './ubicacion3d.types'
+import { etiquetaPosicionCaja } from '../../lib/posicionCaja'
 
 const CELDA = 52
 const CELDA_H = 9
@@ -92,8 +93,8 @@ export function PositionView({
             borde={esFoco ? C.bordeDestino : C.borde}
             title={
               p
-                ? `F${f} C${c} · ${p.ocupada ? (p.etiquetaMuestra ?? 'ocupada') : 'libre'}`
-                : `F${f} C${c}`
+                ? `${etiquetaPosicionCaja(f, c)} · ${p.ocupada ? (p.etiquetaMuestra ?? 'ocupada') : 'libre'}`
+                : etiquetaPosicionCaja(f, c)
             }
           />
         )
@@ -105,7 +106,7 @@ export function PositionView({
         .filter(({ fila: f, columna: c }) => !(f === fila && c === columna))
         .map(({ fila: f, columna: c }) => (
           <Etiqueta key={`et-${f}:${c}`} x={xDe(c)} y={yDe(f)} z={CELDA_H + 2}>
-            F{f}·C{c}
+            {etiquetaPosicionCaja(f, c)}
           </Etiqueta>
         ))}
 
@@ -114,7 +115,7 @@ export function PositionView({
       {foco?.ocupada && <Vial x={xDe(columna)} y={yDe(fila)} z={CELDA_H} />}
 
       <Chip x={xDe(columna)} y={yDe(fila)} z={CELDA_H + (foco?.ocupada ? 62 : 26)}>
-        F{fila} · C{columna}
+        {etiquetaPosicionCaja(fila, columna)}
       </Chip>
     </Scene3D>
   )

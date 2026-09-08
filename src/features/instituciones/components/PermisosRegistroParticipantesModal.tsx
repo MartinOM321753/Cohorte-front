@@ -79,7 +79,7 @@ export function PermisosRegistroParticipantesModal({ open, onOpenChange, institu
           <DialogDescription>
             {institucion
               ? <>Define qué instituciones hijas pueden registrar participantes a nombre de <strong>{institucion.nombre}</strong> y de las demás hijas. Sin esta autorización, cada sede solo registra para sí misma.</>
-              : 'Selecciona una institución'}
+              : 'Seleccione una institución'}
           </DialogDescription>
         </DialogHeader>
 

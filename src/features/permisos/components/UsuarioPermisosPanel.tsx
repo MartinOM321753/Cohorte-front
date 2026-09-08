@@ -87,7 +87,7 @@ export function UsuarioPermisosPanel({ uuid, open, onOpenChange }: Props) {
         <SheetContent className="w-full sm:max-w-[860px] overflow-y-auto p-0">
           <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
             <SheetTitle className="text-[15px]">
-              {resumen ? `${resumen.nombreCompleto || resumen.username}` : 'Cargando...'}
+              {resumen ? `${resumen.nombreCompleto || resumen.username}` : 'Cargando…'}
             </SheetTitle>
             {resumen && (
               <p className="text-[12px] text-muted-foreground font-mono">

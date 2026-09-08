@@ -14,6 +14,7 @@ import { FridgeView } from './FridgeView'
 import { PanelCaja, PanelPiso, PanelPosicion, PanelRefrigerador } from './paneles'
 import { PositionView } from './PositionView'
 import type { Ubicacion3DCaja } from './ubicacion3d.types'
+import { etiquetaPosicionCaja } from '../../lib/posicionCaja'
 
 /** Nivel abierto en el explorador. */
 type Nivel = 0 | 1 | 2 | 3
@@ -107,7 +108,7 @@ export function ExplorarBiobanco3DModal({
       },
       { nombre: caja.data?.codigoCaja ?? 'Caja', icono: Box, habilitado: idCaja != null },
       {
-        nombre: posicionFoco ? `F${posicionFoco.fila}·C${posicionFoco.columna}` : 'Posición',
+        nombre: posicionFoco ? etiquetaPosicionCaja(posicionFoco.fila, posicionFoco.columna) : 'Posición',
         icono: Crosshair,
         habilitado: posicionFoco != null,
       },
@@ -144,7 +145,7 @@ export function ExplorarBiobanco3DModal({
       <DialogContent className={CLASES_DIALOGO_3D}>
         <Marco3D
           titulo="Explorar el biobanco"
-          descripcion="Recorre el refrigerador nivel por nivel: toca para ver el detalle, vuelve a tocar para entrar."
+          descripcion="Recorra el refrigerador nivel por nivel: toque para ver el detalle y toque nuevamente para entrar."
           pasos={pasos}
           indiceActivo={nivel}
           onIr={ir}

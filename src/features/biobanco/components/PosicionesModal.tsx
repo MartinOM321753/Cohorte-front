@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import { Grid3X3, Package, TestTube, User, Calendar } from 'lucide-react'
 import { useGetPosicionesByCaja, useGetMuestras } from '../hooks/useBiobanco'
 import { Caja, MuestraDetalleDTO } from '@/types/api'
 import { formatDate } from '@/lib/utils'
+import { descripcionPosicionCaja, etiquetaPosicionCaja, letraFila } from '../lib/posicionCaja'
 
 interface PosicionesModalProps {
   open: boolean
@@ -47,46 +48,68 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
           Grid {rows}×{cols} - Total: {posiciones.length} posiciones
         </div>
 
+        {/*
+          La rejilla lleva una regleta de columnas arriba y otra de filas a la
+          izquierda, igual que el selector de posición: la primera pista del
+          grid es la de las letras y por eso va a `auto`, no a `1fr` — si se
+          reparte como una celda más, las cajas anchas quedan descuadradas
+          respecto a sus encabezados.
+        */}
         <div
           className="grid gap-1 p-4 border border-border rounded-lg bg-card"
           style={{
-            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+            gridTemplateColumns: `auto repeat(${cols}, minmax(0, 1fr))`,
             maxWidth: '600px',
             margin: '0 auto'
           }}
         >
-          {Array.from({ length: rows }, (_, rowIndex) =>
-            Array.from({ length: cols }, (_, colIndex) => {
-              const posicion = posiciones.find(
-                (p: any) => p.fila === rowIndex + 1 && p.columna === colIndex + 1
-              )
+          <div aria-hidden />
+          {Array.from({ length: cols }, (_, colIndex) => (
+            <div
+              key={`col-${colIndex}`}
+              className="flex items-end justify-center pb-1 text-xs font-medium text-muted-foreground"
+            >
+              {colIndex + 1}
+            </div>
+          ))}
 
-              return (
-                <button
-                  key={`${rowIndex}-${colIndex}`}
-                  className={`
-                    aspect-square rounded border-2 text-xs font-medium transition-all
-                    ${posicion?.ocupada
-                      ? 'bg-primary/15 border-primary/50 text-primary hover:bg-primary/25'
-                      : 'bg-muted/60 border-muted-foreground/20 text-muted-foreground hover:bg-muted hover:border-muted-foreground/40'
-                    }
-                    ${selectedPosicion?.id === posicion?.id ? 'ring-2 ring-primary ring-offset-1' : ''}
-                  `}
-                  onClick={() => posicion && handlePosicionClick(posicion)}
-                  title={posicion ? `Fila ${posicion.fila}, Columna ${posicion.columna}` : 'Posición no creada'}
-                >
-                  {posicion ? (
-                    <div className="flex flex-col items-center justify-center h-full">
-                      <span>{posicion.fila}-{posicion.columna}</span>
-                      {posicion.ocupada && <TestTube className="h-3 w-3 mt-1" />}
-                    </div>
-                  ) : (
-                    <span className="opacity-30">?</span>
-                  )}
-                </button>
-              )
-            })
-          ).flat()}
+          {Array.from({ length: rows }, (_, rowIndex) => (
+            <Fragment key={`row-${rowIndex}`}>
+              <div className="flex items-center justify-end pr-1 text-xs font-medium text-muted-foreground">
+                {letraFila(rowIndex + 1)}
+              </div>
+              {Array.from({ length: cols }, (_, colIndex) => {
+                const posicion = posiciones.find(
+                  (p: any) => p.fila === rowIndex + 1 && p.columna === colIndex + 1
+                )
+
+                return (
+                  <button
+                    key={`${rowIndex}-${colIndex}`}
+                    className={`
+                      aspect-square rounded border-2 text-xs font-medium transition-all
+                      ${posicion?.ocupada
+                        ? 'bg-primary/15 border-primary/50 text-primary hover:bg-primary/25'
+                        : 'bg-muted/60 border-muted-foreground/20 text-muted-foreground hover:bg-muted hover:border-muted-foreground/40'
+                      }
+                      ${selectedPosicion?.id === posicion?.id ? 'ring-2 ring-primary ring-offset-1' : ''}
+                    `}
+                    onClick={() => posicion && handlePosicionClick(posicion)}
+                    title={posicion ? descripcionPosicionCaja(posicion.fila, posicion.columna) : 'Posición no creada'}
+                  >
+                    {posicion ? (
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <span>{etiquetaPosicionCaja(posicion.fila, posicion.columna)}</span>
+                        {posicion.ocupada && <TestTube className="h-3 w-3 mt-1" />}
+                      </div>
+                    ) : (
+                      <span className="opacity-30">?</span>
+                    )}
+                  </button>
+                )
+              })}
+            </Fragment>
+          ))}
         </div>
 
         <div className="flex justify-center gap-4 text-sm text-muted-foreground">
@@ -113,7 +136,7 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Grid3X3 className="h-4 w-4" />
-            Posición {selectedPosicion.fila}-{selectedPosicion.columna}
+            Posición {etiquetaPosicionCaja(selectedPosicion.fila, selectedPosicion.columna)}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">

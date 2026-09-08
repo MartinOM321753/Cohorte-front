@@ -128,7 +128,7 @@ export function PermisosAccesoPacientesModal({ open, onOpenChange, institucion }
           <DialogDescription>
             {institucion
               ? <>Define qué instituciones pueden <strong>ver y atender</strong> a los participantes de <strong>{institucion.nombre}</strong>. Por defecto, ninguna. Para colaborar de ida y vuelta con otra sede, cada una tiene que abrir el suyo.</>
-              : 'Selecciona una institución'}
+              : 'Seleccione una institución'}
           </DialogDescription>
         </DialogHeader>
 

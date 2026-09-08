@@ -162,7 +162,7 @@ export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalP
                 >
                   <Upload className="h-8 w-8 opacity-50" />
                   <div className="text-center text-[13px]">
-                    <span className="font-medium text-foreground">Haz clic</span> o arrastra un archivo aquí
+                    <span className="font-medium text-foreground">Haga clic</span> o arrastre un archivo aquí
                   </div>
                   <p className="text-[11px] opacity-60">CSV o Excel (.xlsx, .xls) — máximo 10 MB</p>
                   <input
@@ -206,7 +206,7 @@ export function PacienteImportModal({ open, onOpenChange }: PacienteImportModalP
               onClick={handleImportar}
               className="bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
             >
-              {mutation.isPending ? 'Enviando...' : 'Importar'}
+              {mutation.isPending ? 'Enviando…' : 'Importar'}
             </Button>
           )}
         </DialogFooter>

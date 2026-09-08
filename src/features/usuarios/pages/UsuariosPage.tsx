@@ -200,7 +200,7 @@ export default function UsuariosPage() {
               }
             >
               {toggleActivoMutation.isPending
-                ? 'Procesando...'
+                ? 'Procesando…'
                 : usuarioToToggle?.activo ? 'Si, desactivar' : 'Si, activar'
               }
             </AlertDialogAction>

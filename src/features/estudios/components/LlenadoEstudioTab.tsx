@@ -583,7 +583,7 @@ export function LlenadoEstudioTab() {
                 <Eye className="mt-0.5 h-3 w-3 shrink-0 text-amber-700" />
                 <span className="text-[11px] leading-snug text-amber-800">
                   Ya no gestionas a este participante. Se muestran únicamente los estudios que
-                  registró tu institución; no se le pueden agregar ni modificar.
+                  registró su institución; no se le pueden agregar ni modificar.
                 </span>
               </div>
             )}
@@ -734,7 +734,7 @@ export function LlenadoEstudioTab() {
           </div>
           <div className="text-xs text-muted-foreground">
             {!editingEstudioId
-              ? 'Selecciona la plantilla para cargar el formulario.'
+              ? 'Seleccione la plantilla para cargar el formulario.'
               : soloLectura
                 ? 'Solo lectura: los campos están bloqueados.'
                 : 'Modifica los resultados del estudio seleccionado.'}
@@ -751,7 +751,7 @@ export function LlenadoEstudioTab() {
               <p className="text-[12px] leading-snug text-amber-800">
                 {pacienteSoloConsulta
                   ? <>Ya no gestionas a este participante. Puedes consultar el estudio que
-                      registró tu institución, pero no modificarlo.</>
+                      registró su institución, pero no modificarlo.</>
                   : <>Estás consultando un estudio registrado por otra institución. Puedes verlo
                       completo, pero solo la sede que lo realizó puede modificarlo.</>}
               </p>
@@ -879,7 +879,7 @@ export function LlenadoEstudioTab() {
             <DateTimePicker
               value={watchedFecha}
               onChange={(v) => setValue('fechaEstudio', v, { shouldValidate: true })}
-              placeholder="Selecciona fecha y hora"
+              placeholder="Seleccione la fecha y la hora"
               timeStepMinutes={1}
               maxDateTime={new Date()}
               minHour={horarioActivo?.horaInicio ?? 8}

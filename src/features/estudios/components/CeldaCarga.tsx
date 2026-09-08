@@ -69,7 +69,7 @@ export function CeldaCarga({
         <DateTimePicker
           value={enCalendario}
           onChange={onChange}
-          placeholder="Selecciona fecha y hora"
+          placeholder="Seleccione la fecha y la hora"
           timeStepMinutes={1}
           // Mismo horario que la captura manual: ofrecer las 24 horas aquí
           // permitiría registrar por carga masiva algo que el formulario no deja.
@@ -123,7 +123,7 @@ export function CeldaCarga({
       <div className="min-w-[150px] space-y-1">
         <Select value={seleccion} onValueChange={(v) => { if (v !== '') onChange(v) }}>
           <SelectTrigger className={cn('h-9 text-[12px]', error && 'border-destructive bg-destructive/5')}>
-            <SelectValue placeholder="Elige una opción…" />
+            <SelectValue placeholder="Elija una opción…" />
           </SelectTrigger>
           <SelectContent>
             {lista.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}

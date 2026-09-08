@@ -207,7 +207,7 @@ function EstudiosTab({ muestra }: { muestra: MuestraDetalleDTO }) {
           <BeakerIcon className="h-8 w-8 opacity-30" />
           <div>
             <p className="font-medium text-sm">Sin estudios registrados</p>
-            <p className="text-xs mt-1">Usa el botón "Registrar estudio" para agregar el primero.</p>
+            <p className="text-xs mt-1">Utilice el botón «Registrar estudio» para agregar el primero.</p>
           </div>
         </div>
       )}

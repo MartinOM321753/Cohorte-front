@@ -194,8 +194,8 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
   }
 
   function submit() {
-    if (!idTipo) { setError('Selecciona un tipo de estudio'); return }
-    if (!fechaEstudio) { setError('Selecciona fecha y hora'); return }
+    if (!idTipo) { setError('Seleccione un tipo de estudio'); return }
+    if (!fechaEstudio) { setError('Seleccione la fecha y la hora'); return }
     if (!user?.uuid) { setError('Usuario no autenticado'); return }
     if (cantidadConsumida === '' || Number(cantidadConsumida) <= 0) {
       setError('La cantidad consumida es requerida y debe ser mayor a 0'); return
@@ -299,7 +299,7 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
         <DateTimePicker
           value={fechaEstudio}
           onChange={setFechaEstudio}
-          placeholder="Selecciona fecha y hora"
+          placeholder="Seleccione la fecha y la hora"
           timeStepMinutes={1}
           maxDateTime={new Date()}
           minHour={horarioActivo?.horaInicio ?? 8}

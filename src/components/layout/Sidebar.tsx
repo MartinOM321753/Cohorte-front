@@ -107,7 +107,7 @@ const navItems: NavItem[] = [
     group: 'Sistema',
   },
   {
-    label: 'Bitácora Accesos',
+    label: 'Bitácora de accesos',
     href: '/bitacora/accesos',
     icon: KeyRound,
     permisos: permisosFor('bitacoraAccesos'),
@@ -115,7 +115,7 @@ const navItems: NavItem[] = [
     group: 'Sistema',
   },
   {
-    label: 'Bitácora Acciones',
+    label: 'Bitácora de acciones',
     href: '/bitacora/acciones',
     icon: ClipboardList,
     permisos: permisosFor('bitacoraAcciones'),

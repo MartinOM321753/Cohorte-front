@@ -19,9 +19,9 @@ import { PASSWORD_REQUIREMENTS_TEXT, strongPasswordSchema } from '@/features/aut
 
 const schema = z
   .object({
-    passwordActual: z.string().min(1, 'Ingresa tu contraseña actual'),
+    passwordActual: z.string().min(1, 'Ingrese su contraseña actual'),
     nuevaPassword: z.string().pipe(strongPasswordSchema),
-    confirmarPassword: z.string().min(1, 'Confirma tu nueva contraseña'),
+    confirmarPassword: z.string().min(1, 'Confirme su nueva contraseña'),
   })
   .refine((d) => d.nuevaPassword === d.confirmarPassword, {
     message: 'Las contraseñas no coinciden',
@@ -52,7 +52,7 @@ export default function PerfilPage() {
     setServerError('')
     try {
       await changePasswordVoluntario(data.passwordActual, data.nuevaPassword)
-      toast.success('Contraseña actualizada. Inicia sesión con tu nueva contraseña.')
+      toast.success('Contraseña actualizada. Inicie sesión con su nueva contraseña.')
       // El JWT actual ya no es válido con la nueva contraseña → cerrar sesión
       logout()
       navigate('/login', { replace: true })
@@ -68,7 +68,7 @@ export default function PerfilPage() {
     <div className="page-wrapper space-y-6 max-w-2xl">
       <div className="section-header">
         <h1 className="section-title">Mi perfil</h1>
-        <p className="section-subtitle">Información de tu cuenta y configuración de acceso</p>
+        <p className="section-subtitle">Información de su cuenta y configuración de acceso</p>
       </div>
 
       {/* ── Información del usuario ── */}

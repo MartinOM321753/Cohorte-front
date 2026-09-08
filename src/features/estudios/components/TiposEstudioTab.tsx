@@ -249,7 +249,7 @@ export function TiposEstudioTab() {
 
   async function onSubmitTipo(data: TipoEstudioFormData) {
     if (pending.length === 0) {
-      setParamListError('Agrega al menos un parámetro antes de guardar.')
+      setParamListError('Agregue al menos un parámetro antes de guardar.')
       return
     }
 

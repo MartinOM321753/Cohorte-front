@@ -16,7 +16,7 @@ const schema = z
     nuevaPassword: z
       .string()
       .pipe(strongPasswordSchema),
-    confirmarPassword: z.string().min(1, 'Confirma tu contraseña'),
+    confirmarPassword: z.string().min(1, 'Confirme su contraseña'),
   })
   .refine((d) => d.nuevaPassword === d.confirmarPassword, {
     message: 'Las contraseñas no coinciden',
@@ -47,7 +47,7 @@ export default function CambiarContrasenaPage() {
       navigate('/dashboard', { replace: true })
     } catch (err: any) {
       setServerError(
-        err?.response?.data?.message ?? 'No se pudo actualizar la contraseña. Intenta de nuevo.'
+        err?.response?.data?.message ?? 'No fue posible actualizar la contraseña. Intente nuevamente.'
       )
     }
   }
@@ -68,7 +68,7 @@ export default function CambiarContrasenaPage() {
               Cambio de contraseña obligatorio
             </h1>
             <p className="text-[13px] text-white/70 mt-1">
-              Por seguridad debes crear una nueva contraseña antes de continuar
+              Por seguridad debe crear una nueva contraseña antes de continuar
             </p>
           </div>
 

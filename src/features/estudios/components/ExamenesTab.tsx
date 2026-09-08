@@ -284,7 +284,7 @@ export function ExamenesTab() {
           <div className="text-xs text-muted-foreground">
             {isEditing
               ? 'Modifica los datos del examen seleccionado.'
-              : 'Agrega un examen al catálogo con sus rangos de referencia.'}
+              : 'Agregue un examen al catálogo con sus rangos de referencia.'}
           </div>
         </div>
 
@@ -313,7 +313,7 @@ export function ExamenesTab() {
             <UnidadSelect
               value={watch('unidad') ?? ''}
               onChange={(v) => setValue('unidad', v, { shouldValidate: true })}
-              placeholder="Selecciona unidad..."
+              placeholder="Seleccione una unidad…"
               error={errors.unidad?.message}
             />
           </FormField>

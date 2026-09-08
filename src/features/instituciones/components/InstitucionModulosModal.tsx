@@ -69,7 +69,7 @@ export function InstitucionModulosModal({ open, onOpenChange, institucion }: Pro
           <DialogDescription>
             {institucion
               ? <>Define a qué funcionalidades del sistema tiene acceso <strong>{institucion.nombre}</strong>, como en un ERP.</>
-              : 'Selecciona una institución'}
+              : 'Seleccione una institución'}
           </DialogDescription>
         </DialogHeader>
 
@@ -96,7 +96,7 @@ export function InstitucionModulosModal({ open, onOpenChange, institucion }: Pro
         {idOtorgante == null && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>No se pudo determinar tu institución. Vuelve a iniciar sesión.</AlertDescription>
+            <AlertDescription>No fue posible determinar su institución. Inicie sesión nuevamente.</AlertDescription>
           </Alert>
         )}
 

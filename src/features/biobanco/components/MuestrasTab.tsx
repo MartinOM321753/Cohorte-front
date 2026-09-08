@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/sheet'
 import { formatDate } from '@/lib/utils'
 import { MuestraDetalleDTO } from '@/types/api'
+import { etiquetaPosicionCaja } from '../lib/posicionCaja'
 
 // ── Traslado helpers ──────────────────────────────────────────────────────────
 
@@ -250,7 +251,7 @@ function MuestraFooter({
               <AlertDialogDescription>
                 La muestra <strong>{muestra.etiqueta}</strong> está en tránsito hacia{' '}
                 <strong>{trasladoInfo!.institucionNombre}</strong>. Al cancelar, el préstamo quedará
-                anulado y la muestra regresará a estado <strong>Sin Posición</strong> en tu institución.
+                anulado y la muestra regresará a estado <strong>Sin posición</strong> en su institución.
                 Esta acción no se puede deshacer.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -541,7 +542,7 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
             <div className="text-sm">
               <span className="font-medium">Ubicación:</span>
               <p className="text-muted-foreground text-xs">
-                {muestra.ubicacion.codigoCaja} — F{muestra.ubicacion.fila} C{muestra.ubicacion.columna}
+                {muestra.ubicacion.codigoCaja} — {etiquetaPosicionCaja(muestra.ubicacion.fila, muestra.ubicacion.columna)}
                 {' '}(Piso {muestra.ubicacion.numeroPiso}, {muestra.ubicacion.codigoRefrigerador})
               </p>
             </div>
@@ -724,7 +725,7 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
           <div className="text-sm">
             <span className="font-medium">Ubicación:</span>
             <p className="text-muted-foreground text-xs">
-              {muestra.ubicacion.codigoCaja} — F{muestra.ubicacion.fila} C{muestra.ubicacion.columna}
+              {muestra.ubicacion.codigoCaja} — {etiquetaPosicionCaja(muestra.ubicacion.fila, muestra.ubicacion.columna)}
               {' '}(Piso {muestra.ubicacion.numeroPiso}, {muestra.ubicacion.codigoRefrigerador})
             </p>
           </div>
@@ -1194,7 +1195,7 @@ export function MuestrasTab() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold">Muestras Biológicas</h2>
+          <h2 className="text-xl sm:text-2xl font-bold">Muestras biológicas</h2>
           <p className="text-muted-foreground text-sm">Gestiona el registro, ubicación y traslados de muestras</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1236,10 +1237,10 @@ export function MuestrasTab() {
             size="sm"
             onClick={() => setIsMuestraModalOpen(true)}
             disabled={!puedeCrearMuestra}
-            title={!puedeCrear ? 'No tienes permiso para crear muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}
+            title={!puedeCrear ? 'No cuenta con permisos para registrar muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}
           >
             <Plus className="mr-2 h-4 w-4" />
-            {isLoadingTiposMuestra ? 'Cargando...' : 'Nueva Muestra'}
+            {isLoadingTiposMuestra ? 'Cargando…' : 'Nueva Muestra'}
           </Button>
         </div>
       </div>
@@ -1298,7 +1299,7 @@ export function MuestrasTab() {
             size="sm"
             onClick={() => { setErrorEscaneo(null); setEscanerAbierto(true) }}
             className="text-xs"
-            title="Leer la etiqueta con la cámara. Si tienes un lector conectado, dispara directamente sobre la etiqueta sin abrir nada."
+            title="Leer la etiqueta con la cámara. Si cuenta con un lector conectado, puede escanear la etiqueta directamente, sin abrir esta ventana."
           >
             <ScanLine className="h-3.5 w-3.5 mr-1" />
             Escanear etiqueta
@@ -1345,16 +1346,16 @@ export function MuestrasTab() {
             <p className="text-muted-foreground text-center mb-4">
               {padres.length === 0
                 ? 'Registra la primera muestra biológica en el sistema.'
-                : 'Intenta con otros términos de búsqueda.'}
+                : 'Intente con otros términos de búsqueda.'}
             </p>
             {padres.length === 0 && (
               <Button
                 onClick={() => setIsMuestraModalOpen(true)}
                 disabled={!puedeCrearMuestra}
-                title={!puedeCrear ? 'No tienes permiso para crear muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
+                title={!puedeCrear ? 'No cuenta con permisos para registrar muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                {isLoadingTiposMuestra ? 'Cargando...' : 'Registrar Primera Muestra'}
+                {isLoadingTiposMuestra ? 'Cargando…' : 'Registrar Primera Muestra'}
               </Button>
             )}
           </CardContent>

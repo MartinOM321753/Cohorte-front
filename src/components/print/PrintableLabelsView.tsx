@@ -398,7 +398,7 @@ export function PrintableLabelsView({
                           bloqueada
                             ? 'Posición marcada como ya usada — clic para liberarla'
                             : label
-                              ? `${label.etiqueta} — arrastra para moverla, o clic para marcar esta posición como ya usada`
+                              ? `${label.etiqueta} — arrastre para moverla, o clic para marcar esta posición como ya usada`
                               : 'Posición libre — clic para marcarla como ya usada'
                         }
                         style={{

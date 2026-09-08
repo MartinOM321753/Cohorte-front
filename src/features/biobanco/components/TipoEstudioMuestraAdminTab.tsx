@@ -249,7 +249,7 @@ function ParametroRow({ parametro, idTipo, onDelete, puedeEditar }: ParametroRow
     const nombre = form.nombre.trim()
     if (!nombre) { setError('El nombre es requerido'); return }
     if (form.tipo === 'TEXTO_OPCIONES' && form.opciones.length === 0) {
-      setError('Agrega al menos una opción'); return
+      setError('Agregue al menos una opción'); return
     }
     if (form.tipo === 'NUMERICO' && form.valorMinimo !== '' && form.valorMaximo !== '' &&
         Number(form.valorMaximo) < Number(form.valorMinimo)) {
@@ -347,7 +347,7 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
     const nombre = paramForm.nombre.trim()
     if (!nombre) { setParamError('El nombre es requerido'); return }
     if (paramForm.tipo === 'TEXTO_OPCIONES' && paramForm.opciones.length === 0) {
-      setParamError('Agrega al menos una opción'); return
+      setParamError('Agregue al menos una opción'); return
     }
     if (paramForm.tipo === 'NUMERICO' && paramForm.valorMinimo !== '' && paramForm.valorMaximo !== '' &&
         Number(paramForm.valorMaximo) < Number(paramForm.valorMinimo)) {
@@ -488,7 +488,7 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
             )}
           </div>
           {parametros.length === 0 && (
-            <p className="text-xs text-muted-foreground py-1">Sin parámetros. Agrega el primero.</p>
+            <p className="text-xs text-muted-foreground py-1">Sin parámetros. Agregue el primero.</p>
           )}
           {parametros.map(p => (
             <ParametroRow key={p.id} parametro={p} idTipo={tipo.id}
@@ -567,7 +567,7 @@ export function TipoEstudioMuestraAdminTab() {
     const n = paramForm.nombre.trim()
     if (!n) { setParamError('El nombre es requerido'); return }
     if (paramForm.tipo === 'TEXTO_OPCIONES' && paramForm.opciones.length === 0) {
-      setParamError('Agrega al menos una opción'); return
+      setParamError('Agregue al menos una opción'); return
     }
     if (paramForm.tipo === 'NUMERICO' && paramForm.valorMinimo !== '' && paramForm.valorMaximo !== '' &&
         Number(paramForm.valorMaximo) < Number(paramForm.valorMinimo)) {
@@ -607,7 +607,7 @@ export function TipoEstudioMuestraAdminTab() {
     const n = pendingEditForm.nombre.trim()
     if (!n) { setPendingEditError('El nombre es requerido'); return }
     if (pendingEditForm.tipo === 'TEXTO_OPCIONES' && pendingEditForm.opciones.length === 0) {
-      setPendingEditError('Agrega al menos una opción'); return
+      setPendingEditError('Agregue al menos una opción'); return
     }
     if (pendingEditForm.tipo === 'NUMERICO' && pendingEditForm.valorMinimo !== '' && pendingEditForm.valorMaximo !== '' &&
         Number(pendingEditForm.valorMaximo) < Number(pendingEditForm.valorMinimo)) {
@@ -633,7 +633,7 @@ export function TipoEstudioMuestraAdminTab() {
   async function submitTipo() {
     const n = nombre.trim()
     if (!n) { setTipoError('El nombre es requerido'); return }
-    if (pending.length === 0) { setTipoError('Agrega al menos un parámetro'); return }
+    if (pending.length === 0) { setTipoError('Agregue al menos un parámetro'); return }
     setTipoError('')
     try {
       const tipo = await createTipo.mutateAsync({ nombre: n, descripcion: descripcion || undefined, tipoCapturaDefecto })

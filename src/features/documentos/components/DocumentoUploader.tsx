@@ -104,11 +104,11 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
       return
     }
     if (props.entidad === 'paciente' && !props.pacienteUUID) {
-      toast.error('No se puede subir: UUID del participante no disponible')
+      toast.error('No es posible cargar el documento: no se identificó al participante.')
       return
     }
     if (props.entidad === 'muestra' && !props.muestraId) {
-      toast.error('No se puede subir: ID de la muestra no disponible')
+      toast.error('No es posible cargar el documento: no se identificó la muestra.')
       return
     }
     if (props.entidad === 'resultadoExamen' && !props.resultadoExamenId) {
@@ -184,7 +184,7 @@ export function DocumentoUploader(props: DocumentoUploaderProps) {
         >
           <Upload className="h-7 w-7 opacity-50" />
           <div className="text-center">
-            <span className="font-medium text-foreground">Haz clic</span> o arrastra un archivo aquí
+            <span className="font-medium text-foreground">Haga clic</span> o arrastre un archivo aquí
           </div>
           <p className="text-xs opacity-60">PDF, imágenes, Word, Excel · Máx. 50 MB</p>
           <input

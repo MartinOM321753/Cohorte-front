@@ -49,7 +49,7 @@ export default function ConfiguracionPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Configuración General</CardTitle>
+              <CardTitle>Configuración general</CardTitle>
               <CardDescription>Parámetros globales</CardDescription>
             </CardHeader>
             <CardContent className="text-slate-600 text-sm">

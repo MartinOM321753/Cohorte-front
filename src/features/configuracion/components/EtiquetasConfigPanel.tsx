@@ -954,7 +954,7 @@ export default function EtiquetasConfigPanel() {
                   onChange={(e) => updateField('mostrarNombre', e.target.checked)}
                   className="h-4 w-4 rounded border-border"
                 />
-                <span className="text-sm">Nombre del paciente</span>
+                <span className="text-sm">Nombre del participante</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -1128,7 +1128,7 @@ export default function EtiquetasConfigPanel() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenForm(false)}>Cancelar</Button>
             <Button onClick={handleSubmit} disabled={isPending}>
-              {isPending ? 'Guardando...' : editTarget ? 'Actualizar' : 'Crear'}
+              {isPending ? 'Guardando…' : editTarget ? 'Actualizar' : 'Crear'}
             </Button>
           </DialogFooter>
         </DialogContent>

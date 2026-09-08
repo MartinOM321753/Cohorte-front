@@ -43,7 +43,7 @@ export function SeccionEditor({
   )
 
   if (!seccion) {
-    return <div className="p-6 text-[13px] text-muted-foreground">Selecciona una sección</div>
+    return <div className="p-6 text-[13px] text-muted-foreground">Seleccione una sección</div>
   }
 
   function toggleAccion(sub: Subseccion, accion: Accion) {

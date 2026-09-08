@@ -601,8 +601,8 @@ export function UsuarioFormModal({ open, onOpenChange, usuario, lockedRolNombre,
             >
               {isPending
                 ? isEdit
-                  ? 'Guardando...'
-                  : 'Registrando...'
+                  ? 'Guardando…'
+                  : 'Registrando…'
                 : isEdit
                   ? 'Guardar cambios'
                   : 'Registrar usuario'}

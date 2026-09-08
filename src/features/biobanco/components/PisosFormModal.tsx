@@ -178,7 +178,7 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Layers className="h-5 w-5" />
-            Gestionar Pisos — {refrigerador.nombre}
+            Gestionar pisos — {refrigerador.nombre}
           </DialogTitle>
           <DialogDescription>
             Consulta, edita o elimina pisos existentes, y agrega nuevos al refrigerador.
@@ -445,7 +445,7 @@ export function PisosFormModal({ open, onOpenChange, refrigerador }: PisosFormMo
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creando...' : 'Crear Pisos'}
+              {isSubmitting ? 'Creando…' : 'Crear Pisos'}
             </Button>
           </DialogFooter>
         </form>

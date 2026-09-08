@@ -147,7 +147,7 @@ export default function HorariosConfigPanel() {
     }
     const alMenosUnDia = DIAS.some((d) => form[d.key])
     if (!alMenosUnDia) {
-      setFormError('Selecciona al menos un día')
+      setFormError('Seleccione al menos un día')
       return
     }
     setFormError('')
@@ -404,7 +404,7 @@ export default function HorariosConfigPanel() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenForm(false)}>Cancelar</Button>
             <Button onClick={handleSubmit} disabled={isPending}>
-              {isPending ? 'Guardando...' : editId ? 'Actualizar' : 'Crear'}
+              {isPending ? 'Guardando…' : editId ? 'Actualizar' : 'Crear'}
             </Button>
           </DialogFooter>
         </DialogContent>

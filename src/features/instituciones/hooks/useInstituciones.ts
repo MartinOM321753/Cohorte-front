@@ -301,7 +301,7 @@ export function useOtorgarPermisoAccesoPacientes(idInstitucion: number | null) {
       otorgarPermisoAccesoPacientes(idInstitucion as number, idInstitucionRecibe),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instituciones', 'permisos-pacientes', 'otorgados', idInstitucion] })
-      toast.success('Permiso otorgado: la institución hija ya puede ver estos pacientes')
+      toast.success('Permiso otorgado: la institución hija ya puede consultar a estos participantes')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al otorgar el permiso')

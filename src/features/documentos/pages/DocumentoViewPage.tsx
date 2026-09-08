@@ -36,7 +36,7 @@ export default function DocumentoViewPage() {
     if (!hasPermiso('DOCUMENTOS_DESCARGAR')) {
       setState({
         status: 'unauthorized',
-        reason: 'No tienes permiso para visualizar documentos escaneados.',
+        reason: 'No cuenta con permisos para consultar documentos escaneados.',
       })
       return
     }

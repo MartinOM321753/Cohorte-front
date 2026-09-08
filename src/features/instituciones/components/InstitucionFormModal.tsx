@@ -52,7 +52,7 @@ const MapLocationPicker = lazy(() =>
 
 const schema = z.object({
   nombre:           z.string().trim().min(1, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres'),
-  idTipoInstitucion:z.number({ invalid_type_error: 'Selecciona un tipo de institución' }).int().positive('Selecciona un tipo de institución'),
+  idTipoInstitucion:z.number({ invalid_type_error: 'Seleccione un tipo de institución' }).int().positive('Seleccione un tipo de institución'),
   idInstitucionPadre: z.number().int().positive().nullable().optional(),
   estado:           z.string().trim().min(1, 'El estado es obligatorio').max(60, 'Máximo 60 caracteres'),
   ciudad:           z.string().trim().min(1, 'La ciudad es obligatoria').max(60, 'Máximo 60 caracteres'),
@@ -387,7 +387,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
                   value={field.value != null ? String(field.value) : ''}
                   onChange={(v) => field.onChange(v ? Number(v) : null)}
                   options={padreOptions}
-                  placeholder="Selecciona institución superior"
+                  placeholder="Seleccione la institución superior"
                   searchPlaceholder="Buscar institución..."
                   emptyText="Sin resultados"
                 />
@@ -413,7 +413,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
                       field.onChange(v)
                     }}
                     options={estadoOptions}
-                    placeholder="Selecciona estado"
+                    placeholder="Seleccione un estado"
                     searchPlaceholder="Buscar estado..."
                     emptyText="Estado no encontrado"
                     hasError={!!errors.estado}
@@ -437,7 +437,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
                     value={field.value ?? ''}
                     onChange={field.onChange}
                     options={ciudadOptions}
-                    placeholder={estadoSeleccionado ? 'Selecciona ciudad' : 'Primero elige estado'}
+                    placeholder={estadoSeleccionado ? 'Seleccione una ciudad' : 'Seleccione primero un estado'}
                     searchPlaceholder="Buscar municipio..."
                     emptyText="Municipio no encontrado"
                     disabled={!estadoSeleccionado}
@@ -517,7 +517,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
                     Ubicar en el mapa
                   </Button>
                   {!estadoSeleccionado && (
-                    <span className="text-xs text-muted-foreground">Selecciona un estado primero</span>
+                    <span className="text-xs text-muted-foreground">Seleccione primero un estado</span>
                   )}
                   {mapsHref && (
                     <a href={mapsHref} target="_blank" rel="noreferrer" className="text-xs text-primary underline underline-offset-2">
@@ -596,7 +596,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
                   value={field.value ?? ''}
                   onChange={(v) => field.onChange(v || null)}
                   options={encargadoOptions}
-                  placeholder={loadingEncargados ? 'Cargando administradores…' : 'Selecciona encargado'}
+                  placeholder={loadingEncargados ? 'Cargando administradores…' : 'Seleccione un encargado'}
                   searchPlaceholder="Buscar administrador..."
                   emptyText="Sin administradores disponibles"
                   disabled={loadingEncargados}
@@ -644,7 +644,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
-                ? isEditing ? 'Actualizando...' : 'Creando...'
+                ? isEditing ? 'Actualizando…' : 'Creando…'
                 : isEditing ? 'Actualizar' : 'Registrar Institución'}
             </Button>
           </DialogFooter>

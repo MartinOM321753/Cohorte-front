@@ -56,8 +56,8 @@ export function VisibilidadHijasModal({ open, onOpenChange, institucion }: Props
           </DialogTitle>
           <DialogDescription>
             {institucion
-              ? <>Elige de qué sedes bajo <strong>{institucion.nombre}</strong> quieres ver los participantes en búsquedas, listados y cobertura.</>
-              : 'Selecciona una institución'}
+              ? <>Seleccione de qué sedes bajo <strong>{institucion.nombre}</strong> desea consultar los participantes en búsquedas, listados y cobertura.</>
+              : 'Seleccione una institución'}
           </DialogDescription>
         </DialogHeader>
 

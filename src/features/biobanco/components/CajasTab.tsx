@@ -70,7 +70,7 @@ export function CajasTab() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Cajas Criogénicas</h2>
+          <h2 className="text-2xl font-bold">Cajas criogénicas</h2>
           <p className="text-muted-foreground">Gestiona las cajas de almacenamiento y sus posiciones</p>
         </div>
         {puedeCrear && (

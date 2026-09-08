@@ -178,7 +178,7 @@ function buildTimeOptions(
 export function DatePicker({
   value,
   onChange,
-  placeholder = "Selecciona una fecha",
+  placeholder = "Seleccione una fecha",
   disabled,
   className,
   maxDate,
@@ -235,7 +235,7 @@ export function DatePicker({
 export function BirthDatePicker({
   value,
   onChange,
-  placeholder = "Selecciona fecha de nacimiento",
+  placeholder = "Seleccione la fecha de nacimiento",
   disabled,
   className,
 }: {

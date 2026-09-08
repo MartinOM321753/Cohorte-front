@@ -185,7 +185,7 @@ export function UnidadesPanel() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenCreate(false)}>Cancelar</Button>
             <Button onClick={handleCreate} disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Guardando...' : 'Crear'}
+              {createMutation.isPending ? 'Guardando…' : 'Crear'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -218,7 +218,7 @@ export function UnidadesPanel() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditTarget(null)}>Cancelar</Button>
             <Button onClick={handleUpdate} disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? 'Guardando...' : 'Actualizar'}
+              {updateMutation.isPending ? 'Guardando…' : 'Actualizar'}
             </Button>
           </DialogFooter>
         </DialogContent>

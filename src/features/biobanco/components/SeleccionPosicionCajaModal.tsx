@@ -13,15 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import { useGetCajas, useGetPosicionesByCaja } from '../hooks/useBiobanco'
 import { PosicionCaja } from '@/types/api'
+import { descripcionPosicionCaja, etiquetaPosicionCaja, letraFila } from '../lib/posicionCaja'
 
 interface SeleccionPosicionCajaModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: (result: { idPosicionCaja: number; cajaLabel: string }) => void
-}
-
-function colLabel(col: number): string {
-  return String.fromCharCode(64 + col)
 }
 
 export function SeleccionPosicionCajaModal({
@@ -51,7 +48,7 @@ export function SeleccionPosicionCajaModal({
   const handleConfirm = () => {
     if (!selectedPosicion || !selectedCajaId) return
     const caja = cajas?.find((c) => c.id.toString() === selectedCajaId)
-    const label = `Caja ${caja?.codigoCaja ?? selectedCajaId} — Fila ${selectedPosicion.fila} Col ${colLabel(selectedPosicion.columna)}`
+    const label = `Caja ${caja?.codigoCaja ?? selectedCajaId} — ${etiquetaPosicionCaja(selectedPosicion.fila, selectedPosicion.columna)}`
     onConfirm({ idPosicionCaja: selectedPosicion.id, cajaLabel: label })
     handleClose()
   }
@@ -77,7 +74,7 @@ export function SeleccionPosicionCajaModal({
             <Label>Caja criogénica</Label>
             <Select value={selectedCajaId} onValueChange={handleCajaChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona una caja..." />
+                <SelectValue placeholder="Seleccione una caja…" />
               </SelectTrigger>
               <SelectContent>
                 {cajas?.map((caja) => (
@@ -106,7 +103,7 @@ export function SeleccionPosicionCajaModal({
                               key={col}
                               className="w-10 h-7 text-center text-xs text-muted-foreground font-medium pb-1"
                             >
-                              {colLabel(col)}
+                              {col}
                             </th>
                           ))}
                         </tr>
@@ -115,7 +112,7 @@ export function SeleccionPosicionCajaModal({
                         {filas.map((fila) => (
                           <tr key={fila}>
                             <td className="w-8 text-xs text-muted-foreground text-right pr-2 font-medium">
-                              {fila}
+                              {letraFila(fila)}
                             </td>
                             {columnas.map((col) => {
                               const pos = posMap[`${fila}-${col}`]
@@ -133,8 +130,8 @@ export function SeleccionPosicionCajaModal({
                                     title={
                                       pos
                                         ? isOcupada
-                                          ? `Fila ${fila} ${colLabel(col)} — Ocupada`
-                                          : `Fila ${fila} ${colLabel(col)}`
+                                          ? `${descripcionPosicionCaja(fila, col)} — Ocupada`
+                                          : descripcionPosicionCaja(fila, col)
                                         : ''
                                     }
                                     className={cn(
@@ -145,7 +142,7 @@ export function SeleccionPosicionCajaModal({
                                       pos && !isOcupada && isSelected && 'bg-blue-500 border-blue-600 text-white cursor-pointer ring-2 ring-blue-300',
                                     )}
                                   >
-                                    {pos ? `${fila}${colLabel(col)}` : ''}
+                                    {pos ? etiquetaPosicionCaja(fila, col) : ''}
                                   </button>
                                 </td>
                               )
@@ -177,7 +174,7 @@ export function SeleccionPosicionCajaModal({
 
               {selectedPosicion && (
                 <p className="text-sm font-medium text-blue-700">
-                  Seleccionada: Fila {selectedPosicion.fila}, Col {colLabel(selectedPosicion.columna)}
+                  Seleccionada: {descripcionPosicionCaja(selectedPosicion.fila, selectedPosicion.columna)}
                 </p>
               )}
             </div>

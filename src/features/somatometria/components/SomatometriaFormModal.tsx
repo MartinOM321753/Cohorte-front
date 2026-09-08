@@ -164,7 +164,7 @@ export function SomatometriaFormModal({
             <DateTimePicker
               value={watch('fechaMedicion')}
               onChange={(v) => setValue('fechaMedicion', v, { shouldValidate: true })}
-              placeholder="Selecciona fecha"
+              placeholder="Seleccione una fecha"
               timeStepMinutes={1}
               maxDateTime={new Date()}
               minHour={horarioActivo?.horaInicio ?? 8}
@@ -314,7 +314,7 @@ export function SomatometriaFormModal({
               className="bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
             >
               {isPending
-                ? isEdit ? 'Guardando...' : 'Registrando...'
+                ? isEdit ? 'Guardando…' : 'Registrando…'
                 : isEdit ? 'Guardar cambios' : 'Registrar medición'}
             </Button>
           </DialogFooter>
