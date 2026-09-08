@@ -46,7 +46,7 @@ export default function CitasPage() {
             {puedeAgendarCita && (
               <Button
                 type="button"
-                onClick={() => toast.message('Para agendar: haz clic en un espacio del calendario (día/semana).')}
+                onClick={() => toast.message('Para agendar, haga clic en un espacio del calendario (día o semana).')}
               >
                 <Plus className="h-4 w-4" strokeWidth={1.75} />
                 Nueva cita
@@ -57,8 +57,8 @@ export default function CitasPage() {
       />
 
         <Card className="overflow-hidden p-0">
-          <div className="flex flex-wrap items-center gap-3 border-b p-4">
-            <div className="relative w-full max-w-sm">
+          <div className="flex flex-wrap items-center gap-2 border-b p-3 sm:gap-3 sm:p-4">
+            <div className="relative w-full sm:max-w-sm">
               <Search
                 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                 strokeWidth={1.75}
@@ -74,11 +74,11 @@ export default function CitasPage() {
               <Filter className="h-4 w-4" strokeWidth={1.75} />
               Filtros
             </Button>
-            <span className="ml-auto text-xs font-mono text-muted-foreground">
+            <span className="ml-auto font-mono text-xs text-muted-foreground">
               {filteredCitas.length} de {citasArray.length}
             </span>
           </div>
-          <div className="p-8">
+          <div className="p-2 sm:p-4 lg:p-6">
             <CitasIlamyCalendar citas={filteredCitas} isLoading={isLoading} />
           </div>
         </Card>

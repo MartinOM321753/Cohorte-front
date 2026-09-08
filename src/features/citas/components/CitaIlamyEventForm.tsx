@@ -274,7 +274,7 @@ export function CitaIlamyEventForm({
           <DialogDescription className="text-[13px] text-[var(--imss-ink-300)]">
             {isEditing
               ? 'Actualiza el estado, fecha u observaciones de la cita.'
-              : 'Selecciona el participante, la fecha y la duración.'}
+              : 'Seleccione el participante, la fecha y la duración.'}
           </DialogDescription>
         </DialogHeader>
 
