@@ -1,42 +1,73 @@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { useGetParametrosByTipo } from '@/features/estudios/hooks/useEstudios'
+import { useGetExamenes } from '@/features/estudios/hooks/useExamenes'
 import { cn } from '@/lib/utils'
 
+/** De dónde salen las filas que se pueden marcar. */
+export type OrigenSeleccion =
+  | { tipo: 'estudio'; idTipoEstudio: number | null }
+  | { tipo: 'examenes' }
+
 interface Props {
-  idTipoEstudio: number | null
+  origen: OrigenSeleccion
   /** Ids elegidos. Vacío significa «todos», no «ninguno». */
   seleccion: number[]
   onCambiar: (seleccion: number[]) => void
 }
 
+/** Una fila marcable, venga de donde venga. */
+interface Opcion {
+  id: number
+  nombre: string
+  unidad?: string
+  activo?: boolean
+}
+
 /**
- * Qué parámetros muestra un bloque de resultados.
+ * Qué filas muestra un bloque: los parámetros de un estudio o los analitos de
+ * laboratorio.
  *
  * <p>La lista vacía significa <b>todos</b>, y es lo que conviene por defecto: una
  * plantilla que no elige nada sigue funcionando cuando al catálogo se le añade un
  * parámetro, en lugar de dejarlo fuera para siempre sin que nadie lo note.</p>
  */
-export function SelectorParametros({ idTipoEstudio, seleccion, onCambiar }: Props) {
-  const { data: parametros, isLoading } = useGetParametrosByTipo(idTipoEstudio)
+export function SelectorParametros({ origen, seleccion, onCambiar }: Props) {
+  const esEstudio = origen.tipo === 'estudio'
+  const idTipo = esEstudio ? origen.idTipoEstudio : null
 
-  if (idTipoEstudio == null) {
+  const parametros = useGetParametrosByTipo(idTipo)
+  const examenes = useGetExamenes()
+
+  const cargando = esEstudio ? parametros.isLoading : examenes.isLoading
+
+  const lista: Opcion[] = esEstudio
+    ? (parametros.data ?? []).map((p) => ({
+        id: p.id, nombre: p.nombre, unidad: p.unidad, activo: p.activo,
+      }))
+    : (examenes.data ?? []).map((e) => ({
+        id: e.id, nombre: e.nombreExamen, unidad: e.unidad, activo: e.activo,
+      }))
+
+  if (esEstudio && idTipo == null) {
     return (
       <p className="text-[11px] leading-tight text-muted-foreground">
-        Esta plantilla no está ligada a un tipo de estudio, así que el bloque muestra
-        todo lo que cada estudio haya medido. Para poder elegir parámetros, liga la
-        plantilla a un tipo.
+        Este bloque no dice de qué estudio sale, así que muestra todo lo que el estudio
+        haya medido.
       </p>
     )
   }
 
-  if (isLoading) {
-    return <p className="text-[11px] text-muted-foreground">Cargando parámetros…</p>
+  if (cargando) {
+    return <p className="text-[11px] text-muted-foreground">Cargando…</p>
   }
 
-  const lista = parametros ?? []
   if (lista.length === 0) {
-    return <p className="text-[11px] text-muted-foreground">Ese tipo de estudio no tiene parámetros.</p>
+    return (
+      <p className="text-[11px] text-muted-foreground">
+        {esEstudio ? 'Ese tipo de estudio no tiene parámetros.' : 'No hay exámenes en el catálogo.'}
+      </p>
+    )
   }
 
   const todos = seleccion.length === 0
@@ -47,7 +78,7 @@ export function SelectorParametros({ idTipoEstudio, seleccion, onCambiar }: Prop
     const base = todos ? lista.map((p) => p.id) : seleccion
     const nueva = base.includes(id) ? base.filter((x) => x !== id) : [...base, id]
     // Si acaban marcados todos, se vuelve a «todos» para que la plantilla siga
-    // recogiendo los parámetros que se añadan más adelante.
+    // recogiendo lo que se añada más adelante.
     onCambiar(nueva.length === lista.length ? [] : nueva)
   }
 
@@ -78,7 +109,7 @@ export function SelectorParametros({ idTipoEstudio, seleccion, onCambiar }: Prop
                 </span>
                 {p.activo === false && (
                   <span className="block text-[10px] leading-tight text-muted-foreground">
-                    Fuera de uso — solo aparecerá en estudios que ya lo midieron
+                    Fuera de uso — solo aparecerá si ya se midió
                   </span>
                 )}
               </span>

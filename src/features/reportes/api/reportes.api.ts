@@ -30,6 +30,27 @@ export async function actualizarPlantilla(id: number, body: PlantillaReporteRequ
   return data.data
 }
 
+/**
+ * Cambia solo el nombre y la descripción.
+ *
+ * Va por su propio endpoint y no por el actualizar general: aquel exige mandar el
+ * diseño completo, y renombrar desde el listado obligaría a traérselo y devolverlo,
+ * con el riesgo de pisar el guardado bueno con una copia vieja.
+ */
+export async function renombrarPlantilla(
+  id: number, body: { nombre: string; descripcion?: string },
+): Promise<PlantillaReporte> {
+  const { data } = await axiosInstance.put<ApiResponse<PlantillaReporte>>(`${BASE}/${id}/nombre`, body)
+  return data.data
+}
+
+/** Copia el diseño. Sin nombre, el servidor propone uno libre. */
+export async function duplicarPlantilla(id: number, nombre?: string): Promise<PlantillaReporte> {
+  const { data } = await axiosInstance.post<ApiResponse<PlantillaReporte>>(
+    `${BASE}/${id}/duplicar`, { nombre })
+  return data.data
+}
+
 export async function togglePlantilla(id: number): Promise<boolean> {
   const { data } = await axiosInstance.put<ApiResponse<boolean>>(`${BASE}/${id}/toggle`)
   return data.data

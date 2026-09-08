@@ -2,8 +2,8 @@ import { useCallback, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 
 import { cn } from '@/lib/utils'
-import type { DisenoReporte, Elemento, Margenes } from '../types'
-import { medidasDe } from '../types'
+import type { Banda, DisenoReporte, Elemento, Margenes } from '../types'
+import { elementosDeBanda, medidasDe, origenDeBanda } from '../types'
 import { ElementoRender } from './ElementoRender'
 
 /** Las ocho manijas de redimensionado, en el orden en que se dibujan. */
@@ -13,16 +13,37 @@ type Manija = (typeof MANIJAS)[number]
 /** Tamaño mínimo de un elemento. Por debajo deja de poderse agarrar. */
 const MINIMO_MM = 4
 
+/** Un elemento listo para pintar, con de dónde viene y a qué altura se dibuja. */
+interface Pintable {
+  elemento: Elemento
+  banda: Banda
+  /** Desplazamiento vertical de su banda respecto al borde de la hoja. */
+  offsetYMm: number
+  /** Un eco de otra página: se ve, pero se edita donde vive. */
+  heredado: boolean
+}
+
 interface Props {
   diseno: DisenoReporte
   paginaIndex: number
-  seleccionadoId: string | null
+  /** Puede haber varios a la vez: un grupo, o una selección hecha con Ctrl. */
+  seleccionados: string[]
   escala: number
   /** Ajustar a una cuadrícula invisible, en milímetros. 0 = libre. */
   ajusteMm: number
   mostrarGuias: boolean
-  onSeleccionar: (id: string | null) => void
-  onCambiarElemento: (id: string, cambios: Partial<Elemento>) => void
+  /** `aditivo` llega con Ctrl o Shift: suma o quita de la selección. */
+  onSeleccionar: (id: string | null, aditivo?: boolean) => void
+  onCambiarElemento: (banda: Banda, id: string, cambios: Partial<Elemento>) => void
+  /** Mueve de una vez todo lo seleccionado. Es lo que hace que un grupo sea un grupo. */
+  onMoverSeleccion: (dxMm: number, dyMm: number) => void
+  /**
+   * Doble clic sobre un elemento que tiene contenido propio que editar.
+   *
+   * De momento solo las tablas: el doble clic sobre una celda es el gesto que
+   * espera cualquiera que haya usado un procesador de textos.
+   */
+  onAbrirContenido?: (id: string) => void
 }
 
 /**
@@ -39,8 +60,8 @@ interface Props {
  * la hoja, que es justo lo que pasa al mover algo hasta el borde.</p>
  */
 export function LienzoReporte({
-  diseno, paginaIndex, seleccionadoId, escala, ajusteMm, mostrarGuias,
-  onSeleccionar, onCambiarElemento,
+  diseno, paginaIndex, seleccionados, escala, ajusteMm, mostrarGuias,
+  onSeleccionar, onCambiarElemento, onMoverSeleccion, onAbrirContenido,
 }: Props) {
   const { anchoMm, altoMm } = medidasDe(diseno)
   const hojaRef = useRef<HTMLDivElement>(null)
@@ -49,26 +70,55 @@ export function LienzoReporte({
   // puntero y no debe provocar un render por sí mismo.
   const gesto = useRef<{
     id: string
+    banda: Banda
     modo: 'mover' | Manija
     inicioX: number
     inicioY: number
+    /** Lo ya aplicado al mover en grupo, para mandar solo la diferencia. */
+    aplicadoX: number
+    aplicadoY: number
+    enGrupo: boolean
     original: { xMm: number; yMm: number; anchoMm: number; altoMm: number }
   } | null>(null)
 
   const [arrastrando, setArrastrando] = useState(false)
 
   const pagina = diseno.paginas[paginaIndex]
+  const altoEncabezado = diseno.encabezado?.activo ? diseno.encabezado.altoMm : 0
+  const altoPie = diseno.pie?.activo ? diseno.pie.altoMm : 0
 
   /**
-   * Los elementos que se dibujan en esta página: los suyos, más los que se
-   * repiten en todas y viven en la primera.
+   * Todo lo que se dibuja en esta hoja: el cuerpo de la página, los elementos
+   * que se repiten y viven en la primera, y las dos bandas.
+   *
+   * <p>Las bandas van con su desplazamiento porque sus coordenadas son relativas
+   * a ellas; el pie se ancla abajo, así que el suyo depende del alto de la hoja.</p>
    */
-  const elementos: Elemento[] = (() => {
-    const propios = pagina?.elementos ?? []
-    if (paginaIndex === 0) return propios
-    const repetidos = (diseno.paginas[0]?.elementos ?? []).filter((e) => e.repiteEnTodas)
-    return [...repetidos, ...propios]
-  })().slice().sort((a, b) => a.z - b.z)
+  const pintables: Pintable[] = (() => {
+    const lista: Pintable[] = []
+
+    if (paginaIndex > 0) {
+      for (const e of diseno.paginas[0]?.elementos ?? []) {
+        if (e.repiteEnTodas) {
+          lista.push({ elemento: e, banda: 'cuerpo', offsetYMm: 0, heredado: true })
+        }
+      }
+    }
+    for (const e of pagina?.elementos ?? []) {
+      lista.push({ elemento: e, banda: 'cuerpo', offsetYMm: 0, heredado: false })
+    }
+    for (const e of elementosDeBanda(diseno.encabezado)) {
+      lista.push({ elemento: e, banda: 'encabezado', offsetYMm: 0, heredado: false })
+    }
+    const origenPie = origenDeBanda('pie', diseno)
+    for (const e of elementosDeBanda(diseno.pie)) {
+      lista.push({ elemento: e, banda: 'pie', offsetYMm: origenPie, heredado: false })
+    }
+
+    return lista
+      .filter((p) => !p.elemento.oculto)
+      .sort((a, b) => a.elemento.z - b.elemento.z)
+  })()
 
   const aMm = useCallback((px: number) => px / escala, [escala])
 
@@ -77,28 +127,52 @@ export function LienzoReporte({
     [ajusteMm],
   )
 
-  function iniciarGesto(
-    e: ReactPointerEvent,
-    elemento: Elemento,
-    modo: 'mover' | Manija,
-  ) {
-    if (elemento.bloqueado) return
+  function iniciarGesto(e: ReactPointerEvent, p: Pintable, modo: 'mover' | Manija) {
+    const { elemento } = p
     e.stopPropagation()
+
+    // Un elemento bloqueado sí se puede seleccionar; lo que no se puede es
+    // moverlo. Antes ni siquiera respondía al clic, así que bloquear algo era un
+    // viaje de ida: no había forma de volver a alcanzarlo para desbloquearlo.
+    const aditivo = e.ctrlKey || e.metaKey || e.shiftKey
+    if (elemento.bloqueado || p.heredado) {
+      if (!p.heredado) onSeleccionar(elemento.id, aditivo)
+      return
+    }
+
     e.preventDefault()
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
 
+    // Si ya estaba seleccionado se conserva la selección —así se arrastra un
+    // grupo entero—; si no, este pasa a ser lo único seleccionado.
+    const yaEstaba = seleccionados.includes(elemento.id)
+    if (!yaEstaba || aditivo) onSeleccionar(elemento.id, aditivo)
+
+    // Que pertenezca a un grupo basta, aunque el grupo no estuviera seleccionado
+    // todavía: el clic acaba de seleccionarlo entero. Mirando solo la selección
+    // anterior, el primer arrastre sobre un grupo movía un elemento suelto y
+    // deshacía justo lo que agrupar prometía.
+    const hermanos = elemento.grupoId
+      ? pintables.filter((x) => x.elemento.grupoId === elemento.grupoId).length
+      : 1
+    const enGrupo = modo === 'mover'
+      && (hermanos > 1 || (yaEstaba && seleccionados.length > 1))
+
     gesto.current = {
       id: elemento.id,
+      banda: p.banda,
       modo,
       inicioX: e.clientX,
       inicioY: e.clientY,
+      aplicadoX: 0,
+      aplicadoY: 0,
+      enGrupo,
       original: {
         xMm: elemento.xMm, yMm: elemento.yMm,
         anchoMm: elemento.anchoMm, altoMm: elemento.altoMm,
       },
     }
     setArrastrando(true)
-    onSeleccionar(elemento.id)
   }
 
   function moverPuntero(e: ReactPointerEvent) {
@@ -110,7 +184,21 @@ export function LienzoReporte({
     const o = g.original
 
     if (g.modo === 'mover') {
-      onCambiarElemento(g.id, {
+      if (g.enGrupo) {
+        // En grupo se manda el incremento desde la última vez, no la posición
+        // absoluta: cada miembro parte de la suya y hay que respetarla.
+        const destinoX = ajustar(o.xMm + dxMm) - o.xMm
+        const destinoY = ajustar(o.yMm + dyMm) - o.yMm
+        const pasoX = destinoX - g.aplicadoX
+        const pasoY = destinoY - g.aplicadoY
+        if (pasoX !== 0 || pasoY !== 0) {
+          g.aplicadoX = destinoX
+          g.aplicadoY = destinoY
+          onMoverSeleccion(pasoX, pasoY)
+        }
+        return
+      }
+      onCambiarElemento(g.banda, g.id, {
         xMm: ajustar(o.xMm + dxMm),
         yMm: ajustar(o.yMm + dyMm),
       } as Partial<Elemento>)
@@ -139,7 +227,7 @@ export function LienzoReporte({
       alto = MINIMO_MM
     }
 
-    onCambiarElemento(g.id, {
+    onCambiarElemento(g.banda, g.id, {
       xMm: ajustar(xMm), yMm: ajustar(yMm),
       anchoMm: ajustar(ancho), altoMm: ajustar(alto),
     } as Partial<Elemento>)
@@ -173,45 +261,71 @@ export function LienzoReporte({
       onPointerUp={terminarGesto}
       onPointerCancel={terminarGesto}
     >
-      {mostrarGuias && <GuiaMargenes margenes={diseno.margenes} escala={escala}
-                                     anchoMm={anchoMm} altoMm={altoMm} />}
+      {mostrarGuias && (
+        <>
+          <GuiaMargenes margenes={diseno.margenes} escala={escala}
+                        anchoMm={anchoMm} altoMm={altoMm} />
+          {altoEncabezado > 0 && (
+            <GuiaBanda rotulo="Encabezado" escala={escala}
+                       topMm={0} altoBandaMm={altoEncabezado} />
+          )}
+          {altoPie > 0 && (
+            <GuiaBanda rotulo="Pie de página" escala={escala}
+                       topMm={altoMm - altoPie} altoBandaMm={altoPie} />
+          )}
+        </>
+      )}
 
-      {elementos.map((el) => {
-        const heredado = paginaIndex > 0 && el.repiteEnTodas
-        const seleccionado = el.id === seleccionadoId && !heredado
+      {pintables.map((p) => {
+        const el = p.elemento
+        const seleccionado = seleccionados.includes(el.id) && !p.heredado
         return (
           <div
-            key={el.id + (heredado ? '-h' : '')}
+            key={el.id + (p.heredado ? '-h' : '')}
             className={cn(
               'absolute',
-              !el.bloqueado && !heredado && 'cursor-move',
-              heredado && 'opacity-60',
-              seleccionado && 'outline outline-2 outline-sky-500',
+              !el.bloqueado && !p.heredado && 'cursor-move',
+              el.bloqueado && !p.heredado && 'cursor-default',
+              p.heredado && 'opacity-60',
+              seleccionado && (el.bloqueado
+                ? 'outline outline-2 outline-dashed outline-amber-500'
+                : 'outline outline-2 outline-sky-500'),
             )}
             style={{
               left: `${el.xMm * escala}px`,
-              top: `${el.yMm * escala}px`,
+              top: `${(el.yMm + p.offsetYMm) * escala}px`,
               width: `${el.anchoMm * escala}px`,
               height: `${el.altoMm * escala}px`,
               zIndex: el.z,
+              // Girar solo cambia cómo se pinta: el arrastre y las manijas siguen
+              // en el sistema sin girar, que es lo que hace la aritmética manejable.
+              ...(el.rotacionGrados
+                ? { transform: `rotate(${el.rotacionGrados}deg)` }
+                : {}),
             }}
             // Los heredados se editan desde su página, no desde el eco: cambiar
             // aquí uno de ellos daría la impresión de que solo afecta a esta hoja.
-            onPointerDown={(e) => !heredado && iniciarGesto(e, el, 'mover')}
+            onPointerDown={(e) => iniciarGesto(e, p, 'mover')}
+            onDoubleClick={(e) => {
+              if (p.heredado || el.tipo !== 'tabla') return
+              e.stopPropagation()
+              onAbrirContenido?.(el.id)
+            }}
           >
             <ElementoRender elemento={el} escala={escala} />
 
-            {seleccionado && !el.bloqueado && MANIJAS.map((m) => (
-              <span
-                key={m}
-                onPointerDown={(e) => iniciarGesto(e, el, m)}
-                className={cn(
-                  'absolute h-2 w-2 rounded-[1px] border border-white bg-sky-500',
-                  posicionManija(m),
-                  cursorManija(m),
-                )}
-              />
-            ))}
+            {seleccionado && !el.bloqueado && seleccionados.length === 1
+              && MANIJAS.map((m) => (
+                <span
+                  key={m}
+                  onPointerDown={(e) => iniciarGesto(e, p, m)}
+                  className={cn(
+                    'absolute h-2 w-2 rounded-[1px] border border-white bg-sky-500',
+                    posicionManija(m),
+                    cursorManija(m),
+                  )}
+                />
+              ))}
           </div>
         )
       })}
@@ -233,6 +347,22 @@ function GuiaMargenes({ margenes, escala, anchoMm, altoMm }: {
         height: `${(altoMm - margenes.superiorMm - margenes.inferiorMm) * escala}px`,
       }}
     />
+  )
+}
+
+/** Dónde empieza y acaba una banda. Sin esto no se sabe qué se repite. */
+function GuiaBanda({ rotulo, escala, topMm, altoBandaMm }: {
+  rotulo: string; escala: number; topMm: number; altoBandaMm: number
+}) {
+  return (
+    <div
+      className="pointer-events-none absolute left-0 right-0 border-y border-dashed border-violet-300 bg-violet-500/[0.04]"
+      style={{ top: `${topMm * escala}px`, height: `${altoBandaMm * escala}px` }}
+    >
+      <span className="absolute right-0.5 top-0.5 text-[8px] uppercase tracking-wide text-violet-400">
+        {rotulo}
+      </span>
+    </div>
   )
 }
 
