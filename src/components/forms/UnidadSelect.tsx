@@ -38,7 +38,7 @@ export function UnidadSelect({
   value,
   onChange,
   error,
-  placeholder = 'Selecciona unidad...',
+  placeholder = 'Seleccione una unidad…',
   disabled = false,
   compact = false,
 }: UnidadSelectProps) {
@@ -183,7 +183,7 @@ export function UnidadSelect({
               Cancelar
             </Button>
             <Button onClick={handleCreate} disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Guardando...' : 'Crear y seleccionar'}
+              {createMutation.isPending ? 'Guardando…' : 'Crear y seleccionar'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -311,7 +311,7 @@ export function InstitucionesTab() {
                         size="sm"
                         onClick={() => handleOpenPermisos(institucion)}
                         disabled={!gestionablesSet.has(institucion.id)}
-                        title="Permisos de acceso a pacientes para instituciones hijas"
+                        title="Permisos de acceso a participantes para instituciones hijas"
                       >
                         <Users className="h-4 w-4" />
                       </Button>

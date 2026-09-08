@@ -260,7 +260,7 @@ export function HistorialTrasladosModal({ open, onOpenChange, muestra }: Histori
                       )}
                       <div className="flex gap-2">
                         <Button size="sm" onClick={handleAction} disabled={isPending} className="h-7 text-xs">
-                          {isPending ? 'Guardando...' : 'Confirmar'}
+                          {isPending ? 'Guardando…' : 'Confirmar'}
                         </Button>
                         <Button size="sm" variant="outline" onClick={resetAction} className="h-7 text-xs">
                           Cancelar

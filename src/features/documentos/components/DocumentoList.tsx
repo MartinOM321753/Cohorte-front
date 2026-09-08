@@ -363,7 +363,7 @@ export function DocumentoList({
                   /* Sin permiso para descargar — muestra candado informativo */
                   <span
                     className="flex h-7 w-7 items-center justify-center text-muted-foreground/50"
-                    title="No tienes permiso para descargar este archivo"
+                    title="No cuenta con permisos para descargar este archivo"
                   >
                     <Lock className="h-3.5 w-3.5" />
                   </span>
@@ -404,7 +404,7 @@ export function DocumentoList({
           <DialogHeader>
             <DialogTitle>Eliminar documento</DialogTitle>
             <DialogDescription>
-              ¿Seguro que deseas eliminar{' '}
+              ¿Confirma que desea eliminar{' '}
               <span className="font-medium">{confirmDelete?.nombreOriginal}</span>? Esta acción
               no se puede deshacer y el archivo se borrará del almacenamiento.
             </DialogDescription>

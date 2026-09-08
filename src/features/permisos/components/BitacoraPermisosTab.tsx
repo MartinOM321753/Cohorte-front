@@ -81,7 +81,7 @@ export function BitacoraPermisosTab() {
               <span className="truncate">
                 {selectedUser
                   ? `${buildNombreCompleto(selectedUser)} (${selectedUser.username})`
-                  : 'Filtrar por usuario...'}
+                  : 'Filtrar por usuario…'}
               </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>

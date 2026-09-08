@@ -81,6 +81,9 @@ import type {
   ParametroEstudio,
 } from '@/types/api'
 import { ESTADO_CONTACTO_LABELS, MEDIO_CONTACTO_LABELS } from '@/types/api'
+import { emparejarParametro } from '@/features/estudios/lib/emparejarParametro'
+import { parametrosDelFormulario } from '@/features/estudios/lib/parametrosDelFormulario'
+import { EmitirReporteDialog } from '@/features/reportes/components/EmitirReporteDialog'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Small helpers
@@ -1244,7 +1247,19 @@ function EstudioDetalleDialog({
   const canDeleteDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
   const canUpload     = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_SUBIR'))
 
-  const parametrosList: ParametroEstudio[] = parametros ?? []
+  // Igual que en el llenado: se ofrecen los que siguen en uso, y los retirados solo
+  // aparecen si este estudio tiene un valor suyo.
+  const catalogoParametros: ParametroEstudio[] = (parametros ?? []).filter(
+    (p) => p.activo !== false,
+  )
+
+  // El formulario maneja el catalogo vigente MAS los parametros que ya tienen
+  // resultado en este estudio y hoy no aparecen en el. Lo que no se muestre aqui
+  // no se envia al guardar, y lo que no se envia el servidor lo borra.
+  const parametrosList = useMemo(
+    () => parametrosDelFormulario(catalogoParametros, estudio?.resultados ?? []),
+    [parametros, estudio],
+  )
 
   // Sync view/edit mode when dialog opens
   useEffect(() => {
@@ -1281,7 +1296,7 @@ function EstudioDetalleDialog({
             valores: {},
           })
         }
-        const param = parametrosList.find((p) => p.nombre === r.parametro)
+        const param = emparejarParametro(parametrosList, r)
         if (!param) continue
         const val =
           param.tipo === 'NUMERICO'       ? (r.valorNumerico ?? '') :
@@ -1295,7 +1310,7 @@ function EstudioDetalleDialog({
       setEditModo('NORMAL')
       const vals: Record<number, string | number | boolean> = {}
       for (const r of resultados) {
-        const param = parametrosList.find((p) => p.nombre === r.parametro)
+        const param = emparejarParametro(parametrosList, r)
         if (!param) continue
         vals[param.id] =
           param.tipo === 'NUMERICO'       ? (r.valorNumerico ?? '') :
@@ -1366,7 +1381,7 @@ function EstudioDetalleDialog({
     // recortado a 10 caracteres— y el usuario solo veia un error del servidor sin
     // saber que corregir. Mas vale detenerlo aqui con un motivo legible.
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(editFecha)) {
-      toast.error('La fecha del estudio debe incluir la hora. Vuelve a seleccionarla.')
+      toast.error('La fecha del estudio debe incluir la hora. Selecciónela nuevamente.')
       return
     }
 
@@ -1544,7 +1559,7 @@ function EstudioDetalleDialog({
                   <DateTimePicker
                     value={editFecha}
                     onChange={setEditFecha}
-                    placeholder="Selecciona fecha y hora"
+                    placeholder="Seleccione la fecha y la hora"
                     timeStepMinutes={1}
                     maxDateTime={new Date()}
                     minHour={horarioActivo?.horaInicio ?? 8}
@@ -1584,6 +1599,14 @@ function EstudioDetalleDialog({
                       <div key={p.id} className="flex items-center gap-3">
                         <span className="flex-1 text-[13px] text-[var(--imss-ink-700)]">
                           {p.nombre}{p.unidad ? ` (${p.unidad})` : ''}
+                          {p.heredado && (
+                            <span
+                              className="ml-2 rounded-sm border border-[var(--border)] px-1.5 py-px align-middle text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--imss-ink-300)]"
+                              title="Este parámetro ya no está en uso. Se muestra porque el estudio tiene un valor capturado con él; si lo borras, se pierde."
+                            >
+                              fuera de uso
+                            </span>
+                          )}
                         </span>
                         <CampoParametro
                           parametro={p}
@@ -1608,6 +1631,14 @@ function EstudioDetalleDialog({
                             <div key={p.id} className="flex items-center gap-3">
                               <span className="flex-1 text-[13px] text-[var(--imss-ink-700)]">
                                 {p.nombre}{p.unidad ? ` (${p.unidad})` : ''}
+                                {p.heredado && (
+                                  <span
+                                    className="ml-2 rounded-sm border border-[var(--border)] px-1.5 py-px align-middle text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--imss-ink-300)]"
+                                    title="Este parámetro ya no está en uso. Se muestra porque el estudio tiene un valor capturado con él; si lo borras, se pierde."
+                                  >
+                                    fuera de uso
+                                  </span>
+                                )}
                               </span>
                               <CampoParametro
                                 parametro={p}
@@ -2272,9 +2303,13 @@ export default function ExpedientePacientePage() {
   // vía /pacientes/mi-uuid, reutilizando esta MISMA página en modo lectura (los botones
   // de edición ya se ocultan solos porque PACIENTE no tiene los permisos *_EDITAR).
   const stateUuid: string = (location.state as { uuid?: string } | null)?.uuid ?? ''
+  const [emitirAbierto, setEmitirAbierto] = useState(false)
   const { hasPermiso } = useAuthStore()
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
 
+  // El expediente se reutiliza para el propio participante, que no emite reportes
+  // de sí mismo. Sin esta condición el botón salía para todos.
+  const puedeEmitirReporte = hasPermiso('REPORTES_EMITIR')
   const puedeVerCualquierPaciente = hasPermiso('PACIENTES_ACCEDER') || hasPermiso('PACIENTES_LOOKUP')
   const necesitaUuidPropio = !stateUuid && !puedeVerCualquierPaciente
   const { data: miUuid, isLoading: resolviendoUuidPropio } = useMiPacienteUuid({ enabled: necesitaUuidPropio })
@@ -2440,15 +2475,17 @@ export default function ExpedientePacientePage() {
 
           {/* Actions */}
           <div className="flex gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-[13px]"
-              onClick={() => window.print()}
-            >
-              <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Exportar PDF
-            </Button>
+            {puedeEmitirReporte && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-[13px]"
+                onClick={() => setEmitirAbierto(true)}
+              >
+                <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Emitir reporte
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -2636,6 +2673,15 @@ export default function ExpedientePacientePage() {
         onOpenChange={setPacienteFormOpen}
         paciente={paciente}
       />
+
+      {puedeEmitirReporte && (
+        <EmitirReporteDialog
+          abierto={emitirAbierto}
+          onCerrar={() => setEmitirAbierto(false)}
+          uuidParticipante={uuid}
+          nombreParticipante={nombreCompleto}
+        />
+      )}
     </div>
   )
 }

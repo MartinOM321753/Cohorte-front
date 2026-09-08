@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
 import { LlenadoEstudioTab } from '../components/LlenadoEstudioTab'
 import { TiposEstudioTab } from '../components/TiposEstudioTab'
 import { CargaMasivaTab } from '../components/CargaMasivaTab'
@@ -35,14 +37,13 @@ export default function EstudiosPage() {
             escanear el codigo y la clase nunca llega al CSS. Con dos pestanas
             colaba de casualidad; con tres la barra se descuadra. */}
         {tabs.length > 1 && (
-          <TabsList
-            className="grid w-full"
-            style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
-          >
+          <BarraPestanas>
+          <TabsList className={PISTA_PESTANAS}>
             {tabs.map((t) => (
               <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
             ))}
           </TabsList>
+          </BarraPestanas>
         )}
 
         {puedeLlenado && (

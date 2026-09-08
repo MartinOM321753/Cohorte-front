@@ -300,7 +300,7 @@ export function calcularCalibracion(
   if (kY < 0.85 || kY > 1.15 || kX < 0.85 || kX > 1.15) {
     return {
       ...vacio,
-      motivo: `La escala medida (${(kX * 100).toFixed(1)} % × ${(kY * 100).toFixed(1)} %) se aleja demasiado de lo esperado. Revisa que se haya impreso al 100 % y sin márgenes, y vuelve a medir.`,
+      motivo: `La escala medida (${(kX * 100).toFixed(1)} % × ${(kY * 100).toFixed(1)} %) se aleja demasiado de lo esperado. Revise que se haya impreso al 100 % y sin márgenes, y mida nuevamente.`,
     }
   }
 

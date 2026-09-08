@@ -171,7 +171,7 @@ export function CalibracionDialog({
             Calibrar «{config.nombre}»
           </DialogTitle>
           <DialogDescription>
-            Ajusta la configuración a lo que tu impresora hace de verdad con el papel.
+            Ajuste la configuración a lo que su impresora hace realmente con el papel.
           </DialogDescription>
         </DialogHeader>
 
@@ -180,9 +180,9 @@ export function CalibracionDialog({
           <div>
             <p className="text-sm font-medium">Paso real de la hoja (método vernier)</p>
             <p className="text-[12px] text-muted-foreground">
-              Úsalo cuando las etiquetas se corran de lado conforme avanzan las columnas. No
-              necesitas regla ni medir nada: se imprime sobre una hoja de etiquetas real y solo
-              tienes que decir qué fila coincide con los troqueles.
+              Utilícelo cuando las etiquetas se recorran conforme avanzan las columnas. No
+              se requiere regla ni medición: se imprime sobre una hoja de etiquetas real y
+              basta con indicar qué fila coincide con los troqueles.
             </p>
           </div>
 

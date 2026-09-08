@@ -53,6 +53,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
+import { emparejarParametro } from '@/features/estudios/lib/emparejarParametro'
+import { parametrosDelFormulario } from '@/features/estudios/lib/parametrosDelFormulario'
 
 // ──────────────────────────────────────────────────────────
 // Local types
@@ -199,12 +201,33 @@ export function LlenadoEstudioTab() {
   const updateMutation = useUpdateEstudio(editingEstudioId ?? 0)
   const deleteMutation = useDeleteEstudio()
 
-  const parametrosList: ParametroEstudio[] = parametros ?? []
+  // Solo los parametros en uso se ofrecen para capturar. Los retirados llegan por
+  // el otro camino —la union de abajo— y unicamente cuando el estudio que se edita
+  // ya tiene un valor suyo que conservar.
+  const catalogoParametros: ParametroEstudio[] = (parametros ?? []).filter(
+    (p) => p.activo !== false,
+  )
+
+  // Al editar, el formulario tambien tiene que hacerse cargo de los parametros que
+  // ya tienen resultado en ese estudio y hoy no estan en el catalogo: lo que no se
+  // muestra no se envia, y lo que no se envia el servidor lo borra. En una captura
+  // nueva no hay estudio que editar y la lista es el catalogo tal cual.
+  const parametrosList = useMemo(
+    () => parametrosDelFormulario(catalogoParametros, estudioEditar?.resultados ?? []),
+    [parametros, estudioEditar],
+  )
+
+  // Un parametro fuera de uso nunca se exige: se conserva si trae valor, pero no
+  // bloquea el guardado si alguien decide vaciarlo.
+  const parametrosExigibles = useMemo(
+    () => parametrosList.filter((p) => !p.heredado),
+    [parametrosList],
+  )
 
   // In GRUPOS mode we don't use Zod for param fields — skip them in the schema to avoid blocking submit
   const schema = useMemo(
-    () => buildResultadosSchema(modoCaptura === 'GRUPOS' ? [] : parametrosList),
-    [parametrosList, modoCaptura]
+    () => buildResultadosSchema(modoCaptura === 'GRUPOS' ? [] : parametrosExigibles),
+    [parametrosExigibles, modoCaptura]
   )
 
   const {
@@ -302,7 +325,7 @@ export function LlenadoEstudioTab() {
             valores: {},
           })
         }
-        const param = parametrosList.find((p) => p.nombre === resultado.parametro)
+        const param = emparejarParametro(parametrosList, resultado)
         if (!param) continue
         const grupo = gruposMap.get(codigo)!
         const val =
@@ -319,7 +342,7 @@ export function LlenadoEstudioTab() {
       // ── Normal mode: fill react-hook-form fields ──
       setModoCaptura('NORMAL')
       for (const resultado of resultados) {
-        const param = parametrosList.find((p) => p.nombre === resultado.parametro)
+        const param = emparejarParametro(parametrosList, resultado)
         if (!param) continue
         if (param.tipo === 'NUMERICO') setValue(`param_${param.id}`, resultado.valorNumerico ?? '')
         else if (param.tipo === 'BOOLEANO') setValue(`param_${param.id}`, resultado.valorBooleano ?? false)
@@ -457,7 +480,7 @@ export function LlenadoEstudioTab() {
       // mismas reglas que en modo normal: todo obligatorio salvo BOOLEANO, donde
       // false es un valor válido y por eso nunca está "sin capturar".
       for (const g of grupos) {
-        const faltante = parametrosList.find((p) => {
+        const faltante = parametrosExigibles.find((p) => {
           if (p.tipo === 'BOOLEANO') return false
           const v = g.valores[p.id]
           return v === undefined || v === null || String(v).trim() === ''
@@ -560,7 +583,7 @@ export function LlenadoEstudioTab() {
                 <Eye className="mt-0.5 h-3 w-3 shrink-0 text-amber-700" />
                 <span className="text-[11px] leading-snug text-amber-800">
                   Ya no gestionas a este participante. Se muestran únicamente los estudios que
-                  registró tu institución; no se le pueden agregar ni modificar.
+                  registró su institución; no se le pueden agregar ni modificar.
                 </span>
               </div>
             )}
@@ -711,7 +734,7 @@ export function LlenadoEstudioTab() {
           </div>
           <div className="text-xs text-muted-foreground">
             {!editingEstudioId
-              ? 'Selecciona la plantilla para cargar el formulario.'
+              ? 'Seleccione la plantilla para cargar el formulario.'
               : soloLectura
                 ? 'Solo lectura: los campos están bloqueados.'
                 : 'Modifica los resultados del estudio seleccionado.'}
@@ -728,7 +751,7 @@ export function LlenadoEstudioTab() {
               <p className="text-[12px] leading-snug text-amber-800">
                 {pacienteSoloConsulta
                   ? <>Ya no gestionas a este participante. Puedes consultar el estudio que
-                      registró tu institución, pero no modificarlo.</>
+                      registró su institución, pero no modificarlo.</>
                   : <>Estás consultando un estudio registrado por otra institución. Puedes verlo
                       completo, pero solo la sede que lo realizó puede modificarlo.</>}
               </p>
@@ -856,7 +879,7 @@ export function LlenadoEstudioTab() {
             <DateTimePicker
               value={watchedFecha}
               onChange={(v) => setValue('fechaEstudio', v, { shouldValidate: true })}
-              placeholder="Selecciona fecha y hora"
+              placeholder="Seleccione la fecha y la hora"
               timeStepMinutes={1}
               maxDateTime={new Date()}
               minHour={horarioActivo?.horaInicio ?? 8}

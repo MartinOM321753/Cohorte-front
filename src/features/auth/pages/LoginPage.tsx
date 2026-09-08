@@ -106,7 +106,7 @@ function GeoBanner({ status }: { status: GeoStatus }) {
     return (
       <div style={{ ...base, background: "#f0fdf4", color: "#1e4e3a" }}>
         <MapPin size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
-        <span>Solicitando tu ubicación para registrarla en la bitácora…</span>
+        <span>Solicitando su ubicación para registrarla en la bitácora…</span>
       </div>
     );
   }
@@ -115,7 +115,7 @@ function GeoBanner({ status }: { status: GeoStatus }) {
     return (
       <div style={{ ...base, background: "#f0fdf4", color: "#1e4e3a" }}>
         <MapPin size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
-        <span>Ubicación capturada. Ya puedes iniciar sesión.</span>
+        <span>Ubicación registrada. Ya puede iniciar sesión.</span>
       </div>
     );
   }
@@ -137,7 +137,7 @@ function GeoBanner({ status }: { status: GeoStatus }) {
   return (
     <div style={{ ...base, background: "#fef2f2", color: "#991b1b" }}>
       <MapPinOff size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
-      <span>Tu navegador no soporta geolocalización, así que no es posible iniciar sesión desde aquí.</span>
+      <span>Su navegador no es compatible con la geolocalización, por lo que no es posible iniciar sesión desde este equipo.</span>
     </div>
   );
 }
@@ -225,7 +225,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     if (!coords) {
-      toast.error("Necesitamos tu ubicación para continuar. Concede el permiso desde el ícono de candado/ubicación en la barra de direcciones e intenta de nuevo.");
+      toast.error("Se requiere su ubicación para continuar. Otorgue el permiso desde el ícono de candado o de ubicación en la barra de direcciones e intente nuevamente.");
       return;
     }
     setIsLoading(true);

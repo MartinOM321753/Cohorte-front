@@ -130,7 +130,10 @@ function CitasCalendarHeader() {
   }, [currentDate, view, firstDayOfWeek]);
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-(--imss-ink-100) bg-card px-4 py-2.5">
+    // En pantalla estrecha el título se pone en su propio renglón y debajo quedan la
+    // navegación y las vistas. Los tres grupos en una sola línea no caben en un móvil
+    // —solo el selector de vistas mide más de la mitad— y se salían de la tarjeta.
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-(--imss-ink-100) bg-card px-2 py-2 sm:flex-nowrap sm:justify-between sm:gap-3 sm:px-4 sm:py-2.5">
       {/* ← Navegación */}
       <div className="flex items-center gap-1">
         <Button
@@ -160,19 +163,19 @@ function CitasCalendarHeader() {
         </Button>
       </div>
 
-      {/* Período actual */}
-      <span className="flex-1 text-center text-[14px] font-semibold capitalize text-(--imss-ink-900) truncate">
+      {/* Período actual. En móvil va primero y ocupa su propio renglón. */}
+      <span className="order-first w-full truncate text-center text-[14px] font-semibold capitalize text-(--imss-ink-900) sm:order-none sm:w-auto sm:flex-1">
         {periodLabel}
       </span>
 
       {/* Selector de vista */}
-      <div className="flex items-center rounded-md border border-(--imss-ink-100) overflow-hidden">
+      <div className="ml-auto flex items-center overflow-hidden rounded-md border border-(--imss-ink-100) sm:ml-0">
         {VIEWS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setView(key)}
             className={[
-              "px-3 py-1.5 text-[13px] font-medium transition-colors",
+              "px-2 py-1.5 text-[12px] font-medium transition-colors sm:px-3 sm:text-[13px]",
               view === key
                 ? "bg-(--imss-green-500) text-white"
                 : "bg-card text-(--imss-ink-500) hover:bg-(--imss-ink-50) hover:text-(--imss-ink-900)",
@@ -332,6 +335,18 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
   const updateCita = useUpdateCita();
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const calendarWrapperRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * En un teléfono se abre en la vista de día.
+   *
+   * Los siete días de la semana en 375 píxeles dejan tiras de cuarenta y pico, donde
+   * no cabe ni el nombre del participante: se ve que hay una cita, pero no de quién.
+   * Se decide una sola vez, al montar, y desde ahí manda quien use el selector — que
+   * cambiara sola al girar el teléfono sería peor que empezar en la equivocada.
+   */
+  const [vistaInicial] = useState<CalendarView>(() =>
+    typeof window !== "undefined" && window.innerWidth < 640 ? "day" : "week",
+  );
 
   // Estado para rastrear fecha y vista actual del calendario
   const [calendarDate, setCalendarDate] = useState<dayjs.Dayjs>(dayjs());
@@ -590,7 +605,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     --calendar-time-col: 84px;
     --calendar-hour-row-height: 80px;
     --calendar-month-cell-height: 110px;
-    
+
 
     width: 100% !important;
     height: 100% !important;
@@ -603,6 +618,20 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
     border: 1px solid hsl(var(--border));
     border-radius: 10px;
     background: var(--card);
+  }
+
+  /* ── Pantallas chicas ───────────────────────────────────────────────────────
+     La columna de horas se lleva 84 px, que en un teléfono de 375 son casi una
+     cuarta parte del ancho: los siete días de la semana quedaban en tiras de
+     treinta y pico píxeles, sin sitio ni para el nombre del participante. Y con
+     filas de 80 px de alto apenas cabían cuatro horas en pantalla.             */
+  @media (max-width: 640px) {
+    [data-testid="ilamy-calendar"] {
+      --calendar-time-col: 44px;
+      --calendar-hour-row-height: 56px;
+      --calendar-month-cell-height: 68px;
+      border-radius: 8px;
+    }
   }
 
   [data-testid="ilamy-calendar"] > div:first-child {
@@ -844,10 +873,18 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
   }
 
 `}</style>
+      {/* Alto: una pantalla menos lo que ya ocupan encima el encabezado del sistema,
+          el de la página y la barra de búsqueda. Con 100vh a secas el calendario
+          medía la pantalla entera y empujaba todo eso fuera, obligando a desplazarse
+          para ver la última fila de horas.
+
+          Se usa dvh y no vh: en un móvil, vh cuenta la barra de direcciones del
+          navegador como si no estuviera, así que la última franja quedaba siempre
+          tapada. El mínimo evita que en una pantalla apaisada muy baja el calendario
+          se quede en una rendija. */}
       <div
         ref={calendarWrapperRef}
-        className="relative w-full"
-        style={{ height: "calc(100vh)" }}
+        className="relative min-h-[26rem] w-full h-[calc(100dvh-15rem)] sm:h-[calc(100dvh-17rem)]"
       >
         <IlamyCalendar
           key={`cal-${businessStart}-${businessEnd}-${businessDaysOfWeek.join(",")}`}
@@ -856,7 +893,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           locale="es"
           timezone={timezone}
           firstDayOfWeek="monday"
-          initialView="week"
+          initialView={vistaInicial}
           timeFormat="24-hour"
           renderHour={(date) => (
             <span className="block w-full pr-2 text-right text-[12px] leading-none text-muted-foreground">
@@ -908,7 +945,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
 
             // Bloquear drag hacia el pasado
             if (isPastDateTime(newStart)) {
-              toast.error("No puedes reprogramar una cita a una fecha pasada.");
+              toast.error("No es posible reprogramar una cita a una fecha anterior.");
               setEventsRevision((v) => v + 1); // revierte la posición visual
               return;
             }
@@ -917,7 +954,7 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
             const dayNames: WeekDays[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
             const targetDay = dayNames[newStart.day()];
             if (!businessDaysOfWeek.includes(targetDay)) {
-              toast.error("No puedes reprogramar una cita a un día no habilitado.");
+              toast.error("No es posible reprogramar una cita a un día no habilitado.");
               setEventsRevision((v) => v + 1);
               return;
             }

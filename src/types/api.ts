@@ -288,6 +288,11 @@ export interface ParametroEstudio {
   opciones?: string[] | null
   /** Nombres con los que los instrumentos titulan la columna de este parámetro. */
   alias?: string[] | null
+  /**
+   * Si el parámetro sigue en uso. Los que no lo están no se ofrecen ni se exigen al
+   * capturar, pero sus resultados anteriores siguen siendo parte de esas capturas.
+   */
+  activo?: boolean
 }
 
 export interface ParametroEstudioRequestDTO {
@@ -337,6 +342,8 @@ export interface ResultadoEstudioRequestDTO {
 
 export interface ResultadoEstudioResponse {
   id: number
+  /** Por aqui se empareja con el parametro. `parametro` es solo su nombre, para mostrar. */
+  idParametro?: number
   parametro: string
   valorNumerico?: number
   valorTexto?: string

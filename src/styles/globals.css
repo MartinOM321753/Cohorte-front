@@ -597,3 +597,21 @@
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
 }
+
+/*
+ * Los iconos de los reportes.
+ *
+ * Se sirve desde `public/` y no desde Google Fonts: el sistema corre en una red
+ * institucional donde no se puede dar por hecho el acceso a internet, y un icono
+ * que no carga en el editor sale como un cuadro vacío. El backend lleva una copia
+ * del mismo archivo para incrustarla en el PDF.
+ *
+ * Material Symbols Outlined (Google) — Apache License 2.0.
+ */
+@font-face {
+  font-family: 'IconosReporte';
+  src: url('/fonts/MaterialSymbolsOutlined.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}

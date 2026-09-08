@@ -3,6 +3,7 @@ import { Leyenda, PistaArrastre, Scene3D } from './Scene3D'
 import { C, Chip, Etiqueta, Prisma } from './primitives'
 import { useOrbit } from './useOrbit'
 import type { Ubicacion3DCaja } from './ubicacion3d.types'
+import { descripcionPosicionCaja, etiquetaPosicionCaja, letraFila } from '../../lib/posicionCaja'
 
 const AREA_W = 226
 const AREA_D = 156
@@ -87,11 +88,11 @@ export function BoxView({
                   key={p.id}
                   role="button"
                   tabIndex={-1}
-                  aria-label={`Fila ${p.fila}, columna ${p.columna}: ${contenido}`}
+                  aria-label={`${descripcionPosicionCaja(p.fila, p.columna)}: ${contenido}`}
                   title={
                     seleccionada
-                      ? `Ver F${p.fila} C${p.columna} de cerca`
-                      : `F${p.fila} C${p.columna} · ${contenido}`
+                      ? `Ver ${etiquetaPosicionCaja(p.fila, p.columna)} de cerca`
+                      : `${etiquetaPosicionCaja(p.fila, p.columna)} · ${contenido}`
                   }
                   onClick={() => (seleccionada ? onEntrar(p.id) : onSeleccionar(p.id))}
                   className="m-[1px] cursor-pointer rounded-[2px]"
@@ -121,7 +122,7 @@ export function BoxView({
 
       {resaltada && (
         <Chip x={xDe(resaltada.columna)} y={yDe(resaltada.fila)} z={PARED_H + 52}>
-          F{resaltada.fila} · C{resaltada.columna}
+          {etiquetaPosicionCaja(resaltada.fila, resaltada.columna)}
         </Chip>
       )}
 
@@ -149,7 +150,7 @@ export function BoxView({
           z={PARED_H}
           tono={f === resaltada?.fila ? 'destino' : 'muted'}
         >
-          {f}
+          {letraFila(f)}
         </Etiqueta>
       ))}
     </Scene3D>

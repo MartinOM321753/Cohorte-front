@@ -165,7 +165,7 @@ export function RefrigeradoresTab() {
                   )}
 
                   {refrigerador.totalPisos === 0 && (
-                    <p className="pl-6 text-xs text-muted-foreground italic">Sin pisos — haz clic en "Gestionar Pisos"</p>
+                    <p className="pl-6 text-xs text-muted-foreground italic">Sin pisos — haga clic en "Gestionar pisos"</p>
                   )}
                 </div>
 
@@ -195,7 +195,7 @@ export function RefrigeradoresTab() {
                       className="flex-1"
                     >
                       <Layers className="mr-1 h-3 w-3" />
-                      Gestionar Pisos
+                      Gestionar pisos
                     </Button>
                   )}
                   {puedeEditar && (

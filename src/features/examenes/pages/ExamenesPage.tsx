@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
 import { ExamenesTab } from '@/features/estudios/components/ExamenesTab'
 import { ResultadosExamenTab } from '@/features/estudios/components/ResultadosExamenTab'
 import { CargaMasivaExamenesTab } from '../components/CargaMasivaExamenesTab'
@@ -34,14 +36,13 @@ export default function ExamenesPage() {
             clases que encuentra escritas literalmente: `grid-cols-${n}` se arma
             al vuelo, nunca llega al CSS y la barra acaba en una sola columna. */}
         {tabs.length > 1 && (
-          <TabsList
-            className="grid w-full"
-            style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
-          >
+          <BarraPestanas>
+          <TabsList className={PISTA_PESTANAS}>
             {tabs.map((t) => (
               <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
             ))}
           </TabsList>
+          </BarraPestanas>
         )}
 
         {puedeLlenado && (

@@ -76,7 +76,7 @@ export function FormEngine({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {parametros.map(renderField)}
       <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Guardando...' : submitLabel}
+        {isLoading ? 'Guardando…' : submitLabel}
       </Button>
     </form>
   )

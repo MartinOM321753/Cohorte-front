@@ -6,6 +6,7 @@ import type {
   Ubicacion3DPiso,
   Ubicacion3DRefrigerador,
 } from './ubicacion3d.types'
+import { etiquetaPosicionCaja } from '../../lib/posicionCaja'
 
 // Paneles laterales de las cuatro vistas, compartidos por los dos modos de uso:
 // seguir una muestra concreta y recorrer el biobanco sin objetivo. En ambos
@@ -48,7 +49,7 @@ export function PanelRefrigerador({
               titulo: `Piso ${piso.numeroPiso}`,
               pie:
                 pisoSeleccionado != null
-                  ? 'Vuelve a tocarlo en la escena para entrar'
+                  ? 'Tóquelo nuevamente en la escena para entrar'
                   : undefined,
               ocupacion: {
                 etiqueta: 'Huecos ocupados',
@@ -64,7 +65,7 @@ export function PanelRefrigerador({
             }
           : undefined
       }
-      vacio={piso ? undefined : 'Toca un piso para ver su detalle.'}
+      vacio={piso ? undefined : 'Toque un piso para ver su detalle.'}
     />
   )
 }
@@ -101,7 +102,7 @@ export function PanelPiso({
               titulo: hueco.codigoCaja ?? `Hueco ${hueco.fila}${hueco.columna}`,
               pie:
                 hueco.idCaja != null && huecoSeleccionado != null
-                  ? 'Vuelve a tocarla en la escena para entrar'
+                  ? 'Tóquela nuevamente en la escena para entrar'
                   : undefined,
               ocupacion:
                 hueco.capacidad != null
@@ -126,7 +127,7 @@ export function PanelPiso({
             }
           : undefined
       }
-      vacio={hueco ? undefined : 'Toca una caja para ver su detalle.'}
+      vacio={hueco ? undefined : 'Toque una caja para ver su detalle.'}
     />
   )
 }
@@ -167,8 +168,8 @@ export function PanelCaja({
       seleccion={
         posicion
           ? {
-              titulo: `F${posicion.fila} · C${posicion.columna}`,
-              pie: posicionSeleccionada != null ? 'Vuelve a tocarla para acercarte' : undefined,
+              titulo: etiquetaPosicionCaja(posicion.fila, posicion.columna),
+              pie: posicionSeleccionada != null ? 'Tóquela nuevamente para acercarse' : undefined,
               campos: [
                 { label: 'Estado', value: posicion.ocupada ? 'Ocupada' : 'Libre' },
                 { label: 'Muestra', value: posicion.etiquetaMuestra },
@@ -176,7 +177,7 @@ export function PanelCaja({
             }
           : undefined
       }
-      vacio={posicion ? undefined : 'Toca una posición para ver qué contiene.'}
+      vacio={posicion ? undefined : 'Toque una posición para ver qué contiene.'}
     />
   )
 }
@@ -203,12 +204,12 @@ export function PanelPosicion({
 
   if (muestra) {
     return (
-      <InfoPanel titulo={`F${fila} · C${columna}`} subtitulo={subtitulo} campos={camposDeMuestra(muestra)} />
+      <InfoPanel titulo={etiquetaPosicionCaja(fila, columna)} subtitulo={subtitulo} campos={camposDeMuestra(muestra)} />
     )
   }
   return (
     <InfoPanel
-      titulo={`F${fila} · C${columna}`}
+      titulo={etiquetaPosicionCaja(fila, columna)}
       subtitulo={subtitulo}
       campos={[
         { label: 'Estado', value: posicion?.ocupada ? 'Ocupada' : 'Libre' },

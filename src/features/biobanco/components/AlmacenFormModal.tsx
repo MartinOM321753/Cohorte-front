@@ -275,7 +275,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              {isEditing ? 'Editar Institución' : 'Nueva Institución'}
+              {isEditing ? 'Editar institución' : 'Nueva institución'}
             </DialogTitle>
             <DialogDescription>
               {isEditing
@@ -338,7 +338,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
                         field.onChange(v)
                       }}
                       options={estadoOptions}
-                      placeholder="Selecciona estado"
+                      placeholder="Seleccione un estado"
                       searchPlaceholder="Buscar estado..."
                       emptyText="Estado no encontrado"
                       hasError={!!errors.estado}
@@ -366,7 +366,7 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
                       value={field.value ?? ''}
                       onChange={field.onChange}
                       options={ciudadOptions}
-                      placeholder={estadoSeleccionado ? 'Selecciona ciudad' : 'Primero elige estado'}
+                      placeholder={estadoSeleccionado ? 'Seleccione una ciudad' : 'Seleccione primero un estado'}
                       searchPlaceholder="Buscar municipio..."
                       emptyText="Municipio no encontrado"
                       disabled={!estadoSeleccionado}
@@ -520,8 +520,8 @@ export function AlmacenFormModal({ open, onOpenChange, almacen }: AlmacenFormMod
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting
-                  ? isEditing ? 'Actualizando...' : 'Creando...'
-                  : isEditing ? 'Actualizar' : 'Registrar Institución'}
+                  ? isEditing ? 'Actualizando…' : 'Creando…'
+                  : isEditing ? 'Actualizar' : 'Registrar institución'}
               </Button>
             </DialogFooter>
           </form>

@@ -128,7 +128,7 @@ export function UsuariosTable({
                 className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
                 title={
                   isOtherRoot
-                    ? 'No puedes editar a otro usuario ROOT'
+                    ? 'No es posible editar a otro usuario ROOT'
                     : isExternalPending
                     ? 'Usuario pendiente de otra institucion: solo se puede reenviar invitacion'
                     : 'Editar usuario'
@@ -156,7 +156,7 @@ export function UsuariosTable({
                 variant="ghost"
                 size="icon"
                 className={`h-7 w-7 ${u.activo ? 'text-[var(--status-danger-fg)] hover:text-red-700' : 'text-[var(--status-success-fg)] hover:text-green-700'}`}
-                title={isSelf ? 'No puedes cambiar el estado de tu propia cuenta' : isExternalPending ? 'Usuario pendiente de otra institucion: solo se puede reenviar invitacion' : u.activo ? 'Desactivar usuario' : 'Activar usuario'}
+                title={isSelf ? 'No es posible cambiar el estado de su propia cuenta' : isExternalPending ? 'Usuario pendiente de otra institucion: solo se puede reenviar invitacion' : u.activo ? 'Desactivar usuario' : 'Activar usuario'}
                 onClick={() => onToggleActivo(u)}
                 disabled={isExternalPending || isSelf}
               >

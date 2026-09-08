@@ -224,9 +224,9 @@ export function CopiarCatalogosDialog({ open, onOpenChange }: Props) {
             Copiar catálogos entre instituciones
           </DialogTitle>
           <DialogDescription>
-            {step === 1 && 'Selecciona las instituciones de origen y destino.'}
-            {step === 2 && 'Selecciona los registros que deseas copiar.'}
-            {step === 3 && !resultado && 'Confirma la copia de catálogos.'}
+            {step === 1 && 'Seleccione las instituciones de origen y destino.'}
+            {step === 2 && 'Seleccione los registros que desea copiar.'}
+            {step === 3 && !resultado && 'Confirme la copia de catálogos.'}
             {step === 3 && resultado && 'Resultado de la copia.'}
           </DialogDescription>
         </DialogHeader>

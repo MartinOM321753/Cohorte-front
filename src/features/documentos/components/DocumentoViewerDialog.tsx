@@ -39,7 +39,7 @@ export function DocumentoViewerDialog({
     if (!open || !documento) return
 
     if (!documento.puedeDescargar) {
-      setLoadErr('Tu rol no tiene permiso para visualizar este archivo.')
+      setLoadErr('Su perfil no cuenta con permisos para consultar este archivo.')
       return
     }
 

@@ -29,6 +29,7 @@ import {
   UsersRound,
   CircleUserRound,
   X,
+  FileText,
 } from 'lucide-react'
 
 interface NavItem {
@@ -106,7 +107,7 @@ const navItems: NavItem[] = [
     group: 'Sistema',
   },
   {
-    label: 'Bitácora Accesos',
+    label: 'Bitácora de accesos',
     href: '/bitacora/accesos',
     icon: KeyRound,
     permisos: permisosFor('bitacoraAccesos'),
@@ -114,11 +115,19 @@ const navItems: NavItem[] = [
     group: 'Sistema',
   },
   {
-    label: 'Bitácora Acciones',
+    label: 'Bitácora de acciones',
     href: '/bitacora/acciones',
     icon: ClipboardList,
     permisos: permisosFor('bitacoraAcciones'),
     modulo: 'BITACORA_ACCIONES',
+    group: 'Sistema',
+  },
+  {
+    label: 'Reportes',
+    href: '/reportes',
+    icon: FileText,
+    permisos: permisosFor('reportes'),
+    modulo: 'REPORTES',
     group: 'Sistema',
   },
   {

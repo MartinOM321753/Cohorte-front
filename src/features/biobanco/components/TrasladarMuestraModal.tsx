@@ -38,7 +38,7 @@ import { useAuthStore } from '@/stores/authStore'
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  idInstitucionDestino: z.string().min(1, 'Debes seleccionar una institución destino'),
+  idInstitucionDestino: z.string().min(1, 'Debe seleccionar una institución destino'),
   motivo: z
     .string()
     .trim()
@@ -210,7 +210,7 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
       <DialogContent
         className="sm:max-w-[500px]"
         // Evitar que el Dialog cierre al interactuar con Popovers/Comboboxes.
-        // El Dialog tiene botones Cancelar e Iniciar Préstamo explícitos.
+        // El Dialog tiene botones Cancelar e Iniciar préstamo explícitos.
         onInteractOutside={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
       >
@@ -245,7 +245,7 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
                     value={field.value}
                     onChange={field.onChange}
                     options={institucionOptions}
-                    placeholder="Selecciona la institución destino"
+                    placeholder="Seleccione la institución destino"
                     searchPlaceholder="Buscar por nombre, ciudad o estado..."
                     emptyText="Institución no encontrada"
                     hasError={!!errors.idInstitucionDestino}
@@ -323,7 +323,7 @@ export function TrasladarMuestraModal({ open, onOpenChange, muestra }: Trasladar
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting || prestarMutation.isPending || institucionsConBiobanco.length === 0}>
-              {isSubmitting || prestarMutation.isPending ? 'Registrando...' : 'Iniciar Préstamo'}
+              {isSubmitting || prestarMutation.isPending ? 'Registrando…' : 'Iniciar préstamo'}
             </Button>
           </DialogFooter>
         </form>

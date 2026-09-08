@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { AlertCircle } from 'lucide-react'
 import { RefrigeradoresTab } from '../components/RefrigeradoresTab'
@@ -79,12 +81,6 @@ export default function BiobancoPage() {
     setActiveTab(value)
   }
 
-  // Tailwind solo genera las clases que encuentra escritas literalmente, asi
-  // que `sm:grid-cols-${n}` nunca llegaba al CSS y la barra se quedaba en una
-  // columna. Los casos 5 y 6 si funcionaban por estar escritos a mano; con esto
-  // deja de hacer falta enumerarlos.
-  const columnasPestanas = { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -102,18 +98,16 @@ export default function BiobancoPage() {
 
       <TooltipProvider delayDuration={100}>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList
-            className="flex overflow-x-auto scrollbar-none gap-1 sm:grid sm:w-full"
-            style={columnasPestanas}
-          >
+          <BarraPestanas>
+          <TabsList className={PISTA_PESTANAS}>
             {tabs.map((tab) => {
               const disabled = tab.dataDep && !tab.dataDep.enabled
               if (disabled) {
                 return (
                   <Tooltip key={tab.value}>
                     <TooltipTrigger asChild>
-                      <span className="shrink-0 sm:w-full sm:shrink">
-                        <TabsTrigger value={tab.value} disabled className="w-full pointer-events-none opacity-50">
+                      <span>
+                        <TabsTrigger value={tab.value} disabled className="pointer-events-none opacity-50">
                           {tab.label}
                         </TabsTrigger>
                       </span>
@@ -125,12 +119,11 @@ export default function BiobancoPage() {
                 )
               }
               return (
-                <TabsTrigger key={tab.value} value={tab.value} className="shrink-0 sm:shrink">
-                  {tab.label}
-                </TabsTrigger>
+                <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
               )
             })}
           </TabsList>
+          </BarraPestanas>
 
           {puedeRefrigeradores && (
             <TabsContent value="refrigeradores" className="space-y-4">

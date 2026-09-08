@@ -376,7 +376,7 @@ export function CargaMasivaTab() {
             >
               <Upload className="h-8 w-8 opacity-50" />
               <div className="text-center text-[13px]">
-                <span className="font-medium text-foreground">Haz clic</span> o arrastra el archivo aquí
+                <span className="font-medium text-foreground">Haga clic</span> o arrastre el archivo aquí
               </div>
               <p className="text-[11px] opacity-60">CSV o Excel (.xlsx) — máximo 10 MB</p>
               <input
@@ -428,8 +428,9 @@ export function CargaMasivaTab() {
                   {previa!.parametrosSinColumna.join(', ')}
                 </p>
                 <p className="mt-1 text-muted-foreground">
-                  Todos los parámetros son obligatorios. Añade las columnas al archivo, o
-                  configura sus alias en el catálogo para que se reconozcan.
+                  Todos los parámetros son obligatorios. Titule la columna con el nombre
+                  del parámetro, o configure un alias en el catálogo si el archivo la
+                  titula de otra forma.
                 </p>
               </div>
             )}
@@ -750,7 +751,7 @@ function CorregirColumna({ indice, filasConError, onCorregir }: {
         className="mt-1 flex items-center gap-1 text-[11px] font-normal text-amber-700 hover:underline dark:text-amber-400"
       >
         <Wand2 className="h-3 w-3" />
-        Corregir {filasConError.size} de un jalón
+        Corregir las {filasConError.size} en conjunto
       </button>
     )
   }

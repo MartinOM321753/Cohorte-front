@@ -163,7 +163,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Editar Caja Criogénica' : 'Crear Nueva Caja Criogénica'}
+            {isEditing ? 'Editar caja criogénica' : 'Crear caja criogénica'}
           </DialogTitle>
           <DialogDescription>
             {isEditing
@@ -371,7 +371,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                   <>
                     {isEditing && isChangingPosition && (
                       <p className="text-xs text-muted-foreground">
-                        Selecciona el nuevo refrigerador y piso donde deseas mover la caja.
+                        Seleccione el nuevo refrigerador y el piso a donde desea mover la caja.
                       </p>
                     )}
 
@@ -388,7 +388,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                         }}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un refrigerador con espacio disponible" />
+                          <SelectValue placeholder="Seleccione un refrigerador con espacio disponible" />
                         </SelectTrigger>
                         <SelectContent>
                           {refConDisponibles.length === 0 && (
@@ -421,7 +421,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
                           }}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un piso con espacio" />
+                            <SelectValue placeholder="Seleccione un piso con espacio disponible" />
                           </SelectTrigger>
                           <SelectContent>
                             {pisosDisponibles.length === 0 && (
@@ -561,7 +561,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
               type="submit"
               disabled={isSubmitting || !puedeSubmit}
             >
-              {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
+              {isSubmitting ? 'Guardando…' : (isEditing ? 'Actualizar' : 'Crear')}
             </Button>
           </DialogFooter>
         </form>

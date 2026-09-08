@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/axiosInstance'
 import { RolesTab } from '../components/RolesTab'
@@ -153,7 +155,8 @@ export default function PermisosPage() {
       </div>
 
       <Tabs defaultValue="roles">
-        <TabsList>
+        <BarraPestanas>
+          <TabsList className={PISTA_PESTANAS}>
           <TabsTrigger value="roles" className="gap-2">
             <Shield className="h-4 w-4" /> Roles
           </TabsTrigger>
@@ -161,9 +164,10 @@ export default function PermisosPage() {
             <Users className="h-4 w-4" /> Usuarios
           </TabsTrigger>
           <TabsTrigger value="bitacora" className="gap-2">
-            <ClipboardList className="h-4 w-4" /> Bitacora
+            <ClipboardList className="h-4 w-4" /> Bitácora
           </TabsTrigger>
         </TabsList>
+          </BarraPestanas>
 
         <TabsContent value="roles" className="mt-6">
           <RolesTab />

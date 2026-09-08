@@ -25,7 +25,7 @@ export const citaFormSchema = z.object({
     .max(240, 'La duración máxima es 240 minutos'),
   colorHex: z
     .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, 'Color inválido (usa formato #RRGGBB)')
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Color inválido (utilice el formato #RRGGBB)')
     .optional(),
   observaciones: z.string().trim().max(500, 'Máximo 500 caracteres').optional(),
   estadoCita: z

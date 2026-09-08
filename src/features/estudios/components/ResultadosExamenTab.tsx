@@ -379,14 +379,14 @@ export function ResultadosExamenTab() {
             <div className="text-xs text-muted-foreground">
               {selectedPacienteLabel
                 ? selectedPacienteLabel
-                : 'Busca un participante para ver sus resultados.'}
+                : 'Busque un participante para ver sus resultados.'}
             </div>
             {pacienteSoloConsulta && (
               <div className="mt-1 inline-flex items-start gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-1">
                 <Eye className="mt-0.5 h-3 w-3 shrink-0 text-amber-700" />
                 <span className="text-[11px] leading-snug text-amber-800">
                   Ya no gestionas a este participante. Se muestran únicamente los resultados que
-                  registró tu institución; no se le pueden agregar ni modificar.
+                  registró su institución; no se le pueden agregar ni modificar.
                 </span>
               </div>
             )}
@@ -418,7 +418,7 @@ export function ResultadosExamenTab() {
           {!watchedPacienteUUID ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-sm text-muted-foreground">
               <ClipboardList className="h-8 w-8 opacity-25" />
-              <span>Busca un participante para ver su historial.</span>
+              <span>Busque un participante para ver su historial.</span>
             </div>
           ) : isLoadingResultados ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -569,7 +569,7 @@ export function ResultadosExamenTab() {
           <div className="text-xs text-muted-foreground">
             {isEditing
               ? 'Modifica el valor, fecha u observaciones del resultado seleccionado.'
-              : 'Captura el valor obtenido en el examen de laboratorio.'}
+              : 'Capture el valor obtenido en el examen de laboratorio.'}
           </div>
         </div>
 
@@ -720,7 +720,7 @@ export function ResultadosExamenTab() {
             <DateTimePicker
               value={watchedFecha}
               onChange={(v) => setValue('fechaResultado', v, { shouldValidate: true })}
-              placeholder="Selecciona fecha y hora"
+              placeholder="Seleccione la fecha y la hora"
               timeStepMinutes={1}
               maxDateTime={new Date()}
               minHour={horarioActivo?.horaInicio ?? 8}

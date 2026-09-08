@@ -42,8 +42,8 @@ export function GenerarAlicuotasModal({ open, onOpenChange, muestra }: GenerarAl
 
   const handleGenerar = async () => {
     if (!muestra) return
-    if (!selectedTipoId) { setError('Selecciona un tipo de muestra'); return }
-    if (!selectedTuboId) { setError('Selecciona un tubo'); return }
+    if (!selectedTipoId) { setError('Seleccione un tipo de muestra'); return }
+    if (!selectedTuboId) { setError('Seleccione un tubo'); return }
 
     await generarMutation.mutateAsync(
       { idMuestra: muestra.id, data: { idTipoMuestra: selectedTipoId, idTuboMuestra: selectedTuboId } },
@@ -59,7 +59,7 @@ export function GenerarAlicuotasModal({ open, onOpenChange, muestra }: GenerarAl
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FlaskConical className="h-4 w-4" />
-            Generar Alícuotas
+            Generar alícuotas
           </DialogTitle>
           <DialogDescription>
             Muestra: <span className="font-mono font-medium">{muestra?.etiqueta}</span>
@@ -198,7 +198,7 @@ export function GenerarAlicuotasModal({ open, onOpenChange, muestra }: GenerarAl
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>Cancelar</Button>
           <Button onClick={handleGenerar} disabled={generarMutation.isPending}>
-            {generarMutation.isPending ? 'Generando...' : 'Generar Alícuotas'}
+            {generarMutation.isPending ? 'Generando…' : 'Generar alícuotas'}
           </Button>
         </DialogFooter>
       </DialogContent>

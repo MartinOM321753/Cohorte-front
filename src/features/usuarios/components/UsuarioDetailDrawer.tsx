@@ -149,7 +149,7 @@ export function UsuarioDetailDrawer({
           <div className="border-t border-[var(--imss-ink-100)] px-5 py-3">
             <Button
               className="w-full gap-2 bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
-              title={isOtherRoot ? 'No puedes editar a otro usuario ROOT' : undefined}
+              title={isOtherRoot ? 'No es posible editar a otro usuario ROOT' : undefined}
               disabled={isOtherRoot}
               onClick={() => {
                 onOpenChange(false)

@@ -159,7 +159,7 @@ export function EstudiosTab() {
                       {e.pacienteAlcanzable === false ? (
                         <span
                           className="italic text-muted-foreground"
-                          title="El participante pertenece a otra institución y ya no está a tu alcance"
+                          title="El participante pertenece a otra institución y ya no está disponible para su consulta"
                         >
                           Participante de otra institución
                         </span>
@@ -209,7 +209,7 @@ export function EstudiosTab() {
       {puedeCrear && <Card className="lg:col-span-2">
         <div className="border-b p-4">
           <div className="text-sm font-medium">Registrar estudio</div>
-          <div className="text-xs text-muted-foreground">Captura los datos básicos; resultados/adjuntos se agregan luego.</div>
+          <div className="text-xs text-muted-foreground">Capture los datos básicos; resultados/adjuntos se agregan luego.</div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 p-4">
@@ -247,7 +247,7 @@ export function EstudiosTab() {
             <DateTimePicker
               value={watchedFechaEstudio}
               onChange={(v) => setValue('fechaEstudio', v, { shouldValidate: true })}
-              placeholder="Selecciona fecha y hora"
+              placeholder="Seleccione la fecha y la hora"
               timeStepMinutes={1}
               maxDateTime={new Date()}
               minHour={horarioActivo?.horaInicio ?? 8}

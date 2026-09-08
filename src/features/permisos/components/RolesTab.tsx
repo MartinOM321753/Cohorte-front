@@ -55,7 +55,7 @@ export function RolesTab() {
             {expanded && !puedeEditar && (
               <div className="border-t border-border p-5">
                 <p className="text-xs text-muted-foreground">
-                  {rol.permisos.length} permisos asignados. No tienes permiso para editarlos.
+                  {rol.permisos.length} permisos asignados. No cuenta con permisos para editarlos.
                 </p>
               </div>
             )}

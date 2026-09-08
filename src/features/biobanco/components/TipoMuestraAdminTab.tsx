@@ -101,7 +101,7 @@ function TipoMuestraForm({ initial, onSave, onCancel, loading }: TipoMuestraForm
           disabled={loading || !nombre.trim()}
           onClick={() => onSave({ nombre: nombre.trim(), descripcion: descripcion.trim(), temperaturaAlmacenamiento: temperatura.trim() })}
         >
-          {loading ? 'Guardando...' : initial ? 'Actualizar' : 'Crear tipo'}
+          {loading ? 'Guardando…' : initial ? 'Actualizar' : 'Crear tipo'}
         </Button>
       </div>
     </div>
@@ -167,7 +167,7 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
         <UnidadSelect
           value={unidad}
           onChange={setUnidad}
-          placeholder="Selecciona unidad..."
+          placeholder="Seleccione una unidad…"
         />
       </div>
 
@@ -184,7 +184,7 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
                 !destino && 'text-muted-foreground',
               )}
             >
-              <span className="truncate">{destino || 'Selecciona institución destino...'}</span>
+              <span className="truncate">{destino || 'Seleccione la institución destino…'}</span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
@@ -246,7 +246,7 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
             })
           }
         >
-          {loading ? 'Guardando...' : initial ? 'Actualizar tubo' : 'Agregar tubo'}
+          {loading ? 'Guardando…' : initial ? 'Actualizar tubo' : 'Agregar tubo'}
         </Button>
       </div>
     </div>

@@ -14,7 +14,7 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, 'El correo es obligatorio')
-    .email('Ingresa un correo electrónico válido'),
+    .email('Ingrese un correo electrónico válido'),
 })
 type FormData = z.infer<typeof schema>
 
@@ -75,9 +75,9 @@ export default function ForgotPasswordPage() {
       // Si el backend responde 429 (rate-limit server-side)
       if (err?.response?.status === 429 || msg.toLowerCase().includes('hora')) {
         setRateLimitNow(data.email)
-        setRateLimitMsg(msg || 'Ya enviamos un correo en la última hora. Revisa tu bandeja.')
+        setRateLimitMsg(msg || 'Ya se envió un correo en la última hora. Revise su bandeja de entrada.')
       } else {
-        setError('email', { message: msg || 'Error al enviar. Intenta de nuevo.' })
+        setError('email', { message: msg || 'Error al enviar. Intente nuevamente.' })
       }
     } finally {
       setIsLoading(false)
@@ -95,7 +95,7 @@ export default function ForgotPasswordPage() {
               <CheckCircle2 size={28} strokeWidth={1.75} color="#16a34a" />
             </div>
           </div>
-          <h2 style={titleStyle}>Revisa tu correo</h2>
+          <h2 style={titleStyle}>Revise su correo</h2>
           <p style={subtitleStyle}>
             Si <strong>{sentEmail}</strong> está vinculado a una cuenta, recibirás un enlace
             para restablecer tu contraseña en los próximos minutos.
@@ -131,9 +131,9 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        <h2 style={titleStyle}>¿Olvidaste tu contraseña?</h2>
+        <h2 style={titleStyle}>¿Olvidó su contraseña?</h2>
         <p style={subtitleStyle}>
-          Ingresa el correo electrónico vinculado a tu cuenta institucional y te enviaremos
+          Ingrese el correo electrónico vinculado a su cuenta institucional y se le enviará
           un enlace para restablecerla.
         </p>
 

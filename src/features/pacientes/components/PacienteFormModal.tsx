@@ -330,7 +330,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                     <DateTimePicker
                       value={field.value ?? ''}
                       onChange={field.onChange}
-                      placeholder="Selecciona fecha y hora"
+                      placeholder="Seleccione la fecha y la hora"
                       timeStepMinutes={1}
                       maxDateTime={new Date()}
                       minHour={horarioActivo?.horaInicio ?? 8}
@@ -412,7 +412,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
                 ) : institucionSeleccionada && !institucionSeleccionada.visible ? (
                   <p className="text-[11px] text-amber-600">
                     Este participante quedará bajo {institucionSeleccionada.nombre} y no aparecerá
-                    en tus listados: puedes registrarlo ahí, pero no ves el padrón de esa sede.
+                    en sus listados: puede registrarlo ahí, pero no tendrá acceso al padrón de esa sede.
                   </p>
                 ) : (
                   <p className="text-[11px] text-[var(--imss-ink-300)]">
@@ -680,8 +680,8 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
             >
               {isPending
                 ? isEdit
-                  ? 'Guardando...'
-                  : 'Registrando...'
+                  ? 'Guardando…'
+                  : 'Registrando…'
                 : isEdit
                   ? 'Guardar cambios'
                   : 'Registrar participante'}
