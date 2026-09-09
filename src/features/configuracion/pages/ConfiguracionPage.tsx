@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { AlertCircle } from 'lucide-react'
 import EtiquetasConfigPanel from '../components/EtiquetasConfigPanel'
 import HorariosConfigPanel from '../components/HorariosConfigPanel'
+import EtiquetasLibresPanel from '@/features/etiquetas-libres/components/EtiquetasLibresPanel'
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ConfiguracionPage() {
@@ -30,6 +31,11 @@ export default function ConfiguracionPage() {
 
         {/* ── Configuración de etiquetas ── */}
         <EtiquetasConfigPanel />
+
+        <Separator />
+
+        {/* ── Etiquetas con datos de un archivo externo ── */}
+        <EtiquetasLibresPanel />
 
         <Separator />
 
