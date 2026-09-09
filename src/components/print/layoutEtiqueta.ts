@@ -142,15 +142,97 @@ export function escalaCodigoConfigurada(config: ConfigMaquetado): number {
     : config.moduloCodigo
 }
 
-function margenDerecho(config: ConfigMaquetado): number {
-  const propio = config.margenDerechoMm
-  // Sin margen derecho propio el área útil es simétrica, que es como se venía
-  // calculando: ancho - 2 * margen izquierdo.
-  return propio !== undefined && propio > 0 ? propio : config.margenIzquierdoMm
+// ── Piezas compartidas con el maquetado de texto libre ───────────────────────
+//
+// Solo se comparte lo que es literalmente la misma regla: el área útil y el
+// apilado. La cascada del símbolo y el ensanchado de barras se quedan aquí
+// porque son del código de barras, y forzar una abstracción común entre dos
+// algoritmos que solo se parecen produciría un tercero peor que los dos.
+
+/** Lo que hace falta para saber dónde empieza y cuánto mide el área útil. */
+export interface ConfigArea {
+  anchoMm: number
+  altoMm: number
+  margenIzquierdoMm: number
+  margenSuperiorMm: number
+  margenDerechoMm?: number
+  margenInferiorMm?: number
 }
 
-function margenInferior(config: ConfigMaquetado): number {
-  return config.margenInferiorMm ?? 0
+/**
+ * Recuadro dentro de la etiqueta donde se puede dibujar.
+ *
+ * Sin margen derecho propio el área es simétrica —ancho menos dos veces el
+ * margen izquierdo—, que es como se venía calculando antes de que existiera el
+ * campo.
+ */
+export function areaUtilDe(config: ConfigArea): AreaUtil {
+  const derecho =
+    config.margenDerechoMm !== undefined && config.margenDerechoMm > 0
+      ? config.margenDerechoMm
+      : config.margenIzquierdoMm
+
+  return {
+    leftMm: config.margenIzquierdoMm,
+    topMm: config.margenSuperiorMm,
+    anchoMm: Math.max(0, config.anchoMm - config.margenIzquierdoMm - derecho),
+    altoMm: Math.max(0, config.altoMm - config.margenSuperiorMm - (config.margenInferiorMm ?? 0)),
+  }
+}
+
+export type Alineacion = 'IZQUIERDA' | 'CENTRO' | 'DERECHA'
+
+/** Lo mínimo que hay que saber de una pieza para apilarla. */
+export interface Apilable {
+  altoMm: number
+  /** Ancho del dibujo. Cero significa «se contiene solo»: ocupa todo el ancho. */
+  anchoMm: number
+  /** Separación hasta la pieza siguiente. Después de la última no se aplica. */
+  gapMm: number
+}
+
+export interface Colocacion {
+  topMm: number
+  leftMm: number
+  anchoMm: number
+  altoMm: number
+}
+
+/**
+ * Apila las piezas desde el borde superior del área útil.
+ *
+ * La separación va entre piezas, nunca después de la última: ese sobrante robaba
+ * altura útil sin corresponder a nada visible.
+ */
+export function apilar(area: AreaUtil, piezas: Apilable[], alineacion: Alineacion = 'CENTRO'): Colocacion[] {
+  const salida: Colocacion[] = []
+  let y = area.topMm
+
+  for (let i = 0; i < piezas.length; i++) {
+    const p = piezas[i]
+    const anchoMm = p.anchoMm > 0 ? Math.min(p.anchoMm, area.anchoMm) : area.anchoMm
+    const sobra = Math.max(0, area.anchoMm - anchoMm)
+    const desplazamiento =
+      alineacion === 'IZQUIERDA' ? 0 : alineacion === 'DERECHA' ? sobra : sobra / 2
+
+    salida.push({
+      topMm: y,
+      leftMm: area.leftMm + desplazamiento,
+      anchoMm,
+      altoMm: p.altoMm,
+    })
+
+    y += p.altoMm + (i < piezas.length - 1 ? p.gapMm : 0)
+  }
+
+  return salida
+}
+
+export function altoApilado(piezas: Apilable[]): number {
+  return piezas.reduce(
+    (acc, p, i) => acc + p.altoMm + (i < piezas.length - 1 ? p.gapMm : 0),
+    0,
+  )
 }
 
 interface Pieza {
@@ -229,12 +311,7 @@ function armar(
     }
   }
 
-  // La separación va entre elementos. Antes se sumaba también después del
-  // último, y ese sobrante robaba altura útil sin corresponder a nada visible.
-  const altoTotalMm = piezas.reduce(
-    (acc, p, i) => acc + p.altoMm + (i < piezas.length - 1 ? p.gapMm : 0),
-    0,
-  )
+  const altoTotalMm = altoApilado(piezas)
   const anchoMaxMm = piezas.reduce((acc, p) => Math.max(acc, p.anchoNecesarioMm), 0)
 
   return { piezas, altoTotalMm, anchoMaxMm }
@@ -248,13 +325,7 @@ function armar(
  * con el símbolo mínimo sigue sin caber reduce la letra.
  */
 export function layoutEtiqueta(config: ConfigMaquetado, medir: MedirCodigo): Maquetado {
-  const areaUtil: AreaUtil = {
-    leftMm: config.margenIzquierdoMm,
-    topMm: config.margenSuperiorMm,
-    anchoMm: Math.max(0, config.anchoMm - config.margenIzquierdoMm - margenDerecho(config)),
-    altoMm: Math.max(0, config.altoMm - config.margenSuperiorMm - margenInferior(config)),
-  }
-
+  const areaUtil = areaUtilDe(config)
   const orden = getOrdenElementos(config.disposicion)
   const escalaConfigurada = Math.max(MIN_ESCALA_DOTS, Math.round(escalaCodigoConfigurada(config)))
 
@@ -311,28 +382,17 @@ export function layoutEtiqueta(config: ConfigMaquetado, medir: MedirCodigo): Maq
   }
 
   // Posiciones, ya desde el borde del área útil y hacia abajo.
-  const elementos: ElementoMaquetado[] = []
-  let y = areaUtil.topMm
-
-  for (let i = 0; i < resultado.piezas.length; i++) {
-    const p = resultado.piezas[i]
-    const anchoElemento = p.anchoMm > 0 ? Math.min(p.anchoMm, areaUtil.anchoMm) : areaUtil.anchoMm
-    // Centrado dentro del área útil, nunca antes de su borde izquierdo.
-    const left = areaUtil.leftMm + Math.max(0, (areaUtil.anchoMm - anchoElemento) / 2)
-
-    elementos.push({
-      tipo: p.tipo,
-      topMm: y,
-      leftMm: left,
-      anchoMm: anchoElemento,
-      altoMm: p.altoMm,
-      fontPt: p.fontPt,
-      escalaDots: p.escalaDots,
-      anchoModuloMm: p.modulos && p.modulos > 0 ? anchoElemento / p.modulos : undefined,
-    })
-
-    y += p.altoMm + (i < resultado.piezas.length - 1 ? p.gapMm : 0)
-  }
+  const colocaciones = apilar(areaUtil, resultado.piezas, 'CENTRO')
+  const elementos: ElementoMaquetado[] = resultado.piezas.map((p, i) => ({
+    tipo: p.tipo,
+    topMm: colocaciones[i].topMm,
+    leftMm: colocaciones[i].leftMm,
+    anchoMm: colocaciones[i].anchoMm,
+    altoMm: colocaciones[i].altoMm,
+    fontPt: p.fontPt,
+    escalaDots: p.escalaDots,
+    anchoModuloMm: p.modulos && p.modulos > 0 ? colocaciones[i].anchoMm / p.modulos : undefined,
+  }))
 
   return {
     areaUtil,
