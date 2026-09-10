@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ChevronLeft, ChevronRight, Circle, Copy, Diamond, Grid3x3, Image as ImageIcon,
+  AlignLeft, ChevronLeft, ChevronRight, Circle, Copy, Diamond, Grid3x3, Image as ImageIcon,
   Minus, MoveRight, PanelBottom, PanelTop, Plus, Redo2, Ruler, Save, Sparkles,
   Square, Table, Trash2, Triangle, Type, Undo2, ZoomIn, ZoomOut,
 } from 'lucide-react'
@@ -28,6 +28,7 @@ import type {
   Banda, DisenoReporte, Elemento, ElementoTabla, FormaFigura, TamanoPagina,
 } from '../types'
 import {
+  COLUMNAS_LISTA,
   altoDeTablaNuevaMm, altoParaProporcion, bandaVacia, clonarElementos,
   contenidoDeTablaNueva, FORMAS_CON_RELLENO, FORMAS_DE_TRAZO, medidasDe, nuevoId,
   origenDeBanda, TAMANOS_PAGINA, zSuperior,
@@ -747,6 +748,26 @@ export function EditorPlantilla({ disenoInicial, guardando, onGuardar, onEstado 
     })
   }
 
+  /**
+   * El mismo bloque, con el trato del reporte del participante.
+   *
+   * <p>Nace con las cinco columnas puestas —incluida la barra— porque es lo que
+   * distingue a la lista de la tabla; quien no la quiera la quita, pero insertarla
+   * sin barra dejaría dos cosas idénticas y ninguna razón para elegir una.</p>
+   */
+  function agregarLista(campo: CampoReporte) {
+    const { anchoMm } = medidasDe(diseno)
+    agregar({
+      ...base(),
+      anchoMm: anchoMm - diseno.margenes.izquierdoMm - diseno.margenes.derechoMm,
+      altoMm: 60,
+      tipo: 'lista',
+      clave: campo.clave,
+      desbordamiento: 'crecer',
+      estilo: { columnas: [...COLUMNAS_LISTA] },
+    })
+  }
+
   // ── Páginas ───────────────────────────────────────────────────────────────
 
   function agregarPagina() {
@@ -754,6 +775,23 @@ export function EditorPlantilla({ disenoInicial, guardando, onGuardar, onEstado 
     setDiseno((prev) => ({ ...prev, paginas: [...prev.paginas, { id: nuevoId(), elementos: [] }] }))
     setPaginaIndex(diseno.paginas.length)
     setSeleccionados([])
+  }
+
+  /**
+   * Cambia la hoja entre lienzo y flujo.
+   *
+   * <p>No se toca nada de lo que ya tiene puesto. Las coordenadas se conservan
+   * aunque en flujo no se usen: quien vuelva a posición fija se encuentra su hoja
+   * como la dejó, y perderlas por probar sería un castigo desproporcionado para un
+   * interruptor.</p>
+   */
+  function alternarFlujo() {
+    motivo.current = 'alternar-flujo'
+    setDiseno((prev) => ({
+      ...prev,
+      paginas: prev.paginas.map((p, i) =>
+        i === paginaIndex ? { ...p, flujo: !p.flujo } : p),
+    }))
   }
 
   /**
@@ -988,6 +1026,25 @@ export function EditorPlantilla({ disenoInicial, guardando, onGuardar, onEstado 
                 <Copy className="mr-1 h-3.5 w-3.5" strokeWidth={1.75} />
                 Duplicar
               </Button>
+
+              {/* El lienzo tiene alto fijo y recorta lo que no cabe, sin avisar. En
+                  flujo el contenido se reparte entre las páginas que haga falta, que
+                  es lo que necesita una lista de mediciones que puede crecer. */}
+              <Button
+                type="button"
+                variant={pagina?.flujo ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 text-[12px]"
+                title={pagina?.flujo
+                  ? 'Esta hoja reparte su contenido entre las páginas que haga falta. '
+                    + 'Pulse para volverla de posición fija.'
+                  : 'Hoja de posición fija: lo que no cabe se recorta. Pulse para que el '
+                    + 'contenido fluya y se reparta entre páginas.'}
+                onClick={alternarFlujo}
+              >
+                <AlignLeft className="mr-1 h-3.5 w-3.5" strokeWidth={1.75} />
+                {pagina?.flujo ? 'En flujo' : 'Posición fija'}
+              </Button>
               <Button
                 type="button" variant="ghost" size="sm"
                 className="h-7 text-[12px] text-destructive hover:text-destructive"
@@ -1056,6 +1113,7 @@ export function EditorPlantilla({ disenoInicial, guardando, onGuardar, onEstado 
               <PanelDatos
                 onInsertarEnTexto={insertarEnTexto}
                 onAgregarBloque={agregarBloque}
+              onAgregarLista={agregarLista}
               />
             </TabsContent>
           </Tabs>

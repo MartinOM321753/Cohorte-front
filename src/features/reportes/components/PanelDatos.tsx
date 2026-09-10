@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Database, Table2, Type } from 'lucide-react'
+import {
+  BarChartHorizontal, ChevronDown, ChevronRight, Database, Table2, Type,
+} from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -12,6 +14,21 @@ interface Props {
   onInsertarEnTexto: (clave: string) => void
   /** Soltar un bloque en la hoja. */
   onAgregarBloque: (campo: CampoReporte) => void
+  /** Soltarlo como lista con barra de rango, para el reporte del participante. */
+  onAgregarLista: (campo: CampoReporte) => void
+}
+
+/**
+ * Qué bloques se pueden dibujar además como lista.
+ *
+ * <p>Los que traen resultados con rango: los laboratorios y los parámetros de un
+ * estudio. El listado de estudios no —son fechas, no mediciones— y las evidencias
+ * tampoco: una barra necesita un número y un rango contra el que ponerlo.</p>
+ */
+function admiteLista(campo: CampoReporte): boolean {
+  if (campo.clase !== 'BLOQUE') return false
+  return campo.clave === 'bloque.examenes.listado'
+      || /^bloque\.estudio\.\d+\.resultados$/.test(campo.clave)
 }
 
 /** Un estudio, un examen: lo que cuelga dentro de una familia. */
@@ -41,7 +58,7 @@ interface Grupo {
  * de nombres de parámetros y nada más, y lo que necesita al escribir «hemoglobina»
  * es justamente saber a qué estudio pertenece.</p>
  */
-export function PanelDatos({ onInsertarEnTexto, onAgregarBloque }: Props) {
+export function PanelDatos({ onInsertarEnTexto, onAgregarBloque, onAgregarLista }: Props) {
   const { data: campos, isLoading } = useCamposReporte()
   const [busqueda, setBusqueda] = useState('')
   const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>({})
@@ -87,31 +104,46 @@ export function PanelDatos({ onInsertarEnTexto, onAgregarBloque }: Props) {
   }
 
   const fila = (campo: CampoReporte, procedencia?: string) => (
-    <button
-      key={campo.clave}
-      type="button"
-      title={campo.ayuda ?? campo.clave}
-      onClick={() =>
-        campo.clase === 'BLOQUE' ? onAgregarBloque(campo) : onInsertarEnTexto(campo.clave)
-      }
-      className={cn(
-        'flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left hover:bg-[var(--muted)]',
-        campo.clase === 'BLOQUE' && 'bg-sky-50/40',
+    <div key={campo.clave} className="flex items-stretch gap-1">
+      <button
+        type="button"
+        title={campo.ayuda ?? campo.clave}
+        onClick={() =>
+          campo.clase === 'BLOQUE' ? onAgregarBloque(campo) : onInsertarEnTexto(campo.clave)
+        }
+        className={cn(
+          'flex min-w-0 flex-1 items-start gap-2 rounded-md px-2 py-1.5 text-left hover:bg-[var(--muted)]',
+          campo.clase === 'BLOQUE' && 'bg-sky-50/40',
+        )}
+      >
+        {campo.clase === 'BLOQUE'
+          ? <Table2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-600" strokeWidth={1.75} />
+          : <Type className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[12px]">{campo.rotulo}</span>
+          {procedencia && (
+            <span className="block truncate text-[10.5px] leading-tight text-sky-700">{procedencia}</span>
+          )}
+          {campo.ayuda && (
+            <span className="block text-[10.5px] leading-tight text-muted-foreground">{campo.ayuda}</span>
+          )}
+        </span>
+      </button>
+
+      {/* Los mismos resultados admiten dos tratos: la tabla del expediente y la
+          lista con barra del reporte del participante. Son el mismo dato, así que
+          se eligen desde la misma fila en vez de desde dos catálogos. */}
+      {admiteLista(campo) && (
+        <button
+          type="button"
+          title="Insertar como lista con barra de rango, para el reporte del participante"
+          onClick={() => onAgregarLista(campo)}
+          className="shrink-0 self-center rounded-md border border-emerald-200 bg-emerald-50/60 px-1.5 py-1 text-emerald-700 hover:bg-emerald-100"
+        >
+          <BarChartHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
       )}
-    >
-      {campo.clase === 'BLOQUE'
-        ? <Table2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-600" strokeWidth={1.75} />
-        : <Type className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />}
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[12px]">{campo.rotulo}</span>
-        {procedencia && (
-          <span className="block truncate text-[10.5px] leading-tight text-sky-700">{procedencia}</span>
-        )}
-        {campo.ayuda && (
-          <span className="block text-[10.5px] leading-tight text-muted-foreground">{campo.ayuda}</span>
-        )}
-      </span>
-    </button>
+    </div>
   )
 
   return (

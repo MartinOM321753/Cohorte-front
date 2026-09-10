@@ -505,6 +505,7 @@ function rotuloDe(elemento: Elemento): string {
     case 'datos':  return 'Dato'
     case 'icono':  return 'Icono'
     case 'tabla':  return 'Tabla'
+    case 'lista':  return 'Lista de resultados'
     // Del mapa compartido y no de una cadena de condiciones: la que había solo
     // conocía tres formas, así que a un rombo lo llamaba «Línea».
     case 'figura': return ROTULOS_FORMA[elemento.forma] ?? 'Figura'

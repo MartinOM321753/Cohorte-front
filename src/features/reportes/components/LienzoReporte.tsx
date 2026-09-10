@@ -3,7 +3,9 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 
 import { cn } from '@/lib/utils'
 import type { Banda, DisenoReporte, Elemento, Margenes } from '../types'
-import { elementosDeBanda, medidasDe, origenDeBanda } from '../types'
+import {
+  elementosDeBanda, MARGENES_FLUJO_POR_DEFECTO, medidasDe, origenDeBanda,
+} from '../types'
 import { ElementoRender } from './ElementoRender'
 
 /** Las ocho manijas de redimensionado, en el orden en que se dibujan. */
@@ -245,6 +247,22 @@ export function LienzoReporte({
     setArrastrando(false)
   }
 
+  // Una hoja de flujo no tiene coordenadas: su contenido va uno detrás de otro y
+  // el motor decide dónde parte. Dibujarla con posición absoluta enseñaría algo
+  // que el papel no va a hacer, que es justo lo que este lienzo existe para evitar.
+  if (diseno.paginas[paginaIndex]?.flujo) {
+    return (
+      <HojaEnFlujo
+        diseno={diseno}
+        paginaIndex={paginaIndex}
+        seleccionados={seleccionados}
+        escala={escala}
+        onSeleccionar={onSeleccionar}
+        onAbrirContenido={onAbrirContenido}
+      />
+    )
+  }
+
   return (
     <div
       ref={hojaRef}
@@ -384,4 +402,97 @@ function cursorManija(m: Manija): string {
   if (m === 'e' || m === 'w') return 'cursor-ew-resize'
   if (m === 'nw' || m === 'se') return 'cursor-nwse-resize'
   return 'cursor-nesw-resize'
+}
+
+/**
+ * La hoja cuando su contenido fluye.
+ *
+ * <p>No hay coordenadas que enseñar: los elementos van uno detrás de otro y el
+ * motor de PDF decide dónde corta. Se dibuja el mismo apilado que hará el
+ * servidor —de arriba abajo y, a igual altura, de izquierda a derecha— para que la
+ * vista previa no prometa una colocación que el papel no va a respetar.</p>
+ *
+ * <p>Por eso tampoco se arrastra. El orden es la posición vertical, que se cambia
+ * en el panel de propiedades; permitir mover algo cuyo sitio final no depende de
+ * dónde se suelte sería peor que no dejarlo mover.</p>
+ */
+function HojaEnFlujo({
+  diseno, paginaIndex, seleccionados, escala, onSeleccionar, onAbrirContenido,
+}: {
+  diseno: DisenoReporte
+  paginaIndex: number
+  seleccionados: string[]
+  escala: number
+  onSeleccionar: (id: string | null, aditivo?: boolean) => void
+  onAbrirContenido?: (id: string) => void
+}) {
+  const { anchoMm, altoMm } = medidasDe(diseno)
+  const m = diseno.margenesFlujo ?? MARGENES_FLUJO_POR_DEFECTO
+  const anchoUtilMm = anchoMm - m.izquierdaMm - m.derechaMm
+
+  const elementos = [...(diseno.paginas[paginaIndex]?.elementos ?? [])]
+    .filter((el) => !el.oculto)
+    .sort((a, b) => (a.yMm - b.yMm) || (a.xMm - b.xMm))
+
+  return (
+    <div
+      className="relative shrink-0 bg-white shadow-md"
+      style={{
+        width: `${anchoMm * escala}px`,
+        // El alto es el de una página, pero el contenido puede seguir más abajo:
+        // se marca dónde acaba el papel en vez de recortarlo, que es lo que hace
+        // el lienzo y lo que esta hoja viene a resolver.
+        minHeight: `${altoMm * escala}px`,
+      }}
+      onPointerDown={() => onSeleccionar(null)}
+    >
+      <div
+        className="absolute inset-x-0 border-y border-dashed border-sky-200"
+        style={{ top: 0, height: `${altoMm * escala}px` }}
+      />
+      <div
+        className="relative"
+        style={{
+          paddingTop: `${m.arribaMm * escala}px`,
+          paddingBottom: `${m.abajoMm * escala}px`,
+          paddingLeft: `${m.izquierdaMm * escala}px`,
+          paddingRight: `${m.derechaMm * escala}px`,
+        }}
+      >
+        {elementos.length === 0 && (
+          <p className="text-[11px] italic text-muted-foreground">
+            Esta hoja reparte su contenido entre las páginas que haga falta. Lo que se
+            agregue aparecerá aquí, uno debajo de otro.
+          </p>
+        )}
+
+        {elementos.map((el) => (
+          <div
+            key={el.id}
+            className={cn(
+              'relative cursor-pointer',
+              seleccionados.includes(el.id) && 'outline outline-2 outline-sky-500',
+            )}
+            style={{
+              width: `${anchoUtilMm * escala}px`,
+              marginBottom: `${4 * escala}px`,
+              // Solo lo que necesita alto propio lo lleva; lo demás lo pide su
+              // contenido, igual que en el papel.
+              ...(el.tipo === 'imagen' || el.tipo === 'figura' || el.tipo === 'icono'
+                ? { height: `${el.altoMm * escala}px` }
+                : {}),
+            }}
+            onPointerDown={(e) => { e.stopPropagation(); onSeleccionar(el.id, e.ctrlKey || e.shiftKey) }}
+            onDoubleClick={(e) => {
+              if (el.tipo !== 'tabla') return
+              e.stopPropagation()
+              onAbrirContenido?.(el.id)
+            }}
+          >
+            <ElementoRender elemento={el} escala={escala} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
