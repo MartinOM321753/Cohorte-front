@@ -266,8 +266,12 @@ export function LienzoReporte({
   return (
     <div
       ref={hojaRef}
+      // `isolate` encierra aquí el orden de capas. Cada elemento lleva de z-index su
+      // número de capa, y sin un contexto de apilado propio esos números competían
+      // con los de toda la página: pasadas las 50 capas, los elementos se pintaban
+      // encima de los diálogos (z-50), incluido el de guardar y salir.
       className={cn(
-        'relative shrink-0 bg-white shadow-md',
+        'relative isolate shrink-0 bg-white shadow-md',
         arrastrando && 'select-none',
       )}
       style={{
