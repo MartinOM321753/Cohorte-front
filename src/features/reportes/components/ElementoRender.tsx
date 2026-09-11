@@ -1,6 +1,9 @@
-import type { Elemento, ElementoImagen, ElementoTabla } from '../types'
+import type {
+  ColumnaLista, Elemento, ElementoImagen, ElementoLista, ElementoTabla,
+} from '../types'
 import {
-  anchosDe, encuadreDeImagen, filasCuadradas, ladoDeIconoMm, TABLA_POR_DEFECTO,
+  anchosDe, COLUMNAS_LISTA, encuadreDeImagen, filasCuadradas, ladoDeIconoMm,
+  TABLA_POR_DEFECTO,
 } from '../types'
 import { useImagenesReporte } from '../hooks/useImagenesReporte'
 import { piezasDeFigura } from '../lib/figuras'
@@ -83,7 +86,103 @@ export function ElementoRender({ elemento, escala }: { elemento: Elemento; escal
 
     case 'tabla':
       return <TablaRender elemento={elemento} escala={escala} />
+
+    case 'lista':
+      return <ListaRender elemento={elemento} escala={escala} />
   }
+}
+
+/** Filas de muestra para que se vea el reparto de la lista mientras se diseña. */
+const MUESTRA_LISTA: {
+  nombre: string; valor: string; unidad: string; referencia: string
+  estado: string; color: string; franja: [number, number]; marca: number
+}[] = [
+  { nombre: 'Glucosa en ayuno', valor: '92', unidad: 'mg/dL', referencia: '70 – 99',
+    estado: 'En rango', color: '#1f7a4d', franja: [25, 50], marca: 44 },
+  { nombre: 'Ácido úrico', valor: '6.4', unidad: 'mg/dL', referencia: 'Por arriba · 2.4 – 6',
+    estado: 'Por arriba', color: '#b0700f', franja: [25, 50], marca: 80 },
+  { nombre: 'Colesterol LDL', valor: '132', unidad: 'mg/dL', referencia: 'A revisar · menor a 100',
+    estado: 'A revisar', color: '#a8261e', franja: [0, 50], marca: 66 },
+]
+
+/** Cuánto del ancho se lleva cada columna. Los mismos pesos que el servidor. */
+const PESO_COLUMNA: Record<string, number> = {
+  nombre: 32, valor: 16, barra: 22, referencia: 20, estado: 14,
+}
+
+/**
+ * La lista de resultados, con datos de muestra.
+ *
+ * <p>Se dibujan valores inventados y no huecos porque lo que hay que decidir al
+ * diseñar es el reparto del ancho, y con celdas vacías no se ve. Son siempre los
+ * mismos tres y se reconocen como ejemplo; los de verdad salen al emitir.</p>
+ *
+ * <p>La barra va con cajas absolutas dentro de una relativa, igual que en el PDF.
+ * Sus porcentajes aquí son fijos: en el documento se calculan con el rango del
+ * participante, que en el editor todavía no existe.</p>
+ */
+function ListaRender({ elemento, escala }: { elemento: ElementoLista; escala: number }) {
+  const cols = (elemento.estilo?.columnas ?? [...COLUMNAS_LISTA])
+    .filter((c): c is ColumnaLista => (COLUMNAS_LISTA as readonly string[]).includes(c))
+  const usadas = cols.length ? cols : [...COLUMNAS_LISTA]
+
+  const total = usadas.reduce((s, c) => s + (PESO_COLUMNA[c] ?? 10), 0)
+  const px = (elemento.estilo?.tamanoPt ?? 9) * (25.4 / 72) * escala
+  const borde = elemento.estilo?.colorBorde ?? '#dde5e9'
+
+  return (
+    <div className="h-full w-full overflow-hidden">
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed',
+                      fontSize: `${px}px`, color: elemento.estilo?.colorTexto ?? '#111111' }}>
+        <colgroup>
+          {usadas.map((c) => (
+            <col key={c} style={{ width: `${((PESO_COLUMNA[c] ?? 10) / total) * 100}%` }} />
+          ))}
+        </colgroup>
+        <tbody>
+          {MUESTRA_LISTA.map((m) => (
+            <tr key={m.nombre}>
+              {usadas.map((c) => (
+                <td key={c} style={{
+                  borderBottom: `1px solid ${borde}`,
+                  padding: `${1.8 * escala}px ${2 * escala}px`,
+                  verticalAlign: 'middle',
+                  textAlign: c === 'valor' || c === 'estado' ? 'right' : 'left',
+                  fontWeight: c === 'valor' ? 700 : 400,
+                  color: c === 'valor' || c === 'estado' ? m.color
+                       : c === 'referencia' ? '#5a6b78' : undefined,
+                  fontSize: c === 'referencia' || c === 'estado' ? `${px * 0.9}px` : undefined,
+                }}>
+                  {c === 'nombre' && m.nombre}
+                  {c === 'valor' && (
+                    <>
+                      {m.valor}{' '}
+                      <span style={{ fontWeight: 400, color: '#5a6b78', fontSize: `${px * 0.85}px` }}>
+                        {m.unidad}
+                      </span>
+                    </>
+                  )}
+                  {c === 'referencia' && m.referencia}
+                  {c === 'estado' && m.estado}
+                  {c === 'barra' && (
+                    <div style={{ position: 'relative', height: `${2.2 * escala}px`,
+                                  background: '#eff2f0' }}>
+                      <div style={{ position: 'absolute', top: 0, bottom: 0,
+                                    left: `${m.franja[0]}%`, width: `${m.franja[1]}%`,
+                                    background: '#e6f1ea' }} />
+                      <div style={{ position: 'absolute', top: `${-0.8 * escala}px`,
+                                    height: `${3.8 * escala}px`, left: `${m.marca}%`,
+                                    width: `${0.8 * escala}px`, background: m.color }} />
+                    </div>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 /**

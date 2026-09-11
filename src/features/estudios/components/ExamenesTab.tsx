@@ -62,6 +62,7 @@ const DEFAULT_VALUES: ExamenFormData = {
   valorMaxMujeres: undefined,
   valorMinHombres: undefined,
   valorMaxHombres: undefined,
+  margenRevision: undefined,
 }
 
 export function ExamenesTab() {
@@ -106,6 +107,7 @@ export function ExamenesTab() {
       valorMaxMujeres: examen.valorMaxMujeres,
       valorMinHombres: examen.valorMinHombres,
       valorMaxHombres: examen.valorMaxHombres,
+      margenRevision: examen.margenRevision ?? undefined,
     })
     setAlias(examen.alias ?? [])
   }
@@ -128,6 +130,7 @@ export function ExamenesTab() {
       valorMaxMujeres: data.valorMaxMujeres,
       valorMinHombres: data.valorMinHombres,
       valorMaxHombres: data.valorMaxHombres,
+      margenRevision: data.margenRevision,
       alias,
     }
 
@@ -375,6 +378,33 @@ export function ExamenesTab() {
                 />
               </FormField>
             </div>
+          </div>
+
+          {/* El reporte que se entrega al participante distingue entre estar un poco
+              fuera y estar lo bastante fuera como para hablarlo con un médico. Esa
+              frontera depende del analito y no se puede deducir del rango, así que
+              se configura aquí. */}
+          <div className="space-y-3">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Margen de revisión
+            </Label>
+            <FormField
+              label="Cuánto se puede pasar del límite y seguir siendo una diferencia menor"
+              error={errors.margenRevision?.message}
+            >
+              <Input
+                type="number"
+                step="any"
+                min="0"
+                placeholder="En blanco: una décima parte del rango"
+                {...register('margenRevision', { valueAsNumber: true })}
+              />
+            </FormField>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              En las unidades de este examen. Separa «ligeramente fuera» de «a revisar»
+              en el reporte del participante. Un cero significa que cualquier diferencia
+              hay que revisarla, que es lo correcto para el colesterol total.
+            </p>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">

@@ -289,13 +289,58 @@ export interface ElementoTabla extends ElementoBase {
   desbordamiento?: 'crecer' | 'recortar'
 }
 
+/** Las columnas que sabe dibujar una lista de resultados. */
+export const COLUMNAS_LISTA = ['nombre', 'valor', 'barra', 'referencia', 'estado'] as const
+export type ColumnaLista = (typeof COLUMNAS_LISTA)[number]
+
+export const ROTULOS_COLUMNA_LISTA: Record<ColumnaLista, string> = {
+  nombre: 'Medición',
+  valor: 'Resultado',
+  barra: 'Barra de rango',
+  referencia: 'Referencia',
+  estado: 'Estado',
+}
+
+/**
+ * La lista de resultados del reporte que se entrega al participante.
+ *
+ * <p>Sale de la misma clave y la misma selección que {@link ElementoDatos}: es el
+ * mismo contenido con otro trato, no otro dato. La tabla está pensada para el
+ * expediente —densa, columnas parejas—; esto es para quien se lleva el papel a
+ * casa, con el valor grande y una barra que enseña dónde cae dentro de lo
+ * habitual.</p>
+ *
+ * <p>La barra es lo único del reporte cuya posición sale del dato y no del diseño:
+ * la franja y la marca se colocan en porcentajes que dependen del rango de esa
+ * persona, así que se calculan al imprimir y aquí no hay nada que colocar.</p>
+ */
+export interface ElementoLista extends ElementoBase {
+  tipo: 'lista'
+  clave: string
+  desbordamiento: 'crecer' | 'recortar'
+  seleccion?: number[]
+  estilo?: EstiloTabla
+}
+
 export type Elemento =
   | ElementoTexto | ElementoImagen | ElementoFigura | ElementoDatos | ElementoIcono
-  | ElementoTabla
+  | ElementoTabla | ElementoLista
 
 export interface PaginaDiseno {
   id: string
   elementos: Elemento[]
+  /**
+   * La hoja reparte su contenido entre las páginas que haga falta, en vez de
+   * colocarlo en coordenadas fijas.
+   *
+   * <p>Existe porque el lienzo tiene alto fijo y recorta: una tabla más larga que
+   * la página se cortaba <b>sin avisar</b> —el PDF salía, se veía bien y le
+   * faltaban filas—. En flujo los elementos van uno detrás de otro y el motor
+   * decide dónde parte.</p>
+   *
+   * <p>Ausente es lienzo, que es lo que traen todos los diseños anteriores.</p>
+   */
+  flujo?: boolean
 }
 
 /** Dónde vive un elemento: en la hoja, en el membrete o en el pie. */
@@ -319,12 +364,32 @@ export interface BandaDiseno {
   elementos: Elemento[]
 }
 
+/**
+ * La separación con el borde del papel en las hojas de flujo.
+ *
+ * <p>Sólo aplica a esas. En el lienzo cada elemento lleva sus milímetros medidos
+ * desde la esquina de la hoja, así que un margen de página movería todos los
+ * diseños que ya existen.</p>
+ */
+export interface MargenesFlujo {
+  arribaMm: number
+  derechaMm: number
+  abajoMm: number
+  izquierdaMm: number
+}
+
+export const MARGENES_FLUJO_POR_DEFECTO: MargenesFlujo = {
+  arribaMm: 18, derechaMm: 16, abajoMm: 18, izquierdaMm: 16,
+}
+
 export interface DisenoReporte {
   /** Versión del formato. Permite migrar diseños viejos si esto cambia. */
   version: 1
   tamano: TamanoPagina
   orientacion: 'vertical' | 'horizontal'
   margenes: Margenes
+  /** Los de las hojas de flujo. Ausente: los de siempre. */
+  margenesFlujo?: MargenesFlujo
   paginas: PaginaDiseno[]
   /** Se repite arriba en todas las páginas. Ausente o apagado: no sale nada. */
   encabezado?: BandaDiseno
@@ -763,6 +828,7 @@ export function rotuloDeElemento(el: Elemento): string {
       return el.forma === 'linea' ? 'Línea'
            : el.forma === 'elipse' ? 'Elipse' : 'Rectángulo'
     case 'datos': return el.clave
+    case 'lista': return `Lista · ${el.clave}`
     case 'icono': return el.nombre ? `Icono: ${el.nombre}` : 'Icono'
     case 'tabla': {
       // Se describe por su tamaño y no por su contenido: el primer título de una

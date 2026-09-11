@@ -17,6 +17,11 @@ export const examenSchema = z.object({
   valorMaxMujeres: optionalNumber,
   valorMinHombres: optionalNumber,
   valorMaxHombres: optionalNumber,
+  /**
+   * Cuánto se puede pasar del límite y seguir siendo una diferencia menor.
+   * Separa «ligeramente fuera» de «a revisar» en el reporte del participante.
+   */
+  margenRevision: optionalNumber,
 })
 
 export type ExamenFormData = z.infer<typeof examenSchema>

@@ -284,6 +284,12 @@ export interface ParametroEstudio {
   valorMaxMujeres?: number | null
   valorMinHombres?: number | null
   valorMaxHombres?: number | null
+  /**
+   * Cuánto se puede pasar del límite y seguir contando como diferencia menor.
+   * Separa «ligeramente fuera» de «a revisar» en el reporte del participante;
+   * sin valor se usa una décima parte de la amplitud del rango.
+   */
+  margenRevision?: number | null
   /** Opciones predefinidas — solo aplica a tipo TEXTO_OPCIONES */
   opciones?: string[] | null
   /** Nombres con los que los instrumentos titulan la columna de este parámetro. */
@@ -304,6 +310,12 @@ export interface ParametroEstudioRequestDTO {
   valorMaxMujeres?: number | null
   valorMinHombres?: number | null
   valorMaxHombres?: number | null
+  /**
+   * Cuánto se puede pasar del límite y seguir contando como diferencia menor.
+   * Separa «ligeramente fuera» de «a revisar» en el reporte del participante;
+   * sin valor se usa una décima parte de la amplitud del rango.
+   */
+  margenRevision?: number | null
   /** Lista de valores válidos — solo cuando tipo == TEXTO_OPCIONES */
   opciones?: string[]
   /**
@@ -420,6 +432,12 @@ export interface Examen {
   valorMaxMujeres?: number
   valorMinHombres?: number
   valorMaxHombres?: number
+  /**
+   * Cuánto se puede pasar del límite y seguir contando como diferencia menor.
+   * Separa «ligeramente fuera» de «a revisar» en el reporte del participante;
+   * sin valor se usa una décima parte de la amplitud del rango.
+   */
+  margenRevision?: number
   /** Nombres con los que los instrumentos titulan la columna de este examen. */
   alias?: string[] | null
   activo: boolean
@@ -433,6 +451,12 @@ export interface ExamenRequestDTO {
   valorMaxMujeres?: number
   valorMinHombres?: number
   valorMaxHombres?: number
+  /**
+   * Cuánto se puede pasar del límite y seguir contando como diferencia menor.
+   * Separa «ligeramente fuera» de «a revisar» en el reporte del participante;
+   * sin valor se usa una décima parte de la amplitud del rango.
+   */
+  margenRevision?: number
   /**
    * Alias de columna para la carga masiva. La lista reemplaza la anterior.
    * Dentro de una institución, un alias pertenece a un solo examen.
