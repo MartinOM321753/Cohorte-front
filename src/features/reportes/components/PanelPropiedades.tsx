@@ -17,8 +17,8 @@ import type {
   EstiloTabla, FormaFigura, RadiosEsquina,
 } from '../types'
 import {
-  altoParaProporcion, cuantasColumnas, FORMAS_CON_RELLENO, FORMAS_DE_TRAZO,
-  radiosDe, ROTULOS_FORMA, rotuloDeElemento, TABLA_POR_DEFECTO,
+  altoParaProporcion, COLUMNAS_LISTA, cuantasColumnas, FORMAS_CON_RELLENO, FORMAS_DE_TRAZO,
+  radiosDe, ROTULOS_COLUMNA_LISTA, ROTULOS_FORMA, rotuloDeElemento, TABLA_POR_DEFECTO,
 } from '../types'
 import { useCamposReporte } from '../hooks/useReportes'
 import type { CampoReporte, ImagenReporte } from '../types.api'
@@ -84,7 +84,7 @@ export function PanelPropiedades({
   const { data: campos } = useCamposReporte()
 
   const campo: CampoReporte | undefined =
-    elemento && elemento.tipo === 'datos'
+    elemento && (elemento.tipo === 'datos' || elemento.tipo === 'lista')
       ? campos?.find((c) => c.clave === elemento.clave)
       : undefined
 
@@ -418,6 +418,40 @@ export function PanelPropiedades({
               onCambiar={(estilo) => onCambiar({ estilo } as Partial<Elemento>)}
             />
           )}
+        </div>
+      )}
+
+      {elemento.tipo === 'lista' && (
+        <div className="space-y-3 border-t pt-3">
+          <div className="space-y-1">
+            <Label className="text-[12px]">
+              {origenDe(elemento.clave).tipo === 'examenes'
+                ? 'Qué exámenes se muestran'
+                : 'Qué parámetros se muestran'}
+            </Label>
+            <SelectorParametros
+              origen={origenDe(elemento.clave)}
+              seleccion={elemento.seleccion ?? []}
+              onCambiar={(seleccion) => onCambiar({ seleccion } as Partial<Elemento>)}
+            />
+          </div>
+
+          <ColumnasDeLista
+            estilo={elemento.estilo ?? {}}
+            onCambiar={(estilo) => onCambiar({ estilo } as Partial<Elemento>)}
+          />
+
+          <div className="space-y-1">
+            <Label className="text-[12px]">Si no cabe en la caja</Label>
+            <Select value={elemento.desbordamiento}
+                    onValueChange={(v) => onCambiar({ desbordamiento: v } as Partial<Elemento>)}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="crecer">Crecer y continuar en otra página</SelectItem>
+                <SelectItem value="recortar">Mostrar solo lo que entra</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       )}
 
@@ -815,6 +849,69 @@ function EncuadreLibre({ elemento, onCambiar }: {
       >
         Volver al centro
       </Button>
+    </div>
+  )
+}
+
+/**
+ * Qué partes de cada fila de la lista salen: parámetro, resultado, barra, rango y
+ * estado, en cualquier combinación.
+ *
+ * <p>Sin nada marcado a propósito salen todas, que es lo que hace el servidor con
+ * una lista que no guarda columnas. Por eso no se deja desmarcar la última: una
+ * lista sin columnas imprimiría todas, justo lo contrario de lo que se buscaba.</p>
+ */
+function ColumnasDeLista({ estilo, onCambiar }: {
+  estilo: EstiloTabla
+  onCambiar: (estilo: EstiloTabla) => void
+}) {
+  const todas = [...COLUMNAS_LISTA] as string[]
+  const guardadas = (estilo.columnas ?? []).filter((c) => todas.includes(c))
+  const columnas = guardadas.length > 0 ? guardadas : todas
+
+  function alternar(col: string) {
+    // Se conserva el orden de la fila, no el orden en que se fueron marcando.
+    const nueva = columnas.includes(col)
+      ? columnas.filter((c) => c !== col)
+      : todas.filter((c) => columnas.includes(c) || c === col)
+    if (nueva.length === 0) return
+    onCambiar({ ...estilo, columnas: nueva })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label className="text-[12px]">Qué se muestra en cada fila</Label>
+        <div className="space-y-1 rounded-md border p-2">
+          {COLUMNAS_LISTA.map((col) => (
+            <label key={col} className="flex items-center gap-2 text-[12px]">
+              <Checkbox checked={columnas.includes(col)} onCheckedChange={() => alternar(col)} />
+              {ROTULOS_COLUMNA_LISTA[col]}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-[12px]">Letra (pt)</Label>
+          <Input type="number" min={5} max={20} step={0.5} className="h-9"
+                 value={estilo.tamanoPt ?? 9}
+                 onChange={(e) => onCambiar({ ...estilo, tamanoPt: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[12px]">Color del texto</Label>
+          <Input type="color" className="h-9 p-1"
+                 value={estilo.colorTexto ?? '#111111'}
+                 onChange={(e) => onCambiar({ ...estilo, colorTexto: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[12px]">Líneas</Label>
+          <Input type="color" className="h-9 p-1"
+                 value={estilo.colorBorde ?? '#dde5e9'}
+                 onChange={(e) => onCambiar({ ...estilo, colorBorde: e.target.value })} />
+        </div>
+      </div>
     </div>
   )
 }
