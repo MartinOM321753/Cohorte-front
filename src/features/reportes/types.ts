@@ -294,10 +294,10 @@ export const COLUMNAS_LISTA = ['nombre', 'valor', 'barra', 'referencia', 'estado
 export type ColumnaLista = (typeof COLUMNAS_LISTA)[number]
 
 export const ROTULOS_COLUMNA_LISTA: Record<ColumnaLista, string> = {
-  nombre: 'Medición',
+  nombre: 'Parámetro',
   valor: 'Resultado',
   barra: 'Barra de rango',
-  referencia: 'Referencia',
+  referencia: 'Rango',
   estado: 'Estado',
 }
 

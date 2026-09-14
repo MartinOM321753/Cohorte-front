@@ -98,16 +98,16 @@ const MUESTRA_LISTA: {
   estado: string; color: string; franja: [number, number]; marca: number
 }[] = [
   { nombre: 'Glucosa en ayuno', valor: '92', unidad: 'mg/dL', referencia: '70 – 99',
-    estado: 'En rango', color: '#1f7a4d', franja: [25, 50], marca: 44 },
-  { nombre: 'Ácido úrico', valor: '6.4', unidad: 'mg/dL', referencia: 'Por arriba · 2.4 – 6',
-    estado: 'Por arriba', color: '#b0700f', franja: [25, 50], marca: 80 },
-  { nombre: 'Colesterol LDL', valor: '132', unidad: 'mg/dL', referencia: 'A revisar · menor a 100',
-    estado: 'A revisar', color: '#a8261e', franja: [0, 50], marca: 66 },
+    estado: 'Dentro del rango', color: '#1f7a4d', franja: [25, 50], marca: 44 },
+  { nombre: 'Hematocrito', valor: '34', unidad: '%', referencia: '36 – 46',
+    estado: 'Por debajo', color: '#b0700f', franja: [25, 50], marca: 15 },
+  { nombre: 'Colesterol LDL', valor: '132', unidad: 'mg/dL', referencia: 'menor a 100',
+    estado: 'Por arriba', color: '#a8261e', franja: [0, 50], marca: 66 },
 ]
 
 /** Cuánto del ancho se lleva cada columna. Los mismos pesos que el servidor. */
 const PESO_COLUMNA: Record<string, number> = {
-  nombre: 32, valor: 16, barra: 22, referencia: 20, estado: 14,
+  nombre: 30, valor: 16, barra: 22, referencia: 18, estado: 18,
 }
 
 /**
