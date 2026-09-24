@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Hash,
   List,
+  ArrowUpDown,
   Pencil,
   Plus,
   Trash2,
@@ -30,8 +31,11 @@ import {
   useToggleTipoEstudio,
   useUpdateParametroEstudio,
   useToggleParametroEstudio,
+  useReordenarParametrosEstudio,
   useUpdateTipoEstudio,
 } from '../hooks/useEstudios'
+
+import { ReordenarParametros } from './ReordenarParametros'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -725,6 +729,8 @@ function TipoRow({
   const isOpen = expandedId === tipo.id
   const parametros = tipo.parametroEstudios || []
   const updateTipoMutation = useUpdateTipoEstudio(tipo.id)
+  const reordenarMutation = useReordenarParametrosEstudio()
+  const [reordenando, setReordenando] = useState(false)
   const [editingTipo, setEditingTipo] = useState(false)
   const [editNombre, setEditNombre] = useState(tipo.nombre)
   const [editDesc, setEditDesc] = useState(tipo.descripcion ?? '')
@@ -893,6 +899,18 @@ function TipoRow({
 
           {parametros.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sin parámetros definidos.</p>
+          ) : reordenando ? (
+            <ReordenarParametros
+              parametros={parametros}
+              guardando={reordenarMutation.isPending}
+              onGuardar={(ids) =>
+                reordenarMutation.mutate(
+                  { tipoEstudioId: tipo.id, ids },
+                  { onSuccess: () => setReordenando(false) }
+                )
+              }
+              onCancelar={() => setReordenando(false)}
+            />
           ) : (
             <div className="space-y-1.5">
               {parametros.map((p) => (
@@ -909,8 +927,27 @@ function TipoRow({
             </div>
           )}
 
+          {/*
+            Reordenar es una pantalla aparte de la lista editable: en la misma
+            vista, arrastrar una fila que también se puede abrir para editar
+            termina en una cosa o la otra según cuánto se movió el cursor.
+            Con un solo parámetro no hay nada que acomodar.
+          */}
+          {!reordenando && puedeEditar && parametros.length > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3 h-7 gap-1 text-xs"
+              onClick={() => setReordenando(true)}
+            >
+              <ArrowUpDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Reordenar parámetros
+            </Button>
+          )}
+
           {/* Only allow adding params to active tipos */}
-          {tipo.activo && puedeEditar && <AddParametroInline tipoId={tipo.id} />}
+          {tipo.activo && puedeEditar && !reordenando && <AddParametroInline tipoId={tipo.id} />}
           {!tipo.activo && (
             <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
               Esta plantilla está deshabilitada. Reactívala para agregar más parámetros.

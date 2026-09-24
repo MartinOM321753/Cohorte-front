@@ -6,7 +6,7 @@
 import { useState, useMemo } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import {
-  AlertCircle, ChevronDown, ChevronRight,
+  AlertCircle, ArrowUpDown, ChevronDown, ChevronRight,
   Pencil, Plus, Trash2, ToggleLeft, ToggleRight, X, Check, Loader2,
 } from 'lucide-react'
 
@@ -20,7 +20,10 @@ import {
   useCreateParametroEstudioMuestra,
   useUpdateParametroEstudioMuestra,
   useDeleteParametroEstudioMuestra,
+  useReordenarParametrosEstudioMuestra,
 } from '../hooks/useEstudiosMuestra'
+
+import { ReordenarParametros } from '@/features/estudios/components/ReordenarParametros'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -331,6 +334,8 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
   const deleteTipoMutation = useDeleteTipoEstudioMuestra()
   const createParam = useCreateParametroEstudioMuestra()
   const deleteParam = useDeleteParametroEstudioMuestra()
+  const reordenarParams = useReordenarParametrosEstudioMuestra()
+  const [reordenando, setReordenando] = useState(false)
   const updateTipo = useUpdateTipoEstudioMuestra()
 
   const [addingParam, setAddingParam] = useState(false)
@@ -490,13 +495,40 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
           {parametros.length === 0 && (
             <p className="text-xs text-muted-foreground py-1">Sin parámetros. Agregue el primero.</p>
           )}
-          {parametros.map(p => (
-            <ParametroRow key={p.id} parametro={p} idTipo={tipo.id}
-              onDelete={(id) => deleteParam.mutate(id)} puedeEditar={puedeEditar && !tipo.tieneResultados} />
-          ))}
+
+          {reordenando ? (
+            <ReordenarParametros
+              parametros={parametros}
+              guardando={reordenarParams.isPending}
+              onGuardar={(ids) =>
+                reordenarParams.mutate(
+                  { idTipo: tipo.id, ids },
+                  { onSuccess: () => setReordenando(false) }
+                )
+              }
+              onCancelar={() => setReordenando(false)}
+            />
+          ) : (
+            parametros.map(p => (
+              <ParametroRow key={p.id} parametro={p} idTipo={tipo.id}
+                onDelete={(id) => deleteParam.mutate(id)} puedeEditar={puedeEditar && !tipo.tieneResultados} />
+            ))
+          )}
+
+          {/*
+            Reordenar sustituye a la lista mientras dura: arrastrar una fila que
+            también se abre para editar acaba en una cosa o en la otra según
+            cuánto se movió el cursor.
+          */}
+          {!reordenando && puedeEditar && parametros.length > 1 && (
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 mt-2"
+              onClick={() => setReordenando(true)}>
+              <ArrowUpDown className="h-3.5 w-3.5" /> Reordenar parámetros
+            </Button>
+          )}
 
           {/* Add param form */}
-          {tipo.activo && puedeEditar && (
+          {tipo.activo && puedeEditar && !reordenando && (
             <>
               {addingParam ? (
                 <div className="mt-2 p-3 border rounded-md bg-muted/20 space-y-3">

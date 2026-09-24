@@ -17,6 +17,19 @@ const basePacienteSchema = z.object({
     .optional()
     .or(z.literal('')),
 
+  /**
+   * Número consecutivo. Se captura como texto porque el input vacío da '' y no
+   * undefined; la conversión a número ocurre al armar la petición, no aquí, para
+   * que el campo vacío siga siendo distinguible de un cero.
+   */
+  noConsecutivo: z.string()
+    .trim()
+    .regex(/^\d*$/, 'Solo números')
+    .refine((v) => v === '' || Number(v) > 0, 'Debe ser mayor que cero')
+    .refine((v) => v === '' || Number(v) <= Number.MAX_SAFE_INTEGER, 'El número es demasiado grande')
+    .optional()
+    .or(z.literal('')),
+
   nombre: z.string()
     .trim()
     .min(1, 'El nombre es obligatorio')

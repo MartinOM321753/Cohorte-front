@@ -49,6 +49,19 @@ interface HojaEtiquetasProps {
   nombreDe?: (indice: number) => string
   titulo?: string
   descripcion?: ReactNode
+  /**
+   * Corrección de dónde cae cada casilla en el papel, en milímetros.
+   *
+   * Opcional y sin efecto si no se pasa: la posición sale del origen y el paso,
+   * exactamente como siempre. Existe para compensar un defecto de la impresora
+   * que la configuración no puede describir —la hoja que entra girada o se
+   * patina de un lado, y hace que las columnas de la derecha bajen cada vez
+   * más—, y por eso solo la pasa quien la necesita.
+   *
+   * `fila` cuenta dentro de la página: cada hoja entra por separado a la
+   * impresora, así que el defecto empieza de cero en cada una.
+   */
+  corregirPosicion?: (columna: number, fila: number) => { dxMm: number; dyMm: number }
 }
 
 export function HojaEtiquetas({
@@ -61,6 +74,7 @@ export function HojaEtiquetas({
   nombreDe,
   titulo = 'Vista previa de impresión',
   descripcion,
+  corregirPosicion,
 }: HojaEtiquetasProps) {
   const printRef = useRef<HTMLDivElement>(null)
 
@@ -306,8 +320,13 @@ export function HojaEtiquetas({
                     // no se hereda a la siguiente.
                     const col = k % cols
                     const fila = Math.floor(k / cols)
-                    const leftMm = geo.origenXMm + col * geo.pasoHorizontalMm
-                    const topMm = geo.origenYMm + fila * geo.pasoVerticalMm
+                    const baseLeftMm = geo.origenXMm + col * geo.pasoHorizontalMm
+                    const baseTopMm = geo.origenYMm + fila * geo.pasoVerticalMm
+                    // Sin corrección no se toca ni un decimal: es el camino de
+                    // todas las etiquetas que ya se imprimían.
+                    const correccion = corregirPosicion ? corregirPosicion(col, fila) : null
+                    const leftMm = correccion ? baseLeftMm + correccion.dxMm : baseLeftMm
+                    const topMm = correccion ? baseTopMm + correccion.dyMm : baseTopMm
 
                     return (
                       <div

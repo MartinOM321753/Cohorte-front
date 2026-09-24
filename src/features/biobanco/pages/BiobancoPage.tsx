@@ -9,6 +9,7 @@ import { AlertCircle } from 'lucide-react'
 import { RefrigeradoresTab } from '../components/RefrigeradoresTab'
 import { CajasTab } from '../components/CajasTab'
 import { MuestrasTab } from '../components/MuestrasTab'
+import { CargaMasivaMuestrasTab } from '../components/CargaMasivaMuestrasTab'
 import { PrestamosTab } from '../components/PrestamosTab'
 import { TipoMuestraAdminTab } from '../components/TipoMuestraAdminTab'
 import { TipoEstudioMuestraAdminTab } from '../components/TipoEstudioMuestraAdminTab'
@@ -30,6 +31,7 @@ export default function BiobancoPage() {
   const puedeCajas = hasPermiso('CAJAS_ACCEDER')
   const puedeMuestras = hasPermiso('MUESTRAS_VER')
   const puedeTiposMuestra = hasPermiso('TIPOS_MUESTRA_ACCEDER')
+  const puedeCargaMasiva = hasPermiso('MUESTRAS_CARGA_MASIVA')
   const puedeEstMuestras = hasPermiso('ESTUDIOS_MUESTRA_ACCEDER')
   const puedePrestamos = hasPermiso('TRASLADOS_ACCEDER')
 
@@ -63,6 +65,15 @@ export default function BiobancoPage() {
         permiso: 'MUESTRAS_VER',
         dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configura al menos un tipo de muestra activo' },
       })
+    if (puedeCargaMasiva)
+      all.push({
+        value: 'carga-masiva',
+        label: 'Carga masiva',
+        permiso: 'MUESTRAS_CARGA_MASIVA',
+        // Sin tipos de muestra no hay nada contra lo que resolver las columnas
+        // `tipoMuestra` y `tubo` del archivo: todas las filas fallarían.
+        dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configure al menos un tipo de muestra activo' },
+      })
     if (puedeTiposMuestra)
       all.push({ value: 'tipos-muestra', label: 'Tipos de Muestra', permiso: 'TIPOS_MUESTRA_ACCEDER' })
     if (puedeEstMuestras)
@@ -70,7 +81,7 @@ export default function BiobancoPage() {
     if (puedePrestamos)
       all.push({ value: 'prestamos', label: 'Préstamos', permiso: 'TRASLADOS_ACCEDER' })
     return all
-  }, [hasPermiso, puedeRefrigeradores, puedeCajas, puedeMuestras, puedeTiposMuestra, puedeEstMuestras, puedePrestamos, hayPisos, hayTiposMuestra])
+  }, [hasPermiso, puedeRefrigeradores, puedeCajas, puedeMuestras, puedeTiposMuestra, puedeEstMuestras, puedePrestamos, puedeCargaMasiva, hayPisos, hayTiposMuestra])
 
   const defaultTab = tabs.find((t) => !t.dataDep || t.dataDep.enabled)?.value ?? tabs[0]?.value ?? 'refrigeradores'
   const [activeTab, setActiveTab] = useState(defaultTab)
@@ -138,6 +149,11 @@ export default function BiobancoPage() {
           {puedeMuestras && (
             <TabsContent value="muestras" className="space-y-4">
               <MuestrasTab />
+            </TabsContent>
+          )}
+          {puedeCargaMasiva && (
+            <TabsContent value="carga-masiva" className="space-y-4">
+              <CargaMasivaMuestrasTab />
             </TabsContent>
           )}
           {puedeTiposMuestra && (

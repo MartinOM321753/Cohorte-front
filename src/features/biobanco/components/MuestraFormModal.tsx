@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -32,6 +32,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { MuestraDetalleDTO } from '@/types/api'
 import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
+import { Switch } from '@/components/ui/switch'
+import { PlanAlicuotasPanel } from './PlanAlicuotasPanel'
 import { etiquetaPosicionCaja } from '../lib/posicionCaja'
 
 const muestraSchema = z.object({
@@ -181,6 +183,11 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
   const [tipoTuboError, setTipoTuboError] = useState<string | null>(null)
 
+  // Generación del lote: null = todavía no se tocó el interruptor, así que manda
+  // la configuración del tubo. Un valor explícito la pisa en ambos sentidos.
+  const [generarAlicuotas, setGenerarAlicuotas] = useState<boolean | null>(null)
+  const [planVolumenes, setPlanVolumenes] = useState<number[] | null>(null)
+
   const onSubmit = async (data: MuestraFormData) => {
     if (!isEditing) {
       if (!selectedTipoId) {
@@ -215,6 +222,10 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
           idPosicionCaja: data.idPosicionCaja || undefined,
           idTipoMuestra: selectedTipoId!,
           idTuboMuestra: selectedTuboId!,
+          generarAlicuotas: generarAlicuotas ?? undefined,
+          planAlicuotas: planVolumenes && planVolumenes.length > 0
+            ? { volumenes: planVolumenes }
+            : undefined,
         }
         await createMuestraMutation.mutateAsync(payload)
       }
@@ -228,6 +239,8 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
       setShowPosicionModal(false)
       setSelectedTipoId(null)
       setSelectedTuboId(null)
+      setGenerarAlicuotas(null)
+      setPlanVolumenes(null)
     }
     onOpenChange(newOpen)
   }
@@ -235,8 +248,55 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
   // Tubos del tipo seleccionado
   const selectedTipo = tiposMuestra.find((t) => t.id === selectedTipoId) ?? null
   const tubosDisponibles = selectedTipo?.tubos.filter((tb) => tb.activo) ?? []
+  const tuboSeleccionado = tubosDisponibles.find((tb) => tb.id === selectedTuboId) ?? null
+
+  // Si el tubo se configuró como 5 alícuotas de 50 mL, la extracción se captura
+  // en mL y punto. No hay discrepancia que conciliar ni conversiones que hacer
+  // —el sistema no tiene factores de conversión—, y el descuento a la padre
+  // siempre resta la misma magnitud que reservó.
+  const unidadImpuesta = !isEditing && tuboSeleccionado?.unidadVolumen
+    ? tuboSeleccionado.unidadVolumen
+    : null
+
+  // Decisión efectiva sobre generar el lote: el interruptor si se tocó, y si no
+  // lo que diga la configuración del tubo.
+  const generaAlicuotas = (tuboSeleccionado?.numeroAlicuotas ?? 0) > 0
+  const generarEfectivo = generarAlicuotas ?? (tuboSeleccionado?.generacionAutomatica ?? true)
 
   const watchedUnidad = watch('unidad')
+  const watchedValor = watch('valor')
+
+  /**
+   * Mantiene la unidad del formulario igual a la del tubo elegido.
+   *
+   * Se corrige en cada render en que se haya desviado, no solo al cambiar de
+   * tubo: el efecto grande de arriba lleva `user` y `freshMuestra` entre sus
+   * dependencias, así que vuelve a correr por su cuenta y su
+   * `reset(buildDefaultValues())` devolvía `unidad` a vacío por detrás. El
+   * candado seguía mostrando la unidad correcta —la leía del tubo, no del
+   * formulario— mientras el valor que iba a enviarse ya estaba en blanco.
+   *
+   * Al cambiar a un tubo sin unidad configurada se limpia en lugar de arrastrar
+   * la del tubo anterior, que sería peor: una cantidad capturada en mL enviada
+   * como si fuera de otro tubo. La limpieza es de una sola vez, para no borrar
+   * lo que el usuario escriba después a mano.
+   */
+  const tuboUnidadAplicadaRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (isEditing) return
+
+    const cambioDeTubo = tuboUnidadAplicadaRef.current !== selectedTuboId
+    tuboUnidadAplicadaRef.current = selectedTuboId
+
+    if (unidadImpuesta) {
+      if (watchedUnidad !== unidadImpuesta) {
+        setValue('unidad', unidadImpuesta, { shouldValidate: true })
+      }
+    } else if (cambioDeTubo && watchedUnidad) {
+      setValue('unidad', '', { shouldValidate: true })
+    }
+  }, [isEditing, unidadImpuesta, selectedTuboId, watchedUnidad, setValue])
   const watchedPacienteUUID = watch('pacienteUUID')
   const watchedFechaRecoleccion = watch('fechaRecoleccion')
 
@@ -431,21 +491,35 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                     </p>
                   )}
 
-                  {/* Aviso generación automática */}
-                  {!isEditing && selectedTuboId != null && (() => {
-                    const tubo = tubosDisponibles.find(tb => tb.id === selectedTuboId)
-                    if (!tubo || tubo.numeroAlicuotas === 0) return null
-                    return (
-                      <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 mt-2">
-                        <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                        <span>
-                          Al registrar se crearán automáticamente <strong>{tubo.numeroAlicuotas} alícuotas</strong> con
-                          etiqueta <strong>{tubo.prefijoCodigo || 'M'}/folio/F4/1-{tubo.numeroAlicuotas}</strong> … <strong>{tubo.numeroAlicuotas}-{tubo.numeroAlicuotas}</strong>.
-                          Podrás asignarles su posición en caja desde la lista de muestras.
-                        </span>
+                  {/* Generación del lote ─────────────────────────────────── */}
+                  {!isEditing && generaAlicuotas && (
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-start gap-3 rounded-md border px-3 py-2.5">
+                        <Switch
+                          id="generar-alicuotas"
+                          checked={generarEfectivo}
+                          onCheckedChange={(v) => { setGenerarAlicuotas(v); if (!v) setPlanVolumenes(null) }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <Label htmlFor="generar-alicuotas" className="cursor-pointer text-xs font-medium">
+                            Generar alícuotas al registrar
+                          </Label>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {tuboSeleccionado?.generacionAutomatica === false
+                              ? 'Este tubo no genera alícuotas de forma automática. Puede generarlas ahora o más tarde desde la lista de muestras.'
+                              : 'Puede desactivarlo si las alícuotas se van a preparar en otra unidad o más adelante.'}
+                          </p>
+                        </div>
                       </div>
-                    )
-                  })()}
+
+                      <PlanAlicuotasPanel
+                        tubo={tuboSeleccionado}
+                        valor={watchedValor}
+                        onPlanChange={setPlanVolumenes}
+                        disabled={!generarEfectivo}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -460,7 +534,9 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
             <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="valor">Valor *</Label>
+                <Label htmlFor="valor">
+                  {unidadImpuesta ? `Cantidad extraída (${unidadImpuesta}) *` : 'Valor *'}
+                </Label>
                 <Input
                   id="valor"
                   type="number"
@@ -479,11 +555,27 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
               <div className="space-y-2">
                 <Label>Unidad *</Label>
-                <UnidadSelect
-                  value={watchedUnidad}
-                  onChange={(v) => setValue('unidad', v, { shouldValidate: true })}
-                  error={errors.unidad?.message}
-                />
+                {unidadImpuesta ? (
+                  /* La define la configuración del tubo: dejarla editable
+                     permitiría registrar en mL un tubo configurado en µL, y el
+                     sistema no convierte unidades. */
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    {/* El valor del formulario, no el del tubo: si alguna vez
+                        divergen, que se vea en pantalla en lugar de enviarse
+                        una unidad distinta de la que el candado promete. */}
+                    <span className="text-sm font-medium">{watchedUnidad || unidadImpuesta}</span>
+                    <span className="ml-auto shrink-0 text-[10px] italic text-muted-foreground">
+                      Definida por el tubo
+                    </span>
+                  </div>
+                ) : (
+                  <UnidadSelect
+                    value={watchedUnidad}
+                    onChange={(v) => setValue('unidad', v, { shouldValidate: true })}
+                    error={errors.unidad?.message}
+                  />
+                )}
               </div>
             </div>
 

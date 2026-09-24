@@ -62,6 +62,7 @@ const MEDIO_CONTACTO_OPTIONS = (
 const DEFAULT_VALUES: PacienteFormData = {
   idInstitucion: null,
   folio: '',
+  noConsecutivo: '',
   nombre: '',
   segundoNombre: '',
   apellidoPaterno: '',
@@ -145,6 +146,7 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
         reset({
           idInstitucion: paciente.institucionId ?? null,
           folio: paciente.folio,
+          noConsecutivo: paciente.noConsecutivo != null ? String(paciente.noConsecutivo) : '',
           nombre: paciente.persona.nombre,
           segundoNombre: paciente.persona.segundoNombre ?? '',
           apellidoPaterno: paciente.persona.apellidoPaterno,
@@ -172,6 +174,10 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
       // Solo al registrar: el backend ignora este campo al actualizar.
       idInstitucion: isEdit ? undefined : formData.idInstitucion ?? undefined,
       folio: formData.folio,
+      // Vacío viaja como null, no como undefined: al editar, null es lo que le
+      // dice al servidor que se quite el número. Con undefined el campo
+      // desaparece del JSON y el servidor no distingue «déjalo» de «quítalo».
+      noConsecutivo: formData.noConsecutivo ? Number(formData.noConsecutivo) : null,
       persona: {
         nombre: formData.nombre,
         segundoNombre: formData.segundoNombre || undefined,
@@ -446,6 +452,28 @@ export function PacienteFormModal({ open, onOpenChange, paciente }: PacienteForm
               {errors.folio && (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
                   {errors.folio.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="noConsecutivo" className="text-[13px]">
+                No. consecutivo
+              </Label>
+              <Input
+                id="noConsecutivo"
+                inputMode="numeric"
+                {...register('noConsecutivo')}
+                placeholder="Opcional"
+                className="h-9 font-mono text-[13px] placeholder:font-sans"
+              />
+              <p className="text-[11px] text-[var(--imss-ink-300)]">
+                Opcional: número con el que se identifica al participante. No puede repetirse
+                entre participantes, y sirve para buscarlo igual que el folio.
+              </p>
+              {errors.noConsecutivo && (
+                <p className="text-[11px] text-[var(--status-danger-fg)]">
+                  {errors.noConsecutivo.message}
                 </p>
               )}
             </div>

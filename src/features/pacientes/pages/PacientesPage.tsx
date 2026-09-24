@@ -224,7 +224,7 @@ export default function PacientesPage() {
               strokeWidth={1.75}
             />
             <Input
-              placeholder="Buscar por nombre, folio, CURP o correo..."
+              placeholder="Buscar por nombre, folio, no. consecutivo, CURP o correo..."
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="h-9 pl-8 text-[13px]"

@@ -16,7 +16,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 
 import { HojaEtiquetas } from '@/components/print/HojaEtiquetas'
-import { ESTILOS_HOJA } from '@/components/print/hojaImpresion'
+import { ESTILOS_HOJA, resolverGeometria } from '@/components/print/hojaImpresion'
 import { layoutCuadricula, MIN_FUENTE_PT } from '@/components/print/layoutCuadricula'
 import { crearMedidorTexto } from '@/components/print/medirTexto'
 import { useGetConfiguracionesActivas } from '@/features/configuracion/hooks/useEtiquetas'
@@ -35,6 +35,17 @@ import {
 import { CasillaCuadricula } from './CasillaCuadricula'
 import { DisenadorCuadricula } from './DisenadorCuadricula'
 import { GaleriaDisenos } from './GaleriaDisenos'
+import { CorreccionImpresoraPanel } from './CorreccionImpresoraPanel'
+import {
+  desplazamientoMm,
+  esNula,
+  guardarCorreccion,
+  leerCorreccion,
+  type CorreccionImpresora,
+} from '../correccionImpresora'
+
+/** Última configuración usada en esta pantalla, recordada por navegador. */
+const CLAVE_ULTIMA_CONFIG = 'etiquetas-libres:ultima-configuracion'
 
 /**
  * Imprime etiquetas con los datos de un archivo externo.
@@ -57,6 +68,7 @@ export default function EtiquetasLibresPanel() {
   const [configId, setConfigId] = useState('')
   const [diseno, setDiseno] = useState<DisenoEtiqueta | null>(null)
   const [vistaPrevia, setVistaPrevia] = useState(false)
+  const [correccion, setCorreccion] = useState<CorreccionImpresora>(leerCorreccion)
 
   const { data: configuraciones } = useGetConfiguracionesActivas()
 
@@ -75,12 +87,69 @@ export default function EtiquetasLibresPanel() {
     [configsHoja, configId],
   )
 
+  /**
+   * Qué configuración se toma de entrada.
+   *
+   * Antes, si la predeterminada era la del rollo Zebra —que aquí se excluye— se
+   * tomaba en silencio la PRIMERA configuración de hoja de la lista, en el orden
+   * en que la entregara la API. Esa puede no ser la que se calibró contra la hoja
+   * real: con otro paso horizontal, la columna 1 cae bien, la 2 casi, y la 3 y 4
+   * cada vez más fuera. Y la pantalla no decía qué paso estaba usando.
+   *
+   * Ahora el orden es: la última que se usó en esta pantalla, la predeterminada,
+   * o la única de hoja si solo hay una. Si nada de eso resuelve, no se elige
+   * ninguna: imprimir sobre una hoja calibrada con una geometría adivinada es
+   * peor que pedirle al usuario que la elija.
+   */
   useEffect(() => {
-    if (configsHoja.length > 0 && !configId) {
-      const pred = configsHoja.find((c) => c.predeterminada)
-      setConfigId(String(pred ? pred.id : configsHoja[0].id))
+    if (configsHoja.length === 0 || configId) return
+
+    let ultima: string | null = null
+    try {
+      ultima = localStorage.getItem(CLAVE_ULTIMA_CONFIG)
+    } catch {
+      ultima = null
     }
+
+    const elegida =
+      configsHoja.find((c) => String(c.id) === ultima) ??
+      configsHoja.find((c) => c.predeterminada) ??
+      (configsHoja.length === 1 ? configsHoja[0] : undefined)
+
+    if (elegida) setConfigId(String(elegida.id))
   }, [configsHoja, configId])
+
+  // Se recuerda en este navegador: es la hoja que hay en la bandeja de esta PC.
+  useEffect(() => {
+    if (!configId) return
+    try {
+      localStorage.setItem(CLAVE_ULTIMA_CONFIG, configId)
+    } catch {
+      // Sin almacenamiento solo se pierde la comodidad; la elección sigue en pantalla.
+    }
+  }, [configId])
+
+  const geometria = useMemo(() => (config ? resolverGeometria(config) : null), [config])
+
+  function cambiarCorreccion(c: CorreccionImpresora) {
+    setCorreccion(c)
+    guardarCorreccion(c)
+  }
+
+  /**
+   * La corrección, en la forma que la hoja entiende.
+   *
+   * Sin corrección no se pasa nada: la hoja calcula cada posición exactamente
+   * como para cualquier otra etiqueta, y no hay ni una suma de cero de por medio.
+   */
+  const corregirPosicion = useMemo(() => {
+    if (!geometria || esNula(correccion)) return undefined
+    const { cols, rows } = geometria
+    return (columna: number, fila: number) => ({
+      dxMm: 0,
+      dyMm: desplazamientoMm(correccion, columna, fila, cols, rows),
+    })
+  }, [geometria, correccion])
 
   // El tamaño de partida sale de la configuración elegida, no de un número fijo.
   //
@@ -234,7 +303,27 @@ export default function EtiquetasLibresPanel() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* La geometría con que se va a colocar cada etiqueta en la hoja. Se
+                muestra porque dos configuraciones de hoja se ven iguales en el
+                selector y difieren justo en esto, que es lo que decide si la
+                columna 4 cae en su recuadro. */}
+            {geometria ? (
+              <p className="font-mono text-[11px] leading-snug text-muted-foreground">
+                paso {geometria.pasoHorizontalMm.toFixed(2)} × {geometria.pasoVerticalMm.toFixed(2)} mm
+                · origen {geometria.origenXMm.toFixed(2)}, {geometria.origenYMm.toFixed(2)} mm
+                · {geometria.cols}×{geometria.rows}
+              </p>
+            ) : (
+              configsHoja.length > 0 && (
+                <p className="text-[11px] text-amber-700">
+                  Elija la configuración de la hoja que tiene en la impresora. Use la misma con que
+                  imprime las demás etiquetas: es la que está calibrada.
+                </p>
+              )
+            )}
           </div>
+
 
           <input
             ref={inputArchivo}
@@ -266,6 +355,14 @@ export default function EtiquetasLibresPanel() {
             </>
           )}
         </div>
+
+        {geometria && (
+          <CorreccionImpresoraPanel
+            correccion={correccion}
+            onChange={cambiarCorreccion}
+            columnas={geometria.cols}
+          />
+        )}
 
         {tabla && diseno && config && (
           <>
@@ -400,6 +497,7 @@ export default function EtiquetasLibresPanel() {
           firma={firma}
           titulo={`Etiquetas de ${nombreArchivo}`}
           nombreDe={(i) => `Fila ${tabla.numerosDeFila[i] ?? i + 2}`}
+          corregirPosicion={corregirPosicion}
           renderCasilla={(i) => (
             <CasillaCuadricula
               tabla={tabla}
