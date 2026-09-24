@@ -1,11 +1,12 @@
-import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, Fragment } from 'react'
 import {
   Plus, Edit, Trash2, Search, TestTube, AlertCircle,
   Paperclip, ArrowRightFromLine, History, FlaskConical,
   ChevronDown, ChevronUp, MapPinOff, ClipboardList, X, Printer, Tag,
-  EyeOff, Eye, Ban, Boxes, ScanLine,
+  EyeOff, Eye, Ban, Boxes, ScanLine, PackageCheck, Hourglass, BatteryLow, Loader2,
 } from 'lucide-react'
-import { useGetMuestras, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta } from '../hooks/useBiobanco'
+import { useMuestrasCursor, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta } from '../hooks/useBiobanco'
+import type { AnclaListado, CriteriosListadoMuestras } from '../hooks/useBiobanco'
 import { EscanearEtiquetaModal } from './EscanearEtiquetaModal'
 import { useLectorCodigos } from '../hooks/useLectorCodigos'
 import { getLabelDataEtiqueta, getLabelDataAlicuotas, getLabelDataLoteCompleto, imprimirAcomodado } from '../api/biobanco.api'
@@ -16,6 +17,15 @@ import { SedeBadge } from '@/components/common/SedeBadge'
 import type { PrintableLabelBatchDTO } from '@/types/api'
 import { MuestraFormModal } from './MuestraFormModal'
 import { GenerarAlicuotasModal } from './GenerarAlicuotasModal'
+import { UbicarLoteModal } from './UbicarLoteModal'
+import {
+  FiltrosMuestrasPanel,
+  FILTROS_VACIOS,
+  contarFiltrosActivos,
+  type FiltrosMuestra,
+} from './FiltrosMuestrasPanel'
+import { NavegadorListado } from './NavegadorListado'
+import { contenedorDesplazable } from '../lib/desplazamiento'
 import { TrasladarMuestraModal } from './TrasladarMuestraModal'
 import { HistorialTrasladosModal } from './HistorialTrasladosModal'
 import { UbicacionMuestra3DModal } from './ubicacion3d/UbicacionMuestra3DModal'
@@ -46,9 +56,48 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { formatDate } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { MuestraDetalleDTO } from '@/types/api'
 import { etiquetaPosicionCaja } from '../lib/posicionCaja'
+
+// ── Listado ───────────────────────────────────────────────────────────────────
+
+/** Tarjetas que trae cada tramo del listado. */
+const TAMANO_PAGINA = 20
+
+/**
+ * Espera a que el usuario deje de teclear antes de volver a preguntar.
+ *
+ * Con el listado completo en memoria, filtrar por cada tecla no costaba nada.
+ * Ahora cada cambio es una consulta al servidor, y sin esta pausa escribir un
+ * folio de seis dígitos dispararía seis.
+ */
+function useValorDiferido<T>(valor: T, milisegundos = 350): T {
+  const [diferido, setDiferido] = useState(valor)
+  useEffect(() => {
+    const id = setTimeout(() => setDiferido(valor), milisegundos)
+    return () => clearTimeout(id)
+  }, [valor, milisegundos])
+  return diferido
+}
+
+/**
+ * Coincidencia de una muestra suelta contra el texto buscado.
+ *
+ * El servidor ya devolvió solo lo que coincide; esto se conserva para saber
+ * POR QUÉ coincide una tarjeta —ella misma o alguna de sus alícuotas— y poder
+ * desplegarla sola en el segundo caso.
+ */
+function coincide(m: MuestraDetalleDTO, term: string) {
+  const pacienteStr = m.paciente ? `${m.paciente.folio} ${m.paciente.nombreCompleto}` : ''
+  return (
+    m.etiqueta.toLowerCase().includes(term) ||
+    (m.unidad ?? '').toLowerCase().includes(term) ||
+    pacienteStr.toLowerCase().includes(term) ||
+    (m.tipoMuestra?.nombre ?? '').toLowerCase().includes(term) ||
+    (m.tuboMuestra?.nombre ?? '').toLowerCase().includes(term)
+  )
+}
 
 // ── Traslado helpers ──────────────────────────────────────────────────────────
 
@@ -108,6 +157,7 @@ interface SharedActions {
   onDocumentos: (id: number) => void
   onResultados: (m: MuestraDetalleDTO) => void
   onGenerarAlicuotas: (m: MuestraDetalleDTO) => void
+  onUbicarLote: (m: MuestraDetalleDTO) => void
   onDelete: (id: number) => void
   onDarBaja: (id: number, motivo: string) => void
   onPrintEtiqueta: (id: number) => void
@@ -175,11 +225,14 @@ function MuestraFooter({
   trasladoInfo,
   actions,
   numAlicuotas = 0,
+  alicuotasPendientes = 0,
 }: {
   muestra: MuestraDetalleDTO
   trasladoInfo: TrasladoInfo | undefined
   actions: SharedActions
   numAlicuotas?: number
+  /** Alicuotas creadas cuyo volumen sigue reservado en esta padre. */
+  alicuotasPendientes?: number
 }) {
   const [cancelMotivo, setCancelMotivo] = useState('')
   const esTrasladada = !!trasladoInfo
@@ -194,9 +247,18 @@ function MuestraFooter({
   const esBaja = muestra.estadoMuestra === 'BAJA'
   // Una muestra dada de baja no puede prestarse: el backend lo rechaza con 409.
   // Sin esta condicion se ofrecia una accion condenada a fallar.
-  const puedeEnviar = !esTrasladada && !noEnMiPosesion && actions.puedeTraslado && !esBaja
+  // Una muestra agotada es un tubo que ya se desechó: prestarla no significa
+  // nada físicamente. El resto de acciones sí siguen teniendo sentido —su
+  // registro es el producto—, así que la tarjeta se mantiene completa.
+  const puedeEnviar = !esTrasladada && !noEnMiPosesion && actions.puedeTraslado
+    && !esBaja && !muestra.agotada
   const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.puedeCancelarTraslado
   const esPadre = muestra.idMuestraPadre == null
+  // Aproximacion del lado del cliente: el servidor cuenta los huecos del lote
+  // de ESTA institucion y rechaza con un mensaje claro si no cuadra. Aqui solo
+  // decide si el boton se ofrece.
+  const alicuotasConfiguradas = muestra.tuboMuestra?.numeroAlicuotas ?? 0
+  const huecosLibres = Math.max(0, alicuotasConfiguradas - numAlicuotas)
 
   return (
     <CardFooter className="flex flex-wrap gap-2 pt-3 border-t mt-auto">
@@ -211,15 +273,34 @@ function MuestraFooter({
         Editar
       </Button>
 
-      {esPadre && !noEnMiPosesion && !isPrestada && numAlicuotas === 0 && (
+      {/* Un lote no se cierra al crearse: si la extraccion salio corta se hacen
+          las que alcanzan y mas tarde se completan las que faltan. El boton
+          sigue disponible mientras al tubo le queden huecos. */}
+      {esPadre && !noEnMiPosesion && !isPrestada && !esBaja && !muestra.agotada && huecosLibres > 0 && (
         <Button
           variant="outline" size="sm"
           onClick={() => actions.onGenerarAlicuotas(muestra)}
           className="text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10"
-          title="Generar alícuotas"
+          title={numAlicuotas === 0
+            ? 'Generar alícuotas'
+            : `Completar el lote: faltan ${huecosLibres} de ${alicuotasConfiguradas}`}
         >
           <FlaskConical className="h-3 w-3 mr-1" />
-          Alícuotas
+          {numAlicuotas === 0 ? 'Alícuotas' : `Completar lote (${huecosLibres})`}
+        </Button>
+      )}
+
+      {/* Ubicar el lote entero en lugar de hueco por hueco: las alicuotas son
+          las que de verdad se guardan, y son varias por muestra. */}
+      {esPadre && !noEnMiPosesion && !isPrestada && alicuotasPendientes > 0 && (
+        <Button
+          variant="outline" size="sm"
+          onClick={() => actions.onUbicarLote(muestra)}
+          className="text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/10"
+          title="Asignar posición a todas las alícuotas pendientes"
+        >
+          <PackageCheck className="h-3 w-3 mr-1" />
+          Ubicar lote ({alicuotasPendientes})
         </Button>
       )}
 
@@ -377,10 +458,18 @@ function MuestraFooter({
 interface PadreCardProps {
   muestra: MuestraDetalleDTO
   numAlicuotas: number
+  /** Alicuotas creadas cuyo volumen sigue reservado en esta padre. */
+  alicuotasPendientes?: number
   trasladoInfo: TrasladoInfo | undefined
   isExpanded: boolean
   onToggle: () => void
   actions: SharedActions
+  /**
+   * La padre ya no encabeza el lote: una alícuota con volumen ocupa su sitio y
+   * esta tarjeta vive dentro del desplegable. Sin esto pintaría su propio botón
+   * de desplegar dentro de lo ya desplegado.
+   */
+  ocultarToggle?: boolean
 }
 
 /**
@@ -413,7 +502,62 @@ function MarcoLocalizada({ id, resaltada, children }: {
   )
 }
 
-function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, actions }: PadreCardProps) {
+/**
+ * Si el tubo se repartió entero por consumo normal.
+ *
+ * <p>Una muestra dada de baja no cuenta como agotada aunque no le quede
+ * volumen: la baja es una decisión —contaminación, pérdida, retiro de
+ * consentimiento— y define el estado. Mezclarlas haría imposible responder
+ * cuántas muestras se echaron a perder.</p>
+ */
+function estaAgotada(m: MuestraDetalleDTO) {
+  return Boolean(m.agotada) && m.estadoMuestra !== 'BAJA'
+}
+
+/**
+ * Sello de «agotada» sobre la tarjeta de una muestra ya repartida.
+ *
+ * <p>Antes esto era una insignia más entre otras cinco, y una muestra agotada se
+ * veía prácticamente igual que una llena: en una rejilla de veinte tarjetas
+ * había que leer cada una para saber cuáles quedan. Un tubo agotado es el estado
+ * más común del listado —toda muestra padre acaba ahí— y distinguirlo de un
+ * vistazo es lo que hace utilizable la pantalla.</p>
+ *
+ * <p>Va <b>encima</b> del contenido y no detrás, que es lo que lo hace legible
+ * sobre las insignias de colores. Por eso la opacidad es baja y
+ * {@code pointer-events-none}: se ve, pero ni tapa el texto ni se come los
+ * clics de los botones que hay debajo.</p>
+ */
+function SelloAgotada({ fecha }: { fecha?: string | null }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-lg"
+      title={fecha
+        ? `Consumida por completo el ${new Date(fecha).toLocaleDateString('es-MX')}`
+        : 'Consumida por completo'}
+    >
+      {/* Rayado diagonal: da la textura de «fuera de inventario» sin competir
+          con el texto. */}
+      <div
+        className="absolute inset-0 opacity-[0.10] dark:opacity-[0.16]"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 9px)',
+        }}
+      />
+      <span
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[18deg]
+                   whitespace-nowrap text-[2.1rem] font-black uppercase tracking-[0.18em]
+                   text-slate-700/[0.20] dark:text-slate-100/[0.20]"
+      >
+        Agotada
+      </span>
+    </div>
+  )
+}
+
+function PadreCard({ muestra, numAlicuotas, alicuotasPendientes = 0, trasladoInfo, isExpanded, onToggle, actions, ocultarToggle = false }: PadreCardProps) {
   const isOrigen = trasladoInfo ? trasladoInfo.institucionOrigenId === actions.myInstitucionId : undefined
   const badge = trasladoInfo ? activeBadge(trasladoInfo.estado, isOrigen) : null
   const box   = trasladoInfo ? activeBox(trasladoInfo.estado, isOrigen) : null
@@ -423,9 +567,24 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
   const esMia = muestra.idInstitucion != null
     && muestra.idInstitucion === actions.myInstitucionId
 
+  // El tubo se repartió entero y se desechó. No es una baja —esa es una decisión
+  // y define el estado— así que no puede pintarse como tal, pero sí tiene que
+  // distinguirse de una muestra con volumen sin leer la tarjeta entera.
+  const agotada = estaAgotada(muestra)
+
   return (
     <div className="relative h-full">
-      <Card className={`h-full flex flex-col ${noEnMiPosesion ? 'opacity-60' : ''} ${trasladoInfo ? activeCardBorder(trasladoInfo.estado, isOrigen) : ''}`}>
+      <Card className={cn(
+        'h-full flex flex-col',
+        noEnMiPosesion && 'opacity-60',
+        // Desaturar es lo que de verdad separa «inventario vivo» de «ya
+        // repartido» en una rejilla densa: las insignias de colores de una
+        // muestra agotada dejan de competir por la atención con las de una que
+        // todavía tiene volumen.
+        agotada && 'relative overflow-hidden bg-muted/40 border-slate-400/60 dark:border-slate-500/60 saturate-[.45]',
+        trasladoInfo ? activeCardBorder(trasladoInfo.estado, isOrigen) : '',
+      )}>
+        {agotada && <SelloAgotada fecha={muestra.fechaAgotamiento} />}
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -450,6 +609,32 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
                 {numAlicuotas > 0 && (
                   <span className="inline-flex items-center text-[10px] font-medium text-primary border border-primary/30 bg-primary/5 rounded-full px-2 py-0.5">
                     {numAlicuotas} alícuota{numAlicuotas !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {/* El tubo se vació y se desechó. No es una baja: la baja es una
+                    decision —contaminacion, perdida, retiro de consentimiento—
+                    y esto es un hecho consumado del uso normal. */}
+                {agotada && (
+                  <span
+                    // Rellena y no de contorno: entre cinco insignias de borde
+                    // fino, la que marca el estado más definitivo era la que
+                    // menos se veía.
+                    className="relative z-20 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:text-slate-900 bg-slate-600 dark:bg-slate-300 rounded-full px-2 py-0.5"
+                    title={muestra.fechaAgotamiento
+                      ? `Consumida por completo el ${new Date(muestra.fechaAgotamiento).toLocaleDateString('es-MX')}`
+                      : 'Consumida por completo'}
+                  >
+                    <BatteryLow className="h-2.5 w-2.5" />
+                    Agotada
+                  </span>
+                )}
+                {alicuotasPendientes > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-full px-2 py-0.5"
+                    title="Su volumen está reservado y se descontará al asignarles posición"
+                  >
+                    <Hourglass className="h-2.5 w-2.5" />
+                    {alicuotasPendientes} sin ubicar
                   </span>
                 )}
               </div>
@@ -566,11 +751,11 @@ function PadreCard({ muestra, numAlicuotas, trasladoInfo, isExpanded, onToggle, 
           )}
         </CardContent>
 
-        <MuestraFooter muestra={muestra} trasladoInfo={trasladoInfo} actions={actions} numAlicuotas={numAlicuotas} />
+        <MuestraFooter muestra={muestra} trasladoInfo={trasladoInfo} actions={actions} numAlicuotas={numAlicuotas} alicuotasPendientes={alicuotasPendientes} />
       </Card>
 
       {/* Botón toggle circular — mitad dentro / mitad fuera del borde derecho, centrado */}
-      {numAlicuotas > 0 && (
+      {numAlicuotas > 0 && !ocultarToggle && (
         <button
           onClick={onToggle}
           title={isExpanded ? 'Colapsar alícuotas' : `Ver ${numAlicuotas} alícuota${numAlicuotas !== 1 ? 's' : ''}`}
@@ -600,9 +785,26 @@ interface AlicuotaCardProps {
   muestra: MuestraDetalleDTO
   trasladoInfo: TrasladoInfo | undefined
   actions: SharedActions
+  /**
+   * Esta alícuota encabeza el lote en lugar de su muestra padre.
+   *
+   * <p>Ocurre cuando la padre ya se repartió entera. La padre es un registro
+   * del tubo del que salieron los viales —casi nunca tiene posición y siempre
+   * acaba en cero—, así que dejarla al frente hacía que un lote con cinco
+   * viales llenos se viera, de un vistazo, como un lote agotado. Al frente va
+   * lo que de verdad queda en el congelador; la padre baja al desplegable con
+   * su sello.</p>
+   */
+  cabeceraDeLote?: {
+    /** Cuántas tarjetas más hay en el lote, incluida la padre. */
+    restantes: number
+    isExpanded: boolean
+    onToggle: () => void
+    etiquetaPadre: string
+  }
 }
 
-function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
+function AlicuotaCard({ muestra, trasladoInfo, actions, cabeceraDeLote }: AlicuotaCardProps) {
   const esTrasladada = !!trasladoInfo
   const isOrigen = trasladoInfo ? trasladoInfo.institucionOrigenId === actions.myInstitucionId : undefined
   const badge  = trasladoInfo ? activeBadge(trasladoInfo.estado, isOrigen) : null
@@ -615,18 +817,37 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
     && actions.myInstitucionId != null
     && muestra.idInstitucion !== actions.myInstitucionId
 
-  return (
-    <Card className={`
-      h-full flex flex-col border border-dashed ${noEnMiPosesion ? 'opacity-50' : 'opacity-80'}
-      ${trasladoInfo ? activeCardBorder(trasladoInfo.estado, isOrigen) : 'border-muted-foreground/40'}
-      bg-muted/20
-    `}>
+  const tarjeta = (
+    <Card className={cn(
+      'h-full flex flex-col',
+      // Como cabecera deja de vestirse de tarjeta secundaria: es la que
+      // representa lo que queda del lote, no un apéndice de la padre.
+      cabeceraDeLote ? 'border' : 'border border-dashed bg-muted/20',
+      cabeceraDeLote
+        ? (noEnMiPosesion && 'opacity-60')
+        : (noEnMiPosesion ? 'opacity-50' : 'opacity-80'),
+      trasladoInfo
+        ? activeCardBorder(trasladoInfo.estado, isOrigen)
+        : (cabeceraDeLote ? '' : 'border-muted-foreground/40'),
+    )}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base font-mono leading-tight text-muted-foreground">
+            <CardTitle className={cn(
+              'text-base font-mono leading-tight',
+              !cabeceraDeLote && 'text-muted-foreground',
+            )}>
               {muestra.etiqueta}
             </CardTitle>
+            {/* Encabezar el lote no la convierte en la muestra de origen: de
+                dónde salió es parte de su identidad y tiene que seguir a la
+                vista sin desplegar nada. */}
+            {cabeceraDeLote && (
+              <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground"
+                 title={`Procede del tubo ${cabeceraDeLote.etiquetaPadre}, ya repartido`}>
+                de {cabeceraDeLote.etiquetaPadre}
+              </p>
+            )}
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               {/* Siempre visible: una misma muestra padre puede tener alícuotas
                   generadas por cada institución por la que ha pasado, y ocultar
@@ -640,6 +861,17 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
               {muestra.numeroAlicuota != null && muestra.totalAlicuotas != null && (
                 <span className="inline-flex items-center text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-full px-2 py-0.5">
                   Alíc. {muestra.numeroAlicuota}/{muestra.totalAlicuotas}
+                </span>
+              )}
+              {/* Hasta que no ocupa un hueco, la alicuota es una promesa contra
+                  la padre: su volumen esta reservado pero no descontado. */}
+              {muestra.materializada === false && (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-300 border border-amber-500/40 bg-amber-500/15 rounded-full px-2 py-0.5"
+                  title="Asigne una posición para descontar su volumen de la muestra padre"
+                >
+                  <Hourglass className="h-2.5 w-2.5" />
+                  Pendiente de ubicar
                 </span>
               )}
               {muestra.tuboMuestra && (
@@ -746,6 +978,38 @@ function AlicuotaCard({ muestra, trasladoInfo, actions }: AlicuotaCardProps) {
       <MuestraFooter muestra={muestra} trasladoInfo={trasladoInfo} actions={actions} />
     </Card>
   )
+
+  if (!cabeceraDeLote) return tarjeta
+
+  // Mismo botón y misma posición que en la padre: quien encabeza el lote es
+  // quien lleva el desplegable, sea la padre o esta.
+  return (
+    <div className="relative h-full">
+      {tarjeta}
+      {cabeceraDeLote.restantes > 0 && (
+        <button
+          onClick={cabeceraDeLote.onToggle}
+          title={cabeceraDeLote.isExpanded
+            ? 'Colapsar el resto del lote'
+            : `Ver el resto del lote (${cabeceraDeLote.restantes}), incluido el tubo de origen`}
+          className="
+            absolute right-0 top-1/2
+            translate-x-1/2 -translate-y-1/2
+            z-10
+            h-7 w-7 rounded-full
+            flex items-center justify-center
+            bg-background border border-border shadow-sm
+            hover:bg-muted transition-colors
+          "
+        >
+          {cabeceraDeLote.isExpanded
+            ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          }
+        </button>
+      )}
+    </div>
+  )
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -774,8 +1038,14 @@ export function MuestrasTab() {
   const [historialMuestra, setHistorialMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [resultadosMuestra, setResultadosMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [generarAlicuotasMuestra, setGenerarAlicuotasMuestra] = useState<MuestraDetalleDTO | null>(null)
+  const [ubicarLoteMuestra, setUbicarLoteMuestra] = useState<MuestraDetalleDTO | null>(null)
+  const [filtros, setFiltros] = useState<FiltrosMuestra>(FILTROS_VACIOS)
   const [hideDevueltasHuerfanas, setHideDevueltasHuerfanas] = useState(true)
   const [incluirHistorico, setIncluirHistorico] = useState(false)
+  /** Por qué extremo del listado se entra: lo más reciente o lo más antiguo. */
+  const [ancla, setAncla] = useState<AnclaListado>('INICIO')
+  /** Salto pedido que aún espera a que llegue el tramo correspondiente. */
+  const [saltoPendiente, setSaltoPendiente] = useState<'inicio' | 'final' | null>(null)
 
   // ── Búsqueda por etiqueta leída ────────────────────────────────────────────
   const [escanerAbierto, setEscanerAbierto] = useState(false)
@@ -783,7 +1053,42 @@ export function MuestrasTab() {
   /** Muestra localizada por el último escaneo: se resalta hasta que se toque otra cosa. */
   const [resaltadaId, setResaltadaId] = useState<number | null>(null)
 
-  const { data: muestras, isLoading } = useGetMuestras({ incluirHistorico })
+  /*
+   * Lo que la pantalla pide al servidor. La búsqueda entra diferida y los tipos
+   * ordenados: la clave de caché se arma con este objeto, y un arreglo con los
+   * mismos nombres en otro orden sería, para la caché, otra consulta.
+   */
+  const busquedaDiferida = useValorDiferido(searchTerm)
+  const criterios = useMemo<CriteriosListadoMuestras>(() => ({
+    incluirHistorico,
+    ocultarDevueltasHuerfanas: hideDevueltasHuerfanas,
+    busqueda: busquedaDiferida.trim(),
+    fechaDesde: filtros.fechaDesde,
+    fechaHasta: filtros.fechaHasta,
+    tipos: [...filtros.tipos].sort((a, b) => a.localeCompare(b, 'es')),
+    sexo: filtros.sexo,
+    folioDesde: filtros.folioDesde,
+    folioHasta: filtros.folioHasta,
+  }), [incluirHistorico, hideDevueltasHuerfanas, busquedaDiferida, filtros])
+
+  const listado = useMuestrasCursor(criterios, ancla, TAMANO_PAGINA)
+  const isLoading = listado.isLoading
+
+  /*
+   * Las tarjetas y sus alícuotas llegan en listas separadas —para que «veinte»
+   * cuente tarjetas y no filas— y aquí se vuelven a juntar: el agrupado de más
+   * abajo las reparte igual que cuando el listado venía entero.
+   */
+  const muestras = useMemo(
+    () => (listado.data?.pages ?? []).flatMap((p) => [...p.muestras, ...p.alicuotas]),
+    [listado.data],
+  )
+
+  // Los totales son iguales en todas las páginas —salen de los mismos criterios—
+  // así que basta leerlos de una.
+  const resumen = listado.data?.pages?.[0]
+  const totalMuestras = resumen?.total ?? 0
+  const huerfanasDevueltasCount = resumen?.huerfanasDevueltas ?? 0
   const { data: traslados = [] } = useGetAllTraslados()
   const { data: tiposActivos = [], isLoading: isLoadingTiposMuestra } = useGetTiposMuestraActivos()
   const deleteMuestraMutation = useDeleteMuestra()
@@ -865,57 +1170,46 @@ export function MuestrasTab() {
     return { padres: padresArr, alicuotasByPadre: byPadre }
   }, [muestras])
 
-  const huerfanasDevueltasCount = useMemo(() => {
-    return padres.filter((m) => {
-      if (m.idMuestraPadre == null) return false
-      const esExterna = m.idInstitucion != null && m.idInstitucion !== myInstitucionId
-      const fueraDeMiBiobanco = m.idInstitucionActual != null && m.idInstitucionActual !== myInstitucionId
-      return esExterna && fueraDeMiBiobanco
-    }).length
-  }, [padres, myInstitucionId])
-
-  /** Coincidencia de una muestra suelta contra el texto buscado. */
-  const coincide = (m: MuestraDetalleDTO, term: string) => {
-    const pacienteStr = m.paciente ? `${m.paciente.folio} ${m.paciente.nombreCompleto}` : ''
-    return (
-      m.etiqueta.toLowerCase().includes(term) ||
-      (m.unidad ?? '').toLowerCase().includes(term) ||
-      pacienteStr.toLowerCase().includes(term) ||
-      (m.tipoMuestra?.nombre ?? '').toLowerCase().includes(term) ||
-      (m.tuboMuestra?.nombre ?? '').toLowerCase().includes(term)
-    )
-  }
+  /**
+   * Receta del lote que ya existe para la muestra que se va a alicuotar.
+   *
+   * Se lee de las propias alícuotas y no de la muestra padre: la padre lleva el
+   * tipo y tubo con los que SE REGISTRÓ, pero el lote puede haberlo creado otra
+   * institución con su propia receta. Las alícuotas son el lote.
+   *
+   * Si no hay alícuotas, no hay lote que completar y el modal pide la receta.
+   */
+  const loteDeLaMuestraAGenerar = useMemo(() => {
+    if (!generarAlicuotasMuestra) return null
+    const hijas = alicuotasByPadre.get(generarAlicuotasMuestra.id) ?? []
+    const referencia = hijas.find((a) => a.tipoMuestra && a.tuboMuestra)
+    if (!referencia?.tipoMuestra || !referencia?.tuboMuestra) return null
+    return { tipo: referencia.tipoMuestra, tubo: referencia.tuboMuestra }
+  }, [generarAlicuotasMuestra, alicuotasByPadre])
 
   /*
-   * El filtro corre sobre las muestras padre, pero las alícuotas no están en esa
-   * lista: viven plegadas dentro de su padre. Comparar solo contra la padre hacía
-   * que buscar la etiqueta de una alícuota vaciara la pantalla — la padre no
-   * coincide, desaparece, y con ella la alícuota que sí coincidía.
+   * Qué tarjetas se despliegan solas por efecto de la búsqueda.
    *
-   * Una padre se conserva si coincide ella o si coincide alguna de sus alícuotas,
-   * y en ese segundo caso se despliega sola: mostrarla plegada dejaría al usuario
-   * mirando una tarjeta que no dice nada de lo que buscó.
+   * El filtrado ya lo hizo el servidor: estas padres están en la lista porque
+   * coinciden ellas o alguna de sus alícuotas. Lo que no viene del servidor es
+   * CUÁL de las dos cosas pasó, y sin saberlo una padre que solo coincide por
+   * una alícuota se mostraría plegada, dejando al usuario mirando una tarjeta
+   * que no dice nada de lo que buscó. Eso sí se puede averiguar aquí, porque
+   * las alícuotas del tramo cargado vienen con él.
    */
-  const { filteredPadres, expandidasPorBusqueda } = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
+  const expandidasPorBusqueda = useMemo(() => {
+    const term = busquedaDiferida.trim().toLowerCase()
     const porBusqueda = new Set<number>()
+    if (!term) return porBusqueda
 
-    const lista = padres.filter((m) => {
-      if (hideDevueltasHuerfanas && m.idMuestraPadre != null) {
-        const esExterna = m.idInstitucion != null && m.idInstitucion !== myInstitucionId
-        const fueraDeMiBiobanco = m.idInstitucionActual != null && m.idInstitucionActual !== myInstitucionId
-        if (esExterna && fueraDeMiBiobanco) return false
+    padres.forEach((m) => {
+      if (coincide(m, term)) return
+      if ((alicuotasByPadre.get(m.id) ?? []).some((a) => coincide(a, term))) {
+        porBusqueda.add(m.id)
       }
-      if (!term) return true
-      if (coincide(m, term)) return true
-
-      const alicuotaCoincide = (alicuotasByPadre.get(m.id) ?? []).some((a) => coincide(a, term))
-      if (alicuotaCoincide) porBusqueda.add(m.id)
-      return alicuotaCoincide
     })
-
-    return { filteredPadres: lista, expandidasPorBusqueda: porBusqueda }
-  }, [padres, alicuotasByPadre, searchTerm, hideDevueltasHuerfanas, myInstitucionId])
+    return porBusqueda
+  }, [padres, alicuotasByPadre, busquedaDiferida])
 
   /*
    * Las padres que solo coinciden por una alicuota se despliegan solas.
@@ -935,6 +1229,129 @@ export function MuestrasTab() {
       return next
     })
   }, [expandidasPorBusqueda])
+
+  /** Si la pantalla está pidiendo algo concreto o mirando el listado completo. */
+  const hayCriterios = busquedaDiferida.trim().length > 0 || contarFiltrosActivos(filtros) > 0
+
+  // ── Recorrido del listado ──────────────────────────────────────────────────
+
+  const listaRef = useRef<HTMLDivElement | null>(null)
+  const centinelaArriba = useRef<HTMLDivElement | null>(null)
+  const centinelaAbajo = useRef<HTMLDivElement | null>(null)
+  /** Alto del contenedor justo antes de anteponer un tramo. */
+  const altoPrevio = useRef<number | null>(null)
+
+  const contenedor = useCallback(() => contenedorDesplazable(listaRef.current), [])
+
+  const {
+    hasNextPage, hasPreviousPage,
+    isFetchingNextPage, isFetchingPreviousPage,
+    fetchNextPage, fetchPreviousPage,
+  } = listado
+
+  const cargarSiguientes = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  const cargarAnteriores = useCallback(() => {
+    if (!hasPreviousPage || isFetchingPreviousPage) return
+    /*
+     * Anteponer tarjetas empuja hacia abajo lo que se está leyendo. Se anota el
+     * alto de ahora para devolver la vista a su sitio en cuanto el contenedor
+     * crezca; sin esto, acercarse al borde superior da un tirón y se pierde de
+     * vista la tarjeta que se estaba mirando.
+     */
+    altoPrevio.current = contenedor()?.scrollHeight ?? null
+    fetchPreviousPage()
+  }, [hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage, contenedor])
+
+  useLayoutEffect(() => {
+    const previo = altoPrevio.current
+    if (previo == null) return
+    altoPrevio.current = null
+    const caja = contenedor()
+    if (!caja) return
+    const crecimiento = caja.scrollHeight - previo
+    if (crecimiento > 0) caja.scrollTop += crecimiento
+  }, [listado.data, contenedor])
+
+  useEffect(() => {
+    const arriba = centinelaArriba.current
+    const abajo = centinelaAbajo.current
+    if (!abajo) return
+
+    const caja = contenedor()
+    const observador = new IntersectionObserver(
+      (entradas) => entradas.forEach((entrada) => {
+        if (!entrada.isIntersecting) return
+        if (entrada.target === abajo) cargarSiguientes()
+        else cargarAnteriores()
+      }),
+      {
+        // El elemento que desplaza de verdad. Con `null` se mediría contra la
+        // ventana, que en esta aplicación no se mueve: el contenido vive dentro
+        // de un contenedor con desbordamiento propio.
+        root: caja === document.scrollingElement ? null : caja,
+        // Se pide el siguiente tramo antes de llegar al borde, para que la
+        // lista no se quede en blanco al final del desplazamiento.
+        rootMargin: '400px',
+      },
+    )
+
+    observador.observe(abajo)
+    /*
+     * El centinela de arriba solo se vigila cuando la vista ya se asentó: recién
+     * saltado al final está en pantalla, y observarlo traería de vuelta,
+     * tramo a tramo, justo lo que se acaba de dejar atrás.
+     */
+    if (arriba && saltoPendiente === null) observador.observe(arriba)
+
+    return () => observador.disconnect()
+  }, [cargarSiguientes, cargarAnteriores, contenedor, saltoPendiente, padres.length])
+
+  const irAlInicio = useCallback(() => {
+    if (ancla === 'INICIO') {
+      contenedor()?.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    setAncla('INICIO')
+    setSaltoPendiente('inicio')
+  }, [ancla, contenedor])
+
+  const irAlFinal = useCallback(() => {
+    if (ancla === 'FINAL') {
+      const caja = contenedor()
+      caja?.scrollTo({ top: caja.scrollHeight, behavior: 'smooth' })
+      return
+    }
+    /*
+     * El final no se alcanza recorriendo la lista: el servidor lo resuelve en
+     * una sola consulta pidiendo el tramo por el otro extremo. Por eso saltar a
+     * lo más antiguo cuesta lo mismo con cien muestras que con cien mil.
+     */
+    setAncla('FINAL')
+    setSaltoPendiente('final')
+  }, [ancla, contenedor])
+
+  // El salto espera a que llegue el tramo del otro extremo: desplazarse antes
+  // movería la lista anterior, que sigue en pantalla mientras la nueva carga.
+  useEffect(() => {
+    if (!saltoPendiente || listado.isFetching || listado.isPlaceholderData) return
+    const caja = contenedor()
+    if (!caja) return
+    caja.scrollTo({
+      top: saltoPendiente === 'inicio' ? 0 : caja.scrollHeight,
+      behavior: 'smooth',
+    })
+    setSaltoPendiente(null)
+  }, [saltoPendiente, listado.isFetching, listado.isPlaceholderData, contenedor])
+
+  // Cambiar de criterios es empezar otra lista: se vuelve al ancla de entrada y
+  // al principio, porque el tramo donde estaba el usuario ya no significa nada.
+  useEffect(() => {
+    setAncla('INICIO')
+    contenedor()?.scrollTo({ top: 0 })
+  }, [criterios, contenedor])
 
   const toggleExpanded = (id: number) =>
     setExpandedIds((prev) => {
@@ -1175,6 +1592,7 @@ export function MuestrasTab() {
     onDocumentos: setDocMuestraId,
     onResultados: setResultadosMuestra,
     onGenerarAlicuotas: setGenerarAlicuotasMuestra,
+    onUbicarLote: setUbicarLoteMuestra,
     onDelete: handleDelete,
     onDarBaja: handleDarBaja,
     onPrintEtiqueta: handlePrintEtiqueta,
@@ -1334,80 +1752,201 @@ export function MuestrasTab() {
           <History className="h-3.5 w-3.5 mr-1" />
           {incluirHistorico ? 'Ocultar histórico' : 'Mostrar histórico'}
         </Button>
+
+        <FiltrosMuestrasPanel
+          filtros={filtros}
+          onChange={setFiltros}
+          tiposMuestra={tiposActivos}
+        />
       </div>
 
-      {filteredPadres.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              {padres.length === 0 ? 'No hay muestras registradas' : 'No se encontraron resultados'}
-            </h3>
-            <p className="text-muted-foreground text-center mb-4">
-              {padres.length === 0
-                ? 'Registra la primera muestra biológica en el sistema.'
-                : 'Intente con otros términos de búsqueda.'}
-            </p>
-            {padres.length === 0 && (
-              <Button
-                onClick={() => setIsMuestraModalOpen(true)}
-                disabled={!puedeCrearMuestra}
-                title={!puedeCrear ? 'No cuenta con permisos para registrar muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {isLoadingTiposMuestra ? 'Cargando…' : 'Registrar Primera Muestra'}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        /*
-         * Grid plano — cada padre ocupa 1 celda, sus alícuotas (si están
-         * expandidas) fluyen como celdas adicionales a continuación,
-         * naturalmente hacia la derecha y a la siguiente fila si es necesario.
-         * CSS Grid stretch por defecto iguala las alturas dentro de cada fila.
-         */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPadres.map((muestra) => {
-            const esAlicuotaHuerfana = muestra.idMuestraPadre != null
-            const alicuotas  = alicuotasByPadre.get(muestra.id) ?? []
-            const isExpanded = expandedIds.has(muestra.id)
+      {/*
+        Todo el listado cuelga de este nodo: desde él se localiza el contenedor
+        que realmente desplaza, que no es la ventana sino el área principal de
+        la aplicación.
+      */}
+      <div ref={listaRef} className="space-y-4">
+        {/* Centinela superior: al asomarse trae las tarjetas más recientes. */}
+        <div ref={centinelaArriba} aria-hidden className="h-px" />
 
-            return (
-              <Fragment key={muestra.id}>
-                <MarcoLocalizada id={muestra.id} resaltada={resaltadaId === muestra.id}>
-                  {esAlicuotaHuerfana ? (
-                    <AlicuotaCard
-                      muestra={muestra}
-                      trasladoInfo={trasladosActivos.get(muestra.id)}
-                      actions={actions}
-                    />
-                  ) : (
-                    <PadreCard
-                      muestra={muestra}
-                      numAlicuotas={alicuotas.length}
-                      trasladoInfo={trasladosActivos.get(muestra.id)}
-                      isExpanded={isExpanded}
-                      onToggle={() => toggleExpanded(muestra.id)}
-                      actions={actions}
-                    />
-                  )}
-                </MarcoLocalizada>
+        {padres.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                {!hayCriterios
+                  ? 'No hay muestras registradas'
+                  : contarFiltrosActivos(filtros) > 0
+                    ? 'Ninguna muestra cumple los filtros'
+                    : 'No se encontraron resultados'}
+              </h3>
+              <p className="text-muted-foreground text-center mb-4">
+                {!hayCriterios
+                  ? 'Registra la primera muestra biológica en el sistema.'
+                  : contarFiltrosActivos(filtros) > 0
+                    ? 'Ajuste o quite los filtros para ver más resultados.'
+                    : 'Intente con otros términos de búsqueda.'}
+              </p>
+              {!hayCriterios && (
+                <Button
+                  onClick={() => setIsMuestraModalOpen(true)}
+                  disabled={!puedeCrearMuestra}
+                  title={!puedeCrear ? 'No cuenta con permisos para registrar muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {isLoadingTiposMuestra ? 'Cargando…' : 'Registrar Primera Muestra'}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          /*
+           * Grid plano — cada padre ocupa 1 celda, sus alícuotas (si están
+           * expandidas) fluyen como celdas adicionales a continuación,
+           * naturalmente hacia la derecha y a la siguiente fila si es necesario.
+           * CSS Grid stretch por defecto iguala las alturas dentro de cada fila.
+           */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {padres.map((muestra) => {
+              const esAlicuotaHuerfana = muestra.idMuestraPadre != null
+              const alicuotas  = alicuotasByPadre.get(muestra.id) ?? []
+              const isExpanded = expandedIds.has(muestra.id)
+              const pendientes = alicuotas.filter((a) => a.materializada === false).length
 
-                {/* Celdas adicionales: alícuotas — fluyen en el mismo grid */}
-                {!esAlicuotaHuerfana && isExpanded && alicuotas.map((ali) => (
-                  <MarcoLocalizada key={ali.id} id={ali.id} resaltada={resaltadaId === ali.id}>
-                    <AlicuotaCard
-                      muestra={ali}
-                      trasladoInfo={trasladosActivos.get(ali.id)}
-                      actions={actions}
-                    />
+              /*
+               * Quién encabeza el lote.
+               *
+               * La padre es un registro del tubo del que salieron los viales:
+               * casi nunca tiene posición y siempre acaba en cero. Dejarla
+               * siempre al frente hacía que un lote con cinco viales llenos se
+               * viera, plegado, como un lote agotado — y con una carga masiva
+               * detrás, el panel entero parecía consumido. Así que cuando la
+               * padre ya se repartió, encabeza la primera alícuota que conserve
+               * volumen y la padre baja al desplegable con su sello.
+               *
+               * Se queda al frente igualmente si es la que el usuario acaba de
+               * localizar: quien escanea la etiqueta de un tubo espera ver ese
+               * tubo, no tener que desplegar para encontrarlo.
+               */
+              const vivas = alicuotas.filter((a) => !estaAgotada(a) && a.estadoMuestra !== 'BAJA')
+              const promovida = !esAlicuotaHuerfana
+                && estaAgotada(muestra)
+                && resaltadaId !== muestra.id
+                ? vivas[0]
+                : undefined
+
+              // Dentro del desplegable, lo que conserva volumen primero y lo ya
+              // repartido al final: el mismo criterio que en la cabecera.
+              const resto = promovida
+                ? [...alicuotas.filter((a) => a.id !== promovida.id)]
+                    .sort((a, b) => Number(estaAgotada(a)) - Number(estaAgotada(b)))
+                : alicuotas
+
+              return (
+                <Fragment key={muestra.id}>
+                  <MarcoLocalizada
+                    id={promovida ? promovida.id : muestra.id}
+                    resaltada={resaltadaId === (promovida ? promovida.id : muestra.id)}
+                  >
+                    {esAlicuotaHuerfana ? (
+                      <AlicuotaCard
+                        muestra={muestra}
+                        trasladoInfo={trasladosActivos.get(muestra.id)}
+                        actions={actions}
+                      />
+                    ) : promovida ? (
+                      <AlicuotaCard
+                        muestra={promovida}
+                        trasladoInfo={trasladosActivos.get(promovida.id)}
+                        actions={actions}
+                        cabeceraDeLote={{
+                          // +1 por la padre, que también baja al desplegable.
+                          restantes: resto.length + 1,
+                          isExpanded,
+                          // La clave de expansión sigue siendo la padre: es la
+                          // que usan el toggle, la búsqueda y el resaltado.
+                          onToggle: () => toggleExpanded(muestra.id),
+                          etiquetaPadre: muestra.etiqueta,
+                        }}
+                      />
+                    ) : (
+                      <PadreCard
+                        muestra={muestra}
+                        numAlicuotas={alicuotas.length}
+                        alicuotasPendientes={pendientes}
+                        trasladoInfo={trasladosActivos.get(muestra.id)}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleExpanded(muestra.id)}
+                        actions={actions}
+                      />
+                    )}
                   </MarcoLocalizada>
-                ))}
-              </Fragment>
-            )
-          })}
-        </div>
+
+                  {/* Celdas adicionales: el resto del lote — fluyen en el mismo grid */}
+                  {!esAlicuotaHuerfana && isExpanded && resto.map((ali) => (
+                    <MarcoLocalizada key={ali.id} id={ali.id} resaltada={resaltadaId === ali.id}>
+                      <AlicuotaCard
+                        muestra={ali}
+                        trasladoInfo={trasladosActivos.get(ali.id)}
+                        actions={actions}
+                      />
+                    </MarcoLocalizada>
+                  ))}
+
+                  {/* La padre desplazada, al final: es lo más «segundo plano»
+                      del lote, pero sigue siendo su origen y hay que poder
+                      abrir su historial, sus estudios y sus etiquetas. */}
+                  {promovida && isExpanded && (
+                    <MarcoLocalizada id={muestra.id} resaltada={resaltadaId === muestra.id}>
+                      <PadreCard
+                        muestra={muestra}
+                        numAlicuotas={alicuotas.length}
+                        alicuotasPendientes={pendientes}
+                        trasladoInfo={trasladosActivos.get(muestra.id)}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleExpanded(muestra.id)}
+                        actions={actions}
+                        ocultarToggle
+                      />
+                    </MarcoLocalizada>
+                  )}
+                </Fragment>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Centinela inferior: al asomarse trae el tramo siguiente. */}
+        <div ref={centinelaAbajo} aria-hidden className="h-px" />
+
+        {(isFetchingNextPage || isFetchingPreviousPage) && (
+          <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Cargando más muestras…
+          </div>
+        )}
+
+        {padres.length > 0 && (
+          <p className="pb-2 text-center text-xs text-muted-foreground">
+            {padres.length >= totalMuestras
+              ? `${totalMuestras} ${totalMuestras === 1 ? 'muestra' : 'muestras'} en total`
+              : `${padres.length} de ${totalMuestras} muestras · se cargan conforme se desplaza`}
+          </p>
+        )}
+      </div>
+
+      {/*
+        Solo aparece cuando hay más de un tramo: con una lista que cabe entera
+        en pantalla, un mando para saltar a sus extremos sobra.
+      */}
+      {(hasNextPage || hasPreviousPage) && (
+        <NavegadorListado
+          onInicio={irAlInicio}
+          onFinal={irAlFinal}
+          cargando={listado.isFetching}
+          cargadas={padres.length}
+          total={totalMuestras}
+        />
       )}
 
       <EscanearEtiquetaModal
@@ -1423,7 +1962,14 @@ export function MuestrasTab() {
         onOpenChange={handleModalClose}
         muestra={editingMuestra}
       />
+      <UbicarLoteModal
+        open={ubicarLoteMuestra !== null}
+        onOpenChange={(open) => !open && setUbicarLoteMuestra(null)}
+        muestra={ubicarLoteMuestra}
+      />
+
       <GenerarAlicuotasModal
+        loteExistente={loteDeLaMuestraAGenerar}
         open={generarAlicuotasMuestra !== null}
         onOpenChange={(open) => !open && setGenerarAlicuotasMuestra(null)}
         muestra={generarAlicuotasMuestra}

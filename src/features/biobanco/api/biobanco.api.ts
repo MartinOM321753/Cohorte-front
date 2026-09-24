@@ -9,6 +9,8 @@ import {
   Muestra,
   MuestraDetalleDTO,
   MuestraRequestDTO,
+  PaginaMuestras,
+  FiltrosMuestrasQuery,
   PosicionCaja,
   Almacen,
   AlmacenRequestDTO,
@@ -19,6 +21,8 @@ import {
   ConfirmarRecepcionRequestDTO,
   IniciarDevolucionRequestDTO,
   GenerarAlicuotasRequest,
+  PlanAlicuotas,
+  UbicacionAlicuota,
   MuestraTipoInstitucionResponse,
   CancelarPrestamoRequestDTO,
   SpringPage,
@@ -162,6 +166,44 @@ export async function getPosicionesLibresByCaja(idCaja: number) {
 
 export async function getMuestras(params?: { pacienteUUID?: string; incluirHistorico?: boolean }) {
   const response = await api.get<ApiResponse<MuestraDetalleDTO[]>>('/almacenamiento/muestras', { params })
+  return response.data.data
+}
+
+/**
+ * Una ventana del listado, situada por cursor en vez de por número de página.
+ *
+ * <p>Los filtros y la búsqueda viajan al servidor. Con la lista completa en
+ * memoria daba igual dónde se aplicaran; teniendo solo veinte tarjetas
+ * cargadas, filtrar aquí respondería sobre esas veinte y escondería el resto
+ * sin decirlo.</p>
+ *
+ * <p>Los arreglos vacíos y las cadenas en blanco se omiten para que la URL de
+ * la vista sin filtros sea siempre la misma y la caché del navegador y la de
+ * TanStack Query puedan reconocerla.</p>
+ */
+export async function getPaginaMuestras(filtros: FiltrosMuestrasQuery) {
+  const params: Record<string, unknown> = {
+    size: filtros.size ?? 20,
+    direccion: filtros.direccion ?? 'SIGUIENTE',
+    incluirHistorico: filtros.incluirHistorico ?? false,
+    ocultarDevueltasHuerfanas: filtros.ocultarDevueltasHuerfanas ?? true,
+  }
+  if (filtros.cursor) params.cursor = filtros.cursor
+  if (filtros.busqueda?.trim()) params.busqueda = filtros.busqueda.trim()
+  if (filtros.fechaDesde) params.fechaDesde = filtros.fechaDesde
+  if (filtros.fechaHasta) params.fechaHasta = filtros.fechaHasta
+  if (filtros.tipos?.length) params.tipos = filtros.tipos
+  if (filtros.sexo) params.sexo = filtros.sexo
+  if (filtros.folioDesde) params.folioDesde = filtros.folioDesde
+  if (filtros.folioHasta) params.folioHasta = filtros.folioHasta
+
+  const response = await api.get<ApiResponse<PaginaMuestras>>('/almacenamiento/muestras/cursor', {
+    params,
+    // Los tipos van repetidos (`tipos=Heces&tipos=Sangre`), que es la forma que
+    // Spring enlaza a un List<String>. El formato por omisión de axios añade
+    // corchetes al nombre y el parámetro llegaría vacío.
+    paramsSerializer: { indexes: null },
+  })
   return response.data.data
 }
 
@@ -346,9 +388,45 @@ export async function getAlicuotasEnDestino(idTraslado: number) {
   return response.data.data
 }
 
-/** Generar alícuotas en institución receptora */
-export async function generarAlicuotasEnReceptora(idMuestra: number, data: GenerarAlicuotasRequest) {
+/**
+ * Generar un lote de alícuotas sobre una muestra padre ya registrada.
+ *
+ * Sirve tanto para la unidad que recibe una muestra en préstamo y la alicuota
+ * con su propia configuración, como para la propietaria que no alicuotó al
+ * registrar —porque su tubo está en manual, o porque entonces no hacía falta—.
+ */
+export async function generarLoteAlicuotas(idMuestra: number, data: GenerarAlicuotasRequest) {
   const response = await api.post<ApiResponse<MuestraDetalleDTO[]>>(`/almacenamiento/muestras/${idMuestra}/generar-alicuotas`, data)
+  return response.data.data
+}
+
+/**
+ * Previsualiza el lote sin crear nada: cuántas alícuotas alcanzan con el
+ * volumen indicado, qué sobra y qué repartos son posibles.
+ *
+ * Pasar `idMuestra` lo calcula contra el volumen DISPONIBLE de esa muestra
+ * —descontando lo ya prometido a alícuotas sin ubicar—; pasar `valor` lo
+ * calcula sobre una extracción que todavía no se ha registrado.
+ */
+export async function getPlanAlicuotas(params: {
+  idTuboMuestra: number
+  valor?: number
+  idMuestra?: number
+}) {
+  const response = await api.get<ApiResponse<PlanAlicuotas>>('/almacenamiento/muestras/plan-alicuotas', { params })
+  return response.data.data
+}
+
+/** Alícuotas del lote que siguen sin ubicar (su volumen sigue reservado en la padre). */
+export async function getAlicuotasPendientes(idMuestraPadre: number) {
+  const response = await api.get<ApiResponse<MuestraDetalleDTO[]>>(`/almacenamiento/muestras/${idMuestraPadre}/alicuotas/pendientes`)
+  return response.data.data
+}
+
+/** Ubica varias alícuotas de una misma padre en una sola operación: todo o nada. */
+export async function ubicarLoteAlicuotas(idMuestraPadre: number, asignaciones: UbicacionAlicuota[]) {
+  const response = await api.post<ApiResponse<MuestraDetalleDTO[]>>(
+    `/almacenamiento/muestras/${idMuestraPadre}/alicuotas/ubicar-lote`, { asignaciones })
   return response.data.data
 }
 
@@ -461,6 +539,18 @@ export async function createParametroEstudioMuestra(data: ParametroEstudioMuestr
 
 export async function updateParametroEstudioMuestra(id: number, data: ParametroEstudioMuestraRequestDTO) {
   const response = await api.put<ApiResponse<ParametroEstudioMuestra>>(`/muestras/estudios/parametros/${id}`, data)
+  return response.data.data
+}
+
+/**
+ * Guarda el orden de los parámetros de un tipo de estudio de muestra. Igual que
+ * en el catálogo de estudios: la lista completa, no el movimiento.
+ */
+export async function reordenarParametrosEstudioMuestra(idTipo: number, ids: number[]) {
+  const response = await api.put<ApiResponse<ParametroEstudioMuestra[]>>(
+    `/muestras/estudios/tipos/${idTipo}/parametros/orden`,
+    { ids }
+  )
   return response.data.data
 }
 

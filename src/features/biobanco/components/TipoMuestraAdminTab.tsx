@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Plus, Edit, Trash2, ChevronDown, ChevronRight,
   FlaskConical, Thermometer, CheckCircle2, XCircle, TestTube,
-  Check, ChevronsUpDown
+  Check, ChevronsUpDown, AlertCircle
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import {
@@ -29,6 +29,7 @@ import {
   CommandItem, CommandList,
 } from '@/components/ui/command'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import {
   AlertDialog,
@@ -114,7 +115,8 @@ interface TuboFormProps {
   initial?: TuboMuestra | null
   onSave: (data: {
     nombre: string; prefijoCodigo: string; numeroAlicuotas: number;
-    volumenAlicuota: number | undefined; unidadVolumen: string; destinoSugerido: string
+    volumenAlicuota: number | undefined; unidadVolumen: string; destinoSugerido: string;
+    generacionAutomatica: boolean; permiteAlicuotaParcial: boolean
   }) => void
   onCancel: () => void
   loading: boolean
@@ -128,6 +130,17 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
   const [unidad, setUnidad] = useState(initial?.unidadVolumen ?? '')
   const [destino, setDestino] = useState(initial?.destinoSugerido ?? '')
   const [openDestino, setOpenDestino] = useState(false)
+  // Los tubos heredados llegan con estas dos en null. Se leen como activadas
+  // para que nada cambie de comportamiento tras el despliegue.
+  const [generacionAutomatica, setGeneracionAutomatica] = useState(initial?.generacionAutomatica !== false)
+  const [permiteParcial, setPermiteParcial] = useState(initial?.permiteAlicuotaParcial !== false)
+
+  const alicuota = (parseInt(numAlicuotas) || 0) > 0
+  // Un tubo que alicuota tiene que decir de cuanto y en que unidad: la unidad
+  // del tubo es la que se le impone a la muestra padre al registrarla, y sin
+  // volumen no hay forma de calcular cuantas alicuotas alcanzan.
+  const faltaVolumen = alicuota && (volumen === '' || !(parseFloat(volumen) > 0))
+  const faltaUnidad = alicuota && unidad.trim() === ''
 
   const { data: almacenes = [] } = useGetAlmacenes()
   const almacenesActivos = almacenes.filter((a) => a.activo)
@@ -230,11 +243,59 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
         )}
       </div>
 
+      {/* Comportamiento del alicuotado ─────────────────────────────────── */}
+      {alicuota && (
+        <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+          <div className="flex items-start gap-3">
+            <Switch
+              id="gen-auto"
+              checked={generacionAutomatica}
+              onCheckedChange={setGeneracionAutomatica}
+            />
+            <div className="min-w-0 flex-1">
+              <Label htmlFor="gen-auto" className="cursor-pointer text-xs font-medium">
+                Generar alícuotas automáticamente al registrar
+              </Label>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Desactívelo si las muestras de este tubo suelen guardarse sin alicuotar, o si las
+                alícuotas se preparan en otra unidad. Quien registre podrá generarlas de todos modos.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Switch
+              id="permite-parcial"
+              checked={permiteParcial}
+              onCheckedChange={setPermiteParcial}
+            />
+            <div className="min-w-0 flex-1">
+              <Label htmlFor="permite-parcial" className="cursor-pointer text-xs font-medium">
+                Admitir alícuotas incompletas
+              </Label>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Permite cerrar el lote con un vial a medias cuando el volumen extraído no da para
+                uno completo. Desactívelo si un vial incompleto no sirve para este tipo de muestra.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(faltaVolumen || faltaUnidad) && (
+        <p className="flex items-start gap-1.5 text-xs text-destructive">
+          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" strokeWidth={1.75} />
+          {faltaVolumen
+            ? 'Un tubo que genera alícuotas necesita el volumen de cada una.'
+            : 'Indique la unidad del volumen: la muestra padre se registrará en esa misma unidad.'}
+        </p>
+      )}
+
       <div className="flex gap-2 justify-end pt-1">
         <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>Cancelar</Button>
         <Button
           size="sm"
-          disabled={loading || !nombre.trim()}
+          disabled={loading || !nombre.trim() || faltaVolumen || faltaUnidad}
           onClick={() =>
             onSave({
               nombre: nombre.trim(),
@@ -243,6 +304,8 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
               volumenAlicuota: volumen !== '' ? parseFloat(volumen) : undefined,
               unidadVolumen: unidad.trim(),
               destinoSugerido: destino.trim(),
+              generacionAutomatica,
+              permiteAlicuotaParcial: permiteParcial,
             })
           }
         >
@@ -285,6 +348,7 @@ function TuboRow({ tubo, onDelete, deletePending, puedeEditar }: TuboRowProps) {
               ? 'Sin alicuotar (tubo directo)'
               : `${tubo.numeroAlicuotas} alícuota${tubo.numeroAlicuotas !== 1 ? 's' : ''}`}
             {tubo.volumenAlicuota != null && ` · ${tubo.volumenAlicuota} ${tubo.unidadVolumen ?? ''}`}
+            {tubo.numeroAlicuotas > 0 && tubo.generacionAutomatica === false && ' · manual'}
             {tubo.destinoSugerido && ` · → ${tubo.destinoSugerido}`}
           </p>
         </div>
@@ -315,6 +379,8 @@ function TuboRow({ tubo, onDelete, deletePending, puedeEditar }: TuboRowProps) {
                     numeroAlicuotas: tubo.numeroAlicuotas,
                     volumenAlicuota: tubo.volumenAlicuota ?? undefined,
                     unidadVolumen: tubo.unidadVolumen ?? undefined,
+                    generacionAutomatica: tubo.generacionAutomatica,
+                    permiteAlicuotaParcial: tubo.permiteAlicuotaParcial,
                     destinoSugerido: tubo.destinoSugerido ?? undefined,
                     orden: tubo.orden,
                     activo: !tubo.activo,

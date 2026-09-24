@@ -99,6 +99,8 @@ export interface Paciente {
   id: number
   uuid: string
   folio: string
+  /** Número consecutivo. Nulo cuando el participante no tiene uno asignado. */
+  noConsecutivo?: number | null
   activo: boolean
   fechaRegistro: string
   fechaActualizacion: string
@@ -118,6 +120,11 @@ export interface Paciente {
 export interface PacienteRequestDTO {
   // Opcional: si se omite, el backend genera uno automáticamente (formato COH-AA-NNNNN)
   folio?: string
+  /**
+   * Número consecutivo. Opcional, y único en todo el padrón. Al actualizar,
+   * mandarlo en null lo quita —que es como se corrige uno mal capturado—.
+   */
+  noConsecutivo?: number | null
   persona: PersonaRequestDTO
   reclutamiento: ReclutamientoParticipanteRequestDTO
   /**
@@ -190,6 +197,8 @@ export const MEDIO_CONTACTO_LABELS: Record<MedioContacto, string> = {
 export interface PacienteResumenDTO {
   id: number
   folio: string
+  /** Número consecutivo. Nulo cuando el participante no tiene uno asignado. */
+  noConsecutivo?: number | null
   nombreCompleto: string
   sexo: 'M' | 'F' | 'O'
   uuid: string
@@ -290,6 +299,12 @@ export interface ParametroEstudio {
    * sin valor se usa una décima parte de la amplitud del rango.
    */
   margenRevision?: number | null
+  /**
+   * Posición dentro de su tipo de estudio. La lista llega del servidor ya
+   * ordenada; este número hace falta en la pantalla de configuración, que es
+   * donde se reacomoda.
+   */
+  orden?: number
   /** Opciones predefinidas — solo aplica a tipo TEXTO_OPCIONES */
   opciones?: string[] | null
   /** Nombres con los que los instrumentos titulan la columna de este parámetro. */
@@ -587,6 +602,10 @@ export interface TuboMuestra {
   destinoSugerido?: string | null
   orden: number
   activo: boolean
+  /** Si al registrar una muestra con este tubo las alicuotas se crean solas. */
+  generacionAutomatica?: boolean
+  /** Si el lote puede cerrarse con una alicuota incompleta. */
+  permiteAlicuotaParcial?: boolean
 }
 
 export interface TuboMuestraRequestDTO {
@@ -598,6 +617,8 @@ export interface TuboMuestraRequestDTO {
   destinoSugerido?: string
   orden?: number
   activo?: boolean
+  generacionAutomatica?: boolean
+  permiteAlicuotaParcial?: boolean
 }
 
 export interface TipoMuestra {
@@ -627,6 +648,11 @@ export interface TuboMuestraResumen {
   nombre: string
   prefijoCodigo?: string | null
   numeroAlicuotas: number
+  /** La receta completa: el planificador de lotes la necesita. */
+  volumenAlicuota?: number | null
+  unidadVolumen?: string | null
+  generacionAutomatica?: boolean
+  permiteAlicuotaParcial?: boolean
 }
 
 // ============================================
@@ -659,6 +685,12 @@ export interface MuestraRequestDTO {
   // Stream C
   idTipoMuestra?: number | null
   idTuboMuestra?: number | null
+  /**
+   * Si generar el lote al registrar. Omitido = lo que diga el tubo; un valor
+   * explicito manda sobre la configuracion en ambos sentidos.
+   */
+  generarAlicuotas?: boolean
+  planAlicuotas?: PlanAlicuotasRequest
 }
 
 export interface MuestraDetalleDTO {
@@ -707,6 +739,70 @@ export interface MuestraDetalleDTO {
   nombreInstitucion?: string
   idInstitucionActual?: number
   nombreInstitucionActual?: string
+
+  // ── Contabilidad de volumen ──────────────────────────────────────────────
+  /** Solo padres: volumen reservado para alicuotas creadas y aun sin ubicar. */
+  valorComprometido?: number | null
+  /** valor - valorComprometido. En una alicuota, su propio valor. */
+  valorDisponible?: number | null
+  /** Solo padres: cuantas alicuotas siguen sin ubicar. */
+  alicuotasPendientes?: number | null
+  /** Solo alicuotas: si ya ocupo posicion y desconto de su padre. */
+  materializada?: boolean | null
+  fechaMaterializacion?: string | null
+  /** Sin volumen por consumo normal. NO es lo mismo que estadoMuestra = BAJA. */
+  agotada?: boolean | null
+  fechaAgotamiento?: string | null
+  /** Tiene volumen pero todo prometido: no admite estudios ni lotes nuevos. */
+  sinDisponible?: boolean | null
+}
+
+// ============================================
+// BIOBANCO - PLAN DE ALICUOTAS
+// ============================================
+
+/** Un reparto posible del volumen extraido entre las alicuotas del tubo. */
+export interface OpcionDistribucion {
+  /** SOLO_COMPLETAS, PARCIALES_1, PARCIALES_2, … */
+  clave: string
+  descripcion: string
+  volumenes: number[]
+  totalAlicuotas: number
+  remanenteEnPadre: number
+}
+
+/**
+ * Previsualizacion del lote. La calcula el servidor con el mismo planificador
+ * que ejecuta la creacion, para que lo que aqui se promete y lo que alli se
+ * crea no puedan divergir.
+ */
+export interface PlanAlicuotas {
+  numeroAlicuotasConfiguradas: number
+  volumenAlicuota: number
+  unidad: string
+  totalRequerido: number
+  valorDisponible: number
+  alicuotasCompletas: number
+  remanente: number
+  lugaresRestantes: number
+  alcanzaLoteCompleto: boolean
+  puedeAlojarParcial: boolean
+  /** Alicuotas del lote que ya existen; mayor que 0 = esto es una continuacion. */
+  slotsOcupados: number
+  /** Huecos del tubo que quedan por llenar. */
+  slotsLibres: number
+  mensaje: string
+  opciones: OpcionDistribucion[]
+}
+
+export interface PlanAlicuotasRequest {
+  volumenes: number[]
+}
+
+/** Que alicuota va a que hueco, para ubicar un lote de una sola vez. */
+export interface UbicacionAlicuota {
+  idAlicuota: number
+  idPosicionCaja: number
 }
 
 // ============================================
@@ -722,6 +818,8 @@ export interface ParametroEstudioMuestra {
   tipo: TipoParametro
   valorMinimo?: number | null
   valorMaximo?: number | null
+  /** Posición dentro de su tipo de estudio de muestra. La lista llega ya ordenada. */
+  orden?: number
   /** Valores válidos — solo cuando tipo == TEXTO_OPCIONES */
   opciones?: string[] | null
 }
@@ -1257,6 +1355,8 @@ export interface IniciarDevolucionRequestDTO {
 export interface GenerarAlicuotasRequest {
   idTipoMuestra: number
   idTuboMuestra: number
+  /** Reparto del lote; omitido = el plan por omision del planificador. */
+  planAlicuotas?: PlanAlicuotasRequest
 }
 
 export interface MuestraTipoInstitucionResponse {
@@ -1320,6 +1420,44 @@ export interface PaginationParams {
   page?: number
   size?: number
   sort?: string
+}
+
+/**
+ * Una ventana del listado de muestras situada por cursor.
+ *
+ * <p>No trae número de página ni total de páginas: la posición se lleva en los
+ * cursores, que son opacos. Lo único que la pantalla necesita saber es si puede
+ * seguir hacia arriba o hacia abajo.</p>
+ */
+export interface PaginaMuestras {
+  /** Las tarjetas de esta página, de la más reciente a la más antigua. */
+  muestras: MuestraDetalleDTO[]
+  /** Las alícuotas de esas tarjetas; la pantalla las pliega dentro de su padre. */
+  alicuotas: MuestraDetalleDTO[]
+  cursorInicio: string | null
+  cursorFin: string | null
+  hayAnteriores: boolean
+  haySiguientes: boolean
+  /** Cuántas tarjetas cumplen los criterios en total. */
+  total: number
+  /** Cuántas alícuotas huérfanas devueltas están ocultas tras su filtro. */
+  huerfanasDevueltas: number
+}
+
+/** Criterios del listado de muestras; todos opcionales salvo el tamaño. */
+export interface FiltrosMuestrasQuery {
+  cursor?: string | null
+  direccion?: 'SIGUIENTE' | 'ANTERIOR'
+  size?: number
+  incluirHistorico?: boolean
+  ocultarDevueltasHuerfanas?: boolean
+  busqueda?: string
+  fechaDesde?: string
+  fechaHasta?: string
+  tipos?: string[]
+  sexo?: string
+  folioDesde?: string
+  folioHasta?: string
 }
 
 /** Matches Spring Data's Page<T> JSON serialization */
@@ -1655,4 +1793,113 @@ export interface PrevisualizacionCargaExamenes {
   indiceFecha: number
   filas: FilaExamenesCarga[]
   resumen: ResumenCargaExamenes
+}
+
+// ── Carga masiva de muestras y alícuotas ─────────────────────────────────────
+
+/** Las columnas que entiende la plantilla de muestras. */
+export type CampoMuestraCarga =
+  | 'FOLIO' | 'TIPO_MUESTRA' | 'TUBO' | 'NUMERO_ALICUOTA' | 'FECHA'
+  | 'VOLUMEN' | 'UNIDAD' | 'CODIGO_CAJA' | 'POSICION' | 'OBSERVACIONES'
+
+/** Un problema atado a una celda. `campo` null = es de la fila entera. */
+export interface ProblemaMuestraCarga {
+  campo: CampoMuestraCarga | null
+  mensaje: string
+}
+
+export interface FilaMuestraCarga {
+  numeroDeFila: number
+  folio: string | null
+  uuidParticipante: string | null
+  nombreParticipante: string | null
+  tipoMuestra: string | null
+  idTipoMuestra: number | null
+  tubo: string | null
+  idTuboMuestra: number | null
+  fecha: string | null
+  numeroAlicuota: number | null
+  volumen: number | null
+  unidad: string | null
+  /** La celda venía vacía y se tomó el volumen nominal del tubo. */
+  volumenHeredado: boolean
+  codigoCaja: string | null
+  posicion: string | null
+  idPosicionCaja: number | null
+  /** La que llevará el vial; es lo único comparable con lo pegado en la caja. */
+  etiquetaPrevista: string | null
+  claveLote: string | null
+  errores: ProblemaMuestraCarga[]
+  avisos: ProblemaMuestraCarga[]
+}
+
+/** Un lote: la muestra padre que se creará y los viales que cuelgan de ella. */
+export interface LoteMuestraCarga {
+  clave: string
+  folio: string
+  nombreParticipante: string | null
+  tipoMuestra: string
+  tubo: string
+  fecha: string | null
+  viales: number
+  /** Alícuotas que el tubo define; es el denominador de la etiqueta. */
+  configuradas: number
+  volumenTotal: number | null
+  unidad: string | null
+  etiquetaPadre: string
+  /** La padre nace sin volumen porque todos sus viales llegan ubicados. */
+  quedaraAgotada: boolean
+  avisos: string[]
+}
+
+export interface ResumenCargaMuestras {
+  totalFilas: number
+  filasListas: number
+  filasConProblemas: number
+  filasConAvisos: number
+  lotes: number
+  vialesConPosicion: number
+  vialesSinPosicion: number
+  volumenesHeredados: number
+  /**
+   * Filas que traían día pero no hora. Va aquí y no como aviso por fila: una
+   * hoja de cálculo no trae hora en ninguna, y marcarlas una a una pintaría de
+   * ámbar el archivo entero.
+   */
+  filasSinHora: number
+  columnasIgnoradas: number
+}
+
+export interface PrevisualizacionCargaMuestras {
+  /** Si trae algo, no se puede continuar: el archivo no tiene la estructura. */
+  problemasDeEstructura: string[]
+  columnasIgnoradas: string[]
+  ordenDeFecha: string | null
+  fechaAmbigua: boolean
+  traeColumnaFecha: boolean
+  tabla: TablaCarga
+  /** Dónde está cada columna dentro de la tabla. Las que no vienen faltan aquí. */
+  indices: Partial<Record<CampoMuestraCarga, number>>
+  filas: FilaMuestraCarga[]
+  lotes: LoteMuestraCarga[]
+  resumen: ResumenCargaMuestras
+}
+
+export interface DetalleCargaMuestras {
+  numeroDeFila: number
+  folio: string
+  etiqueta: string
+  tipoMuestra: string
+  tubo: string
+  /** Dónde quedó, o null si entró sin hueco. */
+  posicion: string | null
+  idMuestra: number
+}
+
+export interface ResultadoCargaMuestras {
+  padresCreadas: number
+  alicuotasCreadas: number
+  alicuotasUbicadas: number
+  padresAgotadas: number
+  detalle: DetalleCargaMuestras[]
 }

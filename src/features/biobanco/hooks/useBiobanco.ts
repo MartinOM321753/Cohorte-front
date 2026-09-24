@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import {
   getRefrigeradores,
   getRefrigeradorById,
@@ -19,6 +25,7 @@ import {
   getPosicionesByPiso,
   getPosicionesLibresByPiso,
   getMuestras,
+  getPaginaMuestras,
   getMuestraById,
   getMuestrasByPaciente,
   countMuestrasByPaciente,
@@ -45,7 +52,10 @@ import {
   confirmarDevolucion,
   cancelarPrestamo,
   getAlicuotasEnDestino,
-  generarAlicuotasEnReceptora,
+  generarLoteAlicuotas,
+  getPlanAlicuotas,
+  getAlicuotasPendientes,
+  ubicarLoteAlicuotas,
   getTipoInstitucion,
   getUsuariosByRol,
   getTiposMuestra,
@@ -82,8 +92,10 @@ import {
   IniciarDevolucionRequestDTO,
   CancelarPrestamoRequestDTO,
   GenerarAlicuotasRequest,
+  UbicacionAlicuota,
   TipoMuestraRequestDTO,
   TuboMuestraRequestDTO,
+  PaginaMuestras,
 } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -341,6 +353,81 @@ export function useGetMuestras(params?: { pacienteUUID?: string; incluirHistoric
   })
 }
 
+/** Dónde arranca el listado: por lo más reciente o por lo más antiguo. */
+export type AnclaListado = 'INICIO' | 'FINAL'
+
+/** Todo lo que la pantalla de muestras pide, sin la paginación. */
+export interface CriteriosListadoMuestras {
+  incluirHistorico: boolean
+  ocultarDevueltasHuerfanas: boolean
+  busqueda: string
+  fechaDesde: string
+  fechaHasta: string
+  tipos: string[]
+  sexo: string
+  folioDesde: string
+  folioHasta: string
+}
+
+/** La frontera de una página: de dónde parte y hacia dónde. */
+interface Salto {
+  cursor: string | null
+  direccion: 'SIGUIENTE' | 'ANTERIOR'
+}
+
+/**
+ * El listado de muestras, de veinte en veinte y situado por cursor.
+ *
+ * <p>Se pagina por llave y no por número de página porque el listado se ordena
+ * por fecha de registro descendente y encima se registran muestras mientras
+ * alguien lo recorre: con un OFFSET, cada alta desplaza la ventana entera y
+ * hace que una tarjeta se repita o se salte. El cursor apunta a una fila
+ * concreta, y eso no puede pasar.</p>
+ *
+ * <p>El ancla entra en la clave de caché: «ir al final» no es desplazarse, es
+ * otra ventana del mismo listado, y tratarla como una entrada distinta hace que
+ * volver al inicio reaproveche lo ya descargado en vez de tirarlo.</p>
+ */
+export function useMuestrasCursor(
+  criterios: CriteriosListadoMuestras,
+  ancla: AnclaListado,
+  size = 20,
+) {
+  const arranque: Salto = {
+    cursor: null,
+    direccion: ancla === 'FINAL' ? 'ANTERIOR' : 'SIGUIENTE',
+  }
+
+  return useInfiniteQuery({
+    // El prefijo 'muestras' es deliberado: todas las mutaciones del módulo ya
+    // invalidan esa clave, así que la lista se refresca sin tocarlas una a una.
+    queryKey: ['muestras', 'cursor', ancla, size, criterios],
+    initialPageParam: arranque,
+    queryFn: ({ pageParam }) =>
+      getPaginaMuestras({
+        ...criterios,
+        size,
+        cursor: (pageParam as Salto).cursor,
+        direccion: (pageParam as Salto).direccion,
+      }),
+    getNextPageParam: (ultima: PaginaMuestras): Salto | undefined =>
+      ultima.haySiguientes && ultima.cursorFin
+        ? { cursor: ultima.cursorFin, direccion: 'SIGUIENTE' }
+        : undefined,
+    getPreviousPageParam: (primera: PaginaMuestras): Salto | undefined =>
+      primera.hayAnteriores && primera.cursorInicio
+        ? { cursor: primera.cursorInicio, direccion: 'ANTERIOR' }
+        : undefined,
+    /*
+     * Al cambiar un filtro se sigue viendo la lista anterior, atenuada, en vez
+     * de un hueco: la caja de búsqueda dispara una consulta nueva por cada
+     * pausa al teclear, y vaciar la pantalla en cada una la vuelve ilegible.
+     */
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+  })
+}
+
 export function useGetMuestraById(id: number) {
   return useQuery<MuestraDetalleDTO>({
     queryKey: ['muestras', id],
@@ -379,7 +466,10 @@ export function useCreateMuestra() {
       queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
       const alicuotas = data?.alicuotasGeneradas
       if (alicuotas && alicuotas > 0) {
-        toast.success(`Muestra registrada. Se generaron ${alicuotas} alícuotas — asigna sus posiciones desde la lista.`, { duration: 6000 })
+        toast.success(
+          `Muestra registrada con ${alicuotas} alícuota${alicuotas === 1 ? '' : 's'}. `
+          + 'Su volumen queda reservado y se descontará conforme las ubique.',
+          { duration: 6000 })
       } else {
         toast.success('Muestra registrada exitosamente')
       }
@@ -552,6 +642,10 @@ export function useAsignarPosicionMuestra() {
       queryClient.invalidateQueries({ queryKey: ['posiciones'] })
       queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
       queryClient.invalidateQueries({ queryKey: ['traslados'] })
+      // Ubicar una alícuota descuenta volumen de SU PADRE, que es otra fila y
+      // otra tarjeta: sin esto la padre se queda con el número viejo.
+      queryClient.invalidateQueries({ queryKey: ['alicuotas'] })
+      queryClient.invalidateQueries({ queryKey: ['alicuotas-pendientes'] })
       toast.success('Posición asignada exitosamente')
     },
     onError: (error: any) => {
@@ -746,22 +840,113 @@ export function useGetAlicuotasEnDestino(idTraslado: number, options?: { enabled
   })
 }
 
-export function useGenerarAlicuotasEnReceptora() {
+export function useGenerarLoteAlicuotas() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ idMuestra, data }: { idMuestra: number; data: GenerarAlicuotasRequest }) =>
-      generarAlicuotasEnReceptora(idMuestra, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['muestras'] })
-      queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
-      toast.success('Alícuotas generadas exitosamente.')
+      generarLoteAlicuotas(idMuestra, data),
+    onSuccess: (alicuotas, variables) => {
+      invalidarContabilidad(queryClient, variables.idMuestra)
+      const n = alicuotas?.length ?? 0
+      toast.success(
+        n > 0
+          ? `Se generaron ${n} alícuota${n === 1 ? '' : 's'}. Su volumen queda reservado hasta que las ubique.`
+          : 'Alícuotas generadas.',
+        { duration: 6000 })
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error al generar alícuotas'
       toast.error(message)
     },
   })
+}
+
+/**
+ * Previsualiza el lote mientras se teclea la cantidad extraída.
+ *
+ * El cálculo lo hace el servidor con el mismo planificador que ejecuta la
+ * creación: si se replicara aquí, lo que la pantalla promete y lo que se crea
+ * acabarían divergiendo sin que nadie lo note.
+ */
+export function usePlanAlicuotas(
+  params: {
+    idTuboMuestra?: number | null
+    valor?: number | null
+    idMuestra?: number | null
+    /**
+     * Disponible actual de la muestra padre. NO se envía al servidor —él lo
+     * recalcula— pero entra en la clave de caché.
+     *
+     * Sin esto, el plan de una muestra ya registrada se cachea bajo una clave
+     * que no cambia nunca: al editar el volumen de la padre, o al ubicar otra
+     * alícuota, la pantalla seguía mostrando el plan viejo. Se vio en vivo
+     * diciendo «con 0 dl no alcanza» mientras la cabecera ya leía 10 dl.
+     */
+    disponible?: number | null
+  },
+  options?: { enabled?: boolean },
+) {
+  const { idTuboMuestra, valor, idMuestra, disponible } = params
+  return useQuery({
+    queryKey: ['plan-alicuotas', idTuboMuestra, valor, idMuestra, disponible],
+    queryFn: () => getPlanAlicuotas({
+      idTuboMuestra: idTuboMuestra as number,
+      valor: valor ?? undefined,
+      idMuestra: idMuestra ?? undefined,
+    }),
+    enabled: (options?.enabled ?? true)
+      && !!idTuboMuestra
+      && (!!idMuestra || (valor != null && valor > 0)),
+    staleTime: 60_000,
+    retry: false,
+  })
+}
+
+export function useGetAlicuotasPendientes(idMuestraPadre: number, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['alicuotas-pendientes', idMuestraPadre],
+    queryFn: () => getAlicuotasPendientes(idMuestraPadre),
+    enabled: (options?.enabled ?? true) && !!idMuestraPadre,
+  })
+}
+
+export function useUbicarLoteAlicuotas() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ idMuestraPadre, asignaciones }: { idMuestraPadre: number; asignaciones: UbicacionAlicuota[] }) =>
+      ubicarLoteAlicuotas(idMuestraPadre, asignaciones),
+    onSuccess: (ubicadas, variables) => {
+      invalidarContabilidad(queryClient, variables.idMuestraPadre)
+      const n = ubicadas?.length ?? 0
+      toast.success(`Lote ubicado: ${n} alícuota${n === 1 ? '' : 's'}. El volumen ya se descontó de la muestra padre.`,
+        { duration: 6000 })
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Error al ubicar el lote'
+      toast.error(message)
+    },
+  })
+}
+
+/**
+ * Invalida todo lo que cambia cuando se mueve volumen.
+ *
+ * Ubicar una alícuota cambia el valor de SU PADRE, que es otra fila y otra
+ * tarjeta. Sin invalidar la lista, la padre se queda mostrando el número viejo
+ * hasta que alguien recargue.
+ */
+function invalidarContabilidad(queryClient: ReturnType<typeof useQueryClient>, idMuestraPadre?: number) {
+  queryClient.invalidateQueries({ queryKey: ['muestras'] })
+  queryClient.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+  queryClient.invalidateQueries({ queryKey: ['posiciones'] })
+  queryClient.invalidateQueries({ queryKey: ['posiciones-libres'] })
+  queryClient.invalidateQueries({ queryKey: ['plan-alicuotas'] })
+  if (idMuestraPadre) {
+    queryClient.invalidateQueries({ queryKey: ['alicuotas', idMuestraPadre] })
+    queryClient.invalidateQueries({ queryKey: ['alicuotas-pendientes', idMuestraPadre] })
+  }
 }
 
 export function useGetTipoInstitucion(idMuestra: number, options?: { enabled?: boolean }) {
