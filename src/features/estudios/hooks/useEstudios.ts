@@ -17,6 +17,7 @@ import {
   createParametroEstudio,
   updateParametroEstudio,
   deleteParametroEstudio,
+  reordenarParametrosEstudio,
 } from '../api/estudios.api'
 import { EstudioMedicoRequestDTO, TipoEstudioRequestDTO, ParametroEstudioRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
@@ -264,6 +265,33 @@ export function useToggleParametroEstudio() {
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error al cambiar el estado del parámetro'
+      toast.error(message)
+    },
+  })
+}
+
+/**
+ * Guarda el orden de los parámetros de un tipo de estudio.
+ *
+ * No hay actualización optimista a propósito: si el servidor rechaza la lista
+ * —porque el catálogo cambió mientras esta pantalla estaba abierta— hay que
+ * volver a leerlo, no reponer lo que el usuario arrastró sobre un catálogo que
+ * ya no existe. Por eso el error también invalida.
+ */
+export function useReordenarParametrosEstudio() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ tipoEstudioId, ids }: { tipoEstudioId: number; ids: number[] }) =>
+      reordenarParametrosEstudio(tipoEstudioId, ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tiposEstudio'] })
+      queryClient.invalidateQueries({ queryKey: ['parametros'] })
+      toast.success('Se guardó el orden de los parámetros')
+    },
+    onError: (error: any) => {
+      queryClient.invalidateQueries({ queryKey: ['tiposEstudio'] })
+      const message = error.response?.data?.message || 'No se pudo guardar el orden de los parámetros'
       toast.error(message)
     },
   })

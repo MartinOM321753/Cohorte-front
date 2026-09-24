@@ -156,6 +156,25 @@ export async function updateParametroEstudio(
 }
 
 /**
+ * Guarda el orden de los parámetros de un tipo de estudio.
+ *
+ * Se manda la lista completa de ids, de la primera posición a la última, no el
+ * movimiento que hizo el usuario: el servidor la aplica tal cual o la rechaza
+ * entera si ya no corresponde al catálogo —porque alguien agregó o quitó un
+ * parámetro mientras esta pantalla estaba abierta—.
+ */
+export async function reordenarParametrosEstudio(
+  tipoEstudioId: number,
+  ids: number[]
+): Promise<ParametroEstudio[]> {
+  const response = await axiosInstance.put<ApiResponse<ParametroEstudio[]>>(
+    `/estudios/parametros/orden/${tipoEstudioId}`,
+    { ids }
+  )
+  return response.data.data
+}
+
+/**
  * Delete a parámetro de estudio
  */
 export async function deleteParametroEstudio(id: number): Promise<void> {

@@ -11,6 +11,7 @@ import {
   createParametroEstudioMuestra,
   updateParametroEstudioMuestra,
   deleteParametroEstudioMuestra,
+  reordenarParametrosEstudioMuestra,
   getEstudiosByMuestra,
   createEstudioMuestra,
   updateEstudioMuestra,
@@ -165,6 +166,29 @@ export function useDeleteParametroEstudioMuestra() {
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? 'Error al eliminar parámetro')
+    },
+  })
+}
+
+/**
+ * Guarda el orden de los parámetros de un tipo de estudio de muestra.
+ *
+ * Sin actualización optimista: si el servidor rechaza la lista porque el catálogo
+ * cambió mientras la pantalla estaba abierta, lo que hay que hacer es releerlo.
+ */
+export function useReordenarParametrosEstudioMuestra() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idTipo, ids }: { idTipo: number; ids: number[] }) =>
+      reordenarParametrosEstudioMuestra(idTipo, ids),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.tiposAll })
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.tiposTodos })
+      toast.success('Se guardó el orden de los parámetros')
+    },
+    onError: (err: any) => {
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.tiposTodos })
+      toast.error(err?.response?.data?.message ?? 'No se pudo guardar el orden de los parámetros')
     },
   })
 }
