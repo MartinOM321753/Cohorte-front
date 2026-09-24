@@ -104,6 +104,20 @@ export function PacientesTable({
       },
     },
     {
+      id: "noConsecutivo",
+      header: "No. consec.",
+      cell: ({ row }) => {
+        const n = row.original.noConsecutivo;
+        // La raya no es decorativa: sin ella, una celda vacía se lee como un dato
+        // que no cargó en lugar de un participante que no tiene número.
+        return (
+          <span className="font-mono text-[13px] text-[var(--imss-ink-500)]">
+            {n != null ? n : "—"}
+          </span>
+        );
+      },
+    },
+    {
       id: "sexo",
       header: "Sexo",
       cell: ({ row }) => <SexoBadge sexo={row.original.persona.sexo} />,

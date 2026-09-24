@@ -146,7 +146,7 @@ export function PacienteSearchCombobox({
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Buscar por folio, nombre o CURP..."
+            placeholder="Buscar por folio, no. consecutivo, nombre o CURP..."
             value={search}
             onValueChange={setSearch}
           />

@@ -240,6 +240,11 @@ export function PacienteDetailDrawer({
                 <div className="rounded-md border border-[var(--imss-ink-100)] px-3">
                   <DetailRow label="Folio" value={paciente.folio} mono />
                   <DetailRow
+                    label="No. consecutivo"
+                    value={paciente.noConsecutivo != null ? String(paciente.noConsecutivo) : null}
+                    mono
+                  />
+                  <DetailRow
                     label="Fecha de registro"
                     value={paciente.fechaRegistro ? formatDate(paciente.fechaRegistro, 'dd/MM/yyyy HH:mm') : null}
                   />
