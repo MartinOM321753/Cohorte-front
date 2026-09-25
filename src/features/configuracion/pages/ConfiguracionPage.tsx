@@ -5,6 +5,7 @@ import { AlertCircle } from 'lucide-react'
 import EtiquetasConfigPanel from '../components/EtiquetasConfigPanel'
 import HorariosConfigPanel from '../components/HorariosConfigPanel'
 import EtiquetasLibresPanel from '@/features/etiquetas-libres/components/EtiquetasLibresPanel'
+import ImprimirFoliosPanel from '@/features/impresion-folios/components/ImprimirFoliosPanel'
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ConfiguracionPage() {
@@ -36,6 +37,11 @@ export default function ConfiguracionPage() {
 
         {/* ── Etiquetas con datos de un archivo externo ── */}
         <EtiquetasLibresPanel />
+
+        <Separator />
+
+        {/* ── Impresión de folios de participantes ── */}
+        <ImprimirFoliosPanel />
 
         <Separator />
 
