@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 import { useCreateCita, useUpdateCita } from '../hooks/useCitas'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
-import { citaFormSchema, ESTADOS_CITA, type CitaFormData } from '../schemas/cita.schema'
+import { citaFormSchema, COLOR_POR_ESTADO, esColorDefault, ESTADOS_CITA, type CitaFormData } from '../schemas/cita.schema'
 import { getCitaDurationMinutes, getCitaStartDate } from '../lib/citaUtils'
 
 import { Button } from '@/components/ui/button'
@@ -89,7 +89,7 @@ function buildDefaults(args: {
     pacienteUUID: cita?.pacienteUUID || cita?.paciente?.uuid || args.initialPacienteUUID || '',
     fechaCita: start ? toLocalDateTimeInput(start) : toLocalDateTimeInput(new Date()),
     duracionMinutos: cita ? getCitaDurationMinutes(cita) : 60,
-    colorHex: cita?.colorHex || '#3b82f6',
+    colorHex: cita?.colorHex || COLOR_POR_ESTADO.PROGRAMADA,
     observaciones: cita?.observaciones ?? '',
     estadoCita: normalizeEstadoCita(cita?.estadoCita),
   }
@@ -319,7 +319,14 @@ export function CitaIlamyEventForm({
                 render={({ field }) => (
                   <Select
                     value={field.value ?? ''}
-                    onValueChange={field.onChange}
+                    onValueChange={(nuevoEstado) => {
+                      field.onChange(nuevoEstado)
+                      const colorActual = watch('colorHex')
+                      if (!colorActual || esColorDefault(colorActual)) {
+                        const nuevoColor = COLOR_POR_ESTADO[nuevoEstado]
+                        if (nuevoColor) setValue('colorHex', nuevoColor)
+                      }
+                    }}
                   >
                     <SelectTrigger className="h-9 text-[13px]">
                       <SelectValue placeholder="Seleccionar estado" />
@@ -327,7 +334,13 @@ export function CitaIlamyEventForm({
                     <SelectContent>
                       {ESTADOS_CITA.map((e) => (
                         <SelectItem key={e.value} value={e.value} className="text-[13px]">
-                          {e.label}
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="inline-block h-2.5 w-2.5 rounded-full"
+                              style={{ backgroundColor: e.color }}
+                            />
+                            {e.label}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

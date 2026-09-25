@@ -22,6 +22,7 @@ import { useUpdateCita } from "../hooks/useCitas";
 import { useGetConfiguracionHorarioActiva } from "@/features/configuracion/hooks/useHorarios";
 import { CitaIlamyEventForm } from "./CitaIlamyEventForm";
 import { getCitaDurationMinutes, getCitaStartDate } from "../lib/citaUtils";
+import { COLOR_POR_ESTADO } from "../schemas/cita.schema";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -532,20 +533,10 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
           if (esPasado) {
             bgColor = "#ef4444";   // red-500
             textColor = "#ffffff";
-          } else if (cita.colorHex) {
-            bgColor = cita.colorHex;
-            // Calcular contraste: si el color es oscuro → texto blanco, si claro → texto negro
-            textColor = calcContrastColor(cita.colorHex);
           } else {
-            const fallback: Record<string, { bg: string; fg: string }> = {
-              PROGRAMADA:  { bg: "#dbeafe", fg: "#1d4ed8" },
-              COMPLETADA:  { bg: "#dcfce7", fg: "#166534" },
-              CANCELADA:   { bg: "#fee2e2", fg: "#991b1b" },
-              NO_ASISTIO:  { bg: "#ffedd5", fg: "#7c2d12" },
-            };
-            const f = fallback[estadoKey] ?? { bg: "#e2e8f0", fg: "#0f172a" };
-            bgColor = f.bg;
-            textColor = f.fg;
+            const colorEstado = COLOR_POR_ESTADO[estadoKey] ?? cita.colorHex ?? "#94a3b8";
+            bgColor = colorEstado;
+            textColor = calcContrastColor(colorEstado);
           }
 
           return {

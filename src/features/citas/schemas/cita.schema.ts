@@ -1,14 +1,28 @@
 import { z } from 'zod'
 
+export const COLOR_POR_ESTADO: Record<string, string> = {
+  PROGRAMADA:  '#3b82f6',
+  CONFIRMADA:  '#8b5cf6',
+  REALIZADA:   '#22c55e',
+  CANCELADA:   '#ef4444',
+  NO_ASISTIO:  '#f97316',
+}
+
 export const ESTADOS_CITA = [
-  { value: 'PROGRAMADA',  label: 'Programada'  },
-  { value: 'CONFIRMADA',  label: 'Confirmada'  },
-  { value: 'REALIZADA',   label: 'Realizada'   },
-  { value: 'CANCELADA',   label: 'Cancelada'   },
-  { value: 'NO_ASISTIO',  label: 'No asistió'  },
+  { value: 'PROGRAMADA',  label: 'Programada',  color: COLOR_POR_ESTADO.PROGRAMADA  },
+  { value: 'CONFIRMADA',  label: 'Confirmada',  color: COLOR_POR_ESTADO.CONFIRMADA  },
+  { value: 'REALIZADA',   label: 'Realizada',   color: COLOR_POR_ESTADO.REALIZADA   },
+  { value: 'CANCELADA',   label: 'Cancelada',   color: COLOR_POR_ESTADO.CANCELADA   },
+  { value: 'NO_ASISTIO',  label: 'No asistió',  color: COLOR_POR_ESTADO.NO_ASISTIO  },
 ] as const
 
 export type EstadoCita = (typeof ESTADOS_CITA)[number]['value']
+
+const coloresDefault = new Set(Object.values(COLOR_POR_ESTADO))
+
+export function esColorDefault(hex: string | undefined): boolean {
+  return !!hex && coloresDefault.has(hex.toLowerCase().trim())
+}
 
 export const citaFormSchema = z.object({
   pacienteUUID: z.string(),
