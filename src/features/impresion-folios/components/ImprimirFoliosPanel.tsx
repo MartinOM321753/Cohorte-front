@@ -47,18 +47,29 @@ const BCID: Record<TipoCodigo, string> = {
 
 const svgCache = new Map<string, string | null>()
 
+const ES_LINEAL: Record<TipoCodigo, boolean> = {
+  QR_CODE: false,
+  DATAMATRIX: false,
+  CODE_128: true,
+}
+
 function generarSvgFolio(folio: string, tipo: TipoCodigo, escala: number): string | null {
   const clave = `${tipo}|${escala}|${folio}`
   const enCache = svgCache.get(clave)
   if (enCache !== undefined) return enCache
+
+  const lineal = ES_LINEAL[tipo]
+  const escalaEfectiva = lineal ? Math.max(5, Math.round(escala)) : Math.max(1, Math.round(escala))
 
   let svg: string | null = null
   try {
     const raw = bwipjs.toSVG({
       bcid: BCID[tipo],
       text: folio,
-      scale: Math.max(1, Math.round(escala)),
+      scale: escalaEfectiva,
       includetext: false,
+      paddingwidth: lineal ? 6 : 2,
+      paddingheight: lineal ? 2 : 2,
     })
     svg = raw.replace(
       '<svg',
@@ -88,6 +99,7 @@ function CasillaFolio({
   mostrarTexto: boolean
 }) {
   const svg = useMemo(() => generarSvgFolio(folio, tipo, escala), [folio, tipo, escala])
+  const lineal = ES_LINEAL[tipo]
 
   return (
     <div
@@ -98,8 +110,8 @@ function CasillaFolio({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '0.8mm',
-        gap: '0.3mm',
+        padding: lineal ? '1.5mm 2mm' : '1mm',
+        gap: lineal ? '0.8mm' : '0.4mm',
         overflow: 'hidden',
       }}
     >
@@ -153,7 +165,7 @@ export default function ImprimirFoliosPanel() {
   const [copias, setCopias] = useState(1)
   const [configId, setConfigId] = useState('')
   const [tipoCodigo, setTipoCodigo] = useState<TipoCodigo>('QR_CODE')
-  const [escala, setEscala] = useState(3)
+  const [escala, setEscala] = useState(5)
   const [fontPt, setFontPt] = useState(8)
   const [mostrarTexto, setMostrarTexto] = useState(true)
   const [vistaPrevia, setVistaPrevia] = useState(false)
@@ -430,7 +442,7 @@ export default function ImprimirFoliosPanel() {
                 variant="outline"
                 size="sm"
                 className="h-7 w-7 p-0 text-[12px]"
-                onClick={() => setEscala(Math.min(10, escala + 1))}
+                onClick={() => setEscala(Math.min(15, escala + 1))}
               >
                 +
               </Button>
