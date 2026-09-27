@@ -70,10 +70,12 @@ function generarSvgFolio(folio: string, tipo: TipoCodigo, escala: number): strin
       includetext: false,
       paddingwidth: lineal ? 6 : 2,
       paddingheight: lineal ? 2 : 2,
+      ...(lineal && { height: 5 }),
     })
+    const aspect = lineal ? 'none' : 'xMidYMid meet'
     svg = raw.replace(
       '<svg',
-      '<svg preserveAspectRatio="xMidYMid meet" style="display:block;width:100%;height:100%"',
+      `<svg preserveAspectRatio="${aspect}" style="display:block;width:100%;height:100%"`,
     )
   } catch {
     svg = null
@@ -117,7 +119,7 @@ function CasillaFolio({
     >
       {svg ? (
         <div
-          style={{ flex: '1 1 auto', width: '100%', minHeight: 0 }}
+          style={{ flex: '1 1 auto', width: '100%', minHeight: 0, overflow: 'hidden' }}
           dangerouslySetInnerHTML={{ __html: svg }}
         />
       ) : (
