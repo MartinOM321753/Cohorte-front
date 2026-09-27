@@ -72,7 +72,7 @@ function generarSvgFolio(folio: string, tipo: TipoCodigo, escala: number): strin
       paddingheight: lineal ? 2 : 2,
       ...(lineal && { height: 5 }),
     })
-    const aspect = lineal ? 'xMidYMid slice' : 'xMidYMid meet'
+    const aspect = lineal ? 'none' : 'xMidYMid meet'
     svg = raw.replace(
       '<svg',
       `<svg preserveAspectRatio="${aspect}" style="display:block;width:100%;height:100%"`,
