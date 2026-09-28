@@ -13,10 +13,10 @@ import { useGetPacientesPaginados, useParticipantesConRegistrosPropios } from ".
 import { useToggleActivoPaciente, useCrearAccesoPaciente } from "../hooks/useCreatePaciente";
 import { useGetInstitucionesVisibles } from "@/features/instituciones/hooks/useInstituciones";
 import { PacientesTable } from "../components/PacientesTable";
+import { PacienteDetailDrawer } from "../components/PacienteDetailDrawer";
 import { PacienteFormModal } from "../components/PacienteFormModal";
 import { PacienteImportModal } from "../components/PacienteImportModal";
 import { ReasignarInstitucionModal } from "../components/ReasignarInstitucionModal";
-import { PacienteDetailDrawer } from "../components/PacienteDetailDrawer";
 import { CitaIlamyEventForm } from "@/features/citas/components/CitaIlamyEventForm";
 import { SomatometriaFormModal } from "@/features/somatometria/components/SomatometriaFormModal";
 import { Button } from "@/components/ui/button";
@@ -36,11 +36,14 @@ import type { PaginationState } from "@tanstack/react-table";
 
 const PAGE_SIZE = 10;
 
-type EstadoFiltro = "todos" | "activos" | "inactivos";
+type EstadoFiltro = "todos" | "activos" | "inactivos" | "seguimiento";
 
 const ESTADO_OPCIONES: { valor: EstadoFiltro; label: string }[] = [
   { valor: "activos", label: "Activos" },
   { valor: "inactivos", label: "Inactivos" },
+  // Inactivos con cita sin confirmar: se les agendó cita pero aún no confirman.
+  // Se activan (y salen de aquí) cuando confirman.
+  { valor: "seguimiento", label: "Seguimiento" },
   { valor: "todos", label: "Todos" },
 ];
 
@@ -68,8 +71,11 @@ export default function PacientesPage() {
     enabled: incluirJerarquia,
   });
 
+  const seguimiento = estadoFiltro === "seguimiento";
   const soloActivos =
-    estadoFiltro === "todos" ? undefined : estadoFiltro === "activos";
+    estadoFiltro === "todos" || seguimiento
+      ? undefined
+      : estadoFiltro === "activos";
 
   const { data, isLoading } = useGetPacientesPaginados({
     page: pagination.pageIndex,
@@ -77,6 +83,7 @@ export default function PacientesPage() {
     buscar: debouncedSearch || undefined,
     incluirJerarquia,
     soloActivos,
+    seguimiento,
     idInstitucionFiltro:
       incluirJerarquia && idInstitucionFiltro ? idInstitucionFiltro : undefined,
   });
@@ -100,9 +107,7 @@ export default function PacientesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [pacienteToEdit, setPacienteToEdit] = useState<Paciente | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(
-    null,
-  );
+  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isReasignarOpen, setIsReasignarOpen] = useState(false);
 
@@ -365,7 +370,7 @@ export default function PacientesPage() {
         </section>
       )}
 
-      {/* Drawer detalle */}
+      {/* Panel lateral de detalle (cuestionarios, consentimiento, etc.) */}
       <PacienteDetailDrawer
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}

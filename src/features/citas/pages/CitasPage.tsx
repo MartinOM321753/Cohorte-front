@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Filter, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -15,7 +15,17 @@ import { useGetCitas } from '../hooks/useCitas'
 export default function CitasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isPacienteFormOpen, setIsPacienteFormOpen] = useState(false)
-  const { data: citas, isLoading } = useGetCitas()
+
+  // Rango visible del calendario. Solo se piden las citas de ese rango, no todas.
+  const [range, setRange] = useState<{ start?: string; end?: string }>({})
+  const handleRangeChange = useCallback((start: string, end: string) => {
+    setRange({ start, end })
+  }, [])
+
+  const { data: citas, isLoading } = useGetCitas(
+    { start: range.start, end: range.end },
+    { enabled: !!range.start && !!range.end },
+  )
   const hasPermiso = useAuthStore((s) => s.hasPermiso)
   const puedeCrearPaciente = hasPermiso('PACIENTES_CREAR')
   const puedeAgendarCita = hasPermiso('CITAS_CREAR')
@@ -79,7 +89,7 @@ export default function CitasPage() {
             </span>
           </div>
           <div className="p-2 sm:p-4 lg:p-6">
-            <CitasIlamyCalendar citas={filteredCitas} isLoading={isLoading} />
+            <CitasIlamyCalendar citas={filteredCitas} isLoading={isLoading} onRangeChange={handleRangeChange} />
           </div>
         </Card>
 

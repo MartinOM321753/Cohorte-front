@@ -42,6 +42,8 @@ dayjs.locale("es");
 type Props = {
   citas: Cita[];
   isLoading?: boolean;
+  /** Emite el rango visible (ISO-8601 UTC) al montar y al navegar/cambiar de vista. */
+  onRangeChange?: (startIso: string, endIso: string) => void;
 };
 
 interface PendingDrop {
@@ -329,7 +331,7 @@ function buildPastBlockCSS(
   return "";
 }
 
-export function CitasIlamyCalendar({ citas, isLoading }: Props) {
+export function CitasIlamyCalendar({ citas, isLoading, onRangeChange }: Props) {
   const timezone = useMemo(() => safeTimeZone(), []);
   const hasPermiso = useAuthStore((s) => s.hasPermiso);
   const puedeEditar = hasPermiso('CITAS_EDITAR');
@@ -351,7 +353,30 @@ export function CitasIlamyCalendar({ citas, isLoading }: Props) {
 
   // Estado para rastrear fecha y vista actual del calendario
   const [calendarDate, setCalendarDate] = useState<dayjs.Dayjs>(dayjs());
-  const [calendarView, setCalendarView] = useState<CalendarView>("week");
+  const [calendarView, setCalendarView] = useState<CalendarView>(vistaInicial);
+
+  // ── Rango visible → se emite para pedir al backend solo esas citas ──────────
+  // day: el día; week: la semana ISO; month: la rejilla completa del mes
+  // (incluye días de meses vecinos que se ven); year: el año.
+  useEffect(() => {
+    if (!onRangeChange) return;
+    let start: dayjs.Dayjs;
+    let end: dayjs.Dayjs;
+    if (calendarView === "day") {
+      start = calendarDate.startOf("day");
+      end = calendarDate.endOf("day");
+    } else if (calendarView === "week") {
+      start = calendarDate.startOf("isoWeek");
+      end = calendarDate.endOf("isoWeek");
+    } else if (calendarView === "month") {
+      start = calendarDate.startOf("month").startOf("isoWeek");
+      end = calendarDate.endOf("month").endOf("isoWeek");
+    } else {
+      start = calendarDate.startOf("year");
+      end = calendarDate.endOf("year");
+    }
+    onRangeChange(start.toDate().toISOString(), end.toDate().toISOString());
+  }, [calendarDate, calendarView, onRangeChange]);
 
   // Configuración de horario activa
   const { data: horarioActivo, isLoading: horarioLoading } = useGetConfiguracionHorarioActiva();

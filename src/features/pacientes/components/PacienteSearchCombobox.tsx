@@ -29,6 +29,8 @@ interface PacienteSearchComboboxProps {
   incluirJerarquia?: boolean
   /** Ofrece también los de solo consulta, marcados. Para paneles de historial, no de alta. */
   incluirSoloConsulta?: boolean
+  /** Incluye participantes inactivos. Para agendar citas en seguimiento. */
+  incluirInactivos?: boolean
   modal?: boolean
   className?: string
   /** 'default' = botón combobox clásico; 'search' = input tipo barra de búsqueda */
@@ -59,6 +61,7 @@ export function PacienteSearchCombobox({
   disabled = false,
   incluirJerarquia = true,
   incluirSoloConsulta = false,
+  incluirInactivos = false,
   modal = false,
   className,
   variant = 'default',
@@ -77,6 +80,7 @@ export function PacienteSearchCombobox({
     buscarPacientes({
       q: debouncedSearch || undefined,
       incluirJerarquia,
+      incluirInactivos,
       incluirSoloConsulta,
     })
       .then((data) => {
@@ -89,7 +93,7 @@ export function PacienteSearchCombobox({
         if (!cancelled) setLoading(false)
       })
     return () => { cancelled = true }
-  }, [open, debouncedSearch, incluirJerarquia, incluirSoloConsulta])
+  }, [open, debouncedSearch, incluirJerarquia, incluirInactivos, incluirSoloConsulta])
 
   useEffect(() => {
     if (!value) {

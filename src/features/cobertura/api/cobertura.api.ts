@@ -5,6 +5,7 @@ import type {
   DistribucionBucketDTO,
   PacientePendienteDTO,
   CoberturaPacienteDTO,
+  EstudioResumenDTO,
   CatalogoTipo,
 } from '../types/cobertura.types'
 
@@ -38,3 +39,8 @@ export const getMatriz = (catalogoTipo: CatalogoTipo, idInstitucion?: number) =>
   api.get<ApiResponse<CoberturaPacienteDTO[]>>('/dashboard/cobertura/matriz', {
     params: { catalogoTipo, ...(idInstitucion ? { idInstitucion } : {}) },
   }).then(r => r.data.data ?? [])
+
+/** Detalle mínimo de un estudio para el modal de la matriz (solo lo que se pinta). */
+export const getEstudioResumen = (id: number) =>
+  api.get<ApiResponse<EstudioResumenDTO>>(`/dashboard/cobertura/estudio/${id}`)
+    .then(r => r.data.data)

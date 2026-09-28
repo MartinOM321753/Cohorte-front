@@ -96,7 +96,7 @@ export function DrilldownPanel({
                         variant="outline"
                         size="sm"
                         className="h-6 text-[11px] px-2"
-                        onClick={() => navigate(`/pacientes/${p.folio}`)}
+                        onClick={() => navigate('/pacientes/expediente', { state: { uuid: p.uuid } })}
                       >
                         Ver
                       </Button>

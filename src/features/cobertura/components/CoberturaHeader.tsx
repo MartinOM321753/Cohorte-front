@@ -13,7 +13,7 @@ export function CoberturaHeader({ tipo, onTipoChange }: Props) {
       subtitle="Completitud del seguimiento por tipo de examen y estudio médico"
       actions={
         <div className="flex items-center rounded-lg border border-border p-0.5 bg-muted/40">
-          {(['EXAMEN', 'ESTUDIO'] as CatalogoTipo[]).map((t) => (
+          {(['ESTUDIO', 'EXAMEN'] as CatalogoTipo[]).map((t) => (
             <button
               key={t}
               type="button"

@@ -86,6 +86,7 @@ export function useGetPacientesPaginados(params: {
   buscar?: string
   incluirJerarquia?: boolean
   soloActivos?: boolean
+  seguimiento?: boolean
   idInstitucionFiltro?: number
 }) {
   return useQuery({
