@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
 import { AlertCircle, Copy } from 'lucide-react'
 import { UnidadesPanel } from '../components/UnidadesPanel'
 import { TipoMuestraAdminPanel } from '../components/TipoMuestraAdminPanel'
@@ -51,11 +53,13 @@ export default function CatalogosPage() {
         </Alert>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex w-full flex-wrap">
-            {visibleTabs.map((t) => (
-              <TabsTrigger key={t.value} value={t.value} className="flex-1">{t.label}</TabsTrigger>
-            ))}
-          </TabsList>
+          <BarraPestanas>
+            <TabsList className={PISTA_PESTANAS}>
+              {visibleTabs.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
+              ))}
+            </TabsList>
+          </BarraPestanas>
 
           <TabsContent value="unidades" className="space-y-4">
             <UnidadesPanel />

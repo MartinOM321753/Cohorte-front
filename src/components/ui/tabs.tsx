@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import * as TabsPrimitive from '@radix-ui/react-tabs'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -36,47 +35,23 @@ function TabsList({
 }
 
 /**
- * Una barra de pestañas que cabe siempre, sin estirar la página.
+ * La barra de secciones: un solo renglón que llena todo su sitio y, cuando ya no cabe,
+ * se desliza con el dedo.
  *
- * <p>Resuelve un fallo que se repetía en varios módulos. La barra heredaba
- * {@code w-fit}, o sea que se dimensionaba a su contenido en vez de a su sitio; con
- * seis pestañas de nombre largo crecía más que la pantalla y quien quería cambiar de
- * pestaña tenía que desplazar <b>la página entera</b> hacia los lados. Y en escritorio
- * se repartían en columnas iguales, que con nombres largos y sin permitir corte de
- * línea desbordaban cada una su columna.</p>
+ * <p>En una pantalla holgada las pestañas se reparten por igual y ocupan todo el ancho
+ * disponible, como un buen menú. Al encoger la ventana menguan todas a la par hasta que
+ * llegan a su ancho natural —el del texto—; a partir de ahí ya no se amontonan ni se
+ * apilan en varios renglones: el carril se desliza de lado, y en un móvil se arrastra
+ * con el dedo. No hay flechas ni botones, solo la barra que se mueve.</p>
  *
- * <p>Aquí las pestañas conservan su ancho natural y bajan a otro renglón cuando no
- * caben. No hay desplazamiento en ninguna dirección y no queda ninguna oculta, que era
- * el otro riesgo de una barra que se desliza: lo que no se ve, no se busca.</p>
+ * <p>La pieza que lo sostiene es el {@code min-w-0} de este carril. Un elemento flexible
+ * se niega por omisión a encogerse por debajo de su contenido, así que sin él el
+ * {@code overflow-x-auto} nunca se activa: la pista crece, empuja a su padre y el
+ * desplazamiento acaba apareciendo abajo del todo, en la ventana. El resto del truco
+ * vive en {@code PISTA_PESTANAS}.</p>
  *
- * <p>Las pestañas se seleccionan por atributo y no como hijas directas por dos razones:
- * así alcanza también a las que van envueltas en otro elemento —las deshabilitadas
- * llevan un contenedor para poder mostrar su explicación al pasar por encima— y así la
- * regla gana en especificidad al {@code flex-1} que cada pestaña trae puesto, que es lo
- * que las encogía por debajo de su propio texto.</p>
- */
-export const BARRA_PESTANAS = [
-  'h-auto w-full max-w-full flex-wrap justify-start gap-1',
-  '[&_[data-slot=tabs-trigger]]:flex-none',
-  '[&_[data-slot=tabs-trigger]]:h-8',
-].join(' ')
-
-/**
- * La barra de pestañas como carrusel: se desliza dentro de su sitio.
- *
- * <p>Las pestañas conservan su ancho y su renglón, y cuando no caben la barra se
- * desplaza con las flechas de los lados en vez de amontonarlas en varias líneas ni
- * —lo que pasaba antes— estirar la página entera hacia los lados.</p>
- *
- * <p>La pieza que lo hace funcionar es el {@code min-w-0} de la pista. Un elemento
- * flexible se niega por omisión a encogerse por debajo de su contenido, así que sin eso
- * el {@code overflow-x-auto} nunca llega a activarse: la pista crece, empuja a su padre
- * y el desplazamiento acaba apareciendo abajo del todo, en la ventana. Es exactamente
- * el fallo que se repetía en seis módulos.</p>
- *
- * <p>Las flechas solo aparecen cuando hay algo a lo que llegar. Y al cambiar de pestaña
- * con el teclado, la que queda activa se trae a la vista sola: una pestaña seleccionada
- * que no se ve es peor que no tener carrusel.</p>
+ * <p>Al cambiar de pestaña —también con el teclado— la que queda activa se trae a la
+ * vista sola: una pestaña seleccionada que no se ve es peor que no tener carril.</p>
  */
 export function BarraPestanas({
   children,
@@ -86,31 +61,9 @@ export function BarraPestanas({
   className?: string
 }) {
   const pista = React.useRef<HTMLDivElement>(null)
-  const [alInicio, setAlInicio] = React.useState(true)
-  const [alFinal, setAlFinal] = React.useState(true)
 
-  const medir = React.useCallback(() => {
-    const el = pista.current
-    if (!el) return
-    // Un píxel de margen: los navegadores redondean y sin él la flecha derecha se
-    // queda encendida para siempre al llegar al tope.
-    setAlInicio(el.scrollLeft <= 1)
-    setAlFinal(el.scrollLeft + el.clientWidth >= el.scrollWidth - 1)
-  }, [])
-
-  React.useEffect(() => {
-    const el = pista.current
-    if (!el) return
-    medir()
-
-    const observador = new ResizeObserver(medir)
-    observador.observe(el)
-    // También el contenido: las pestañas aparecen según los permisos de cada quien.
-    if (el.firstElementChild) observador.observe(el.firstElementChild)
-    return () => observador.disconnect()
-  }, [medir])
-
-  // La pestaña activa siempre a la vista, aunque se haya cambiado con el teclado.
+  // La pestaña activa siempre a la vista, aunque se haya cambiado con el teclado o el
+  // carril esté desplazado en una pantalla estrecha.
   React.useEffect(() => {
     const el = pista.current
     if (!el) return
@@ -118,66 +71,29 @@ export function BarraPestanas({
     activa?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
   })
 
-  function desplazar(hacia: -1 | 1) {
-    const el = pista.current
-    if (!el) return
-    el.scrollBy({ left: hacia * Math.max(160, el.clientWidth * 0.7), behavior: 'smooth' })
-  }
-
-  const hayDesplazamiento = !(alInicio && alFinal)
-
   return (
-    <div className={cn('flex min-w-0 items-center gap-1', className)}>
-      {hayDesplazamiento && (
-        <FlechaPestanas hacia="izquierda" deshabilitada={alInicio} onClick={() => desplazar(-1)} />
-      )}
-
-      <div
-        ref={pista}
-        onScroll={medir}
-        className="min-w-0 flex-1 overflow-x-auto scrollbar-none"
-      >
-        {children}
-      </div>
-
-      {hayDesplazamiento && (
-        <FlechaPestanas hacia="derecha" deshabilitada={alFinal} onClick={() => desplazar(1)} />
-      )}
+    <div
+      ref={pista}
+      className={cn('min-w-0 overflow-x-auto scrollbar-none', className)}
+    >
+      {children}
     </div>
   )
 }
 
-function FlechaPestanas({
-  hacia, deshabilitada, onClick,
-}: {
-  hacia: 'izquierda' | 'derecha'
-  deshabilitada: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={deshabilitada}
-      aria-label={hacia === 'izquierda' ? 'Ver las pestañas anteriores' : 'Ver las pestañas siguientes'}
-      className={cn(
-        'flex h-8 w-7 shrink-0 items-center justify-center rounded-md border bg-background',
-        'text-muted-foreground transition hover:bg-muted focus-visible:ring-ring/50',
-        'focus-visible:ring-[3px] focus-visible:outline-none',
-        'disabled:pointer-events-none disabled:opacity-30',
-      )}
-    >
-      {hacia === 'izquierda'
-        ? <ChevronLeft className="h-4 w-4" strokeWidth={2} />
-        : <ChevronRight className="h-4 w-4" strokeWidth={2} />}
-    </button>
-  )
-}
-
-/** Dentro del carrusel las pestañas van en un solo renglón, con su ancho natural. */
+/**
+ * La pista dentro del carril. Es la que reparte el ancho y decide cuándo deslizarse.
+ *
+ * <p>{@code w-full} la hace tan ancha como su sitio y, con las pestañas en {@code flex-1}
+ * —el ancho que ya traen puesto—, se reparten ese sitio por igual y lo llenan entero.
+ * {@code min-w-max} es el otro extremo: obliga a la pista a no ser nunca más estrecha
+ * que la suma de las pestañas a su ancho natural. Cuando la ventana baja de ahí, gana
+ * {@code min-w-max}, la pista se hace más ancha que el carril y este se desliza en lugar
+ * de recortar el texto. No se pone {@code min-w-0} en las pestañas a propósito: ese
+ * mínimo automático del texto es justo lo que impide que se aplasten unas sobre otras.</p>
+ */
 export const PISTA_PESTANAS = [
-  'h-9 w-max min-w-full flex-nowrap justify-start gap-1',
-  '[&_[data-slot=tabs-trigger]]:flex-none',
+  'h-9 w-full min-w-max flex-nowrap justify-start gap-1',
 ].join(' ')
 
 function TabsTrigger({
