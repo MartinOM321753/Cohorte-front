@@ -44,7 +44,11 @@ import { useSectionAccess } from '@/hooks/useSectionAccess'
 // ── Feature hooks ──────────────────────────────────────────────────────────────
 import { useGetPacienteByUUID, useMiPacienteUuid } from '../hooks/useGetPacientes'
 import { useLatestSomatometria, useSomatometriaByPaciente } from '@/features/somatometria/hooks/useSomatometria'
+import dayjs from 'dayjs'
+import type { CalendarEvent } from '@ilamy/calendar'
 import { useCitasResumenByPaciente } from '@/features/citas/hooks/useCitas'
+import { getCita } from '@/features/citas/api/citas.api'
+import { getCitaStartDate, getCitaDurationMinutes } from '@/features/citas/lib/citaUtils'
 import {
   useGetEstudiosByPaciente,
   useGetEstudioById,
@@ -975,14 +979,15 @@ function SomatometriaCard({
 function CitasCard({
   pacienteUUID,
   onAgendar,
+  onEditar,
 }: {
   pacienteUUID: string
   onAgendar: () => void
+  onEditar: (citaUuid: string) => void
 }) {
   const canSee = useSectionAccess('citas')
   const { hasPermiso } = useAuthStore()
   const canEdit = hasPermiso('CITAS_EDITAR')
-  const navigate = useNavigate()
   const { data: citas = [], isLoading } = useCitasResumenByPaciente(pacienteUUID, {
     enabled: canSee && !!pacienteUUID,
   })
@@ -1080,11 +1085,11 @@ function CitasCard({
                           >
                             <Eye className="h-3 w-3" strokeWidth={1.75} />
                           </button>
-                          {canEdit && (
+                          {canEdit && cita.citaUuid && (
                             <button
-                              onClick={() => navigate('/citas')}
+                              onClick={() => onEditar(cita.citaUuid)}
                               className="flex h-6 w-6 items-center justify-center rounded text-[var(--imss-ink-400)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
-                              title="Editar en calendario"
+                              title="Editar cita"
                             >
                               <Pencil className="h-3 w-3" strokeWidth={1.75} />
                             </button>
@@ -1774,7 +1779,7 @@ function EstudiosCard({ pacienteUUID, userUuid, pacienteSoloConsulta }: {
         action={canEdit ? (
           <button
             className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
-            onClick={() => navigate('/estudios')}
+            onClick={() => navigate(`/estudios?paciente=${pacienteUUID}`)}
             title="Registrar nuevo estudio"
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -1790,7 +1795,7 @@ function EstudiosCard({ pacienteUUID, userUuid, pacienteSoloConsulta }: {
             <Stethoscope className="h-8 w-8 opacity-30" strokeWidth={1.5} />
             <p className="text-[13px]">Sin estudios registrados</p>
             {canEdit && (
-              <Button variant="outline" size="sm" className="gap-1.5 text-[12px]" onClick={() => navigate('/estudios')}>
+              <Button variant="outline" size="sm" className="gap-1.5 text-[12px]" onClick={() => navigate(`/estudios?paciente=${pacienteUUID}`)}>
                 <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Registrar primer estudio
               </Button>
@@ -1938,7 +1943,7 @@ function ExamenesCard({
         action={canEdit ? (
           <button
             className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
-            onClick={() => navigate('/examenes')}
+            onClick={() => navigate(`/examenes?paciente=${pacienteUUID}`)}
             title="Registrar resultado"
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -2238,7 +2243,7 @@ function DocumentosCard({
 
   return (
     <SectionCard
-      title="Documentos del expediente"
+      title="Documentos del participante"
       action={canEdit ? (
         <div className="flex items-center gap-1">
           <CrearEtiquetaButton
@@ -2329,6 +2334,28 @@ export default function ExpedientePacientePage() {
 
   // ── Modal states ──────────────────────────────────────────────────────────
   const [citaModalOpen, setCitaModalOpen] = useState(false)
+  // Evento para editar una cita SIN salir del expediente. null = alta nueva.
+  const [citaEditEvent, setCitaEditEvent] = useState<CalendarEvent | null>(null)
+
+  // Al editar: se trae la cita completa (el resumen no trae color/duración) y se
+  // arma el evento que el formulario ya sabe editar.
+  async function handleEditarCita(citaUuid: string) {
+    try {
+      const full = await getCita(citaUuid)
+      const start = getCitaStartDate(full) ?? new Date()
+      const dur = getCitaDurationMinutes(full)
+      setCitaEditEvent({
+        id: full.uuid,
+        title: full.paciente?.nombreCompleto ?? '',
+        start: dayjs(start),
+        end: dayjs(start).add(dur, 'minute'),
+        data: { cita: full },
+      } as CalendarEvent)
+      setCitaModalOpen(true)
+    } catch {
+      toast.error('No se pudo cargar la cita para editar.')
+    }
+  }
   const [somaFormOpen, setSomaFormOpen] = useState(false)
   const [somaHistorialOpen, setSomaHistorialOpen] = useState(false)
   const [somaEditar, setSomaEditar] = useState<Somatometria | null>(null)
@@ -2366,8 +2393,10 @@ export default function ExpedientePacientePage() {
 
   const citasCount    = Array.isArray(citas)    ? (citas as any[]).length    : 0
   const estudiosCount = Array.isArray(estudios) ? (estudios as any[]).length : 0
+  // Solo cuentan los que YA tienen archivo cargado. Las etiquetas (archivoSubido
+  // = false) son marcadores sin archivo; contarlas daría información falsa.
   const docsCount     = [docsC, docsQ1, docsQ2, docsQ3, docsQ4, docsG]
-    .reduce((acc, arr) => acc + (Array.isArray(arr) ? arr.length : 0), 0)
+    .reduce((acc, arr) => acc + (Array.isArray(arr) ? arr.filter((d: any) => d?.archivoSubido).length : 0), 0)
 
   // Resolviendo el UUID propio del participante (rol PACIENTE, llega sin state)
   if (!uuid && resolviendoUuidPropio) {
@@ -2496,7 +2525,7 @@ export default function ExpedientePacientePage() {
         {canSeeEstudios   && <StatTile label="Estudios"        value={estudiosCount}  sub="médicos registrados" />}
         {canSeeExamenes   && <StatTile label="Exámenes lab"    value={examenesCount}  sub="resultados registrados" />}
         {canSeeMuestras   && <StatTile label="Muestras"        value={muestrasCount}  sub="en biobanco" />}
-        {canSeeDocs       && <StatTile label="Documentos"      value={docsCount}      sub="en el expediente" />}
+        {canSeeDocs       && <StatTile label="Documentos"      value={docsCount}      sub="archivos cargados" />}
       </div>
 
       {/* Two-column layout */}
@@ -2616,7 +2645,11 @@ export default function ExpedientePacientePage() {
             resultados={Array.isArray(resultados) ? (resultados as ResultadoExamen[]) : []}
             pacienteSexo={paciente.persona.sexo}
           />
-          <CitasCard    pacienteUUID={uuid} onAgendar={() => setCitaModalOpen(true)} />
+          <CitasCard
+            pacienteUUID={uuid}
+            onAgendar={() => { setCitaEditEvent(null); setCitaModalOpen(true) }}
+            onEditar={handleEditarCita}
+          />
           <EstudiosCard pacienteUUID={uuid} userUuid={userUuid} pacienteSoloConsulta={!!paciente.soloConsulta} />
           <ExamenesCard pacienteUUID={uuid} pacienteSexo={paciente.persona.sexo} />
          
@@ -2631,8 +2664,8 @@ export default function ExpedientePacientePage() {
       {/* ── Modals ── */}
       <CitaIlamyEventForm
         open={citaModalOpen}
-        onClose={() => setCitaModalOpen(false)}
-        selectedEvent={null}
+        onClose={() => { setCitaModalOpen(false); setCitaEditEvent(null) }}
+        selectedEvent={citaEditEvent}
         initialPacienteUUID={uuid}
       />
       <SomatometriaFormModal

@@ -88,7 +88,7 @@ function buildDefaults(args: {
   return {
     pacienteUUID: cita?.pacienteUUID || cita?.paciente?.uuid || args.initialPacienteUUID || '',
     fechaCita: start ? toLocalDateTimeInput(start) : toLocalDateTimeInput(new Date()),
-    duracionMinutos: cita ? getCitaDurationMinutes(cita) : 60,
+    duracionMinutos: cita ? getCitaDurationMinutes(cita) : 150,
     colorHex: cita?.colorHex || COLOR_POR_ESTADO.PROGRAMADA,
     observaciones: cita?.observaciones ?? '',
     estadoCita: normalizeEstadoCita(cita?.estadoCita),
@@ -300,6 +300,7 @@ export function CitaIlamyEventForm({
               <PacienteSearchCombobox
                 value={watchedPacienteUUID}
                 onChange={(uuid) => setValue('pacienteUUID', uuid)}
+                incluirInactivos
               />
               {errors.pacienteUUID ? (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">
@@ -392,13 +393,21 @@ export function CitaIlamyEventForm({
               <Label className="text-[13px]">
                 Duración (min) <span className="text-red-500">*</span>
               </Label>
-              <Input
-                type="number"
-                min={15}
-                max={240}
-                step={15}
-                {...register('duracionMinutos')}
-                className="h-9 w-24 text-[13px]"
+              <Controller
+                name="duracionMinutos"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    type="number"
+                    min={15}
+                    max={240}
+                    step={15}
+                    value={field.value ?? 150}
+                    onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                    onBlur={field.onBlur}
+                    className="h-9 w-24 text-[13px]"
+                  />
+                )}
               />
               {errors.duracionMinutos ? (
                 <p className="text-[11px] text-[var(--status-danger-fg)]">

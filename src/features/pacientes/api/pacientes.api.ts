@@ -180,6 +180,8 @@ export async function getPacientesPaginados(params: {
   buscar?: string
   incluirJerarquia?: boolean
   soloActivos?: boolean
+  /** Inactivos con cita sin confirmar. Ignora soloActivos cuando es true. */
+  seguimiento?: boolean
   idInstitucionFiltro?: number
 }): Promise<PacientesPaginados> {
   const response = await axiosInstance.get<ApiResponse<PacientesPaginados>>(
@@ -198,6 +200,8 @@ export async function getPacientesPaginados(params: {
 export async function buscarPacientes(params: {
   q?: string
   incluirJerarquia?: boolean
+  /** Incluye participantes inactivos (para agendarles cita en seguimiento). */
+  incluirInactivos?: boolean
   /** Incluye, marcados, los participantes que ya no gestionas pero con registros tuyos. */
   incluirSoloConsulta?: boolean
 }): Promise<PacientesPaginados> {

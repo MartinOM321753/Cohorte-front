@@ -1,16 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createCita, getCitas, getCitasResumenByPaciente, updateCita } from '../api/citas.api'
 import { CitaRequestDTO, CitaUpdateRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
 
 export function useGetCitas(
-  params?: { pacienteUUID?: string },
+  params?: { pacienteUUID?: string; start?: string; end?: string },
   options?: { enabled?: boolean }
 ) {
   return useQuery({
     queryKey: ['citas', params],
     queryFn: () => getCitas(params),
     enabled: options?.enabled ?? true,
+    // Navegar entre semanas/meses: mantener lo anterior mientras llega el nuevo
+    // rango (sin parpadeo) y no re-pedir un rango ya visto por 5 min.
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
   })
 }
 
@@ -32,6 +36,7 @@ export function useCreateCita() {
     mutationFn: (data: CitaRequestDTO) => createCita(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] })
+      queryClient.invalidateQueries({ queryKey: ['citas-resumen'] })
       queryClient.invalidateQueries({ queryKey: ['proximas-citas'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast.success('Cita programada.')
@@ -50,6 +55,7 @@ export function useUpdateCita() {
     mutationFn: ({ uuid, data }: { uuid: string; data: CitaUpdateRequestDTO }) => updateCita(uuid, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] })
+      queryClient.invalidateQueries({ queryKey: ['citas-resumen'] })
       queryClient.invalidateQueries({ queryKey: ['proximas-citas'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-agenda-hoy'] })

@@ -1,4 +1,5 @@
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { useState } from "react";
 import {
   Activity,
   CalendarPlus,
@@ -19,6 +20,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getFullName } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import type { Paciente } from "@/types/api";
@@ -27,6 +38,7 @@ interface PacientesTableProps {
   data: Paciente[];
   isLoading?: boolean;
   incluirJerarquia?: boolean;
+  /** Clic en la fila (columnas que no sean Participante ni Estado) → panel lateral. */
   onRowClick: (paciente: Paciente) => void;
   onEdit?: (paciente: Paciente) => void;
   onToggleActivo?: (paciente: Paciente) => void;
@@ -85,21 +97,36 @@ export function PacientesTable({
   const navigate = useNavigate();
   const hasPermiso = useAuthStore((s) => s.hasPermiso);
 
+  // Participante pendiente de confirmar el cambio de estado.
+  const [toggleTarget, setToggleTarget] = useState<Paciente | null>(null);
+
+  const abrirExpediente = (p: Paciente) =>
+    navigate("/pacientes/expediente", { state: { uuid: p.uuid } });
+
   const columns: ColumnDef<Paciente>[] = [
     {
       id: "nombre",
       header: "Participante",
       cell: ({ row }) => {
         const p = row.original;
+        // Clic en el nombre → expediente (no abre el menú de la fila).
         return (
-          <div>
-            <p className="text-[13px] font-medium text-[var(--imss-ink-900)]">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              abrirExpediente(p);
+            }}
+            className="text-left group/nombre"
+            title="Abrir expediente"
+          >
+            <p className="text-[13px] font-medium text-[var(--imss-ink-900)] group-hover/nombre:text-[var(--imss-green-700)] group-hover/nombre:underline">
               {getFullName(p.persona)}
             </p>
             <p className="text-[11px] text-[var(--imss-ink-300)]">
               Folio: {p.folio}
             </p>
-          </div>
+          </button>
         );
       },
     },
@@ -157,8 +184,9 @@ export function PacientesTable({
     {
       id: "estado",
       header: "Estado",
-      cell: ({ row }) =>
-        row.original.activo ? (
+      cell: ({ row }) => {
+        const p = row.original;
+        const badge = p.activo ? (
           <span className="inline-flex items-center rounded-full bg-[var(--status-success-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--status-success-fg)]">
             Activo
           </span>
@@ -166,7 +194,24 @@ export function PacientesTable({
           <span className="inline-flex items-center rounded-full bg-[var(--status-danger-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--status-danger-fg)]">
             Inactivo
           </span>
-        ),
+        );
+        // Sin permiso para cambiar estado → badge estático.
+        if (!onToggleActivo) return badge;
+        // Clic en el estado → confirmar activar/desactivar (no abre el menú).
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setToggleTarget(p);
+            }}
+            className="rounded-full transition-shadow hover:ring-2 hover:ring-[var(--imss-green-300)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--imss-green-500)]"
+            title={p.activo ? "Clic para desactivar" : "Clic para activar"}
+          >
+            {badge}
+          </button>
+        );
+      },
     },
     {
       id: "acciones",
@@ -253,7 +298,7 @@ export function PacientesTable({
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
-                    onToggleActivo(p);
+                    setToggleTarget(p);
                   }}
                   className={p.activo ? "text-destructive focus:text-destructive" : "text-green-600 focus:text-green-600"}
                 >
@@ -279,18 +324,60 @@ export function PacientesTable({
     },
   ];
 
+  const objetivo = toggleTarget;
+  const activar = objetivo ? !objetivo.activo : false;
+
   return (
-    <DataTable
-      columns={columns}
-      data={data}
-      isLoading={isLoading}
-      manualPagination={manualPagination}
-      pagination={pagination}
-      onPaginationChange={onPaginationChange}
-      pageCount={pageCount}
-      totalElements={totalElements}
-      getRowClassName={getRowClassName}
-      onRowClick={onRowClick}
-    />
+    <>
+      <DataTable
+        columns={columns}
+        data={data}
+        isLoading={isLoading}
+        manualPagination={manualPagination}
+        pagination={pagination}
+        onPaginationChange={onPaginationChange}
+        pageCount={pageCount}
+        totalElements={totalElements}
+        getRowClassName={getRowClassName}
+        // Clic en la fila (columnas que no son Participante ni Estado) → panel lateral
+        onRowClick={onRowClick}
+      />
+
+      <AlertDialog
+        open={objetivo !== null}
+        onOpenChange={(o) => { if (!o) setToggleTarget(null); }}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[15px]">
+              {activar ? "¿Activar a este participante?" : "¿Desactivar a este participante?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[13px]">
+              {objetivo ? getFullName(objetivo.persona) : ""}
+              {objetivo?.folio ? ` · Folio ${objetivo.folio}` : ""}
+              {activar
+                ? ". Volverá a contar en cobertura y se habilitarán sus operaciones."
+                : ". Sus muestras quedan en cuarentena y saldrá de cobertura; podrás reactivarlo cuando confirme."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="text-[13px]" onClick={() => setToggleTarget(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className={activar
+                ? "bg-[var(--imss-green-500)] text-white hover:bg-[var(--imss-green-700)] text-[13px]"
+                : "bg-destructive text-white hover:bg-destructive/90 text-[13px]"}
+              onClick={() => {
+                if (objetivo) onToggleActivo?.(objetivo);
+                setToggleTarget(null);
+              }}
+            >
+              {activar ? "Activar" : "Desactivar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

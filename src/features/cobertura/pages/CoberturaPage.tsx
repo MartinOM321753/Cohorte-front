@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select'
 
 export default function CoberturaPage() {
-  const [tipo, setTipo]           = useState<CatalogoTipo>('EXAMEN')
+  const [tipo, setTipo]           = useState<CatalogoTipo>('ESTUDIO')
   const [selTipoId, setSelTipoId] = useState<number | null>(null)
   const [selBucket, setSelBucket] = useState<number | null>(null)
 
@@ -116,25 +116,27 @@ export default function CoberturaPage() {
         />
       </div>
 
-      {/* Matriz + Drilldown */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.35fr_1fr]">
-        <MatrizCobertura
-          data={matriz}
-          tipoNames={cobertura.map(c => c.nombre)}
-          selBucket={selBucket}
-          selTipoId={selTipoId}
-          tipoWord={tipoWord}
-        />
-        <DrilldownPanel
-          data={drillData}
-          isLoading={drillLoading}
-          selTipoNombre={selTipoId !== null ? cobertura.find(c => c.tipoId === selTipoId)?.nombre : undefined}
-          selBucket={selBucket}
-          totalTipos={totalTipos}
-          tipoWord={tipoWord}
-          onClear={() => { setSelTipoId(null); setSelBucket(null) }}
-        />
-      </div>
+      {/* Matriz — ancho completo: son muchos estudios y compartir la fila
+          forzaba scroll horizontal */}
+      <MatrizCobertura
+        data={matriz}
+        tipoNombre={Object.fromEntries(cobertura.map(c => [c.tipoId, c.nombre]))}
+        selBucket={selBucket}
+        selTipoId={selTipoId}
+        tipoWord={tipoWord}
+        tipo={tipo}
+      />
+
+      {/* Drilldown — debajo, también a lo ancho */}
+      <DrilldownPanel
+        data={drillData}
+        isLoading={drillLoading}
+        selTipoNombre={selTipoId !== null ? cobertura.find(c => c.tipoId === selTipoId)?.nombre : undefined}
+        selBucket={selBucket}
+        totalTipos={totalTipos}
+        tipoWord={tipoWord}
+        onClear={() => { setSelTipoId(null); setSelBucket(null) }}
+      />
     </div>
   )
 }
