@@ -65,6 +65,13 @@ export default function BiobancoPage() {
         permiso: 'MUESTRAS_VER',
         dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configura al menos un tipo de muestra activo' },
       })
+    if (puedeTiposMuestra)
+      all.push({ value: 'tipos-muestra', label: 'Tipos de Muestra', permiso: 'TIPOS_MUESTRA_ACCEDER' })
+    if (puedeEstMuestras)
+      all.push({ value: 'est-muestras', label: 'Est. Muestras', permiso: 'ESTUDIOS_MUESTRA_ACCEDER' })
+    if (puedePrestamos)
+      all.push({ value: 'prestamos', label: 'Préstamos', permiso: 'TRASLADOS_ACCEDER' })
+    // Carga masiva al final: es una acción puntual, no una vista que se consulta a diario.
     if (puedeCargaMasiva)
       all.push({
         value: 'carga-masiva',
@@ -74,12 +81,6 @@ export default function BiobancoPage() {
         // `tipoMuestra` y `tubo` del archivo: todas las filas fallarían.
         dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configure al menos un tipo de muestra activo' },
       })
-    if (puedeTiposMuestra)
-      all.push({ value: 'tipos-muestra', label: 'Tipos de Muestra', permiso: 'TIPOS_MUESTRA_ACCEDER' })
-    if (puedeEstMuestras)
-      all.push({ value: 'est-muestras', label: 'Est. Muestras', permiso: 'ESTUDIOS_MUESTRA_ACCEDER' })
-    if (puedePrestamos)
-      all.push({ value: 'prestamos', label: 'Préstamos', permiso: 'TRASLADOS_ACCEDER' })
     return all
   }, [hasPermiso, puedeRefrigeradores, puedeCajas, puedeMuestras, puedeTiposMuestra, puedeEstMuestras, puedePrestamos, puedeCargaMasiva, hayPisos, hayTiposMuestra])
 
