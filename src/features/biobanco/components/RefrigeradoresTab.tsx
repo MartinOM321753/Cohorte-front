@@ -75,9 +75,14 @@ export function RefrigeradoresTab() {
           <p className="text-muted-foreground">Gestiona los equipos de almacenamiento criogénico</p>
         </div>
         {puedeCrear && (
-          <Button onClick={() => setIsRefrigeradorModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Refrigerador
+          <Button
+            onClick={() => setIsRefrigeradorModalOpen(true)}
+            aria-label="Nuevo Refrigerador"
+            className="shrink-0"
+          >
+            <Plus className="h-4 w-4 sm:mr-2" />
+            {/* En móvil solo el «+»: el texto completo desfasaba el ancho de la pantalla. */}
+            <span className="hidden sm:inline">Nuevo Refrigerador</span>
           </Button>
         )}
       </div>
