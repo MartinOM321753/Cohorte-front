@@ -36,6 +36,9 @@ import { toast } from 'sonner'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -1618,38 +1621,41 @@ export function MuestrasTab() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {configuracionesEtiqueta.length > 0 && (
-            <div className="flex items-center gap-1.5 border rounded-md px-2 py-1.5 text-sm">
-              <Tag className="h-4 w-4 text-violet-600 shrink-0" />
-              <select
-                className="bg-transparent outline-none cursor-pointer max-w-[140px] truncate"
-                value={resolvedConfigId ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setSelectedConfigId(val ? Number(val) : undefined)
-                }}
-              >
+            // Select de Radix (no <select> nativo): su popover usa los colores del tema
+            // (bg-popover / accent), a diferencia del desplegable nativo que salía blanco fijo.
+            <Select
+              value={resolvedConfigId != null ? String(resolvedConfigId) : ''}
+              onValueChange={(val) => setSelectedConfigId(val ? Number(val) : undefined)}
+            >
+              <SelectTrigger size="sm" className="w-auto max-w-[180px] gap-1.5">
+                <Tag className="h-4 w-4 text-violet-600 shrink-0" />
+                <SelectValue placeholder="Etiqueta" />
+              </SelectTrigger>
+              <SelectContent>
                 {configuracionesEtiqueta.map((cfg) => (
-                  <option key={cfg.id} value={cfg.id}>
+                  <SelectItem key={cfg.id} value={String(cfg.id)}>
                     {cfg.nombre}{cfg.predeterminada ? ' *' : ''}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
           )}
           {puedeImprimir && (
-            <div className="flex items-center gap-1.5 border rounded-md px-2 py-1.5 text-sm">
-              <Printer className="h-4 w-4 text-sky-600 shrink-0" />
-              <select
-                className="bg-transparent outline-none cursor-pointer max-w-[180px] truncate"
-                value={selectedPrinter || (impresoras.length > 0 ? impresoras[0] : '__browser__')}
-                onChange={(e) => handleSelectPrinter(e.target.value)}
-              >
-                <option value="__browser__">Impresora estándar (navegador)</option>
+            <Select
+              value={selectedPrinter || (impresoras.length > 0 ? impresoras[0] : '__browser__')}
+              onValueChange={handleSelectPrinter}
+            >
+              <SelectTrigger size="sm" className="w-auto max-w-[220px] gap-1.5">
+                <Printer className="h-4 w-4 text-sky-600 shrink-0" />
+                <SelectValue placeholder="Impresora" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__browser__">Impresora estándar (navegador)</SelectItem>
                 {impresoras.map((imp) => (
-                  <option key={imp} value={imp}>{imp}</option>
+                  <SelectItem key={imp} value={imp}>{imp}</SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
           )}
           <Button
             size="sm"
@@ -1690,8 +1696,10 @@ export function MuestrasTab() {
         </AlertDescription>
       </Alert>
 
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
+      {/* flex-wrap: en móvil el buscador ocupa el primer renglón y los botones
+          (escanear, histórico, filtros) bajan al siguiente en vez de desfasar la pantalla. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[12rem] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por etiqueta, participante, tipo..."
