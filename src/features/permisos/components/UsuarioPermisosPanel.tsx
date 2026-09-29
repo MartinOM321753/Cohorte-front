@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useAuthStore } from '@/stores/authStore'
-import { Plus, ShieldAlert, ShieldCheck, Trash2, X, Sparkles, Code2, Info } from 'lucide-react'
+import { Plus, Trash2, X, Sparkles, Code2, Info } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -26,10 +26,7 @@ import {
   useQuitarRol,
   useQuitarPermisoIndividual,
 } from '../hooks/usePermisos'
-import { ConcesionFormModal } from './ConcesionFormModal'
-import { SECCIONES } from '@/config/permisoSecciones'
-import { SeccionEditor } from './SeccionEditor'
-import { SeccionesSidebar } from './SeccionesSidebar'
+import { ModuloPermisosEditor } from './ModuloPermisosEditor'
 import { ModoAvanzado } from './ModoAvanzado'
 import { codigoAEtiqueta } from '@/config/permisoLabels'
 import { ROL_LABELS, getRolBadgeClass } from '@/features/usuarios/types/usuario.types'
@@ -50,10 +47,6 @@ export function UsuarioPermisosPanel({ uuid, open, onOpenChange }: Props) {
   const quitarIndMut = useQuitarPermisoIndividual(uuid ?? '')
 
   const [addRolId, setAddRolId] = useState<string>('')
-  const [concesionOpen, setConcesionOpen] = useState(false)
-  const [restriccionOpen, setRestriccionOpen] = useState(false)
-  const [seccionActiva, setSeccionActiva] = useState<string>(SECCIONES[0].id)
-  const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
   const [modoAvanzado, setModoAvanzado] = useState(false)
 
   const availableRoles = (allRoles ?? []).filter(
@@ -70,15 +63,6 @@ export function UsuarioPermisosPanel({ uuid, open, onOpenChange }: Props) {
   function handleAsignarRol() {
     if (!addRolId) return
     asignarMut.mutate({ idRol: Number(addRolId) }, { onSuccess: () => setAddRolId('') })
-  }
-
-  function toggleExpandida(id: string) {
-    setExpandidas((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
   }
 
   return (
@@ -161,12 +145,9 @@ export function UsuarioPermisosPanel({ uuid, open, onOpenChange }: Props) {
 
               <Separator />
 
-              {/* ── Permisos efectivos por sección (solo lectura) ── */}
-              <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Permisos efectivos ({permisosEfectivos.size})
-                  </h3>
+              {/* ── Permisos por módulo (conceder / restringir en la misma vista) ── */}
+              <section className="space-y-3">
+                <div className="flex justify-end">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -174,65 +155,41 @@ export function UsuarioPermisosPanel({ uuid, open, onOpenChange }: Props) {
                     onClick={() => setModoAvanzado((v) => !v)}
                   >
                     {modoAvanzado ? (
-                      <><Sparkles className="h-3.5 w-3.5" /> Vista por secciones</>
+                      <><Sparkles className="h-3.5 w-3.5" /> Vista por módulos</>
                     ) : (
                       <><Code2 className="h-3.5 w-3.5" /> Modo avanzado</>
                     )}
                   </Button>
                 </div>
 
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 mb-3 flex items-start gap-2 text-[11px]">
-                  <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-amber-800 dark:text-amber-300">
-                    Vista de solo lectura. Los permisos vienen de los roles asignados. Para conceder/restringir permisos individuales usa los botones abajo.
-                  </p>
-                </div>
-
                 {modoAvanzado ? (
-                  <ModoAvanzado
-                    permisosActivos={permisosEfectivos}
-                    onChange={() => { /* read-only */ }}
-                    readOnly
-                  />
-                ) : (
-                  <div className="rounded-lg border border-border overflow-hidden flex flex-col lg:flex-row min-h-[400px]">
-                    <SeccionesSidebar
-                      activaId={seccionActiva}
-                      onSelect={setSeccionActiva}
-                      permisosActivos={permisosEfectivos}
-                    />
-                    <div className="flex-1 p-4 max-h-[60vh] overflow-y-auto">
-                      <SeccionEditor
-                        seccionActiva={seccionActiva}
-                        permisosActivos={permisosEfectivos}
-                        onChange={() => { /* read-only */ }}
-                        expandidas={expandidas}
-                        onToggleExpandida={toggleExpandida}
-                        readOnly
-                      />
+                  <>
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 flex items-start gap-2 text-[11px]">
+                      <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-amber-800 dark:text-amber-300">
+                        Vista de solo lectura de la lista cruda de permisos. Para conceder o restringir,
+                        vuelve a la vista por módulos.
+                      </p>
                     </div>
-                  </div>
+                    <ModoAvanzado
+                      permisosActivos={permisosEfectivos}
+                      onChange={() => { /* read-only */ }}
+                      readOnly
+                    />
+                  </>
+                ) : uuid && (
+                  <ModuloPermisosEditor uuid={uuid} resumen={resumen} puedeEditar={puedeEditar} />
                 )}
               </section>
 
               <Separator />
 
-              {/* ── Permisos individuales ── */}
+              {/* ── Resumen de permisos individuales activos ── */}
               <section>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Permisos individuales
                   </h3>
-                  {puedeEditar && (
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setConcesionOpen(true)}>
-                        <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Conceder
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-[11px] text-destructive" onClick={() => setRestriccionOpen(true)}>
-                        <ShieldAlert className="h-3.5 w-3.5 mr-1" /> Restringir
-                      </Button>
-                    </div>
-                  )}
                 </div>
 
                 {resumen.permisosIndividuales.length === 0 ? (
@@ -280,13 +237,6 @@ export function UsuarioPermisosPanel({ uuid, open, onOpenChange }: Props) {
           )}
         </SheetContent>
       </Sheet>
-
-      {uuid && (
-        <>
-          <ConcesionFormModal uuid={uuid} tipo="CONCESION" open={concesionOpen} onOpenChange={setConcesionOpen} />
-          <ConcesionFormModal uuid={uuid} tipo="RESTRICCION" open={restriccionOpen} onOpenChange={setRestriccionOpen} />
-        </>
-      )}
     </TooltipProvider>
   )
 }
