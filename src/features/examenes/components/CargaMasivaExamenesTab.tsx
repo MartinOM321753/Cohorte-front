@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { CeldaCarga } from '@/features/estudios/components/CeldaCarga'
+import { DescargarPlantilla } from '@/features/estudios/components/DescargarPlantilla'
 import {
-  confirmarCargaExamenes, previsualizarCargaExamenes, revalidarCargaExamenes,
+  confirmarCargaExamenes, descargarPlantillaExamenes, getVersionesPlantillaExamenes,
+  previsualizarCargaExamenes, revalidarCargaExamenes,
 } from '../api/cargaMasivaExamenes.api'
 import type {
   PoliticaDuplicados, PrevisualizacionCargaExamenes, ResultadoCarga, TablaCarga,
@@ -314,6 +316,13 @@ export function CargaMasivaExamenesTab() {
                 <X className="mr-2 h-4 w-4" />Empezar de nuevo
               </Button>
             )}
+            {/* Aquí no hay tipo que elegir: la plantilla trae todos los exámenes en
+                uso, así que se ofrece siempre. */}
+            <DescargarPlantilla
+              recargaKey="examenes"
+              cargarVersiones={getVersionesPlantillaExamenes}
+              descargar={descargarPlantillaExamenes}
+            />
           </div>
         </CardContent>
       </Card>

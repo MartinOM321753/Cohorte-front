@@ -14,7 +14,11 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { CeldaCarga } from './CeldaCarga'
-import { confirmarCarga, previsualizarCarga, revalidarCarga } from '../api/cargaMasiva.api'
+import { DescargarPlantilla } from './DescargarPlantilla'
+import {
+  confirmarCarga, descargarPlantillaEstudios, getVersionesPlantillaEstudios,
+  previsualizarCarga, revalidarCarga,
+} from '../api/cargaMasiva.api'
 import { useGetTiposEstudio } from '../hooks/useEstudios'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import type {
@@ -80,7 +84,13 @@ export function CargaMasivaTab() {
   // versión que nadie ha tocado.
   const [tablaOriginal, setTablaOriginal] = useState<TablaCarga | null>(null)
 
-  const tiposActivos = useMemo(() => tipos.filter((t) => t.activo !== false), [tipos])
+  // Los tipos de captura por grupos no tienen carga masiva —el archivo plano no
+  // sabe expresar a qué repetición pertenece cada fila— así que ni se ofrecen: el
+  // servidor los rechazaría igual, pero mostrarlos solo lleva a un error tardío.
+  const tiposActivos = useMemo(
+    () => tipos.filter((t) => t.activo !== false && t.tipoCapturaDefecto !== 'GRUPOS'),
+    [tipos],
+  )
 
   // ── Elegir el archivo ────────────────────────────────────────────────────
 
@@ -339,6 +349,24 @@ export function CargaMasivaTab() {
                 </Command>
               </PopoverContent>
             </Popover>
+
+            {/* La plantilla se ofrece aquí, colgada del tipo elegido: sus columnas
+                son las de ese tipo, así que sin tipo no hay plantilla que armar.
+                Bajarla llena es la forma más segura de que los encabezados coincidan
+                con lo que el importador espera. */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <DescargarPlantilla
+                disabled={!idTipo}
+                recargaKey={idTipo}
+                cargarVersiones={() => getVersionesPlantillaEstudios(Number(idTipo))}
+                descargar={(version) => descargarPlantillaEstudios(Number(idTipo), version)}
+              />
+              {!idTipo && (
+                <span className="text-[11px] text-muted-foreground">
+                  Elija un tipo de estudio para descargar su plantilla.
+                </span>
+              )}
+            </div>
           </div>
 
           {archivo ? (

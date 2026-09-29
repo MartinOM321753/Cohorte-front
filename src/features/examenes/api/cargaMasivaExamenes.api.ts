@@ -44,3 +44,37 @@ export async function confirmarCargaExamenes(
   )
   return res.data.data
 }
+
+/**
+ * Cuántas versiones de plantilla hay: una por cada juego de alias. Con una sola,
+ * la pantalla no ofrece elegir.
+ */
+export async function getVersionesPlantillaExamenes(): Promise<number> {
+  const res = await axiosInstance.get<ApiResponse<{ versiones: number }>>(
+    '/examenes/carga-masiva/plantilla/versiones',
+  )
+  return res.data.data.versiones
+}
+
+/**
+ * Descarga la plantilla vacía de exámenes (folio, fecha y una columna por examen
+ * en uso de la institución).
+ *
+ * @param version qué juego de alias usar en los encabezados (base 1)
+ */
+export async function descargarPlantillaExamenes(version = 1): Promise<void> {
+  const res = await axiosInstance.get('/examenes/carga-masiva/plantilla', {
+    params: { version },
+    responseType: 'blob',
+  })
+  const cd = (res.headers as Record<string, string> | undefined)?.['content-disposition']
+  const nombre = cd ? /filename="?([^";]+)"?/i.exec(cd)?.[1] : undefined
+  const url = URL.createObjectURL(res.data as Blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nombre ?? 'plantilla-examenes.xlsx'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}

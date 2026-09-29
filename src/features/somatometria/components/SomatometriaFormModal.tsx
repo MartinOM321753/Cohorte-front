@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 import {
@@ -12,6 +12,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,6 +35,7 @@ import {
   useCreateSomatometria,
   useUpdateSomatometria,
   useSomatometriaByPaciente,
+  useDeleteSomatometria,
 } from '../hooks/useSomatometria'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import { formatDate } from '@/lib/utils'
@@ -340,9 +352,19 @@ export function SomatometriaHistorialDialog({
   onEditar,
 }: SomatometriaHistorialDialogProps) {
   const puedeEditar = useAuthStore((s) => s.hasPermiso('SOMATOMETRIA_EDITAR'))
+  const puedeEliminar = useAuthStore((s) => s.hasPermiso('SOMATOMETRIA_ELIMINAR'))
   const { data: historial = [], isLoading } = useSomatometriaByPaciente(pacienteUUID, {
     enabled: open && !!pacienteUUID,
   })
+  const deleteMutation = useDeleteSomatometria(pacienteUUID)
+
+  function eliminar(id: number) {
+    deleteMutation.mutate(id, {
+      onSuccess: () => toast.success('Medición eliminada'),
+      onError: (err: any) =>
+        toast.error(err?.response?.data?.message ?? 'No se pudo eliminar la medición'),
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -422,15 +444,49 @@ export function SomatometriaHistorialDialog({
                       {s.frecuenciaCardiacaReposo != null ? `${s.frecuenciaCardiacaReposo} lpm` : '—'}
                     </td>
                     <td className="px-3 py-2.5 text-right">
-                      {puedeEditar && (
-                        <button
-                          onClick={() => onEditar(s)}
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
-                          title="Editar"
-                        >
-                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1">
+                        {puedeEditar && (
+                          <button
+                            onClick={() => onEditar(s)}
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-[var(--imss-green-50)] hover:text-[var(--imss-green-700)]"
+                            title="Editar"
+                          >
+                            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          </button>
+                        )}
+                        {puedeEliminar && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--imss-ink-500)] hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/30"
+                                title="Eliminar"
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Eliminar medición</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Se eliminará la medición del{' '}
+                                  {formatDate(s.fechaMedicion, 'dd/MM/yyyy HH:mm')}. Esta acción no se
+                                  puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => eliminar(s.id)}
+                                  className="bg-red-600 text-white hover:bg-red-700"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
