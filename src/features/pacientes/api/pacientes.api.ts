@@ -1,0 +1,69 @@
+import axiosInstance from '@/lib/axiosInstance'
+import { ApiResponse, Paciente, PacienteRequestDTO, PaginatedResponse } from '@/types/api'
+
+/**
+ * Get all pacientes with optional pagination and filtering
+ */
+export async function getPacientes(params?: {
+  page?: number
+  size?: number
+  buscar?: string
+}): Promise<Paciente[] | PaginatedResponse<Paciente>> {
+  const response = await axiosInstance.get<ApiResponse<Paciente[]>>('/pacientes', { params })
+  return response.data.data
+}
+
+/**
+ * Get active pacientes only
+ */
+export async function getPacientesActivos(): Promise<Paciente[]> {
+  const response = await axiosInstance.get<ApiResponse<Paciente[]>>('/pacientes/activos')
+  return response.data.data
+}
+
+/**
+ * Get paciente by ID
+ */
+export async function getPacienteById(id: number): Promise<Paciente> {
+  const response = await axiosInstance.get<ApiResponse<Paciente>>(`/pacientes/${id}`)
+  return response.data.data
+}
+
+/**
+ * Get paciente by UUID
+ */
+export async function getPacienteByUUID(uuid: string): Promise<Paciente> {
+  const response = await axiosInstance.get<ApiResponse<Paciente>>(`/pacientes/uuid/${uuid}`)
+  return response.data.data
+}
+
+/**
+ * Get paciente by folio
+ */
+export async function getPacienteByFolio(folio: string): Promise<Paciente> {
+  const response = await axiosInstance.get<ApiResponse<Paciente>>(`/pacientes/folio/${folio}`)
+  return response.data.data
+}
+
+/**
+ * Create a new paciente
+ */
+export async function createPaciente(data: PacienteRequestDTO): Promise<Paciente> {
+  const response = await axiosInstance.post<ApiResponse<Paciente>>('/pacientes', data)
+  return response.data.data
+}
+
+/**
+ * Update an existing paciente
+ */
+export async function updatePaciente(id: number, data: PacienteRequestDTO): Promise<Paciente> {
+  const response = await axiosInstance.put<ApiResponse<Paciente>>(`/pacientes/${id}`, data)
+  return response.data.data
+}
+
+/**
+ * Delete a paciente (soft delete)
+ */
+export async function deletePaciente(id: number): Promise<void> {
+  await axiosInstance.delete(`/pacientes/${id}`)
+}
