@@ -597,7 +597,10 @@ export interface TuboMuestra {
   nombre: string
   prefijoCodigo?: string | null
   numeroAlicuotas: number
+  /** Volumen general: semilla y respaldo de cada slot. */
   volumenAlicuota?: number | null
+  /** Volumen individual de cada alicuota, en orden. Vacia = tubo uniforme. */
+  volumenesAlicuota?: number[] | null
   unidadVolumen?: string | null
   destinoSugerido?: string | null
   orden: number
@@ -613,6 +616,8 @@ export interface TuboMuestraRequestDTO {
   prefijoCodigo?: string
   numeroAlicuotas: number
   volumenAlicuota?: number
+  /** Volumen individual de cada alicuota, en orden. Ausente = no se toca. */
+  volumenesAlicuota?: number[]
   unidadVolumen?: string
   destinoSugerido?: string
   orden?: number
@@ -650,6 +655,8 @@ export interface TuboMuestraResumen {
   numeroAlicuotas: number
   /** La receta completa: el planificador de lotes la necesita. */
   volumenAlicuota?: number | null
+  /** Volumen individual de cada alicuota, en orden. Vacia = tubo uniforme. */
+  volumenesAlicuota?: number[] | null
   unidadVolumen?: string | null
   generacionAutomatica?: boolean
   permiteAlicuotaParcial?: boolean
@@ -791,6 +798,8 @@ export interface PlanAlicuotas {
   slotsOcupados: number
   /** Huecos del tubo que quedan por llenar. */
   slotsLibres: number
+  /** Capacidad de cada hueco libre, en orden: el tope y el default de cada vial. */
+  capacidadesSlots?: number[]
   mensaje: string
   opciones: OpcionDistribucion[]
 }
