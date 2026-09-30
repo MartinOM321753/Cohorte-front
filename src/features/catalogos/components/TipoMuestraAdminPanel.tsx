@@ -48,6 +48,8 @@ interface TuboForm {
   prefijoCodigo: string
   numeroAlicuotas: number
   volumenAlicuota: string
+  /** Volumen individual de cada alícuota (una entrada por slot). */
+  volumenesAlicuota: string[]
   unidadVolumen: string
   destinoSugerido: string
   orden: number
@@ -56,10 +58,17 @@ interface TuboForm {
 const EMPTY_TIPO: TipoForm = { nombre: '', descripcion: '', temperaturaAlmacenamiento: '' }
 const EMPTY_TUBO: TuboForm = {
   nombre: '', prefijoCodigo: '', numeroAlicuotas: 0,
-  volumenAlicuota: '', unidadVolumen: 'mL', destinoSugerido: '', orden: 0,
+  volumenAlicuota: '', volumenesAlicuota: [], unidadVolumen: 'mL', destinoSugerido: '', orden: 0,
 }
 
 const UNIDADES_VOLUMEN = ['mL', 'µL', 'mg', 'g', 'UI']
+
+/** Si el tubo tiene volúmenes por slot que no son todos iguales entre sí. */
+function tieneVolumenVariable(tubo: TuboMuestra): boolean {
+  const v = tubo.volumenesAlicuota
+  if (!v || v.length < 2) return false
+  return v.some((x) => x !== v[0])
+}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -135,11 +144,16 @@ export function TipoMuestraAdminPanel() {
   }
 
   function openEditTubo(tubo: TuboMuestra) {
+    const general = tubo.volumenAlicuota != null ? String(tubo.volumenAlicuota) : ''
+    const porSlot = tubo.volumenesAlicuota && tubo.volumenesAlicuota.length > 0
+      ? tubo.volumenesAlicuota.map((v) => (v != null ? String(v) : general))
+      : Array.from({ length: tubo.numeroAlicuotas }, () => general)
     setTuboForm({
       nombre: tubo.nombre,
       prefijoCodigo: tubo.prefijoCodigo ?? '',
       numeroAlicuotas: tubo.numeroAlicuotas,
-      volumenAlicuota: tubo.volumenAlicuota != null ? String(tubo.volumenAlicuota) : '',
+      volumenAlicuota: general,
+      volumenesAlicuota: porSlot,
       unidadVolumen: tubo.unidadVolumen ?? 'mL',
       destinoSugerido: tubo.destinoSugerido ?? '',
       orden: tubo.orden,
@@ -157,11 +171,26 @@ export function TipoMuestraAdminPanel() {
   function submitTubo(tipoId: number) {
     const trimmed = tuboForm.nombre.trim()
     if (!trimmed) return
+    const general = tuboForm.volumenAlicuota ? Number(tuboForm.volumenAlicuota) : undefined
+    // Un volumen por slot: cada casilla vacía cae al general. Solo se envía la
+    // lista si TODOS los slots resuelven a un número válido; si no, se omite y el
+    // backend conserva/valida con el general (misma regla que el tubo uniforme).
+    let volumenesAlicuota: number[] | undefined
+    if (tuboForm.numeroAlicuotas > 0) {
+      const resueltos = Array.from({ length: tuboForm.numeroAlicuotas }, (_, i) => {
+        const raw = tuboForm.volumenesAlicuota[i]
+        return raw !== undefined && raw !== '' ? Number(raw) : general
+      })
+      if (resueltos.every((v) => typeof v === 'number' && Number.isFinite(v) && v > 0)) {
+        volumenesAlicuota = resueltos as number[]
+      }
+    }
     const payload: TuboMuestraRequestDTO = {
       nombre: trimmed,
       prefijoCodigo: tuboForm.prefijoCodigo.trim() || undefined,
       numeroAlicuotas: tuboForm.numeroAlicuotas,
-      volumenAlicuota: tuboForm.volumenAlicuota ? Number(tuboForm.volumenAlicuota) : undefined,
+      volumenAlicuota: general,
+      volumenesAlicuota,
       unidadVolumen: tuboForm.unidadVolumen || undefined,
       destinoSugerido: tuboForm.destinoSugerido.trim() || undefined,
       orden: tuboForm.orden,
@@ -335,7 +364,9 @@ export function TipoMuestraAdminPanel() {
                           )}
                           <span className="ml-2 text-xs text-muted-foreground">
                             {tubo.numeroAlicuotas > 0
-                              ? `${tubo.numeroAlicuotas} alíc.${tubo.volumenAlicuota ? ` × ${tubo.volumenAlicuota} ${tubo.unidadVolumen ?? ''}` : ''}`
+                              ? tieneVolumenVariable(tubo)
+                                ? `${tubo.numeroAlicuotas} alíc. × vol. variable ${tubo.unidadVolumen ?? ''}`
+                                : `${tubo.numeroAlicuotas} alíc.${tubo.volumenAlicuota ? ` × ${tubo.volumenAlicuota} ${tubo.unidadVolumen ?? ''}` : ''}`
                               : 'Tubo directo'}
                           </span>
                           {tubo.destinoSugerido && (
@@ -429,75 +460,147 @@ function TipoFormFields({ form, onChange }: { form: TipoForm; onChange: (f: Tipo
 }
 
 function TuboFormFields({ form, onChange }: { form: TuboForm; onChange: (f: TuboForm) => void }) {
+  // Al cambiar el número de alícuotas se ajusta la lista por slot: los nuevos
+  // huecos nacen con el volumen general, y recortar no borra los de más abajo.
+  function cambiarNumeroAlicuotas(nuevoN: number) {
+    const arr = [...form.volumenesAlicuota]
+    if (nuevoN > arr.length) {
+      while (arr.length < nuevoN) arr.push(form.volumenAlicuota)
+    } else {
+      arr.splice(nuevoN)
+    }
+    onChange({ ...form, numeroAlicuotas: nuevoN, volumenesAlicuota: arr })
+  }
+
+  function aplicarGeneralATodas() {
+    onChange({
+      ...form,
+      volumenesAlicuota: Array.from({ length: form.numeroAlicuotas }, () => form.volumenAlicuota),
+    })
+  }
+
+  function cambiarSlot(i: number, valor: string) {
+    const arr = [...form.volumenesAlicuota]
+    arr[i] = valor
+    onChange({ ...form, volumenesAlicuota: arr })
+  }
+
+  const hayAlicuotas = form.numeroAlicuotas > 0
+
   return (
-    <div className="grid grid-cols-2 @sm:grid-cols-4 gap-3">
-      <div className="space-y-1">
-        <Label className="text-xs">Nombre del tubo *</Label>
-        <Input
-          placeholder="Ej. EDTA"
-          maxLength={100}
-          value={form.nombre}
-          onChange={(e) => onChange({ ...form, nombre: e.target.value })}
-        />
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 @sm:grid-cols-4 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Nombre del tubo *</Label>
+          <Input
+            placeholder="Ej. EDTA"
+            maxLength={100}
+            value={form.nombre}
+            onChange={(e) => onChange({ ...form, nombre: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Prefijo código</Label>
+          <Input
+            placeholder="Ej. S, H, EDTA"
+            maxLength={20}
+            value={form.prefijoCodigo}
+            onChange={(e) => onChange({ ...form, prefijoCodigo: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">N° alícuotas</Label>
+          <Input
+            type="number"
+            min={0}
+            placeholder="0 = directo"
+            value={form.numeroAlicuotas}
+            onChange={(e) => cambiarNumeroAlicuotas(Math.max(0, Number(e.target.value) || 0))}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Orden</Label>
+          <Input
+            type="number"
+            min={0}
+            value={form.orden}
+            onChange={(e) => onChange({ ...form, orden: Number(e.target.value) || 0 })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Volumen general</Label>
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            placeholder="0.5"
+            value={form.volumenAlicuota}
+            onChange={(e) => onChange({ ...form, volumenAlicuota: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Unidad volumen</Label>
+          <select
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            value={form.unidadVolumen}
+            onChange={(e) => onChange({ ...form, unidadVolumen: e.target.value })}
+          >
+            {UNIDADES_VOLUMEN.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1 col-span-2">
+          <Label className="text-xs">Destino sugerido</Label>
+          <Input
+            placeholder="Ej. INMEGEN, Biobanco local"
+            maxLength={100}
+            value={form.destinoSugerido}
+            onChange={(e) => onChange({ ...form, destinoSugerido: e.target.value })}
+          />
+        </div>
       </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Prefijo código</Label>
-        <Input
-          placeholder="Ej. S, H, EDTA"
-          maxLength={20}
-          value={form.prefijoCodigo}
-          onChange={(e) => onChange({ ...form, prefijoCodigo: e.target.value })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">N° alícuotas</Label>
-        <Input
-          type="number"
-          min={0}
-          placeholder="0 = directo"
-          value={form.numeroAlicuotas}
-          onChange={(e) => onChange({ ...form, numeroAlicuotas: Number(e.target.value) || 0 })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Orden</Label>
-        <Input
-          type="number"
-          min={0}
-          value={form.orden}
-          onChange={(e) => onChange({ ...form, orden: Number(e.target.value) || 0 })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Volumen por alícuota</Label>
-        <Input
-          type="number"
-          min={0}
-          step={0.01}
-          placeholder="0.5"
-          value={form.volumenAlicuota}
-          onChange={(e) => onChange({ ...form, volumenAlicuota: e.target.value })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Unidad volumen</Label>
-        <select
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          value={form.unidadVolumen}
-          onChange={(e) => onChange({ ...form, unidadVolumen: e.target.value })}
-        >
-          {UNIDADES_VOLUMEN.map((u) => <option key={u} value={u}>{u}</option>)}
-        </select>
-      </div>
-      <div className="space-y-1 col-span-2">
-        <Label className="text-xs">Destino sugerido</Label>
-        <Input
-          placeholder="Ej. INMEGEN, Biobanco local"
-          maxLength={100}
-          value={form.destinoSugerido}
-          onChange={(e) => onChange({ ...form, destinoSugerido: e.target.value })}
-        />
-      </div>
+
+      {/* Volumen individual por alícuota. Cada casilla arranca del volumen
+          general y puede editarse; al generar la muestra cada vial nace con el
+          suyo. Una casilla vacía cae al general. */}
+      {hayAlicuotas && (
+        <div className="rounded-md border border-dashed p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs font-medium">
+              Volumen por alícuota ({form.numeroAlicuotas})
+            </Label>
+            <button
+              type="button"
+              className="text-[11px] text-primary underline-offset-2 hover:underline disabled:opacity-40"
+              disabled={!form.volumenAlicuota}
+              onClick={aplicarGeneralATodas}
+            >
+              Aplicar general a todas
+            </button>
+          </div>
+          <div className="grid grid-cols-2 @sm:grid-cols-4 gap-2">
+            {Array.from({ length: form.numeroAlicuotas }, (_, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <span className="w-10 shrink-0 text-[11px] text-muted-foreground text-right">
+                  #{i + 1}
+                </span>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  placeholder={form.volumenAlicuota || '0.5'}
+                  value={form.volumenesAlicuota[i] ?? ''}
+                  onChange={(e) => cambiarSlot(i, e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Cada casilla vacía toma el volumen general ({form.volumenAlicuota || '—'} {form.unidadVolumen}).
+            Al generar, cada alícuota nace con su volumen; una parcial puede bajar de ahí, nunca pasarse.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

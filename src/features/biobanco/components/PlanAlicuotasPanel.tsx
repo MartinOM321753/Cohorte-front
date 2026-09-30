@@ -112,9 +112,15 @@ export function PlanAlicuotasPanel({
 
   if (!plan) return null
 
+  // Capacidad del hueco i-ésimo: su volumen configurado, o el general como
+  // respaldo en un tubo uniforme sin lista por slot.
+  const capOf = (i: number) => plan.capacidadesSlots?.[i] ?? plan.volumenAlicuota
+  const hetero = (plan.capacidadesSlots?.length ?? 0) > 1
+    && plan.capacidadesSlots!.some((c) => c !== plan.capacidadesSlots![0])
+
   const sumaPersonalizada = personalizados.reduce((acc, v) => acc + (Number.isFinite(v) ? v : 0), 0)
   const excedeDisponible = sumaPersonalizada - plan.valorDisponible > 1e-6
-  const excedeCapacidad = personalizados.some((v) => v - plan.volumenAlicuota > 1e-6)
+  const excedeCapacidad = personalizados.some((v, i) => v - capOf(i) > 1e-6)
   const hayVacios = personalizados.some((v) => !Number.isFinite(v) || v <= 0)
 
   return (
@@ -192,14 +198,15 @@ export function PlanAlicuotasPanel({
         <div className="space-y-2 rounded-md border border-dashed p-2.5">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] text-muted-foreground">
-              Máximo {fmt(plan.volumenAlicuota)} {unidad} por alícuota,{' '}
-              {plan.numeroAlicuotasConfiguradas} en total
+              {hetero
+                ? `Cada alícuota tiene su propio tope, ${plan.numeroAlicuotasConfiguradas} en total`
+                : `Máximo ${fmt(plan.volumenAlicuota)} ${unidad} por alícuota, ${plan.numeroAlicuotasConfiguradas} en total`}
             </p>
             <button
               type="button"
               className="text-[11px] text-primary underline-offset-2 hover:underline disabled:opacity-40"
               disabled={personalizados.length >= plan.numeroAlicuotasConfiguradas}
-              onClick={() => setPersonalizados((prev) => [...prev, plan.volumenAlicuota])}
+              onClick={() => setPersonalizados((prev) => [...prev, capOf(prev.length)])}
             >
               Agregar alícuota
             </button>
@@ -215,7 +222,7 @@ export function PlanAlicuotasPanel({
                   type="number"
                   step="0.01"
                   min="0"
-                  max={plan.volumenAlicuota}
+                  max={capOf(i)}
                   value={Number.isFinite(v) ? v : ''}
                   onChange={(e) => {
                     const n = parseFloat(e.target.value)
@@ -223,7 +230,9 @@ export function PlanAlicuotasPanel({
                   }}
                   className="h-7 flex-1 text-xs"
                 />
-                <span className="w-10 shrink-0 text-[11px] text-muted-foreground">{unidad}</span>
+                <span className="w-16 shrink-0 text-[11px] text-muted-foreground">
+                  {unidad}{hetero ? ` / ${fmt(capOf(i))}` : ''}
+                </span>
                 <button
                   type="button"
                   className="shrink-0 text-[11px] text-destructive underline-offset-2 hover:underline"
@@ -250,7 +259,9 @@ export function PlanAlicuotasPanel({
               {excedeDisponible
                 ? 'El lote supera el volumen disponible de la muestra.'
                 : excedeCapacidad
-                  ? `Ninguna alícuota puede exceder ${fmt(plan.volumenAlicuota)} ${unidad}.`
+                  ? hetero
+                    ? 'Ninguna alícuota puede exceder su volumen configurado.'
+                    : `Ninguna alícuota puede exceder ${fmt(plan.volumenAlicuota)} ${unidad}.`
                   : 'Todas las alícuotas deben tener un volumen mayor a 0.'}
             </p>
           )}
