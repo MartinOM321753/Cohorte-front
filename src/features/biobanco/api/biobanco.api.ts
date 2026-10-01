@@ -288,7 +288,11 @@ export async function deletePiso(id: number) {
 // ============================================
 
 export async function getAlmacenes() {
-  const response = await api.get<ApiResponse<Almacen[]>>('/almacenamiento/instituciones')
+  // Lookup de instituciones destino. El módulo «Almacén» se eliminó; el destino
+  // ahora son las instituciones activas, servidas por este endpoint de solo
+  // lectura (ver AlmacenController en el backend), cuya regla de seguridad está
+  // compartida con los permisos de muestras y traslados.
+  const response = await api.get<ApiResponse<Almacen[]>>('/almacenamiento/almacenes')
   return response.data.data
 }
 
