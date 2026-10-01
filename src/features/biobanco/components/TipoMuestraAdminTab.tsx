@@ -10,6 +10,7 @@ import {
   useCreateTipoMuestra,
   useUpdateTipoMuestra,
   useToggleTipoMuestra,
+  useDeleteTipoMuestra,
   useAddTuboMuestra,
   useUpdateTuboMuestra,
   useDeleteTuboMuestra,
@@ -48,6 +49,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+
+/** Si el tubo tiene volúmenes por slot que no son todos iguales entre sí. */
+function volumenVariable(tubo: TuboMuestra): boolean {
+  const v = tubo.volumenesAlicuota
+  if (!v || v.length < 2) return false
+  return v.some((x) => x !== v[0])
+}
 
 // ── Formulario TipoMuestra ─────────────────────────────────────────────────────
 
@@ -115,7 +123,8 @@ interface TuboFormProps {
   initial?: TuboMuestra | null
   onSave: (data: {
     nombre: string; prefijoCodigo: string; numeroAlicuotas: number;
-    volumenAlicuota: number | undefined; unidadVolumen: string; destinoSugerido: string;
+    volumenAlicuota: number | undefined; volumenesAlicuota: number[] | undefined;
+    unidadVolumen: string; destinoSugerido: string;
     generacionAutomatica: boolean; permiteAlicuotaParcial: boolean
   }) => void
   onCancel: () => void
@@ -127,6 +136,16 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
   const [prefijo, setPrefijo] = useState(initial?.prefijoCodigo ?? '')
   const [numAlicuotas, setNumAlicuotas] = useState(String(initial?.numeroAlicuotas ?? '0'))
   const [volumen, setVolumen] = useState(initial?.volumenAlicuota != null ? String(initial.volumenAlicuota) : '')
+  // Volumen individual por slot. Arranca de la config guardada; si no hay, de
+  // tantas copias del volumen general como alícuotas tenga el tubo.
+  const [volumenesSlots, setVolumenesSlots] = useState<string[]>(() => {
+    const n = parseInt(String(initial?.numeroAlicuotas ?? '0')) || 0
+    const general = initial?.volumenAlicuota != null ? String(initial.volumenAlicuota) : ''
+    if (initial?.volumenesAlicuota && initial.volumenesAlicuota.length > 0) {
+      return initial.volumenesAlicuota.map((v) => (v != null ? String(v) : general))
+    }
+    return Array.from({ length: n }, () => general)
+  })
   const [unidad, setUnidad] = useState(initial?.unidadVolumen ?? '')
   const [destino, setDestino] = useState(initial?.destinoSugerido ?? '')
   const [openDestino, setOpenDestino] = useState(false)
@@ -135,12 +154,49 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
   const [generacionAutomatica, setGeneracionAutomatica] = useState(initial?.generacionAutomatica !== false)
   const [permiteParcial, setPermiteParcial] = useState(initial?.permiteAlicuotaParcial !== false)
 
-  const alicuota = (parseInt(numAlicuotas) || 0) > 0
+  const nAlicuotas = parseInt(numAlicuotas) || 0
+  const alicuota = nAlicuotas > 0
   // Un tubo que alicuota tiene que decir de cuanto y en que unidad: la unidad
   // del tubo es la que se le impone a la muestra padre al registrarla, y sin
   // volumen no hay forma de calcular cuantas alicuotas alcanzan.
   const faltaVolumen = alicuota && (volumen === '' || !(parseFloat(volumen) > 0))
   const faltaUnidad = alicuota && unidad.trim() === ''
+
+  // Al cambiar el número de alícuotas se ajusta la lista por slot: los nuevos
+  // huecos nacen con el volumen general y recortar no toca los de más arriba.
+  function cambiarNumAlicuotas(valor: string) {
+    setNumAlicuotas(valor)
+    const n = parseInt(valor) || 0
+    setVolumenesSlots((prev) => {
+      const arr = [...prev]
+      if (n > arr.length) while (arr.length < n) arr.push(volumen)
+      else arr.splice(n)
+      return arr
+    })
+  }
+
+  function aplicarGeneralATodas() {
+    setVolumenesSlots(Array.from({ length: nAlicuotas }, () => volumen))
+  }
+
+  function cambiarSlot(i: number, valor: string) {
+    setVolumenesSlots((prev) => prev.map((x, j) => (j === i ? valor : x)))
+  }
+
+  // Volúmenes por slot listos para enviar: cada casilla vacía cae al general.
+  // Solo se mandan si TODOS resuelven a un número válido; si no, se omite la
+  // lista y el backend conserva/valida con el general (= tubo uniforme).
+  function volumenesPayload(): number[] | undefined {
+    if (nAlicuotas <= 0) return undefined
+    const general = volumen !== '' ? parseFloat(volumen) : undefined
+    const resueltos = Array.from({ length: nAlicuotas }, (_, i) => {
+      const raw = volumenesSlots[i]
+      return raw !== undefined && raw !== '' ? parseFloat(raw) : general
+    })
+    return resueltos.every((v) => typeof v === 'number' && Number.isFinite(v) && v > 0)
+      ? (resueltos as number[])
+      : undefined
+  }
 
   const { data: almacenes = [] } = useGetAlmacenes()
   const almacenesActivos = almacenes.filter((a) => a.activo)
@@ -165,12 +221,12 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
             type="number"
             min={0}
             value={numAlicuotas}
-            onChange={(e) => setNumAlicuotas(e.target.value)}
+            onChange={(e) => cambiarNumAlicuotas(e.target.value)}
             placeholder="0 = directo"
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Volumen alícuota</Label>
+          <Label>Volumen general</Label>
           <Input type="number" min={0} step="0.01" value={volumen} onChange={(e) => setVolumen(e.target.value)} placeholder="Ej: 1.5" />
         </div>
       </div>
@@ -183,6 +239,45 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
           placeholder="Seleccione una unidad…"
         />
       </div>
+
+      {/* Volumen individual por alícuota. Cada casilla arranca del volumen
+          general y puede editarse; al generar la muestra cada vial nace con el
+          suyo. Una casilla vacía cae al general. */}
+      {alicuota && (
+        <div className="space-y-2 rounded-md border border-dashed p-3">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs font-medium">Volumen por alícuota ({nAlicuotas})</Label>
+            <button
+              type="button"
+              className="text-[11px] text-primary underline-offset-2 hover:underline disabled:opacity-40"
+              disabled={!volumen}
+              onClick={aplicarGeneralATodas}
+            >
+              Aplicar general a todas
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {Array.from({ length: nAlicuotas }, (_, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <span className="w-7 shrink-0 text-right text-[11px] text-muted-foreground">#{i + 1}</span>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={volumenesSlots[i] ?? ''}
+                  onChange={(e) => cambiarSlot(i, e.target.value)}
+                  placeholder={volumen || '0.5'}
+                  className="h-8 text-xs"
+                />
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Cada casilla vacía toma el volumen general ({volumen || '—'} {unidad}). Al generar, cada
+            alícuota nace con su volumen; una parcial puede bajar de ahí, nunca pasarse.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label>Destino sugerido</Label>
@@ -300,8 +395,9 @@ function TuboForm({ initial, onSave, onCancel, loading }: TuboFormProps) {
             onSave({
               nombre: nombre.trim(),
               prefijoCodigo: prefijo.trim(),
-              numeroAlicuotas: parseInt(numAlicuotas) || 0,
+              numeroAlicuotas: nAlicuotas,
               volumenAlicuota: volumen !== '' ? parseFloat(volumen) : undefined,
+              volumenesAlicuota: volumenesPayload(),
               unidadVolumen: unidad.trim(),
               destinoSugerido: destino.trim(),
               generacionAutomatica,
@@ -347,7 +443,9 @@ function TuboRow({ tubo, onDelete, deletePending, puedeEditar }: TuboRowProps) {
             {tubo.numeroAlicuotas === 0
               ? 'Sin alicuotar (tubo directo)'
               : `${tubo.numeroAlicuotas} alícuota${tubo.numeroAlicuotas !== 1 ? 's' : ''}`}
-            {tubo.volumenAlicuota != null && ` · ${tubo.volumenAlicuota} ${tubo.unidadVolumen ?? ''}`}
+            {tubo.numeroAlicuotas > 0 && volumenVariable(tubo)
+              ? ` · vol. variable ${tubo.unidadVolumen ?? ''}`
+              : tubo.volumenAlicuota != null && ` · ${tubo.volumenAlicuota} ${tubo.unidadVolumen ?? ''}`}
             {tubo.numeroAlicuotas > 0 && tubo.generacionAutomatica === false && ' · manual'}
             {tubo.destinoSugerido && ` · → ${tubo.destinoSugerido}`}
           </p>
@@ -460,8 +558,11 @@ function TipoCard({ tipo, puedeEditar }: TipoCardProps) {
 
   const updateMutation = useUpdateTipoMuestra()
   const toggleMutation = useToggleTipoMuestra()
+  const deleteTipoMutation = useDeleteTipoMuestra()
   const addTuboMutation = useAddTuboMuestra()
   const deleteTuboMutation = useDeleteTuboMuestra()
+
+  const sinTubos = tipo.tubos.length === 0
 
   return (
     <Card className={`${!tipo.activo ? 'opacity-60' : ''}`}>
@@ -547,6 +648,39 @@ function TipoCard({ tipo, puedeEditar }: TipoCardProps) {
                   : 'bg-green-600 text-white hover:bg-green-700'}
               >
                 {tipo.activo ? 'Desactivar' : 'Activar'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/5"
+              disabled={!sinTubos || deleteTipoMutation.isPending}
+              title={sinTubos
+                ? 'Eliminar este tipo de muestra'
+                : 'Solo se puede eliminar un tipo sin tubos. Elimine sus tubos o desactívelo.'}
+            >
+              <Trash2 className="h-3 w-3" /> Eliminar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar tipo "{tipo.nombre}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Solo puede eliminarse un tipo de muestra que no tenga tubos configurados.
+                Esta acción no se puede deshacer. Si quieres conservar el historial, mejor desactívalo.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteTipoMutation.mutate(tipo.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

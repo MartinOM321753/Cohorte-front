@@ -63,6 +63,7 @@ import {
   createTipoMuestra,
   updateTipoMuestra,
   toggleTipoMuestra,
+  deleteTipoMuestra,
   addTuboMuestra,
   updateTuboMuestra,
   deleteTuboMuestra,
@@ -1019,6 +1020,21 @@ export function useToggleTipoMuestra() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al cambiar el estado')
+    },
+  })
+}
+
+export function useDeleteTipoMuestra() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteTipoMuestra(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra'] })
+      queryClient.invalidateQueries({ queryKey: ['tipos-muestra-activos'] })
+      toast.success('Tipo de muestra eliminado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar el tipo de muestra')
     },
   })
 }
