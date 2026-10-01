@@ -479,6 +479,11 @@ export async function toggleTipoMuestra(id: number) {
   return response.data.data
 }
 
+export async function deleteTipoMuestra(id: number) {
+  const response = await api.delete<ApiResponse<void>>(`/muestras/tipos/${id}`)
+  return response.data
+}
+
 export async function addTuboMuestra(idTipo: number, data: TuboMuestraRequestDTO) {
   const response = await api.post<ApiResponse<TuboMuestra>>(`/muestras/tipos/${idTipo}/tubos`, data)
   return response.data.data

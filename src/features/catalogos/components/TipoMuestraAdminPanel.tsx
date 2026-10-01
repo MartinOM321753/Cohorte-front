@@ -10,6 +10,7 @@ import {
   useCreateTipoMuestra,
   useUpdateTipoMuestra,
   useToggleTipoMuestra,
+  useDeleteTipoMuestra,
   useAddTuboMuestra,
   useUpdateTuboMuestra,
   useDeleteTuboMuestra,
@@ -77,6 +78,7 @@ export function TipoMuestraAdminPanel() {
   const createTipo = useCreateTipoMuestra()
   const updateTipo = useUpdateTipoMuestra()
   const toggleTipo = useToggleTipoMuestra()
+  const deleteTipo = useDeleteTipoMuestra()
   const addTubo = useAddTuboMuestra()
   const updateTubo = useUpdateTuboMuestra()
   const deleteTubo = useDeleteTuboMuestra()
@@ -295,6 +297,40 @@ export function TipoMuestraAdminPanel() {
                 >
                   {tipo.activo ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
                 </Button>
+                {/* Eliminar: solo si el tipo no tiene tubos. Con tubos, el botón
+                    queda deshabilitado y se ofrece desactivar en su lugar. */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      disabled={tipo.tubos.length > 0 || deleteTipo.isPending}
+                      title={tipo.tubos.length > 0
+                        ? 'Solo se puede eliminar un tipo sin tubos. Elimine sus tubos o desactívelo.'
+                        : 'Eliminar tipo'}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Eliminar tipo "{tipo.nombre}"?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Solo puede eliminarse un tipo de muestra que no tenga tubos configurados.
+                        Esta acción no se puede deshacer. Para conservar el historial, mejor desactívalo.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteTipo.mutate(tipo.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </button>
 

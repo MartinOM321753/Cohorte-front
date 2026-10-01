@@ -10,6 +10,7 @@ import {
   useCreateTipoMuestra,
   useUpdateTipoMuestra,
   useToggleTipoMuestra,
+  useDeleteTipoMuestra,
   useAddTuboMuestra,
   useUpdateTuboMuestra,
   useDeleteTuboMuestra,
@@ -557,8 +558,11 @@ function TipoCard({ tipo, puedeEditar }: TipoCardProps) {
 
   const updateMutation = useUpdateTipoMuestra()
   const toggleMutation = useToggleTipoMuestra()
+  const deleteTipoMutation = useDeleteTipoMuestra()
   const addTuboMutation = useAddTuboMuestra()
   const deleteTuboMutation = useDeleteTuboMuestra()
+
+  const sinTubos = tipo.tubos.length === 0
 
   return (
     <Card className={`${!tipo.activo ? 'opacity-60' : ''}`}>
@@ -644,6 +648,39 @@ function TipoCard({ tipo, puedeEditar }: TipoCardProps) {
                   : 'bg-green-600 text-white hover:bg-green-700'}
               >
                 {tipo.activo ? 'Desactivar' : 'Activar'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/5"
+              disabled={!sinTubos || deleteTipoMutation.isPending}
+              title={sinTubos
+                ? 'Eliminar este tipo de muestra'
+                : 'Solo se puede eliminar un tipo sin tubos. Elimine sus tubos o desactívelo.'}
+            >
+              <Trash2 className="h-3 w-3" /> Eliminar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar tipo "{tipo.nombre}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Solo puede eliminarse un tipo de muestra que no tenga tubos configurados.
+                Esta acción no se puede deshacer. Si quieres conservar el historial, mejor desactívalo.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteTipoMutation.mutate(tipo.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
