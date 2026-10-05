@@ -40,7 +40,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -578,7 +577,7 @@ function SelloAgotada({ fecha }: { fecha?: string | null }) {
   )
 }
 
-function PadreCard({ muestra, numAlicuotas, alicuotasPendientes = 0, trasladoInfo, isExpanded, onToggle, actions, ocultarToggle = false }: PadreCardProps) {
+export function PadreCard({ muestra, numAlicuotas, alicuotasPendientes = 0, trasladoInfo, isExpanded, onToggle, actions, ocultarToggle = false }: PadreCardProps) {
   const isOrigen = trasladoInfo ? trasladoInfo.institucionOrigenId === actions.myInstitucionId : undefined
   const badge = trasladoInfo ? activeBadge(trasladoInfo.estado, isOrigen) : null
   const box   = trasladoInfo ? activeBox(trasladoInfo.estado, isOrigen) : null
@@ -825,7 +824,7 @@ interface AlicuotaCardProps {
   }
 }
 
-function AlicuotaCard({ muestra, trasladoInfo, actions, cabeceraDeLote }: AlicuotaCardProps) {
+export function AlicuotaCard({ muestra, trasladoInfo, actions, cabeceraDeLote }: AlicuotaCardProps) {
   const esTrasladada = !!trasladoInfo
   const isOrigen = trasladoInfo ? trasladoInfo.institucionOrigenId === actions.myInstitucionId : undefined
   const badge  = trasladoInfo ? activeBadge(trasladoInfo.estado, isOrigen) : null
@@ -2089,7 +2088,7 @@ export function MuestrasTab() {
                                         <button
                                           onClick={(e) => { e.stopPropagation(); actions.onVerUbicacion3D(a) }}
                                           className="text-primary hover:underline truncate max-w-[160px] block"
-                                          title={`${ubic.nombreRefrigerador} · P${ubic.pisoRefrigerador} · ${ubic.codigoCaja} · ${etiquetaPosicionCaja(ubic.fila, ubic.columna)}`}
+                                          title={`${ubic.codigoRefrigerador} · P${ubic.numeroPiso} · ${ubic.codigoCaja} · ${etiquetaPosicionCaja(ubic.fila, ubic.columna)}`}
                                         >
                                           {ubic.codigoCaja} · {etiquetaPosicionCaja(ubic.fila, ubic.columna)}
                                         </button>
