@@ -7,7 +7,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localho
 let isForcingLogout = false
 let isRefreshingPermisos = false
 
-const PUBLIC_AUTH_PATHS = ['/login', '/forgot-password', '/reset-password']
+const PUBLIC_AUTH_PATHS = ['/login', '/forgot-password', '/reset-password', '/documentos-publicos']
 
 function isPublicAuthPath(pathname: string) {
   return PUBLIC_AUTH_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))

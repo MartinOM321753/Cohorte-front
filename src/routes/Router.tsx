@@ -28,6 +28,7 @@ const CoberturaPage    = lazy(() => import('@/features/cobertura/pages/Cobertura
 const DocumentoViewPage = lazy(() => import('@/features/documentos/pages/DocumentoViewPage'))
 const PermisosPage     = lazy(() => import('@/features/permisos/pages/PermisosPage'))
 const ReportesPage     = lazy(() => import('@/features/reportes/pages/ReportesPage'))
+const DocumentosPublicosPage = lazy(() => import('@/features/documentos-publicos/pages/DocumentosPublicosPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage     = lazy(() => import('@/features/errors/pages/NotFoundPage'))
 
@@ -57,6 +58,14 @@ export function AppRouter() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/404" element={<NotFoundPage />} />
+        <Route
+          path="/documentos-publicos/:idInstitucion"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DocumentosPublicosPage />
+            </Suspense>
+          }
+        />
 
         {/* Password change — requires auth but outside AppLayout */}
         <Route

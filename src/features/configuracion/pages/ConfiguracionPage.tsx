@@ -6,6 +6,8 @@ import EtiquetasConfigPanel from '../components/EtiquetasConfigPanel'
 import HorariosConfigPanel from '../components/HorariosConfigPanel'
 import EtiquetasLibresPanel from '@/features/etiquetas-libres/components/EtiquetasLibresPanel'
 import ImprimirFoliosPanel from '@/features/impresion-folios/components/ImprimirFoliosPanel'
+import DocumentosPublicosConfigPanel from '../components/DocumentosPublicosConfigPanel'
+import { PermisoGuard } from '@/components/routes/PermisoGuard'
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ConfiguracionPage() {
@@ -44,6 +46,12 @@ export default function ConfiguracionPage() {
         <ImprimirFoliosPanel />
 
         <Separator />
+
+        {/* ── Documentos públicos — solo si tiene el permiso ── */}
+        <PermisoGuard permiso="DOCUMENTOS_PUBLICOS_GESTIONAR">
+          <DocumentosPublicosConfigPanel />
+          <Separator />
+        </PermisoGuard>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
