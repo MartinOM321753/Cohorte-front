@@ -30,6 +30,14 @@ import {
   TipoMuestraRequestDTO,
   TuboMuestra,
   TuboMuestraRequestDTO,
+  Protocolo,
+  ProtocoloRequestDTO,
+  TuboProtocolo,
+  TuboProtocoloRequestDTO,
+  ProcesarProtocoloRequest,
+  ProcesarResultado,
+  CartaFolio,
+  ResultadoCargaProtocolo,
   TipoEstudioMuestra,
   TipoEstudioMuestraRequestDTO,
   ParametroEstudioMuestra,
@@ -497,6 +505,111 @@ export async function updateTuboMuestra(idTubo: number, data: TuboMuestraRequest
 export async function deleteTuboMuestra(idTubo: number) {
   const response = await api.delete<ApiResponse<void>>(`/muestras/tipos/tubos/${idTubo}`)
   return response.data
+}
+
+// ============================================
+// PROTOCOLOS DE PROCESAMIENTO
+// ============================================
+
+export async function getProtocolos() {
+  const response = await api.get<ApiResponse<Protocolo[]>>('/muestras/protocolos/todos')
+  return response.data.data
+}
+
+export async function getProtocolosActivos() {
+  const response = await api.get<ApiResponse<Protocolo[]>>('/muestras/protocolos')
+  return response.data.data
+}
+
+export async function getProtocoloById(id: number) {
+  const response = await api.get<ApiResponse<Protocolo>>(`/muestras/protocolos/${id}`)
+  return response.data.data
+}
+
+export async function createProtocolo(data: ProtocoloRequestDTO) {
+  const response = await api.post<ApiResponse<Protocolo>>('/muestras/protocolos', data)
+  return response.data.data
+}
+
+export async function updateProtocolo(id: number, data: ProtocoloRequestDTO) {
+  const response = await api.put<ApiResponse<Protocolo>>(`/muestras/protocolos/${id}`, data)
+  return response.data.data
+}
+
+export async function toggleProtocolo(id: number) {
+  const response = await api.put<ApiResponse<Protocolo>>(`/muestras/protocolos/${id}/toggle`)
+  return response.data.data
+}
+
+export async function deleteProtocolo(id: number) {
+  const response = await api.delete<ApiResponse<void>>(`/muestras/protocolos/${id}`)
+  return response.data
+}
+
+export async function addTuboProtocolo(idProtocolo: number, data: TuboProtocoloRequestDTO) {
+  const response = await api.post<ApiResponse<TuboProtocolo>>(`/muestras/protocolos/${idProtocolo}/tubos`, data)
+  return response.data.data
+}
+
+export async function updateTuboProtocolo(idTubo: number, data: TuboProtocoloRequestDTO) {
+  const response = await api.put<ApiResponse<TuboProtocolo>>(`/muestras/protocolos/tubos/${idTubo}`, data)
+  return response.data.data
+}
+
+export async function deleteTuboProtocolo(idTubo: number) {
+  const response = await api.delete<ApiResponse<void>>(`/muestras/protocolos/tubos/${idTubo}`)
+  return response.data
+}
+
+// ============================================
+// PROCESAMIENTO (instanciar un protocolo sobre un participante)
+// ============================================
+
+export async function procesarProtocolo(data: ProcesarProtocoloRequest) {
+  const response = await api.post<ApiResponse<ProcesarResultado>>('/almacenamiento/muestras/procesar', data)
+  return response.data.data
+}
+
+export async function alicuotarTubo(idPadre: number, planVolumenes?: number[]) {
+  const response = await api.post<ApiResponse<ProcesarResultado>>(
+    `/almacenamiento/muestras/${idPadre}/alicuotar-tubo`,
+    planVolumenes ? { planVolumenes } : {})
+  return response.data.data
+}
+
+// ============================================
+// LOTES — carta de biobanco por participante
+// ============================================
+
+export async function getCartaFolio(uuid: string) {
+  const response = await api.get<ApiResponse<CartaFolio>>(`/almacenamiento/lotes/carta/${uuid}`)
+  return response.data.data
+}
+
+// ============================================
+// CARGA MASIVA POR PROTOCOLO
+// ============================================
+
+function cargaProtocoloForm(archivo: File, idProtocolo: number, fechaPorOmision?: string) {
+  const fd = new FormData()
+  fd.append('archivo', archivo)
+  fd.append('idProtocolo', String(idProtocolo))
+  if (fechaPorOmision) fd.append('fechaPorOmision', fechaPorOmision)
+  return fd
+}
+
+export async function previsualizarCargaProtocolo(archivo: File, idProtocolo: number, fechaPorOmision?: string) {
+  const r = await api.post<ApiResponse<ResultadoCargaProtocolo>>(
+    '/almacenamiento/muestras/carga-masiva/protocolo/previsualizar',
+    cargaProtocoloForm(archivo, idProtocolo, fechaPorOmision))
+  return r.data.data
+}
+
+export async function confirmarCargaProtocolo(archivo: File, idProtocolo: number, fechaPorOmision?: string) {
+  const r = await api.post<ApiResponse<ResultadoCargaProtocolo>>(
+    '/almacenamiento/muestras/carga-masiva/protocolo/confirmar',
+    cargaProtocoloForm(archivo, idProtocolo, fechaPorOmision))
+  return r.data.data
 }
 
 // ============================================

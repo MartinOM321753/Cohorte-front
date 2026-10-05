@@ -11,9 +11,10 @@ import { CajasTab } from '../components/CajasTab'
 import { MuestrasTab } from '../components/MuestrasTab'
 import { CargaMasivaMuestrasTab } from '../components/CargaMasivaMuestrasTab'
 import { PrestamosTab } from '../components/PrestamosTab'
-import { TipoMuestraAdminTab } from '../components/TipoMuestraAdminTab'
+import { ProtocolosTab } from '../components/ProtocolosTab'
+import { ProcesarTab } from '../components/ProcesarTab'
 import { TipoEstudioMuestraAdminTab } from '../components/TipoEstudioMuestraAdminTab'
-import { useGetRefrigeradores, useGetTiposMuestraActivos } from '../hooks/useBiobanco'
+import { useGetRefrigeradores, useGetTiposMuestraActivos, useGetProtocolosActivos } from '../hooks/useBiobanco'
 import { useAuthStore } from '@/stores/authStore'
 
 interface TabDef {
@@ -31,6 +32,8 @@ export default function BiobancoPage() {
   const puedeCajas = hasPermiso('CAJAS_ACCEDER')
   const puedeMuestras = hasPermiso('MUESTRAS_VER')
   const puedeTiposMuestra = hasPermiso('TIPOS_MUESTRA_ACCEDER')
+  const puedeProtocolos = hasPermiso('PROTOCOLOS_ACCEDER')
+  const puedeProcesar = hasPermiso('MUESTRAS_CREAR')
   const puedeCargaMasiva = hasPermiso('MUESTRAS_CARGA_MASIVA')
   const puedeEstMuestras = hasPermiso('ESTUDIOS_MUESTRA_ACCEDER')
   const puedePrestamos = hasPermiso('TRASLADOS_ACCEDER')
@@ -43,9 +46,13 @@ export default function BiobancoPage() {
   const { data: tiposMuestraActivos = [] } = useGetTiposMuestraActivos({
     enabled: puedeMuestras || puedeTiposMuestra || hasPermiso('TIPOS_MUESTRA_LOOKUP'),
   })
+  const { data: protocolosActivos = [] } = useGetProtocolosActivos({
+    enabled: puedeProcesar || puedeProtocolos || hasPermiso('PROTOCOLOS_LOOKUP'),
+  })
 
   const hayPisos = refrigeradores.some((r) => r.totalPisos > 0)
   const hayTiposMuestra = tiposMuestraActivos.length > 0
+  const hayProtocolos = protocolosActivos.length > 0
 
   const tabs = useMemo<TabDef[]>(() => {
     const all: TabDef[] = []
@@ -58,15 +65,27 @@ export default function BiobancoPage() {
         permiso: 'CAJAS_ACCEDER',
         dataDep: { enabled: hayPisos, tooltip: 'Primero crea al menos un piso en un refrigerador' },
       })
+    if (puedeProcesar)
+      all.push({
+        value: 'procesar',
+        label: 'Procesar',
+        permiso: 'MUESTRAS_CREAR',
+        dataDep: { enabled: hayProtocolos, tooltip: 'Primero configura al menos un protocolo activo' },
+      })
     if (puedeMuestras)
       all.push({
-        value: 'muestras',
-        label: 'Muestras',
+        value: 'lotes',
+        label: 'Lotes',
         permiso: 'MUESTRAS_VER',
         dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configura al menos un tipo de muestra activo' },
       })
-    if (puedeTiposMuestra)
-      all.push({ value: 'tipos-muestra', label: 'Tipos de Muestra', permiso: 'TIPOS_MUESTRA_ACCEDER' })
+    if (puedeProtocolos)
+      all.push({
+        value: 'protocolos',
+        label: 'Protocolos',
+        permiso: 'PROTOCOLOS_ACCEDER',
+        dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configura al menos un tipo de muestra activo' },
+      })
     if (puedeEstMuestras)
       all.push({ value: 'est-muestras', label: 'Est. Muestras', permiso: 'ESTUDIOS_MUESTRA_ACCEDER' })
     if (puedePrestamos)
@@ -82,7 +101,7 @@ export default function BiobancoPage() {
         dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configure al menos un tipo de muestra activo' },
       })
     return all
-  }, [hasPermiso, puedeRefrigeradores, puedeCajas, puedeMuestras, puedeTiposMuestra, puedeEstMuestras, puedePrestamos, puedeCargaMasiva, hayPisos, hayTiposMuestra])
+  }, [hasPermiso, puedeRefrigeradores, puedeCajas, puedeMuestras, puedeProcesar, puedeTiposMuestra, puedeProtocolos, puedeEstMuestras, puedePrestamos, puedeCargaMasiva, hayPisos, hayTiposMuestra, hayProtocolos])
 
   const defaultTab = tabs.find((t) => !t.dataDep || t.dataDep.enabled)?.value ?? tabs[0]?.value ?? 'refrigeradores'
   const [activeTab, setActiveTab] = useState(defaultTab)
@@ -147,8 +166,13 @@ export default function BiobancoPage() {
               <CajasTab />
             </TabsContent>
           )}
+          {puedeProcesar && (
+            <TabsContent value="procesar" className="space-y-4">
+              <ProcesarTab />
+            </TabsContent>
+          )}
           {puedeMuestras && (
-            <TabsContent value="muestras" className="space-y-4">
+            <TabsContent value="lotes" className="space-y-4">
               <MuestrasTab />
             </TabsContent>
           )}
@@ -157,9 +181,9 @@ export default function BiobancoPage() {
               <CargaMasivaMuestrasTab />
             </TabsContent>
           )}
-          {puedeTiposMuestra && (
-            <TabsContent value="tipos-muestra" className="space-y-4">
-              <TipoMuestraAdminTab />
+          {puedeProtocolos && (
+            <TabsContent value="protocolos" className="space-y-4">
+              <ProtocolosTab />
             </TabsContent>
           )}
           {puedeEstMuestras && (
