@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CargaProtocoloSection } from './CargaProtocoloSection'
 import { DateTimePicker, ultimoMomentoValido } from '@/components/ui/date-time-picker'
 import { cn } from '@/lib/utils'
 import { CeldaCarga } from '@/features/estudios/components/CeldaCarga'
@@ -292,9 +293,11 @@ export function CargaMasivaMuestrasTab() {
 
   return (
     <div className="space-y-4">
+      <CargaProtocoloSection />
+
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Cargar muestras desde un archivo</CardTitle>
+          <CardTitle className="text-base">Cargar muestras desde un archivo (formato anterior)</CardTitle>
           <p className="text-[13px] text-muted-foreground">
             Una fila por vial. Se revisa antes de guardar: nada se registra —ni se ocupa
             ningún hueco— hasta que lo confirme.

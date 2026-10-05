@@ -165,6 +165,7 @@ const LABELS: Record<string, string> = {
   // Configuración
   CONFIGURACION_VER:    'Ver configuración',
   CONFIGURACION_EDITAR: 'Editar configuración',
+  DOCUMENTOS_PUBLICOS_GESTIONAR: 'Gestionar documentos públicos',
 
   // Bitácora
   BITACORA_ACCESOS_VER:  'Ver bitácora de accesos',
