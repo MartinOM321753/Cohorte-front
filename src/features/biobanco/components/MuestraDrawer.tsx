@@ -2,8 +2,7 @@ import { useState } from 'react'
 import {
   Edit, Trash2, FlaskConical, ArrowRightFromLine, History,
   ClipboardList, Paperclip, Printer, Ban, Boxes, PackageCheck,
-  X, MapPin, Thermometer, TestTube, Calendar, Droplets,
-  Building2, Tag, BatteryLow,
+  X, MapPin, BatteryLow,
 } from 'lucide-react'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -149,8 +148,8 @@ export function MuestraDrawer({ muestra, onClose, trasladoInfo, actions, numAlic
             <p className="text-xs font-semibold text-muted-foreground mb-2.5">Ubicación</p>
             {ubic ? (
               <>
-                {ubic.nombreRefrigerador && <InfoRow label="Refrigerador" value={ubic.nombreRefrigerador} />}
-                {ubic.pisoRefrigerador != null && <InfoRow label="Piso" value={`Piso ${ubic.pisoRefrigerador}`} />}
+                {ubic.codigoRefrigerador && <InfoRow label="Refrigerador" value={ubic.codigoRefrigerador} />}
+                {ubic.numeroPiso != null && <InfoRow label="Piso" value={`Piso ${ubic.numeroPiso}`} />}
                 {ubic.codigoCaja && <InfoRow label="Caja" value={ubic.codigoCaja} />}
                 {ubic.fila != null && ubic.columna != null && (
                   <InfoRow label="Posición" value={etiquetaPosicionCaja(ubic.fila, ubic.columna)} />
