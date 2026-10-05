@@ -67,6 +67,18 @@ import {
   addTuboMuestra,
   updateTuboMuestra,
   deleteTuboMuestra,
+  getProtocolos,
+  getProtocolosActivos,
+  createProtocolo,
+  updateProtocolo,
+  toggleProtocolo,
+  deleteProtocolo,
+  addTuboProtocolo,
+  updateTuboProtocolo,
+  deleteTuboProtocolo,
+  procesarProtocolo,
+  alicuotarTubo,
+  getCartaFolio,
   getUbicacion3D,
   getVista3DRefrigerador,
   getVista3DPiso,
@@ -96,6 +108,9 @@ import {
   UbicacionAlicuota,
   TipoMuestraRequestDTO,
   TuboMuestraRequestDTO,
+  ProtocoloRequestDTO,
+  TuboProtocoloRequestDTO,
+  ProcesarProtocoloRequest,
   PaginaMuestras,
 } from '@/types/api'
 import { toast } from 'sonner'
@@ -1082,6 +1097,171 @@ export function useDeleteTuboMuestra() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al eliminar el tubo')
+    },
+  })
+}
+
+// ============================================
+// HOOKS PROTOCOLOS DE PROCESAMIENTO
+// ============================================
+
+export function useGetProtocolos() {
+  return useQuery({
+    queryKey: ['protocolos'],
+    queryFn: () => getProtocolos(),
+  })
+}
+
+export function useGetProtocolosActivos(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['protocolos-activos'],
+    queryFn: () => getProtocolosActivos(),
+    enabled: options?.enabled ?? true,
+  })
+}
+
+function invalidarProtocolos(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['protocolos'] })
+  queryClient.invalidateQueries({ queryKey: ['protocolos-activos'] })
+}
+
+export function useCreateProtocolo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: ProtocoloRequestDTO) => createProtocolo(data),
+    onSuccess: () => {
+      invalidarProtocolos(queryClient)
+      toast.success('Protocolo creado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al crear el protocolo')
+    },
+  })
+}
+
+export function useUpdateProtocolo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ProtocoloRequestDTO }) =>
+      updateProtocolo(id, data),
+    onSuccess: () => {
+      invalidarProtocolos(queryClient)
+      toast.success('Protocolo actualizado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al actualizar el protocolo')
+    },
+  })
+}
+
+export function useToggleProtocolo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => toggleProtocolo(id),
+    onSuccess: (data) => {
+      invalidarProtocolos(queryClient)
+      toast.success(data.activo ? 'Protocolo activado' : 'Protocolo desactivado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al cambiar el estado')
+    },
+  })
+}
+
+export function useDeleteProtocolo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteProtocolo(id),
+    onSuccess: () => {
+      invalidarProtocolos(queryClient)
+      toast.success('Protocolo eliminado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar el protocolo')
+    },
+  })
+}
+
+export function useAddTuboProtocolo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idProtocolo, data }: { idProtocolo: number; data: TuboProtocoloRequestDTO }) =>
+      addTuboProtocolo(idProtocolo, data),
+    onSuccess: () => {
+      invalidarProtocolos(queryClient)
+      toast.success('Tubo agregado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al agregar el tubo')
+    },
+  })
+}
+
+export function useUpdateTuboProtocolo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: TuboProtocoloRequestDTO }) =>
+      updateTuboProtocolo(id, data),
+    onSuccess: () => {
+      invalidarProtocolos(queryClient)
+      toast.success('Tubo actualizado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al actualizar el tubo')
+    },
+  })
+}
+
+export function useDeleteTuboProtocolo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteTuboProtocolo(id),
+    onSuccess: () => {
+      invalidarProtocolos(queryClient)
+      toast.success('Tubo eliminado')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar el tubo')
+    },
+  })
+}
+
+export function useAlicuotarTubo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idPadre, planVolumenes }: { idPadre: number; planVolumenes?: number[] }) =>
+      alicuotarTubo(idPadre, planVolumenes),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['carta-folio'] })
+      toast.success(`Tubo alicuotado: ${res.numeroAlicuotas} alícuota(s) en lote nuevo`)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al alicuotar el tubo')
+    },
+  })
+}
+
+export function useGetCartaFolio(uuid: string | undefined, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['carta-folio', uuid],
+    queryFn: () => getCartaFolio(uuid as string),
+    enabled: (options?.enabled ?? true) && !!uuid,
+  })
+}
+
+export function useProcesarProtocolo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: ProcesarProtocoloRequest) => procesarProtocolo(data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['muestras'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-paciente'] })
+      queryClient.invalidateQueries({ queryKey: ['muestras-count'] })
+      toast.success(`Procesado: ${res.numeroPadres} tubo(s), ${res.numeroAlicuotas} alícuota(s)`)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al procesar el participante')
     },
   })
 }

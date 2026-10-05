@@ -641,6 +641,168 @@ export interface TipoMuestraRequestDTO {
   temperaturaAlmacenamiento?: string
 }
 
+// ── Protocolos de procesamiento ──────────────────────────────────────────────
+
+/** Qué se le hace a un tubo primario dentro de un protocolo. */
+export type AccionTubo = 'GUARDAR' | 'ESTUDIO' | 'ALICUOTAR'
+
+export interface TuboProtocolo {
+  id: number
+  nombre: string
+  prefijoCodigo?: string | null
+  accion: AccionTubo
+  orden: number
+  activo: boolean
+  /** Tipo resultante del proceso (sangre total → suero). Solo si alicuota. */
+  idTipoResultante?: number | null
+  nombreTipoResultante?: string | null
+  numeroAlicuotas: number
+  volumenAlicuota?: number | null
+  volumenesAlicuota?: number[] | null
+  unidadVolumen?: string | null
+  destinoSugerido?: string | null
+  /** Si sus alícuotas se juntan con las de otros tubos del mismo tipo resultante. */
+  agruparEnLote?: boolean
+  generacionAutomatica?: boolean
+  permiteAlicuotaParcial?: boolean
+}
+
+export interface TuboProtocoloRequestDTO {
+  nombre: string
+  prefijoCodigo?: string
+  accion?: AccionTubo
+  orden?: number
+  activo?: boolean
+  idTipoResultante?: number | null
+  numeroAlicuotas?: number
+  volumenAlicuota?: number
+  volumenesAlicuota?: number[]
+  unidadVolumen?: string
+  destinoSugerido?: string
+  agruparEnLote?: boolean
+  generacionAutomatica?: boolean
+  permiteAlicuotaParcial?: boolean
+}
+
+export interface Protocolo {
+  id: number
+  nombre: string
+  descripcion?: string | null
+  activo: boolean
+  /** Tipo de muestra que se recolecta y procesa (el origen). */
+  idTipoOrigen: number
+  nombreTipoOrigen?: string | null
+  tubos: TuboProtocolo[]
+}
+
+export interface ProtocoloRequestDTO {
+  nombre: string
+  descripcion?: string
+  idTipoOrigen: number
+}
+
+// ── Procesamiento de un participante con un protocolo ────────────────────────
+
+export interface TuboDecisionRequest {
+  idTuboProtocolo: number
+  incluir?: boolean
+  accion?: AccionTubo
+  volumen?: number
+  unidad?: string
+  planVolumenes?: number[]
+}
+
+export interface ProcesarProtocoloRequest {
+  pacienteUUID: string
+  idProtocolo: number
+  fechaRecoleccion?: string
+  observaciones?: string
+  tubos: TuboDecisionRequest[]
+}
+
+export interface PadreBreve {
+  id: number
+  etiqueta: string
+  accion?: AccionTubo | null
+  nombreTubo?: string | null
+  valor?: number | null
+  unidad?: string | null
+}
+
+export interface LoteResumen {
+  id: number
+  numeroLote: number
+  idTipoResultante?: number | null
+  nombreTipoResultante?: string | null
+  numeroAlicuotas: number
+}
+
+export interface ProcesarResultado {
+  idPaciente?: number | null
+  folio?: string | null
+  numeroPadres: number
+  numeroAlicuotas: number
+  padres: PadreBreve[]
+  lotes: LoteResumen[]
+}
+
+// ── Carta de biobanco por participante (Lotes) ───────────────────────────────
+
+export interface TuboPrimarioCarta {
+  id: number
+  etiqueta: string
+  accion?: AccionTubo | null
+  nombreTubo?: string | null
+  tipoMuestra?: string | null
+  valor?: number | null
+  unidad?: string | null
+  estado?: EstadoMuestra | null
+  tienePosicion: boolean
+  posicionLabel?: string | null
+  agotada?: boolean | null
+}
+
+export interface AlicuotaLote {
+  id: number
+  etiqueta: string
+  numeroEnLote?: number | null
+  numeroAlicuota?: number | null
+  totalAlicuotas?: number | null
+  valor?: number | null
+  unidad?: string | null
+  estado?: EstadoMuestra | null
+  tienePosicion: boolean
+  posicionLabel?: string | null
+  materializada?: boolean | null
+}
+
+export interface LoteDetalle {
+  id: number
+  numeroLote?: number | null
+  tipoResultante?: string | null
+  protocolo?: string | null
+  heredado?: boolean | null
+  alicuotas: AlicuotaLote[]
+}
+
+export interface ResultadoCargaProtocolo {
+  procesamientos: number
+  padres: number
+  alicuotas: number
+  lotes: number
+  ubicadas: number
+  errores: string[]
+  avisos: string[]
+}
+
+export interface CartaFolio {
+  folio?: string | null
+  uuid?: string | null
+  nombrePaciente?: string | null
+  tubosPrimarios: TuboPrimarioCarta[]
+  lotes: LoteDetalle[]
+}
+
 /** Resumen ligero incluido en MuestraDetalleDTO */
 export interface TipoMuestraResumen {
   id: number
@@ -738,6 +900,16 @@ export interface MuestraDetalleDTO {
   idMuestraPadre?: number | null
   numeroAlicuota?: number | null
   totalAlicuotas?: number | null
+  /** Lote de procesamiento (conjunto 1…N por tipo resultante, de 1+ tubos). */
+  idLote?: number | null
+  numeroLote?: number | null
+  tipoResultanteLote?: string | null
+  numeroEnLote?: number | null
+  /** Protocolo y tubo (flujo nuevo) para agrupar en cards y mostrar T{orden}. */
+  idProtocolo?: number | null
+  nombreProtocolo?: string | null
+  ordenTubo?: number | null
+  accionTubo?: string | null
   /** Solo presente en respuesta de creación cuando se auto-generaron alícuotas */
   alicuotasGeneradas?: number | null
   /** Estado actual de la muestra en el biobanco */

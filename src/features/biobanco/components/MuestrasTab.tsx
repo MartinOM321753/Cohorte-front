@@ -1,11 +1,11 @@
-import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, Fragment } from 'react'
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import {
-  Plus, Edit, Trash2, Search, TestTube, AlertCircle,
+  Edit, Trash2, Search, TestTube, AlertCircle,
   Paperclip, ArrowRightFromLine, History, FlaskConical,
-  ChevronDown, ChevronUp, MapPinOff, ClipboardList, X, Printer, Tag,
+  ChevronDown, ChevronUp, ChevronLeft, MapPinOff, ClipboardList, X, Printer, Tag,
   EyeOff, Eye, Ban, Boxes, ScanLine, PackageCheck, Hourglass, BatteryLow, Loader2,
 } from 'lucide-react'
-import { useMuestrasCursor, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta } from '../hooks/useBiobanco'
+import { useMuestrasCursor, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta, useAlicuotarTubo } from '../hooks/useBiobanco'
 import type { AnclaListado, CriteriosListadoMuestras } from '../hooks/useBiobanco'
 import { EscanearEtiquetaModal } from './EscanearEtiquetaModal'
 import { useLectorCodigos } from '../hooks/useLectorCodigos'
@@ -62,6 +62,7 @@ import {
 import { cn, formatDate } from '@/lib/utils'
 import { MuestraDetalleDTO } from '@/types/api'
 import { etiquetaPosicionCaja } from '../lib/posicionCaja'
+import { MuestraDrawer } from './MuestraDrawer'
 
 // ── Listado ───────────────────────────────────────────────────────────────────
 
@@ -160,6 +161,7 @@ interface SharedActions {
   onDocumentos: (id: number) => void
   onResultados: (m: MuestraDetalleDTO) => void
   onGenerarAlicuotas: (m: MuestraDetalleDTO) => void
+  onAlicuotarTubo: (m: MuestraDetalleDTO) => void
   onUbicarLote: (m: MuestraDetalleDTO) => void
   onDelete: (id: number) => void
   onDarBaja: (id: number, motivo: string) => void
@@ -290,6 +292,22 @@ function MuestraFooter({
         >
           <FlaskConical className="h-3 w-3 mr-1" />
           {numAlicuotas === 0 ? 'Alícuotas' : `Completar lote (${huecosLibres})`}
+        </Button>
+      )}
+
+      {/* 2ª pasada: un tubo primario del protocolo con volumen disponible puede
+          alicuotarse, generando un lote nuevo (L+1). */}
+      {esPadre && muestra.idProtocolo != null && muestra.accionTubo === 'ALICUOTAR'
+        && !noEnMiPosesion && !isPrestada && !esBaja && !muestra.agotada
+        && (muestra.valorDisponible ?? 0) > 0 && (
+        <Button
+          variant="outline" size="sm"
+          onClick={() => actions.onAlicuotarTubo(muestra)}
+          className="text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10"
+          title="Alicuotar este tubo en un lote nuevo"
+        >
+          <FlaskConical className="h-3 w-3 mr-1" />
+          Alicuotar tubo
         </Button>
       )}
 
@@ -861,11 +879,15 @@ function AlicuotaCard({ muestra, trasladoInfo, actions, cabeceraDeLote }: Alicuo
                 mostrarSiempre
                 accion="Generada por"
               />
-              {muestra.numeroAlicuota != null && muestra.totalAlicuotas != null && (
+              {muestra.numeroEnLote != null ? (
+                <span className="inline-flex items-center text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-full px-2 py-0.5">
+                  {muestra.numeroLote != null ? `Lote ${muestra.numeroLote} · ` : ''}#{muestra.numeroEnLote}
+                </span>
+              ) : muestra.numeroAlicuota != null && muestra.totalAlicuotas != null ? (
                 <span className="inline-flex items-center text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-full px-2 py-0.5">
                   Alíc. {muestra.numeroAlicuota}/{muestra.totalAlicuotas}
                 </span>
-              )}
+              ) : null}
               {/* Hasta que no ocupa un hueco, la alicuota es una promesa contra
                   la padre: su volumen esta reservado pero no descontado. */}
               {muestra.materializada === false && (
@@ -1015,12 +1037,44 @@ function AlicuotaCard({ muestra, trasladoInfo, actions, cabeceraDeLote }: Alicuo
   )
 }
 
+// ── Helpers para la vista de detalle ─────────────────────────────────────────
+
+function tubeStatusBadge(m: MuestraDetalleDTO, trasladoInfo: TrasladoInfo | undefined, myInstId?: number) {
+  const noEnMiPosesion = m.idInstitucionActual != null && myInstId != null && m.idInstitucionActual !== myInstId
+  const esMia = m.idInstitucion != null && m.idInstitucion === myInstId
+  if (m.estadoMuestra === 'BAJA') return { label: 'Baja', cls: 'bg-destructive/10 text-destructive border-destructive/30' }
+  if (trasladoInfo?.estado === 'ENVIADA') return { label: 'Tránsito', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' }
+  if (trasladoInfo?.estado === 'EN_DEVOLUCION') return { label: 'Devolución', cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30' }
+  if (noEnMiPosesion && esMia) return { label: 'Fuera', cls: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30' }
+  if (noEnMiPosesion && !esMia) return { label: 'Devuelta', cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30' }
+  if (m.ubicacion) return { label: 'Almacenada', cls: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30' }
+  return { label: 'Sin ubicación', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' }
+}
+
+function StatChip({ icon: Icon, label, value, accent }: {
+  icon: React.ElementType; label: string; value: number; accent?: 'green' | 'amber'
+}) {
+  const colors = accent === 'green'
+    ? 'text-green-700 dark:text-green-400 bg-green-500/10 border-green-500/30'
+    : accent === 'amber'
+      ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30'
+      : 'text-foreground/80 bg-muted/50 border-border'
+  return (
+    <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-2', colors)}>
+      <Icon className="h-4 w-4 shrink-0" />
+      <div>
+        <p className="text-xs font-medium opacity-80">{label}</p>
+        <p className="text-lg font-bold leading-tight">{value}</p>
+      </div>
+    </div>
+  )
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function MuestrasTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
   const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
-  const puedeCrear = useAuthStore((s) => s.hasPermiso('MUESTRAS_CREAR'))
   const puedeTraslado = useAuthStore((s) => s.hasPermiso('TRASLADOS_CREAR'))
   const puedeCancelarTraslado = useAuthStore((s) => s.hasPermiso('TRASLADOS_CANCELAR'))
   const puedeEliminarDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
@@ -1031,7 +1085,7 @@ export function MuestrasTab() {
   const puedeEditarMuestra = useAuthStore((s) => s.hasPermiso('MUESTRAS_EDITAR'))
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
+  const [, setExpandedIds] = useState<Set<number>>(new Set())
   const [isMuestraModalOpen, setIsMuestraModalOpen] = useState(false)
   const [editingMuestra, setEditingMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [docMuestraId, setDocMuestraId] = useState<number | null>(null)
@@ -1055,6 +1109,10 @@ export function MuestrasTab() {
   const [errorEscaneo, setErrorEscaneo] = useState<string | null>(null)
   /** Muestra localizada por el último escaneo: se resalta hasta que se toque otra cosa. */
   const [resaltadaId, setResaltadaId] = useState<number | null>(null)
+  /** Procesamiento (participante×protocolo) abierto en detalle; null = lista. */
+  const [cardSel, setCardSel] = useState<string | null>(null)
+  /** Muestra (tubo o alícuota) abierta en el drawer lateral derecho. */
+  const [drawerMuestra, setDrawerMuestra] = useState<MuestraDetalleDTO | null>(null)
 
   /*
    * Lo que la pantalla pide al servidor. La búsqueda entra diferida y los tipos
@@ -1093,7 +1151,8 @@ export function MuestrasTab() {
   const totalMuestras = resumen?.total ?? 0
   const huerfanasDevueltasCount = resumen?.huerfanasDevueltas ?? 0
   const { data: traslados = [] } = useGetAllTraslados()
-  const { data: tiposActivos = [], isLoading: isLoadingTiposMuestra } = useGetTiposMuestraActivos()
+  const { data: tiposActivos = [] } = useGetTiposMuestraActivos()
+  const alicuotarTuboMutation = useAlicuotarTubo()
   const deleteMuestraMutation = useDeleteMuestra()
   const darBajaMutation = useDarDeBajaMuestra()
   const cancelarPrestamoMutation = useCancelarPrestamo()
@@ -1120,8 +1179,6 @@ export function MuestrasTab() {
   const [selectedConfigId, setSelectedConfigId] = useState<number | undefined>(undefined)
   const resolvedConfigId = selectedConfigId ?? configPredeterminada?.id
 
-  const hayTiposConTubos = tiposActivos.some((t) => t.tubos.some((tb) => tb.activo))
-  const puedeCrearMuestra = puedeCrear && !isLoadingTiposMuestra && hayTiposConTubos
 
   const trasladosActivos = useMemo(() => {
     // Solo ENVIADA y EN_DEVOLUCION representan tránsito real: RECIBIDA significa
@@ -1166,11 +1223,93 @@ export function MuestrasTab() {
       }
     })
 
+    /*
+     * Fusión por Lote. Un lote del nuevo flujo puede salir de varios tubos
+     * (p. ej. 2 tubos × 6 → 1…12): cada tubo es una muestra padre distinta, pero
+     * las alícuotas pertenecen al mismo Lote. Para que el listado no las muestre
+     * desglosadas 6+6, el primer padre del lote —en el orden del listado— encabeza
+     * y las alícuotas de sus hermanos se pliegan bajo él, numeradas por
+     * `numeroEnLote`. Las alícuotas sin lote (flujo anterior / carga masiva legada)
+     * siguen colgando de su propio padre, así que nada cambia para ellas.
+     */
+    const headByLote = new Map<number, number>()
+    const padresFusionados: MuestraDetalleDTO[] = []
+    padresArr.forEach((p) => {
+      const hijos = byPadre.get(p.id) ?? []
+      const idLote = hijos.find((a) => a.idLote != null)?.idLote ?? null
+      if (idLote == null) { padresFusionados.push(p); return }
+      const headId = headByLote.get(idLote)
+      if (headId == null) {
+        headByLote.set(idLote, p.id)
+        padresFusionados.push(p)
+      } else {
+        const headHijos = byPadre.get(headId) ?? []
+        byPadre.set(headId, headHijos.concat(hijos))
+        byPadre.delete(p.id)
+      }
+    })
+
     byPadre.forEach((hijos) =>
-      hijos.sort((a, b) => (a.numeroAlicuota ?? 0) - (b.numeroAlicuota ?? 0))
+      hijos.sort((a, b) => {
+        // Dentro de un lote manda numeroEnLote (1…N continuo entre tubos);
+        // sin lote, el hueco dentro del tubo.
+        if (a.numeroEnLote != null && b.numeroEnLote != null) return a.numeroEnLote - b.numeroEnLote
+        return (a.numeroAlicuota ?? 0) - (b.numeroAlicuota ?? 0)
+      })
     )
 
-    return { padres: padresArr, alicuotasByPadre: byPadre }
+    return { padres: padresFusionados, alicuotasByPadre: byPadre }
+  }, [muestras])
+
+  /*
+   * Cards de procesamiento: una por (participante × protocolo). Cada card lleva
+   * sus TUBOS PRIMARIOS (las padres, T1…TN) y sus ALÍCUOTAS AGRUPADAS POR LOTE
+   * (L1, L2…, numeradas 1…N). Las muestras heredadas sin protocolo (carga masiva
+   * previa) caen en una card «sin protocolo» por participante, agrupando las
+   * alícuotas por su padre como antes.
+   */
+  interface CardProcesamiento {
+    key: string
+    uuid: string
+    folio: string
+    nombreProtocolo: string | null
+    idProtocolo: number | null
+    padres: MuestraDetalleDTO[]
+    lotes: Map<number, MuestraDetalleDTO[]>
+    huerfanas: MuestraDetalleDTO[]
+  }
+  const cards = useMemo<CardProcesamiento[]>(() => {
+    const all = muestras ?? []
+    const map = new Map<string, CardProcesamiento>()
+    for (const m of all) {
+      const uuid = m.paciente?.uuid ?? 'sin'
+      const protoKey = m.idProtocolo != null ? `p${m.idProtocolo}` : 'legacy'
+      const key = `${uuid}/${protoKey}`
+      let card = map.get(key)
+      if (!card) {
+        card = {
+          key, uuid, folio: m.paciente?.folio ?? '—',
+          nombreProtocolo: m.nombreProtocolo ?? null, idProtocolo: m.idProtocolo ?? null,
+          padres: [], lotes: new Map(), huerfanas: [],
+        }
+        map.set(key, card)
+      }
+      if (m.idMuestraPadre == null) {
+        card.padres.push(m)
+      } else if (m.idLote != null) {
+        const l = card.lotes.get(m.idLote) ?? []
+        l.push(m)
+        card.lotes.set(m.idLote, l)
+      } else {
+        card.huerfanas.push(m)
+      }
+    }
+    for (const card of map.values()) {
+      card.padres.sort((a, b) => (a.ordenTubo ?? 999) - (b.ordenTubo ?? 999))
+      card.lotes.forEach((alis) =>
+        alis.sort((a, b) => (a.numeroEnLote ?? 999) - (b.numeroEnLote ?? 999)))
+    }
+    return [...map.values()]
   }, [muestras])
 
   /**
@@ -1355,13 +1494,6 @@ export function MuestrasTab() {
     setAncla('INICIO')
     contenedor()?.scrollTo({ top: 0 })
   }, [criterios, contenedor])
-
-  const toggleExpanded = (id: number) =>
-    setExpandedIds((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
 
   const handleEdit = (m: MuestraDetalleDTO) => { setEditingMuestra(m); setIsMuestraModalOpen(true) }
 
@@ -1595,6 +1727,7 @@ export function MuestrasTab() {
     onDocumentos: setDocMuestraId,
     onResultados: setResultadosMuestra,
     onGenerarAlicuotas: setGenerarAlicuotasMuestra,
+    onAlicuotarTubo: (m) => alicuotarTuboMutation.mutate({ idPadre: m.id }),
     onUbicarLote: setUbicarLoteMuestra,
     onDelete: handleDelete,
     onDarBaja: handleDarBaja,
@@ -1614,90 +1747,14 @@ export function MuestrasTab() {
 
   return (
     <div className="space-y-4">
+      {!cardSel && (<>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold">Muestras biológicas</h2>
           <p className="text-muted-foreground text-sm">Gestiona el registro, ubicación y traslados de muestras</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {configuracionesEtiqueta.length > 0 && (
-            // Select de Radix (no <select> nativo): su popover usa los colores del tema
-            // (bg-popover / accent), a diferencia del desplegable nativo que salía blanco fijo.
-            <Select
-              value={resolvedConfigId != null ? String(resolvedConfigId) : ''}
-              onValueChange={(val) => setSelectedConfigId(val ? Number(val) : undefined)}
-            >
-              <SelectTrigger size="sm" className="w-auto max-w-[180px] gap-1.5">
-                <Tag className="h-4 w-4 text-violet-600 shrink-0" />
-                <SelectValue placeholder="Etiqueta" />
-              </SelectTrigger>
-              <SelectContent>
-                {configuracionesEtiqueta.map((cfg) => (
-                  <SelectItem key={cfg.id} value={String(cfg.id)}>
-                    {cfg.nombre}{cfg.predeterminada ? ' *' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {puedeImprimir && (
-            <Select
-              value={selectedPrinter || (impresoras.length > 0 ? impresoras[0] : '__browser__')}
-              onValueChange={handleSelectPrinter}
-            >
-              <SelectTrigger size="sm" className="w-auto max-w-[220px] gap-1.5">
-                <Printer className="h-4 w-4 text-sky-600 shrink-0" />
-                <SelectValue placeholder="Impresora" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__browser__">Impresora estándar (navegador)</SelectItem>
-                {impresoras.map((imp) => (
-                  <SelectItem key={imp} value={imp}>{imp}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <Button
-            size="sm"
-            onClick={() => setIsMuestraModalOpen(true)}
-            disabled={!puedeCrearMuestra}
-            title={!puedeCrear ? 'No cuenta con permisos para registrar muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo en la pestaña "Tipos de Muestra"' : undefined}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            {isLoadingTiposMuestra ? 'Cargando…' : 'Nueva Muestra'}
-          </Button>
-        </div>
       </div>
 
-      {!isLoadingTiposMuestra && !hayTiposConTubos && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No hay tipos de muestra con tubos configurados. Ve a la pestaña <strong>Tipos de Muestra</strong> y crea al menos un tipo con un tubo activo para poder registrar muestras.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {puedeImprimir && configuracionesEtiqueta.length === 0 && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No hay configuraciones de etiqueta registradas. Cree una en{' '}
-            <strong>Configuración &gt; Etiquetas</strong> para poder imprimir.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <Alert>
-        <TestTube className="h-4 w-4" />
-        <AlertDescription>
-          Las muestras se almacenan en cajas criogénicas. Puedes trasladarlas a instituciones externas.
-          Las alícuotas se despliegan pulsando el botón circular del borde derecho de la muestra padre.
-        </AlertDescription>
-      </Alert>
-
-      {/* flex-wrap: en móvil el buscador ocupa el primer renglón y los botones
-          (escanear, histórico, filtros) bajan al siguiente en vez de desfasar la pantalla. */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[12rem] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1725,10 +1782,10 @@ export function MuestrasTab() {
             size="sm"
             onClick={() => { setErrorEscaneo(null); setEscanerAbierto(true) }}
             className="text-xs"
-            title="Leer la etiqueta con la cámara. Si cuenta con un lector conectado, puede escanear la etiqueta directamente, sin abrir esta ventana."
+            title="Leer la etiqueta con la cámara."
           >
             <ScanLine className="h-3.5 w-3.5 mr-1" />
-            Escanear etiqueta
+            Escanear
           </Button>
         )}
         {huerfanasDevueltasCount > 0 && (
@@ -1746,8 +1803,6 @@ export function MuestrasTab() {
           </Button>
         )}
 
-        {/* Toggle histórico: por default el backend NO devuelve muestras que solo estuvieron
-            prestadas en el pasado (evita crecimiento indefinido). Este botón activa la vista extendida. */}
         <Button
           variant="outline"
           size="sm"
@@ -1767,6 +1822,7 @@ export function MuestrasTab() {
           tiposMuestra={tiposActivos}
         />
       </div>
+      </>)}
 
       {/*
         Todo el listado cuelga de este nodo: desde él se localiza el contenedor
@@ -1777,7 +1833,7 @@ export function MuestrasTab() {
         {/* Centinela superior: al asomarse trae las tarjetas más recientes. */}
         <div ref={centinelaArriba} aria-hidden className="h-px" />
 
-        {padres.length === 0 ? (
+        {cards.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8">
               <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -1790,21 +1846,11 @@ export function MuestrasTab() {
               </h3>
               <p className="text-muted-foreground text-center mb-4">
                 {!hayCriterios
-                  ? 'Registra la primera muestra biológica en el sistema.'
+                  ? 'Aún no hay muestras. Ve a la pestaña «Procesar» para generar las muestras de un participante a partir de un protocolo.'
                   : contarFiltrosActivos(filtros) > 0
                     ? 'Ajuste o quite los filtros para ver más resultados.'
                     : 'Intente con otros términos de búsqueda.'}
               </p>
-              {!hayCriterios && (
-                <Button
-                  onClick={() => setIsMuestraModalOpen(true)}
-                  disabled={!puedeCrearMuestra}
-                  title={!puedeCrear ? 'No cuenta con permisos para registrar muestras' : !puedeCrearMuestra ? 'Primero configura al menos un tipo de muestra con un tubo activo' : undefined}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  {isLoadingTiposMuestra ? 'Cargando…' : 'Registrar Primera Muestra'}
-                </Button>
-              )}
             </CardContent>
           </Card>
         ) : (
@@ -1814,114 +1860,298 @@ export function MuestrasTab() {
            * naturalmente hacia la derecha y a la siguiente fila si es necesario.
            * CSS Grid stretch por defecto iguala las alturas dentro de cada fila.
            */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {padres.map((muestra) => {
-              const esAlicuotaHuerfana = muestra.idMuestraPadre != null
-              const alicuotas  = alicuotasByPadre.get(muestra.id) ?? []
-              const isExpanded = expandedIds.has(muestra.id)
-              const pendientes = alicuotas.filter((a) => a.materializada === false).length
-
-              /*
-               * Quién encabeza el lote.
-               *
-               * La padre es un registro del tubo del que salieron los viales:
-               * casi nunca tiene posición y siempre acaba en cero. Dejarla
-               * siempre al frente hacía que un lote con cinco viales llenos se
-               * viera, plegado, como un lote agotado — y con una carga masiva
-               * detrás, el panel entero parecía consumido. Así que cuando la
-               * padre ya se repartió, encabeza la primera alícuota que conserve
-               * volumen y la padre baja al desplegable con su sello.
-               *
-               * Se queda al frente igualmente si es la que el usuario acaba de
-               * localizar: quien escanea la etiqueta de un tubo espera ver ese
-               * tubo, no tener que desplegar para encontrarlo.
-               */
-              const vivas = alicuotas.filter((a) => !estaAgotada(a) && a.estadoMuestra !== 'BAJA')
-              const promovida = !esAlicuotaHuerfana
-                && estaAgotada(muestra)
-                && resaltadaId !== muestra.id
-                ? vivas[0]
-                : undefined
-
-              // Dentro del desplegable, lo que conserva volumen primero y lo ya
-              // repartido al final: el mismo criterio que en la cabecera.
-              const resto = promovida
-                ? [...alicuotas.filter((a) => a.id !== promovida.id)]
-                    .sort((a, b) => Number(estaAgotada(a)) - Number(estaAgotada(b)))
-                : alicuotas
-
+          (() => {
+            const cardDet = cardSel ? cards.find((c) => c.key === cardSel) ?? null : null
+            if (!cardDet) {
               return (
-                <Fragment key={muestra.id}>
-                  <MarcoLocalizada
-                    id={promovida ? promovida.id : muestra.id}
-                    resaltada={resaltadaId === (promovida ? promovida.id : muestra.id)}
-                  >
-                    {esAlicuotaHuerfana ? (
-                      <AlicuotaCard
-                        muestra={muestra}
-                        trasladoInfo={trasladosActivos.get(muestra.id)}
-                        actions={actions}
-                      />
-                    ) : promovida ? (
-                      <AlicuotaCard
-                        muestra={promovida}
-                        trasladoInfo={trasladosActivos.get(promovida.id)}
-                        actions={actions}
-                        cabeceraDeLote={{
-                          // +1 por la padre, que también baja al desplegable.
-                          restantes: resto.length + 1,
-                          isExpanded,
-                          // La clave de expansión sigue siendo la padre: es la
-                          // que usan el toggle, la búsqueda y el resaltado.
-                          onToggle: () => toggleExpanded(muestra.id),
-                          etiquetaPadre: muestra.etiqueta,
-                        }}
-                      />
-                    ) : (
-                      <PadreCard
-                        muestra={muestra}
-                        numAlicuotas={alicuotas.length}
-                        alicuotasPendientes={pendientes}
-                        trasladoInfo={trasladosActivos.get(muestra.id)}
-                        isExpanded={isExpanded}
-                        onToggle={() => toggleExpanded(muestra.id)}
-                        actions={actions}
-                      />
-                    )}
-                  </MarcoLocalizada>
-
-                  {/* Celdas adicionales: el resto del lote — fluyen en el mismo grid */}
-                  {!esAlicuotaHuerfana && isExpanded && resto.map((ali) => (
-                    <MarcoLocalizada key={ali.id} id={ali.id} resaltada={resaltadaId === ali.id}>
-                      <AlicuotaCard
-                        muestra={ali}
-                        trasladoInfo={trasladosActivos.get(ali.id)}
-                        actions={actions}
-                      />
-                    </MarcoLocalizada>
-                  ))}
-
-                  {/* La padre desplazada, al final: es lo más «segundo plano»
-                      del lote, pero sigue siendo su origen y hay que poder
-                      abrir su historial, sus estudios y sus etiquetas. */}
-                  {promovida && isExpanded && (
-                    <MarcoLocalizada id={muestra.id} resaltada={resaltadaId === muestra.id}>
-                      <PadreCard
-                        muestra={muestra}
-                        numAlicuotas={alicuotas.length}
-                        alicuotasPendientes={pendientes}
-                        trasladoInfo={trasladosActivos.get(muestra.id)}
-                        isExpanded={isExpanded}
-                        onToggle={() => toggleExpanded(muestra.id)}
-                        actions={actions}
-                        ocultarToggle
-                      />
-                    </MarcoLocalizada>
-                  )}
-                </Fragment>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {cards.map((card) => {
+                    const todas = [...card.lotes.values()].flat().concat(card.huerfanas)
+                    const almac = [...card.padres, ...todas].filter((m) => m.ubicacion).length
+                    const sinUb = [...card.padres, ...todas].filter((m) => !m.ubicacion && m.estadoMuestra !== 'BAJA').length
+                    return (
+                      <button
+                        key={card.key}
+                        onClick={() => setCardSel(card.key)}
+                        className="text-left rounded-lg border bg-card p-4 transition-all hover:border-primary/60 hover:shadow-md group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                            <TestTube className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="font-semibold text-sm">Folio {card.folio}</span>
+                            <Badge variant="secondary" className="ml-2 text-[10px]">{card.nombreProtocolo ?? 'Sin protocolo'}</Badge>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <TestTube className="h-3 w-3" /> {card.padres.length} tubo{card.padres.length !== 1 ? 's' : ''}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <FlaskConical className="h-3 w-3" /> {todas.length} alícuota{todas.length !== 1 ? 's' : ''}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                            <Boxes className="h-3 w-3" /> {almac} almacenada{almac !== 1 ? 's' : ''}
+                          </div>
+                          {sinUb > 0 && (
+                            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                              <MapPinOff className="h-3 w-3" /> {sinUb} pendiente{sinUb !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+                        <p className="mt-3 text-xs font-medium text-primary group-hover:underline">Ver desglose →</p>
+                      </button>
+                    )
+                  })}
+                </div>
               )
-            })}
-          </div>
+            }
+
+            const alicuotasTodas = [...cardDet.lotes.values()].flat().concat(cardDet.huerfanas)
+            const totalAlic = alicuotasTodas.length
+            const almacenadas = [...cardDet.padres, ...alicuotasTodas].filter((m) => m.ubicacion).length
+            const sinUbicacion = [...cardDet.padres, ...alicuotasTodas].filter((m) => !m.ubicacion && m.estadoMuestra !== 'BAJA').length
+            const lotesOrdenados = [...cardDet.lotes.entries()]
+              .sort((a, b) => (a[1][0]?.numeroLote ?? 0) - (b[1][0]?.numeroLote ?? 0))
+            const participanteNombre = cardDet.padres[0]?.paciente?.nombreCompleto ?? '—'
+
+            return (
+              <div className="space-y-4">
+                {/* Breadcrumb */}
+                <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <button onClick={() => setCardSel(null)} className="hover:text-foreground transition-colors">Biobanco</button>
+                  <span className="text-muted-foreground/50">›</span>
+                  <button onClick={() => setCardSel(null)} className="hover:text-foreground transition-colors">Muestras</button>
+                  <span className="text-muted-foreground/50">›</span>
+                  <span className="text-foreground font-medium truncate">Folio {cardDet.folio}</span>
+                </nav>
+
+                {/* Header */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setCardSel(null)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-xl font-bold">Folio {cardDet.folio}</h2>
+                        <Badge variant="secondary" className="text-xs">{cardDet.nombreProtocolo ?? 'Sin protocolo'}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{participanteNombre}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Toolbar */}
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5">
+                  {configuracionesEtiqueta.length > 0 && (
+                    <Select
+                      value={resolvedConfigId != null ? String(resolvedConfigId) : ''}
+                      onValueChange={(val) => setSelectedConfigId(val ? Number(val) : undefined)}
+                    >
+                      <SelectTrigger size="sm" className="w-auto max-w-[180px] gap-1.5">
+                        <Tag className="h-4 w-4 text-violet-600 shrink-0" />
+                        <SelectValue placeholder="Etiqueta" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {configuracionesEtiqueta.map((cfg) => (
+                          <SelectItem key={cfg.id} value={String(cfg.id)}>
+                            {cfg.nombre}{cfg.predeterminada ? ' *' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {puedeImprimir && (
+                    <Select
+                      value={selectedPrinter || (impresoras.length > 0 ? impresoras[0] : '__browser__')}
+                      onValueChange={handleSelectPrinter}
+                    >
+                      <SelectTrigger size="sm" className="w-auto max-w-[220px] gap-1.5">
+                        <Printer className="h-4 w-4 text-sky-600 shrink-0" />
+                        <SelectValue placeholder="Impresora" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__browser__">Impresora estándar (navegador)</SelectItem>
+                        {impresoras.map((imp) => (
+                          <SelectItem key={imp} value={imp}>{imp}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <div className="h-5 w-px bg-border mx-0.5 hidden sm:block" />
+                  {puedeEditarMuestra && (
+                    <Button size="sm" onClick={() => setIsMuestraModalOpen(true)}>
+                      <Edit className="h-3.5 w-3.5 mr-1.5" /> Nueva muestra
+                    </Button>
+                  )}
+                  {puedeEscanear && (
+                    <Button variant="outline" size="sm" onClick={() => { setErrorEscaneo(null); setEscanerAbierto(true) }}>
+                      <ScanLine className="h-3.5 w-3.5 mr-1.5" /> Escanear
+                    </Button>
+                  )}
+                  <FiltrosMuestrasPanel filtros={filtros} onChange={setFiltros} tiposMuestra={tiposActivos} />
+                </div>
+
+                {/* Stats */}
+                <div className="flex flex-wrap gap-3">
+                  <StatChip icon={TestTube} label="Tubos" value={cardDet.padres.length} />
+                  <StatChip icon={FlaskConical} label="Alícuotas" value={totalAlic} />
+                  <StatChip icon={Boxes} label="Almacenadas" value={almacenadas} accent="green" />
+                  <StatChip icon={MapPinOff} label="Sin ubicación" value={sinUbicacion} accent={sinUbicacion > 0 ? 'amber' : undefined} />
+                </div>
+
+                {/* Tubes section — simplified cards */}
+                {cardDet.padres.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-muted-foreground">Tubos primarios</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {cardDet.padres.map((p) => {
+                        const alis = alicuotasTodas.filter((a) => a.idMuestraPadre === p.id)
+                        const badge = tubeStatusBadge(p, trasladosActivos.get(p.id), myInstitucionId)
+                        return (
+                          <MarcoLocalizada key={p.id} id={p.id} resaltada={resaltadaId === p.id}>
+                            <button
+                              onClick={() => setDrawerMuestra(p)}
+                              className={cn(
+                                'w-full text-left rounded-lg border p-3 transition-all hover:border-primary/60 hover:shadow-sm bg-card',
+                                estaAgotada(p) && 'opacity-60 saturate-[.5]',
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-mono text-sm font-semibold truncate">{p.etiqueta}</span>
+                                <Badge variant="outline" className={cn('text-[10px] shrink-0', badge.cls)}>{badge.label}</Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1 truncate">
+                                {p.tipoMuestra?.nombre ?? '—'}{p.tuboMuestra ? ` · ${p.tuboMuestra.nombre}` : ''}
+                              </p>
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-xs text-muted-foreground">{formatDate(p.fechaRecoleccion)}</span>
+                                {alis.length > 0 && (
+                                  <span className="text-[10px] font-medium text-primary">{alis.length} alíc.</span>
+                                )}
+                              </div>
+                            </button>
+                          </MarcoLocalizada>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Aliquots table */}
+                {(lotesOrdenados.length > 0 || cardDet.huerfanas.length > 0) && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-muted-foreground">
+                      Alícuotas por lote <span className="font-normal text-xs">({totalAlic})</span>
+                    </p>
+                    <div className="rounded-lg border overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/50">
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Etiqueta</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Lote</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Volumen</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden sm:table-cell">Recolección</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden md:table-cell">Ubicación</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {lotesOrdenados.flatMap(([, alis]) =>
+                              alis.map((a) => {
+                                const aBadge = tubeStatusBadge(a, trasladosActivos.get(a.id), myInstitucionId)
+                                const ubic = a.ubicacion
+                                return (
+                                  <tr
+                                    key={a.id}
+                                    data-muestra-id={a.id}
+                                    onClick={() => setDrawerMuestra(a)}
+                                    className={cn(
+                                      'cursor-pointer hover:bg-muted/50 transition-colors',
+                                      resaltadaId === a.id && 'ring-2 ring-primary ring-inset',
+                                    )}
+                                  >
+                                    <td className="px-3 py-2 font-mono text-xs font-medium whitespace-nowrap">{a.etiqueta}</td>
+                                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                                      {a.numeroLote != null ? `L${a.numeroLote} · #${a.numeroEnLote}` : '—'}
+                                    </td>
+                                    <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
+                                      {a.valor != null ? `${a.valor} ${a.unidad ?? ''}` : '—'}
+                                    </td>
+                                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+                                      {formatDate(a.fechaRecoleccion)}
+                                    </td>
+                                    <td className="px-3 py-2 text-xs hidden md:table-cell">
+                                      {ubic ? (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); actions.onVerUbicacion3D(a) }}
+                                          className="text-primary hover:underline truncate max-w-[160px] block"
+                                          title={`${ubic.nombreRefrigerador} · P${ubic.pisoRefrigerador} · ${ubic.codigoCaja} · ${etiquetaPosicionCaja(ubic.fila, ubic.columna)}`}
+                                        >
+                                          {ubic.codigoCaja} · {etiquetaPosicionCaja(ubic.fila, ubic.columna)}
+                                        </button>
+                                      ) : (
+                                        <span className="text-amber-600 dark:text-amber-400">Sin asignar</span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <Badge variant="outline" className={cn('text-[10px]', aBadge.cls)}>{aBadge.label}</Badge>
+                                    </td>
+                                  </tr>
+                                )
+                              })
+                            )}
+                            {cardDet.huerfanas.map((a) => {
+                              const aBadge = tubeStatusBadge(a, trasladosActivos.get(a.id), myInstitucionId)
+                              const ubic = a.ubicacion
+                              return (
+                                <tr
+                                  key={a.id}
+                                  data-muestra-id={a.id}
+                                  onClick={() => setDrawerMuestra(a)}
+                                  className={cn(
+                                    'cursor-pointer hover:bg-muted/50 transition-colors',
+                                    resaltadaId === a.id && 'ring-2 ring-primary ring-inset',
+                                  )}
+                                >
+                                  <td className="px-3 py-2 font-mono text-xs font-medium whitespace-nowrap">{a.etiqueta}</td>
+                                  <td className="px-3 py-2 text-xs text-muted-foreground">—</td>
+                                  <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
+                                    {a.valor != null ? `${a.valor} ${a.unidad ?? ''}` : '—'}
+                                  </td>
+                                  <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+                                    {formatDate(a.fechaRecoleccion)}
+                                  </td>
+                                  <td className="px-3 py-2 text-xs hidden md:table-cell">
+                                    {ubic ? (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); actions.onVerUbicacion3D(a) }}
+                                        className="text-primary hover:underline truncate max-w-[160px] block"
+                                      >
+                                        {ubic.codigoCaja} · {etiquetaPosicionCaja(ubic.fila, ubic.columna)}
+                                      </button>
+                                    ) : (
+                                      <span className="text-amber-600 dark:text-amber-400">Sin asignar</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <Badge variant="outline" className={cn('text-[10px]', aBadge.cls)}>{aBadge.label}</Badge>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()
         )}
 
         {/* Centinela inferior: al asomarse trae el tramo siguiente. */}
@@ -1934,11 +2164,11 @@ export function MuestrasTab() {
           </div>
         )}
 
-        {padres.length > 0 && (
+        {cards.length > 0 && (
           <p className="pb-2 text-center text-xs text-muted-foreground">
             {padres.length >= totalMuestras
-              ? `${totalMuestras} ${totalMuestras === 1 ? 'muestra' : 'muestras'} en total`
-              : `${padres.length} de ${totalMuestras} muestras · se cargan conforme se desplaza`}
+              ? `${cards.length} procesamiento(s) · ${totalMuestras} ${totalMuestras === 1 ? 'tubo' : 'tubos'} en total`
+              : `${cards.length} procesamiento(s) cargados · se cargan más conforme se desplaza`}
           </p>
         )}
       </div>
@@ -2080,6 +2310,19 @@ export function MuestrasTab() {
           imprimiendo={enviandoAcomodo}
         />
       )}
+
+      <MuestraDrawer
+        muestra={drawerMuestra}
+        onClose={() => setDrawerMuestra(null)}
+        trasladoInfo={drawerMuestra ? trasladosActivos.get(drawerMuestra.id) : undefined}
+        actions={actions}
+        numAlicuotas={drawerMuestra
+          ? (alicuotasByPadre.get(drawerMuestra.id) ?? []).length
+          : 0}
+        alicuotasPendientes={drawerMuestra
+          ? (alicuotasByPadre.get(drawerMuestra.id) ?? []).filter((a) => a.materializada === false).length
+          : 0}
+      />
 
     </div>
   )

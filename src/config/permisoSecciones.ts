@@ -641,6 +641,19 @@ export const SECCIONES: Seccion[] = [
           { id: 'editar', label: 'Editar configuración', permisos: ['CONFIGURACION_EDITAR'] },
         ],
       },
+      {
+        id: 'documentos-publicos',
+        nombre: 'Documentos públicos',
+        descripcion: 'Gestión de documentos visibles sin autenticación',
+        acciones: [
+          {
+            id: 'gestionar',
+            label: 'Gestionar documentos públicos',
+            descripcion: 'Subir, editar y eliminar documentos públicos y sus categorías',
+            permisos: ['DOCUMENTOS_PUBLICOS_GESTIONAR'],
+          },
+        ],
+      },
     ],
   },
 
