@@ -15,6 +15,8 @@ export interface DocumentoPublicoDTO {
   autor: string | null
   categoriaId: number | null
   categoriaNombre: string | null
+  seccionId: number | null
+  seccionNombre: string | null
   fechaCreacion: string
   activo: boolean
 }
@@ -25,12 +27,20 @@ export interface CategoriaDocumentoPublicoDTO {
   activo: boolean
 }
 
+export interface SeccionDocumentoPublicoDTO {
+  id: number
+  nombre: string
+  orden: number | null
+  activo: boolean
+}
+
 export interface DocumentoPublicoRequest {
   fechaPublicacion: string
   nombreMostrar?: string
   fase?: string
   descripcion?: string
   categoriaId?: number | null
+  seccionId?: number | null
   autor?: string
 }
 
@@ -49,6 +59,7 @@ export async function uploadDocumentoPublico(
   if (data.fase) form.append('fase', data.fase)
   if (data.descripcion) form.append('descripcion', data.descripcion)
   if (data.categoriaId) form.append('categoriaId', String(data.categoriaId))
+  if (data.seccionId) form.append('seccionId', String(data.seccionId))
   if (data.autor) form.append('autor', data.autor)
 
   const res = await api.post<ApiResponse<DocumentoPublicoDTO>>(
@@ -118,6 +129,33 @@ export async function toggleCategoriaDocPublico(id: number): Promise<CategoriaDo
   return res.data.data
 }
 
+// ─── Secciones (autenticado) ────────────────────────────────────────────────
+
+export async function getSeccionesDocPublico(): Promise<SeccionDocumentoPublicoDTO[]> {
+  const res = await api.get<ApiResponse<SeccionDocumentoPublicoDTO[]>>('/documentos-publicos/secciones')
+  return res.data.data
+}
+
+export async function getSeccionesActivasDocPublico(): Promise<SeccionDocumentoPublicoDTO[]> {
+  const res = await api.get<ApiResponse<SeccionDocumentoPublicoDTO[]>>('/documentos-publicos/secciones/activas')
+  return res.data.data
+}
+
+export async function createSeccionDocPublico(nombre: string, orden?: number | null): Promise<SeccionDocumentoPublicoDTO> {
+  const res = await api.post<ApiResponse<SeccionDocumentoPublicoDTO>>('/documentos-publicos/secciones', { nombre, orden })
+  return res.data.data
+}
+
+export async function updateSeccionDocPublico(id: number, nombre: string, orden?: number | null): Promise<SeccionDocumentoPublicoDTO> {
+  const res = await api.put<ApiResponse<SeccionDocumentoPublicoDTO>>(`/documentos-publicos/secciones/${id}`, { nombre, orden })
+  return res.data.data
+}
+
+export async function toggleSeccionDocPublico(id: number): Promise<SeccionDocumentoPublicoDTO> {
+  const res = await api.patch<ApiResponse<SeccionDocumentoPublicoDTO>>(`/documentos-publicos/secciones/${id}/toggle`)
+  return res.data.data
+}
+
 // ─── Público (sin autenticación) ────────────────────────────────────────────
 
 const PUBLIC_API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080/api'
@@ -130,6 +168,12 @@ export async function getDocumentosPublicos(idInstitucion: number): Promise<Docu
 
 export async function getCategoriasPublicas(idInstitucion: number): Promise<CategoriaDocumentoPublicoDTO[]> {
   const res = await fetch(`${PUBLIC_API_BASE}/publico/documentos/${idInstitucion}/categorias`)
+  const json = await res.json()
+  return json.data
+}
+
+export async function getSeccionesPublicas(idInstitucion: number): Promise<SeccionDocumentoPublicoDTO[]> {
+  const res = await fetch(`${PUBLIC_API_BASE}/publico/documentos/${idInstitucion}/secciones`)
   const json = await res.json()
   return json.data
 }

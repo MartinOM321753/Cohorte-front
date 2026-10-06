@@ -3,8 +3,10 @@ import { useParams } from 'react-router-dom'
 import {
   getDocumentosPublicos,
   getCategoriasPublicas,
+  getSeccionesPublicas,
   type DocumentoPublicoDTO,
   type CategoriaDocumentoPublicoDTO,
+  type SeccionDocumentoPublicoDTO,
 } from '@/features/configuracion/api/documentosPublicos.api'
 import cohorteLogoUrl from '@/assets/logo.png'
 
@@ -60,6 +62,7 @@ export default function DocumentosPublicosPage() {
 
   const [docs, setDocs] = useState<DocumentoPublicoDTO[]>([])
   const [categorias, setCategorias] = useState<CategoriaDocumentoPublicoDTO[]>([])
+  const [secciones, setSecciones] = useState<SeccionDocumentoPublicoDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDoc, setSelectedDoc] = useState<DocumentoPublicoDTO | null>(null)
   const [busqueda, setBusqueda] = useState('')
@@ -89,9 +92,11 @@ export default function DocumentosPublicosPage() {
     Promise.all([
       getDocumentosPublicos(instId),
       getCategoriasPublicas(instId),
-    ]).then(([d, c]) => {
+      getSeccionesPublicas(instId),
+    ]).then(([d, c, s]) => {
       setDocs(d)
       setCategorias(c)
+      setSecciones(s)
     }).finally(() => setLoading(false))
   }, [instId])
 
@@ -114,6 +119,33 @@ export default function DocumentosPublicosPage() {
       return true
     })
   }, [docs, filtroCategoria, filtroFase, busqueda])
+
+  const groupedBySections = useMemo(() => {
+    const groups: { seccion: SeccionDocumentoPublicoDTO | null; docs: DocumentoPublicoDTO[] }[] = []
+    const seccionMap = new Map<number, DocumentoPublicoDTO[]>()
+    const sinSeccion: DocumentoPublicoDTO[] = []
+
+    for (const d of filtered) {
+      if (d.seccionId != null) {
+        let arr = seccionMap.get(d.seccionId)
+        if (!arr) { arr = []; seccionMap.set(d.seccionId, arr) }
+        arr.push(d)
+      } else {
+        sinSeccion.push(d)
+      }
+    }
+
+    for (const sec of secciones) {
+      const secDocs = seccionMap.get(sec.id)
+      if (secDocs?.length) {
+        groups.push({ seccion: sec, docs: secDocs })
+      }
+    }
+    if (sinSeccion.length) {
+      groups.push({ seccion: null, docs: sinSeccion })
+    }
+    return groups
+  }, [filtered, secciones])
 
   const hasFilters = filtroCategoria !== 'todas' || filtroFase !== 'todas' || busqueda !== ''
 
@@ -145,11 +177,10 @@ export default function DocumentosPublicosPage() {
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 32 }}>
             <div style={{ flex: 1, minWidth: 280 }}>
-              <div style={styles.overline}>Repositorio de investigación</div>
-              <h1 style={styles.heroTitle}>Documentos públicos</h1>
+              <div style={styles.overline}>Repositorio De Cuestionarios</div>
+              <h1 style={styles.heroTitle}>Documentos Públicos</h1>
               <p style={styles.heroDesc}>
-                Acceda a los documentos de investigación clínica de la plataforma Cohorte de Trabajadores de la Salud.
-                Protocolos, informes y materiales de estudio disponibles para consulta pública.
+                Acceda a los cuestionarios de la Cohorte de Trabajadores de la Salud de las diferentes mediciones.
               </p>
             </div>
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -219,14 +250,23 @@ export default function DocumentosPublicosPage() {
               </div>
             </div>
           ) : (
-            <div style={styles.grid}>
-              {filtered.map(doc => (
-                <DocumentCard
-                  key={doc.id}
-                  doc={doc}
-                  isSelected={selectedDoc?.id === doc.id}
-                  onSelect={() => setSelectedDoc(doc)}
-                />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+              {groupedBySections.map(group => (
+                <div key={group.seccion?.id ?? 'sin-seccion'}>
+                  <h2 style={styles.sectionTitle}>
+                    {group.seccion?.nombre ?? 'Sin Sección'}
+                  </h2>
+                  <div style={styles.grid}>
+                    {group.docs.map(doc => (
+                      <DocumentCard
+                        key={doc.id}
+                        doc={doc}
+                        isSelected={selectedDoc?.id === doc.id}
+                        onSelect={() => setSelectedDoc(doc)}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -483,6 +523,12 @@ function DocumentViewer({ doc, onClose }: { doc: DocumentoPublicoDTO; onClose: (
               <MetaRow label="Tamaño" value={formatSize(doc.tamanioBytes)} />
             </>
           )}
+          {doc.seccionNombre && (
+            <>
+              <div style={styles.metaDivider} />
+              <MetaRow label="Sección" value={doc.seccionNombre} />
+            </>
+          )}
           {doc.categoriaNombre && (
             <>
               <div style={styles.metaDivider} />
@@ -726,6 +772,16 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 24,
     background: 'var(--dp-bg-2)',
     flex: 1,
+  },
+  sectionTitle: {
+    fontFamily: "'Source Serif 4', Georgia, serif",
+    fontSize: 22,
+    fontWeight: 600,
+    color: 'var(--dp-fg-0)',
+    margin: '0 0 16px',
+    paddingBottom: 10,
+    borderBottom: '2px solid var(--dp-brand)',
+    letterSpacing: '-0.3px',
   },
   grid: {
     display: 'grid',
