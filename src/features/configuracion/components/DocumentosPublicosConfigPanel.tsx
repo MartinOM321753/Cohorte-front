@@ -16,7 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
-  FileUp, Pencil, Plus, Trash2, Tag, Eye,
+  FileUp, Pencil, Plus, Trash2, Tag, Eye, Layers,
 } from 'lucide-react'
 import {
   useDocumentosPublicosAdmin,
@@ -27,9 +27,13 @@ import {
   useCreateCategoriaDocPublico,
   useUpdateCategoriaDocPublico,
   useToggleCategoriaDocPublico,
+  useSeccionesDocPublico,
+  useCreateSeccionDocPublico,
+  useUpdateSeccionDocPublico,
+  useToggleSeccionDocPublico,
 } from '../hooks/useDocumentosPublicos'
 import { useAuthStore } from '@/stores/authStore'
-import type { DocumentoPublicoDTO, DocumentoPublicoRequest, CategoriaDocumentoPublicoDTO } from '../api/documentosPublicos.api'
+import type { DocumentoPublicoDTO, DocumentoPublicoRequest, CategoriaDocumentoPublicoDTO, SeccionDocumentoPublicoDTO } from '../api/documentosPublicos.api'
 
 const INITIAL_FORM: DocumentoPublicoRequest = {
   fechaPublicacion: new Date().toISOString().slice(0, 10),
@@ -37,6 +41,7 @@ const INITIAL_FORM: DocumentoPublicoRequest = {
   fase: '',
   descripcion: '',
   categoriaId: null,
+  seccionId: null,
   autor: '',
 }
 
@@ -44,6 +49,7 @@ export default function DocumentosPublicosConfigPanel() {
   const { user } = useAuthStore()
   const { data: docs, isLoading } = useDocumentosPublicosAdmin()
   const { data: categorias } = useCategoriasDocPublico()
+  const { data: secciones } = useSeccionesDocPublico()
   const uploadMut = useUploadDocumentoPublico()
   const updateMut = useUpdateDocumentoPublico()
   const deleteMut = useDeleteDocumentoPublico()
@@ -51,6 +57,7 @@ export default function DocumentosPublicosConfigPanel() {
   const [showUpload, setShowUpload] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [showCategorias, setShowCategorias] = useState(false)
+  const [showSecciones, setShowSecciones] = useState(false)
   const [editingDoc, setEditingDoc] = useState<DocumentoPublicoDTO | null>(null)
   const [form, setForm] = useState<DocumentoPublicoRequest>(INITIAL_FORM)
   const [file, setFile] = useState<File | null>(null)
@@ -70,6 +77,7 @@ export default function DocumentosPublicosConfigPanel() {
       fase: doc.fase ?? '',
       descripcion: doc.descripcion ?? '',
       categoriaId: doc.categoriaId,
+      seccionId: doc.seccionId,
       autor: doc.autor ?? '',
     })
     setShowEdit(true)
@@ -123,14 +131,21 @@ export default function DocumentosPublicosConfigPanel() {
           />
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 @sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
         <div className="space-y-2">
-          <Label>Fase</Label>
-          <Input
-            placeholder="Ej: Fase 1"
-            value={form.fase}
-            onChange={e => setForm(f => ({ ...f, fase: e.target.value }))}
-          />
+          <Label>Sección (Visita)</Label>
+          <Select
+            value={form.seccionId ? String(form.seccionId) : 'none'}
+            onValueChange={v => setForm(f => ({ ...f, seccionId: v === 'none' ? null : Number(v) }))}
+          >
+            <SelectTrigger><SelectValue placeholder="Sin sección" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin sección</SelectItem>
+              {secciones?.filter(s => s.activo).map(s => (
+                <SelectItem key={s.id} value={String(s.id)}>{s.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label>Categoría</Label>
@@ -146,6 +161,16 @@ export default function DocumentosPublicosConfigPanel() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 @sm:grid-cols-3">
+        <div className="space-y-2">
+          <Label>Fase</Label>
+          <Input
+            placeholder="Ej: Fase 1"
+            value={form.fase}
+            onChange={e => setForm(f => ({ ...f, fase: e.target.value }))}
+          />
         </div>
         <div className="space-y-2">
           <Label>Autor</Label>
@@ -179,6 +204,9 @@ export default function DocumentosPublicosConfigPanel() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowSecciones(true)}>
+              <Layers className="mr-2 h-4 w-4" /> Secciones
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowCategorias(true)}>
               <Tag className="mr-2 h-4 w-4" /> Categorías
             </Button>
@@ -199,6 +227,7 @@ export default function DocumentosPublicosConfigPanel() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
+                  <TableHead>Sección</TableHead>
                   <TableHead>Categoría</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead>Fecha publicación</TableHead>
@@ -211,6 +240,7 @@ export default function DocumentosPublicosConfigPanel() {
                 {docs.map(doc => (
                   <TableRow key={doc.id}>
                     <TableCell className="font-medium">{displayName(doc)}</TableCell>
+                    <TableCell>{doc.seccionNombre ?? '—'}</TableCell>
                     <TableCell>{doc.categoriaNombre ?? '—'}</TableCell>
                     <TableCell>{doc.fase ?? '—'}</TableCell>
                     <TableCell>{doc.fechaPublicacion}</TableCell>
@@ -307,6 +337,9 @@ export default function DocumentosPublicosConfigPanel() {
 
       {/* Categorías dialog */}
       <CategoriasDialog open={showCategorias} onOpenChange={setShowCategorias} />
+
+      {/* Secciones dialog */}
+      <SeccionesDialog open={showSecciones} onOpenChange={setShowSecciones} />
     </>
   )
 }
@@ -400,6 +433,132 @@ function CategoriasDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
               ))}
               {!categorias?.length && (
                 <p className="text-sm text-muted-foreground text-center py-2">Sin categorías</p>
+              )}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Secciones Dialog ──────────────────────────────────────────────────────
+
+function SeccionesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { data: secciones, isLoading } = useSeccionesDocPublico()
+  const createMut = useCreateSeccionDocPublico()
+  const updateMut = useUpdateSeccionDocPublico()
+  const toggleMut = useToggleSeccionDocPublico()
+
+  const [nombre, setNombre] = useState('')
+  const [orden, setOrden] = useState('')
+  const [editId, setEditId] = useState<number | null>(null)
+  const [editNombre, setEditNombre] = useState('')
+  const [editOrden, setEditOrden] = useState('')
+
+  function handleCreate() {
+    if (!nombre.trim()) return
+    createMut.mutate(
+      { nombre: nombre.trim(), orden: orden ? Number(orden) : null },
+      { onSuccess: () => { setNombre(''); setOrden('') } },
+    )
+  }
+
+  function startEdit(sec: SeccionDocumentoPublicoDTO) {
+    setEditId(sec.id)
+    setEditNombre(sec.nombre)
+    setEditOrden(sec.orden != null ? String(sec.orden) : '')
+  }
+
+  function handleUpdate() {
+    if (editId == null || !editNombre.trim()) return
+    updateMut.mutate(
+      { id: editId, nombre: editNombre.trim(), orden: editOrden ? Number(editOrden) : null },
+      { onSuccess: () => setEditId(null) },
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Secciones (Visitas)</DialogTitle>
+          <DialogDescription>Cree y administre las secciones para agrupar documentos por visita.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Nueva sección"
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              className="flex-1"
+            />
+            <Input
+              type="number"
+              placeholder="Orden"
+              value={orden}
+              onChange={e => setOrden(e.target.value)}
+              className="w-20"
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            />
+            <Button size="sm" onClick={handleCreate} disabled={createMut.isPending || !nombre.trim()}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          {isLoading ? (
+            <div className="flex justify-center py-4"><Spinner className="h-5 w-5" /></div>
+          ) : (
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {secciones?.map(sec => (
+                <div key={sec.id} className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-muted">
+                  {editId === sec.id ? (
+                    <div className="flex gap-2 flex-1">
+                      <Input
+                        value={editNombre}
+                        onChange={e => setEditNombre(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleUpdate()}
+                        className="h-7 text-sm flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={editOrden}
+                        onChange={e => setEditOrden(e.target.value)}
+                        className="h-7 text-sm w-16"
+                        placeholder="Orden"
+                        onKeyDown={e => e.key === 'Enter' && handleUpdate()}
+                      />
+                      <Button size="sm" variant="outline" className="h-7" onClick={handleUpdate}>
+                        Guardar
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditId(null)}>
+                        ×
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm ${!sec.activo ? 'text-muted-foreground line-through' : ''}`}>
+                          {sec.nombre}
+                        </span>
+                        {sec.orden != null && (
+                          <span className="text-xs text-muted-foreground">#{sec.orden}</span>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(sec)}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMut.mutate(sec.id)}>
+                          <Eye className={`h-3 w-3 ${!sec.activo ? 'text-muted-foreground' : ''}`} />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+              {!secciones?.length && (
+                <p className="text-sm text-muted-foreground text-center py-2">Sin secciones</p>
               )}
             </div>
           )}

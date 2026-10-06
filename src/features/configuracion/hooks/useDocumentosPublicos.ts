@@ -9,12 +9,18 @@ import {
   createCategoriaDocPublico,
   updateCategoriaDocPublico,
   toggleCategoriaDocPublico,
+  getSeccionesDocPublico,
+  getSeccionesActivasDocPublico,
+  createSeccionDocPublico,
+  updateSeccionDocPublico,
+  toggleSeccionDocPublico,
   type DocumentoPublicoRequest,
 } from '../api/documentosPublicos.api'
 import { toast } from 'sonner'
 
 const DOCS_KEY = 'documentos-publicos'
 const CATS_KEY = 'categorias-doc-publico'
+const SECS_KEY = 'secciones-doc-publico'
 
 export function useDocumentosPublicosAdmin() {
   return useQuery({
@@ -109,5 +115,59 @@ export function useToggleCategoriaDocPublico() {
       toast.success(cat.activo ? 'Categoría activada' : 'Categoría desactivada')
     },
     onError: () => toast.error('Error al cambiar estado de la categoría'),
+  })
+}
+
+// ─── Secciones ─────────────────────────────────────────────────────────────
+
+export function useSeccionesDocPublico() {
+  return useQuery({
+    queryKey: [SECS_KEY],
+    queryFn: getSeccionesDocPublico,
+  })
+}
+
+export function useSeccionesActivasDocPublico() {
+  return useQuery({
+    queryKey: [SECS_KEY, 'activas'],
+    queryFn: getSeccionesActivasDocPublico,
+  })
+}
+
+export function useCreateSeccionDocPublico() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ nombre, orden }: { nombre: string; orden?: number | null }) =>
+      createSeccionDocPublico(nombre, orden),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [SECS_KEY] })
+      toast.success('Sección creada')
+    },
+    onError: () => toast.error('Error al crear la sección'),
+  })
+}
+
+export function useUpdateSeccionDocPublico() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, nombre, orden }: { id: number; nombre: string; orden?: number | null }) =>
+      updateSeccionDocPublico(id, nombre, orden),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [SECS_KEY] })
+      toast.success('Sección actualizada')
+    },
+    onError: () => toast.error('Error al actualizar la sección'),
+  })
+}
+
+export function useToggleSeccionDocPublico() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => toggleSeccionDocPublico(id),
+    onSuccess: (sec) => {
+      qc.invalidateQueries({ queryKey: [SECS_KEY] })
+      toast.success(sec.activo ? 'Sección activada' : 'Sección desactivada')
+    },
+    onError: () => toast.error('Error al cambiar estado de la sección'),
   })
 }
