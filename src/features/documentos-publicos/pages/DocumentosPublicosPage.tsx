@@ -177,16 +177,16 @@ export default function DocumentosPublicosPage() {
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 32 }}>
             <div style={{ flex: 1, minWidth: 280 }}>
-              <div style={styles.overline}>Repositorio De Cuestionarios</div>
-              <h1 style={styles.heroTitle}>Documentos Públicos</h1>
+              <div style={styles.overline}>Questionnaire Repository</div>
+              <h1 style={styles.heroTitle}>Public Documents</h1>
               <p style={styles.heroDesc}>
-                Acceda a los cuestionarios de la Cohorte de Trabajadores de la Salud de las diferentes mediciones.
+                Access the questionnaires of the Health Workers Cohort from the different measurement waves.
               </p>
             </div>
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={styles.metric}>{docs.length}</div>
-                <div style={{ fontFamily: 'var(--dp-sans)', fontSize: 11, color: 'var(--dp-fg-3)', marginTop: 4 }}>documentos</div>
+                <div style={{ fontFamily: 'var(--dp-sans)', fontSize: 11, color: 'var(--dp-fg-3)', marginTop: 4 }}>documents</div>
               </div>
             </div>
           </div>
@@ -197,7 +197,7 @@ export default function DocumentosPublicosPage() {
               <SearchIcon />
               <input
                 type="text"
-                placeholder="Buscar por nombre o descripción..."
+                placeholder="Search by name..."
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
                 style={styles.searchInput}
@@ -208,7 +208,7 @@ export default function DocumentosPublicosPage() {
               onChange={e => setFiltroCategoria(e.target.value)}
               style={styles.select}
             >
-              <option value="todas">Todas Las Categorías</option>
+              <option value="todas">All Categories</option>
               {categorias.map(c => <option key={c.id} value={String(c.id)}>{c.nombre}</option>)}
             </select>
             {fases.length > 0 && (
@@ -217,7 +217,7 @@ export default function DocumentosPublicosPage() {
                 onChange={e => setFiltroFase(e.target.value)}
                 style={styles.select}
               >
-                <option value="todas">Todas Las Fases</option>
+                <option value="todas">All Phases</option>
                 {fases.map(f => <option key={f}  value={f}>Fase {f}</option>)}
                 
               </select>
