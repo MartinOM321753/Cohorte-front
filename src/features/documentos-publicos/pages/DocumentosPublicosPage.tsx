@@ -165,7 +165,7 @@ export default function DocumentosPublicosPage() {
       <div style={styles.topBar}>
         <img src={cohorteLogoUrl} alt="Logo" style={{ height: 32, width: 'auto' }} />
         <span style={{ fontFamily: 'var(--dp-sans)', fontSize: 14, fontWeight: 700, color: 'var(--dp-fg-0)', letterSpacing: '-0.3px' }}>
-          Cohorte de Trabajadores de la Salud
+          Health Workers Cohort Study
         </span>
         <div style={{ flex: 1 }} />
         <span style={{ fontFamily: 'var(--dp-sans)', fontSize: 12, color: 'var(--dp-fg-2)', fontWeight: 500 }}>
@@ -272,7 +272,7 @@ export default function DocumentosPublicosPage() {
           )}
 
           <div style={{ fontFamily: 'var(--dp-sans)', fontSize: 11, color: 'var(--dp-fg-3)', marginTop: 16, textAlign: 'right' }}>
-            {!loading && `${filtered.length} de ${docs.length} documentos`}
+            {!loading && `${filtered.length} of ${docs.length} documents`}
           </div>
         </div>
       </div>
@@ -280,7 +280,7 @@ export default function DocumentosPublicosPage() {
       {/* ── Footer ── */}
       <div style={styles.footer}>
         <span style={{ fontFamily: 'var(--dp-sans)', fontSize: 11, color: 'var(--dp-fg-3)' }}>
-          Cohorte de Trabajadores de la Salud · Documentación pública
+          Health Workers Cohort Study · Public Documentation
         </span>
       </div>
 
