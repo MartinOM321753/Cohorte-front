@@ -710,13 +710,13 @@ export interface TuboDecisionRequest {
   volumen?: number
   unidad?: string
   planVolumenes?: number[]
+  observaciones?: string
 }
 
 export interface ProcesarProtocoloRequest {
   pacienteUUID: string
   idProtocolo: number
   fechaRecoleccion?: string
-  observaciones?: string
   tubos: TuboDecisionRequest[]
 }
 

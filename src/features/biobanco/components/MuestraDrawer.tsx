@@ -49,6 +49,7 @@ interface DrawerActions {
   onPrintAlicuotas: (id: number) => void
   onPrintLoteCompleto: (id: number) => void
   onVerUbicacion3D: (m: MuestraDetalleDTO) => void
+  onUbicar: (m: MuestraDetalleDTO) => void
 }
 
 interface MuestraDrawerProps {
@@ -164,9 +165,19 @@ export function MuestraDrawer({ muestra, onClose, trasladoInfo, actions, numAlic
                 )}
               </>
             ) : (
-              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-amber-500" /> Sin posición asignada
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-amber-500" /> Sin posición asignada
+                </p>
+                {!noEnMiPosesion && !isPrestada && !esBaja && (
+                  <button
+                    onClick={() => { actions.onUbicar(muestra); onClose() }}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-md px-3 py-1.5 transition-colors"
+                  >
+                    <MapPin className="h-3.5 w-3.5" /> Asignar posición
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

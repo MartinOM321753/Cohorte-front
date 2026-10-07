@@ -4,8 +4,9 @@ import {
   Paperclip, ArrowRightFromLine, History, FlaskConical,
   ChevronDown, ChevronUp, ChevronLeft, MapPinOff, ClipboardList, X, Printer, Tag,
   EyeOff, Eye, Ban, Boxes, ScanLine, PackageCheck, Hourglass, BatteryLow, Loader2,
+  SquareArrowOutUpRight, MapPin, CheckSquare, Square,
 } from 'lucide-react'
-import { useMuestrasCursor, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta, useAlicuotarTubo } from '../hooks/useBiobanco'
+import { useMuestrasCursor, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta, useAlicuotarTubo, useAsignarPosicionMuestra } from '../hooks/useBiobanco'
 import type { AnclaListado, CriteriosListadoMuestras } from '../hooks/useBiobanco'
 import { EscanearEtiquetaModal } from './EscanearEtiquetaModal'
 import { useLectorCodigos } from '../hooks/useLectorCodigos'
@@ -62,6 +63,7 @@ import { cn, formatDate } from '@/lib/utils'
 import { MuestraDetalleDTO } from '@/types/api'
 import { etiquetaPosicionCaja } from '../lib/posicionCaja'
 import { MuestraDrawer } from './MuestraDrawer'
+import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
 
 // ── Listado ───────────────────────────────────────────────────────────────────
 
@@ -168,6 +170,7 @@ interface SharedActions {
   onPrintAlicuotas: (id: number) => void
   onPrintLoteCompleto: (id: number) => void
   onVerUbicacion3D: (m: MuestraDetalleDTO) => void
+  onUbicar: (m: MuestraDetalleDTO) => void
 }
 
 function DarDeBajaButton({
@@ -1061,10 +1064,8 @@ function StatChip({ icon: Icon, label, value, accent }: {
   return (
     <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-2', colors)}>
       <Icon className="h-4 w-4 shrink-0" />
-      <div>
-        <p className="text-xs font-medium opacity-80">{label}</p>
-        <p className="text-lg font-bold leading-tight">{value}</p>
-      </div>
+      <p className="text-lg font-bold leading-tight">{value}</p>
+      <p className="text-xs font-medium opacity-80">{label}</p>
     </div>
   )
 }
@@ -1112,6 +1113,37 @@ export function MuestrasTab() {
   const [cardSel, setCardSel] = useState<string | null>(null)
   /** Muestra (tubo o alícuota) abierta en el drawer lateral derecho. */
   const [drawerMuestra, setDrawerMuestra] = useState<MuestraDetalleDTO | null>(null)
+  /** Muestras seleccionadas para acciones masivas (imprimir / trasladar). */
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  /** Muestra cuya posición se está asignando de forma independiente. */
+  const [ubicarMuestra, setUbicarMuestra] = useState<MuestraDetalleDTO | null>(null)
+
+  const detailRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (!cardSel) return
+    const el = detailRef.current
+    if (!el) return
+    const hidden: HTMLElement[] = []
+    let node: HTMLElement | null = el
+    while (node) {
+      const parent: HTMLElement | null = node.parentElement
+      if (!parent) break
+      for (const sibling of Array.from(parent.children)) {
+        if (sibling === node || sibling === el) continue
+        const s = sibling as HTMLElement
+        if (s.style.display !== 'none') {
+          s.dataset.hiddenByDetail = s.style.display
+          s.style.display = 'none'
+          hidden.push(s)
+        }
+      }
+      if (parent.classList.contains('gap-6')) break
+      node = parent
+    }
+    return () => {
+      hidden.forEach((s) => { s.style.display = s.dataset.hiddenByDetail ?? ''; delete s.dataset.hiddenByDetail })
+    }
+  }, [cardSel])
 
   /*
    * Lo que la pantalla pide al servidor. La búsqueda entra diferida y los tipos
@@ -1585,6 +1617,61 @@ export function MuestrasTab() {
   }
   const handleModalClose = () => { setIsMuestraModalOpen(false); setEditingMuestra(null) }
 
+  const asignarPosicion = useAsignarPosicionMuestra()
+  const handleUbicarIndependiente = async (idPosicionCaja: number) => {
+    if (!ubicarMuestra) return
+    try {
+      await asignarPosicion.mutateAsync({ id: ubicarMuestra.id, data: { idPosicionCaja } })
+      toast.success(`Posición asignada a ${ubicarMuestra.etiqueta}`)
+      setUbicarMuestra(null)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Error al asignar posición')
+    }
+  }
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const handlePrintSeleccion = async () => {
+    if (selectedIds.size === 0) return
+    if (!resolvedConfigId) { toast.error('No hay configuración de etiqueta.'); return }
+    try {
+      const batches = await Promise.all(
+        [...selectedIds].map((id) => getLabelDataEtiqueta(id, resolvedConfigId))
+      )
+      const merged: PrintableLabelBatchDTO = {
+        configuracion: batches[0].configuracion,
+        etiquetas: batches.flatMap((b) => b.etiquetas),
+      }
+      if (isBrowserPrint) {
+        setBrowserPrintData(merged)
+      } else {
+        const imp = selectedPrinter || impresoras[0]
+        if (!imp) { toast.error('No hay impresoras disponibles.'); return }
+        if (merged.etiquetas.some((e) => e.id != null)) {
+          setAcomodoRollo(merged)
+        } else {
+          setBrowserPrintData(merged)
+        }
+      }
+      toast.success(`${merged.etiquetas.length} etiqueta(s) preparadas`)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Error al preparar etiquetas')
+    }
+  }
+
+  const handleTrasladarSeleccion = () => {
+    if (selectedIds.size === 0) return
+    const allMuestras = [...padres, ...padres.flatMap((p) => alicuotasByPadre.get(p.id) ?? [])]
+    const first = allMuestras.find((m) => selectedIds.has(m.id))
+    if (first) handleTrasladoClick(first)
+  }
+
   const handleTrasladoClick = (m: MuestraDetalleDTO) => setPendingTraslado(m)
   const handleConfirmTraslado = () => {
     if (pendingTraslado) { setTrasladandoMuestra(pendingTraslado); setPendingTraslado(null) }
@@ -1734,6 +1821,7 @@ export function MuestrasTab() {
     onPrintAlicuotas: handlePrintAlicuotas,
     onPrintLoteCompleto: handlePrintLoteCompleto,
     onVerUbicacion3D: setUbicacion3DMuestra,
+    onUbicar: setUbicarMuestra,
   }
 
   if (isLoading) {
@@ -1745,7 +1833,7 @@ export function MuestrasTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={detailRef} className="space-y-4">
       {!cardSel && (<>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -1919,9 +2007,9 @@ export function MuestrasTab() {
               <div className="space-y-4">
                 {/* Breadcrumb */}
                 <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <button onClick={() => setCardSel(null)} className="hover:text-foreground transition-colors">Biobanco</button>
+                  <button onClick={() => { setCardSel(null); setSelectedIds(new Set()) }} className="hover:text-foreground transition-colors">Biobanco</button>
                   <span className="text-muted-foreground/50">›</span>
-                  <button onClick={() => setCardSel(null)} className="hover:text-foreground transition-colors">Muestras</button>
+                  <button onClick={() => { setCardSel(null); setSelectedIds(new Set()) }} className="hover:text-foreground transition-colors">Muestras</button>
                   <span className="text-muted-foreground/50">›</span>
                   <span className="text-foreground font-medium truncate">Folio {cardDet.folio}</span>
                 </nav>
@@ -1929,7 +2017,7 @@ export function MuestrasTab() {
                 {/* Header */}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setCardSel(null)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setCardSel(null); setSelectedIds(new Set()) }}>
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <div className="min-w-0">
@@ -1980,17 +2068,38 @@ export function MuestrasTab() {
                     </Select>
                   )}
                   <div className="h-5 w-px bg-border mx-0.5 hidden sm:block" />
-                  {puedeEditarMuestra && (
-                    <Button size="sm" onClick={() => setIsMuestraModalOpen(true)}>
-                      <Edit className="h-3.5 w-3.5 mr-1.5" /> Nueva muestra
+                  {selectedIds.size === 0 ? (
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      const allIds = new Set([...cardDet.padres.map((p) => p.id), ...alicuotasTodas.map((a) => a.id)])
+                      setSelectedIds(allIds)
+                    }}>
+                      <CheckSquare className="h-3.5 w-3.5 mr-1.5" /> Seleccionar todo
                     </Button>
+                  ) : (
+                    <>
+                      <span className="text-xs font-medium text-primary">{selectedIds.size} seleccionadas</span>
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        const allIds = new Set([...cardDet.padres.map((p) => p.id), ...alicuotasTodas.map((a) => a.id)])
+                        setSelectedIds(allIds)
+                      }}>
+                        <CheckSquare className="h-3.5 w-3.5 mr-1.5" /> Todas
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                        <Square className="h-3.5 w-3.5 mr-1.5" /> Ninguna
+                      </Button>
+                      {puedeImprimir && (
+                        <Button variant="outline" size="sm" onClick={handlePrintSeleccion}>
+                          <Printer className="h-3.5 w-3.5 mr-1.5" /> Imprimir selección
+                        </Button>
+                      )}
+                      {puedeTraslado && (
+                        <Button variant="outline" size="sm" onClick={handleTrasladarSeleccion}
+                          className="text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10">
+                          <ArrowRightFromLine className="h-3.5 w-3.5 mr-1.5" /> Trasladar selección
+                        </Button>
+                      )}
+                    </>
                   )}
-                  {puedeEscanear && (
-                    <Button variant="outline" size="sm" onClick={() => { setErrorEscaneo(null); setEscanerAbierto(true) }}>
-                      <ScanLine className="h-3.5 w-3.5 mr-1.5" /> Escanear
-                    </Button>
-                  )}
-                  <FiltrosMuestrasPanel filtros={filtros} onChange={setFiltros} tiposMuestra={tiposActivos} />
                 </div>
 
                 {/* Stats */}
@@ -2009,29 +2118,112 @@ export function MuestrasTab() {
                       {cardDet.padres.map((p) => {
                         const alis = alicuotasTodas.filter((a) => a.idMuestraPadre === p.id)
                         const badge = tubeStatusBadge(p, trasladosActivos.get(p.id), myInstitucionId)
+                        const isSelected = selectedIds.has(p.id)
+                        const selMode = selectedIds.size > 0
+                        const tInfo = trasladosActivos.get(p.id)
+                        const noEnMiPos = p.idInstitucionActual != null && myInstitucionId != null && p.idInstitucionActual !== myInstitucionId
+                        const isPrest = p.estadoMuestra === 'PRESTADA'
+                        const noEdit = isPrest || noEnMiPos || (p.idInstitucion != null && myInstitucionId != null && p.idInstitucion !== myInstitucionId)
+                        const puedeEnv = !tInfo && !noEnMiPos && puedeTraslado && p.estadoMuestra !== 'BAJA' && !p.agotada
+                        const sinUbic = !p.ubicacion && p.estadoMuestra !== 'BAJA' && !noEnMiPos && !isPrest
                         return (
                           <MarcoLocalizada key={p.id} id={p.id} resaltada={resaltadaId === p.id}>
-                            <button
-                              onClick={() => setDrawerMuestra(p)}
+                            <div
+                              onClick={() => selMode ? toggleSelect(p.id) : setDrawerMuestra(p)}
                               className={cn(
-                                'w-full text-left rounded-lg border p-3 transition-all hover:border-primary/60 hover:shadow-sm bg-card',
+                                'relative rounded-lg border transition-all hover:border-primary/60 hover:shadow-sm bg-card group cursor-pointer flex',
                                 estaAgotada(p) && 'opacity-60 saturate-[.5]',
+                                isSelected && 'ring-2 ring-primary border-primary/60',
                               )}
                             >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-mono text-sm font-semibold truncate">{p.etiqueta}</span>
-                                <Badge variant="outline" className={cn('text-[10px] shrink-0', badge.cls)}>{badge.label}</Badge>
+                              {/* Left: content */}
+                              <div className="flex-1 p-3 min-w-0">
+                                {/* Row 1: checkbox + etiqueta + badge */}
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); toggleSelect(p.id) }}
+                                    className="p-0.5 rounded hover:bg-muted transition-colors shrink-0"
+                                  >
+                                    {isSelected
+                                      ? <CheckSquare className="h-4 w-4 text-primary" />
+                                      : <Square className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground" />
+                                    }
+                                  </button>
+                                  <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
+                                    {p.ubicacion ? (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); actions.onVerUbicacion3D(p) }}
+                                        className="font-mono text-sm font-semibold truncate text-primary hover:underline inline-flex items-center gap-1"
+                                        title="Ver ubicación 3D"
+                                      >
+                                        {p.etiqueta}
+                                        <SquareArrowOutUpRight className="h-3 w-3 shrink-0 opacity-60" />
+                                      </button>
+                                    ) : (
+                                      <span className="font-mono text-sm font-semibold truncate">{p.etiqueta}</span>
+                                    )}
+                                    {/* Status badge — clickable */}
+                                    {sinUbic ? (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); actions.onUbicar(p) }}
+                                        title="Asignar posición"
+                                        className="shrink-0"
+                                      >
+                                        <Badge variant="outline" className={cn('text-[10px] cursor-pointer hover:bg-amber-500/20', badge.cls)}>
+                                          <MapPin className="h-3 w-3 mr-0.5" />{badge.label}
+                                        </Badge>
+                                      </button>
+                                    ) : p.ubicacion ? (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); actions.onVerUbicacion3D(p) }}
+                                        title="Ver ubicación 3D"
+                                        className="shrink-0"
+                                      >
+                                        <Badge variant="outline" className={cn('text-[10px] cursor-pointer hover:bg-green-500/20', badge.cls)}>
+                                          <Boxes className="h-3 w-3 mr-0.5" />{badge.label}
+                                        </Badge>
+                                      </button>
+                                    ) : (
+                                      <Badge variant="outline" className={cn('text-[10px] shrink-0', badge.cls)}>{badge.label}</Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                {/* Row 2: tipo */}
+                                <p className="text-xs text-muted-foreground mt-1 truncate pl-6">
+                                  {p.tipoMuestra?.nombre ?? '—'}{p.tuboMuestra ? ` · ${p.tuboMuestra.nombre}` : ''}
+                                </p>
+                                {/* Row 3: fecha + alícuotas count */}
+                                <div className="flex items-center justify-between mt-2 pl-6">
+                                  <span className="text-xs text-muted-foreground">{formatDate(p.fechaRecoleccion)}</span>
+                                  {alis.length > 0 && (
+                                    <span className="text-[10px] font-medium text-primary">{alis.length} alíc.</span>
+                                  )}
+                                </div>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1 truncate">
-                                {p.tipoMuestra?.nombre ?? '—'}{p.tuboMuestra ? ` · ${p.tuboMuestra.nombre}` : ''}
-                              </p>
-                              <div className="flex items-center justify-between mt-2">
-                                <span className="text-xs text-muted-foreground">{formatDate(p.fechaRecoleccion)}</span>
-                                {alis.length > 0 && (
-                                  <span className="text-[10px] font-medium text-primary">{alis.length} alíc.</span>
+                              {/* Right: vertical quick actions */}
+                              <div className="flex flex-col items-center justify-center gap-0.5 border-l border-border/50 px-1.5 py-1" onClick={(e) => e.stopPropagation()}>
+                                {!noEdit && (
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => actions.onEdit(p)} title="Editar">
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                {puedeImprimir && (
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => actions.onPrintEtiqueta(p.id)} title="Imprimir etiqueta">
+                                    <Printer className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                {puedeEnv && (
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-amber-600 dark:text-amber-400" onClick={() => actions.onTrasladoClick(p)} title="Trasladar">
+                                    <ArrowRightFromLine className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                {sinUbic && (
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-blue-600 dark:text-blue-400" onClick={() => actions.onUbicar(p)} title="Asignar posición">
+                                    <MapPin className="h-3.5 w-3.5" />
+                                  </Button>
                                 )}
                               </div>
-                            </button>
+                            </div>
                           </MarcoLocalizada>
                         )
                       })}
@@ -2050,74 +2242,64 @@ export function MuestrasTab() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
+                              <th className="w-8 px-2 py-2"></th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Etiqueta</th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Lote</th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Volumen</th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden sm:table-cell">Recolección</th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden md:table-cell">Ubicación</th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Estado</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs w-24">Acciones</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y">
-                            {lotesOrdenados.flatMap(([, alis]) =>
-                              alis.map((a) => {
-                                const aBadge = tubeStatusBadge(a, trasladosActivos.get(a.id), myInstitucionId)
-                                const ubic = a.ubicacion
-                                return (
-                                  <tr
-                                    key={a.id}
-                                    data-muestra-id={a.id}
-                                    onClick={() => setDrawerMuestra(a)}
-                                    className={cn(
-                                      'cursor-pointer hover:bg-muted/50 transition-colors',
-                                      resaltadaId === a.id && 'ring-2 ring-primary ring-inset',
-                                    )}
-                                  >
-                                    <td className="px-3 py-2 font-mono text-xs font-medium whitespace-nowrap">{a.etiqueta}</td>
-                                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
-                                      {a.numeroLote != null ? `L${a.numeroLote} · #${a.numeroEnLote}` : '—'}
-                                    </td>
-                                    <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
-                                      {a.valor != null ? `${a.valor} ${a.unidad ?? ''}` : '—'}
-                                    </td>
-                                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap hidden sm:table-cell">
-                                      {formatDate(a.fechaRecoleccion)}
-                                    </td>
-                                    <td className="px-3 py-2 text-xs hidden md:table-cell">
-                                      {ubic ? (
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); actions.onVerUbicacion3D(a) }}
-                                          className="text-primary hover:underline truncate max-w-[160px] block"
-                                          title={`${ubic.codigoRefrigerador} · P${ubic.numeroPiso} · ${ubic.codigoCaja} · ${etiquetaPosicionCaja(ubic.fila, ubic.columna)}`}
-                                        >
-                                          {ubic.codigoCaja} · {etiquetaPosicionCaja(ubic.fila, ubic.columna)}
-                                        </button>
-                                      ) : (
-                                        <span className="text-amber-600 dark:text-amber-400">Sin asignar</span>
-                                      )}
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      <Badge variant="outline" className={cn('text-[10px]', aBadge.cls)}>{aBadge.label}</Badge>
-                                    </td>
-                                  </tr>
-                                )
-                              })
-                            )}
-                            {cardDet.huerfanas.map((a) => {
+                            {[...lotesOrdenados.flatMap(([, alis]) => alis), ...cardDet.huerfanas].map((a) => {
                               const aBadge = tubeStatusBadge(a, trasladosActivos.get(a.id), myInstitucionId)
                               const ubic = a.ubicacion
+                              const isSelected = selectedIds.has(a.id)
+                              const selMode = selectedIds.size > 0
+                              const aTInfo = trasladosActivos.get(a.id)
+                              const aNoEnMiPos = a.idInstitucionActual != null && myInstitucionId != null && a.idInstitucionActual !== myInstitucionId
+                              const aIsPrest = a.estadoMuestra === 'PRESTADA'
+                              const aNoEdit = aIsPrest || aNoEnMiPos || (a.idInstitucion != null && myInstitucionId != null && a.idInstitucion !== myInstitucionId)
+                              const aPuedeEnv = !aTInfo && !aNoEnMiPos && puedeTraslado && a.estadoMuestra !== 'BAJA' && !a.agotada
+                              const aSinUbic = !a.ubicacion && a.estadoMuestra !== 'BAJA' && !aNoEnMiPos && !aIsPrest
                               return (
                                 <tr
                                   key={a.id}
                                   data-muestra-id={a.id}
-                                  onClick={() => setDrawerMuestra(a)}
+                                  onClick={() => selMode ? toggleSelect(a.id) : setDrawerMuestra(a)}
                                   className={cn(
-                                    'cursor-pointer hover:bg-muted/50 transition-colors',
+                                    'cursor-pointer hover:bg-muted/50 transition-colors group',
                                     resaltadaId === a.id && 'ring-2 ring-primary ring-inset',
+                                    isSelected && 'bg-primary/5',
                                   )}
                                 >
-                                  <td className="px-3 py-2 font-mono text-xs font-medium whitespace-nowrap">{a.etiqueta}</td>
-                                  <td className="px-3 py-2 text-xs text-muted-foreground">—</td>
+                                  <td className="px-2 py-2" onClick={(e) => { e.stopPropagation(); toggleSelect(a.id) }}>
+                                    <button className="p-0.5 rounded hover:bg-muted transition-colors">
+                                      {isSelected
+                                        ? <CheckSquare className="h-4 w-4 text-primary" />
+                                        : <Square className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground" />
+                                      }
+                                    </button>
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap">
+                                    {a.ubicacion ? (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); actions.onVerUbicacion3D(a) }}
+                                        className="font-mono text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
+                                        title="Ver ubicación 3D"
+                                      >
+                                        {a.etiqueta}
+                                        <SquareArrowOutUpRight className="h-3 w-3 shrink-0 opacity-60" />
+                                      </button>
+                                    ) : (
+                                      <span className="font-mono text-xs font-medium">{a.etiqueta}</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                                    {a.numeroLote != null ? `L${a.numeroLote} · #${a.numeroEnLote}` : '—'}
+                                  </td>
                                   <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
                                     {a.valor != null ? `${a.valor} ${a.unidad ?? ''}` : '—'}
                                   </td>
@@ -2128,16 +2310,60 @@ export function MuestrasTab() {
                                     {ubic ? (
                                       <button
                                         onClick={(e) => { e.stopPropagation(); actions.onVerUbicacion3D(a) }}
-                                        className="text-primary hover:underline truncate max-w-[160px] block"
+                                        className="text-primary hover:underline truncate max-w-[160px] inline-flex items-center gap-1"
+                                        title={`${ubic.codigoRefrigerador} · P${ubic.numeroPiso} · ${ubic.codigoCaja} · ${etiquetaPosicionCaja(ubic.fila, ubic.columna)}`}
                                       >
                                         {ubic.codigoCaja} · {etiquetaPosicionCaja(ubic.fila, ubic.columna)}
                                       </button>
                                     ) : (
-                                      <span className="text-amber-600 dark:text-amber-400">Sin asignar</span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); if (aSinUbic) actions.onUbicar(a) }}
+                                        className={cn(
+                                          'text-amber-600 dark:text-amber-400',
+                                          aSinUbic && 'hover:underline cursor-pointer',
+                                        )}
+                                        title={aSinUbic ? 'Asignar posición' : undefined}
+                                        disabled={!aSinUbic}
+                                      >
+                                        Sin asignar
+                                      </button>
                                     )}
                                   </td>
-                                  <td className="px-3 py-2">
-                                    <Badge variant="outline" className={cn('text-[10px]', aBadge.cls)}>{aBadge.label}</Badge>
+                                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                                    {aSinUbic ? (
+                                      <button onClick={() => actions.onUbicar(a)} title="Asignar posición">
+                                        <Badge variant="outline" className={cn('text-[10px] cursor-pointer hover:bg-amber-500/20', aBadge.cls)}>
+                                          <MapPin className="h-3 w-3 mr-0.5" />{aBadge.label}
+                                        </Badge>
+                                      </button>
+                                    ) : ubic ? (
+                                      <button onClick={() => actions.onVerUbicacion3D(a)} title="Ver ubicación 3D">
+                                        <Badge variant="outline" className={cn('text-[10px] cursor-pointer hover:bg-green-500/20', aBadge.cls)}>
+                                          <Boxes className="h-3 w-3 mr-0.5" />{aBadge.label}
+                                        </Badge>
+                                      </button>
+                                    ) : (
+                                      <Badge variant="outline" className={cn('text-[10px]', aBadge.cls)}>{aBadge.label}</Badge>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center gap-0.5">
+                                      {!aNoEdit && (
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => actions.onEdit(a)} title="Editar">
+                                          <Edit className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                      {puedeImprimir && (
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => actions.onPrintEtiqueta(a.id)} title="Imprimir">
+                                          <Printer className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                      {aPuedeEnv && (
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600 dark:text-amber-400" onClick={() => actions.onTrasladoClick(a)} title="Trasladar">
+                                          <ArrowRightFromLine className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               )
@@ -2163,7 +2389,7 @@ export function MuestrasTab() {
           </div>
         )}
 
-        {cards.length > 0 && (
+        {!cardSel && cards.length > 0 && (
           <p className="pb-2 text-center text-xs text-muted-foreground">
             {padres.length >= totalMuestras
               ? `${cards.length} procesamiento(s) · ${totalMuestras} ${totalMuestras === 1 ? 'tubo' : 'tubos'} en total`
@@ -2309,6 +2535,12 @@ export function MuestrasTab() {
           imprimiendo={enviandoAcomodo}
         />
       )}
+
+      <SeleccionPosicionCajaModal
+        open={ubicarMuestra !== null}
+        onOpenChange={(open) => { if (!open) setUbicarMuestra(null) }}
+        onConfirm={({ idPosicionCaja }) => handleUbicarIndependiente(idPosicionCaja)}
+      />
 
       <MuestraDrawer
         muestra={drawerMuestra}

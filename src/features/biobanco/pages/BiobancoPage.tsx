@@ -75,7 +75,7 @@ export default function BiobancoPage() {
     if (puedeMuestras)
       all.push({
         value: 'lotes',
-        label: 'Lotes',
+        label: 'Muestras',
         permiso: 'MUESTRAS_VER',
         dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configura al menos un tipo de muestra activo' },
       })

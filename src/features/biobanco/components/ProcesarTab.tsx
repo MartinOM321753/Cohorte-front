@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Switch } from '@/components/ui/switch'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -31,6 +32,7 @@ interface DecisionEstado {
   incluir: boolean
   accion: AccionTubo
   volumen: string
+  observaciones: string
 }
 
 export function ProcesarTab() {
@@ -40,7 +42,6 @@ export function ProcesarTab() {
   const [pacienteUUID, setPacienteUUID] = useState('')
   const [idProtocolo, setIdProtocolo] = useState<string>('')
   const [fecha, setFecha] = useState('')
-  const [observaciones, setObservaciones] = useState('')
   const [decisiones, setDecisiones] = useState<Record<number, DecisionEstado>>({})
   const [resultado, setResultado] = useState<ProcesarResultado | null>(null)
 
@@ -61,6 +62,7 @@ export function ProcesarTab() {
         volumen: t.accion === 'ALICUOTAR' && t.volumenAlicuota != null && t.numeroAlicuotas
           ? String(t.volumenAlicuota * t.numeroAlicuotas)
           : '',
+        observaciones: '',
       }
     })
     setDecisiones(init)
@@ -90,13 +92,13 @@ export function ProcesarTab() {
           incluir: d.incluir,
           accion: d.accion,
           volumen: vol != null && Number.isFinite(vol) ? vol : undefined,
+          observaciones: d.observaciones.trim() || undefined,
         }
       })
     const res = await procesar.mutateAsync({
       pacienteUUID,
       idProtocolo: protocolo.id,
       fechaRecoleccion: fecha !== '' ? fecha : undefined,
-      observaciones: observaciones.trim() || undefined,
       tubos,
     })
     setResultado(res)
@@ -107,7 +109,6 @@ export function ProcesarTab() {
     setDecisiones({})
     setIdProtocolo('')
     setPacienteUUID('')
-    setObservaciones('')
     setFecha('')
   }
 
@@ -158,15 +159,15 @@ export function ProcesarTab() {
                   </Select>
                 </div>
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Fecha de recolección</Label>
-                  <Input type="datetime-local" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Observaciones</Label>
-                  <Textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={1} maxLength={200} />
-                </div>
+              <div className="space-y-1.5">
+                <Label>Fecha de recolección</Label>
+                <DateTimePicker
+                  value={fecha}
+                  onChange={setFecha}
+                  placeholder="Seleccione la fecha y la hora"
+                  timeStepMinutes={1}
+                  maxDateTime={new Date()}
+                />
               </div>
             </CardContent>
           </Card>
@@ -214,7 +215,7 @@ function TuboRow({
   decision?: DecisionEstado
   onChange: (patch: Partial<DecisionEstado>) => void
 }) {
-  const d = decision ?? { incluir: true, accion: tubo.accion, volumen: '' }
+  const d = decision ?? { incluir: true, accion: tubo.accion, volumen: '', observaciones: '' }
   const esAlicuotar = d.accion === 'ALICUOTAR'
 
   return (
@@ -240,32 +241,45 @@ function TuboRow({
           </div>
 
           {d.incluir && (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label className="text-[11px]">Acción</Label>
-                <Select value={d.accion} onValueChange={(v) => onChange({ accion: v as AccionTubo })}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="GUARDAR">{ACCION_LABEL.GUARDAR}</SelectItem>
-                    <SelectItem value="ESTUDIO">{ACCION_LABEL.ESTUDIO}</SelectItem>
-                    <SelectItem value="ALICUOTAR">{ACCION_LABEL.ALICUOTAR}</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Acción</Label>
+                  <Select value={d.accion} onValueChange={(v) => onChange({ accion: v as AccionTubo })}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GUARDAR">{ACCION_LABEL.GUARDAR}</SelectItem>
+                      <SelectItem value="ESTUDIO">{ACCION_LABEL.ESTUDIO}</SelectItem>
+                      <SelectItem value="ALICUOTAR">{ACCION_LABEL.ALICUOTAR}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">
+                    {esAlicuotar ? `Volumen extraído (${tubo.unidadVolumen ?? ''})` : 'Volumen'}
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="h-8 text-xs"
+                    value={d.volumen}
+                    onChange={(e) => onChange({ volumen: e.target.value })}
+                    placeholder={esAlicuotar ? 'Lo que salió' : 'Opcional'}
+                  />
+                </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px]">
-                  {esAlicuotar ? `Volumen extraído (${tubo.unidadVolumen ?? ''})` : 'Volumen'}
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className="h-8 text-xs"
-                  value={d.volumen}
-                  onChange={(e) => onChange({ volumen: e.target.value })}
-                  placeholder={esAlicuotar ? 'Lo que salió' : 'Opcional'}
+                <Label className="text-[11px]">Observaciones</Label>
+                <Textarea
+                  className="text-xs"
+                  value={d.observaciones}
+                  onChange={(e) => onChange({ observaciones: e.target.value })}
+                  rows={1}
+                  maxLength={200}
+                  placeholder="Observaciones de este tubo"
                 />
               </div>
             </div>
