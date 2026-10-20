@@ -41,6 +41,7 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
 
     const rows = caja.filas
     const cols = caja.columnas
+    const esAtrasFrente = caja.ordenLlenado === 'ATRAS_FRENTE'
 
     return (
       <div className="space-y-4">
@@ -73,7 +74,10 @@ export function PosicionesModal({ open, onOpenChange, caja }: PosicionesModalPro
             </div>
           ))}
 
-          {Array.from({ length: rows }, (_, rowIndex) => (
+          {(esAtrasFrente
+            ? Array.from({ length: rows }, (_, i) => rows - i - 1)
+            : Array.from({ length: rows }, (_, i) => i)
+          ).map((rowIndex) => (
             <Fragment key={`row-${rowIndex}`}>
               <div className="flex items-center justify-end pr-1 text-xs font-medium text-muted-foreground">
                 {letraFila(rowIndex + 1)}

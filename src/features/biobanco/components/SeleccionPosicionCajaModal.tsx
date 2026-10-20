@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useGetCajas, useGetPosicionesByCaja } from '../hooks/useBiobanco'
 import { PosicionCaja } from '@/types/api'
 import { descripcionPosicionCaja, etiquetaPosicionCaja, letraFila } from '../lib/posicionCaja'
+import { getReservadasEnCaja, reservarPosiciones, liberarReservas } from '../api/biobanco.api'
 
 interface SeleccionPosicionCajaModalProps {
   open: boolean
@@ -28,17 +29,41 @@ export function SeleccionPosicionCajaModal({
 }: SeleccionPosicionCajaModalProps) {
   const [selectedCajaId, setSelectedCajaId] = useState<string>('')
   const [selectedPosicion, setSelectedPosicion] = useState<PosicionCaja | null>(null)
+  const [sesionId] = useState(() => crypto.randomUUID())
+  const [reservadasPorOtros, setReservadasPorOtros] = useState<Set<number>>(new Set())
 
   const { data: cajas } = useGetCajas()
   const { data: posiciones, isLoading: loadingPosiciones } = useGetPosicionesByCaja(
     selectedCajaId ? parseInt(selectedCajaId) : 0
   )
 
-  const filas = posiciones ? [...new Set(posiciones.map((p) => p.fila))].sort((a, b) => a - b) : []
+  const cajaSeleccionada = cajas?.find((c) => c.id.toString() === selectedCajaId)
+  const esAtrasFrente = cajaSeleccionada?.ordenLlenado === 'ATRAS_FRENTE'
+
+  const filas = posiciones
+    ? [...new Set(posiciones.map((p) => p.fila))].sort((a, b) => esAtrasFrente ? b - a : a - b)
+    : []
   const columnas = posiciones ? [...new Set(posiciones.map((p) => p.columna))].sort((a, b) => a - b) : []
 
   const posMap: Record<string, PosicionCaja> = {}
   posiciones?.forEach((p) => { posMap[`${p.fila}-${p.columna}`] = p })
+
+  useEffect(() => {
+    if (!selectedCajaId || !open) { setReservadasPorOtros(new Set()); return }
+    let vivo = true
+    const consultar = () =>
+      getReservadasEnCaja(parseInt(selectedCajaId), sesionId)
+        .then((ids) => { if (vivo) setReservadasPorOtros(new Set(ids)) })
+        .catch(() => {})
+    consultar()
+    const timer = setInterval(consultar, 15_000)
+    return () => { vivo = false; clearInterval(timer) }
+  }, [selectedCajaId, open, sesionId])
+
+  useEffect(() => {
+    if (!selectedPosicion) return
+    reservarPosiciones([selectedPosicion.id], sesionId).catch(() => {})
+  }, [selectedPosicion, sesionId])
 
   const handleCajaChange = (value: string) => {
     setSelectedCajaId(value)
@@ -54,8 +79,10 @@ export function SeleccionPosicionCajaModal({
   }
 
   const handleClose = () => {
+    liberarReservas(sesionId).catch(() => {})
     setSelectedCajaId('')
     setSelectedPosicion(null)
+    setReservadasPorOtros(new Set())
     onOpenChange(false)
   }
 
@@ -118,28 +145,32 @@ export function SeleccionPosicionCajaModal({
                               const pos = posMap[`${fila}-${col}`]
                               const isSelected = selectedPosicion?.id === pos?.id
                               const isOcupada = pos?.ocupada
+                              const reservada = pos ? reservadasPorOtros.has(pos.id) : false
 
                               return (
                                 <td key={col} className="p-0.5">
                                   <button
                                     type="button"
-                                    disabled={!pos || isOcupada}
+                                    disabled={!pos || isOcupada || reservada}
                                     onClick={() => {
-                                      if (pos && !isOcupada) setSelectedPosicion(pos)
+                                      if (pos && !isOcupada && !reservada) setSelectedPosicion(pos)
                                     }}
                                     title={
                                       pos
-                                        ? isOcupada
-                                          ? `${descripcionPosicionCaja(fila, col)} — Ocupada`
-                                          : descripcionPosicionCaja(fila, col)
+                                        ? reservada
+                                          ? `${descripcionPosicionCaja(fila, col)} — Reservada por otro usuario`
+                                          : isOcupada
+                                            ? `${descripcionPosicionCaja(fila, col)} — Ocupada`
+                                            : descripcionPosicionCaja(fila, col)
                                         : ''
                                     }
                                     className={cn(
                                       'w-9 h-9 rounded border text-xs font-medium transition-colors',
                                       !pos && 'bg-muted border-muted opacity-30 cursor-default',
                                       pos && isOcupada && 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50',
-                                      pos && !isOcupada && !isSelected && 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100 cursor-pointer',
-                                      pos && !isOcupada && isSelected && 'bg-blue-500 border-blue-600 text-white cursor-pointer ring-2 ring-blue-300',
+                                      pos && reservada && !isOcupada && 'bg-orange-100 border-orange-400 text-orange-700 cursor-not-allowed opacity-70',
+                                      pos && !isOcupada && !reservada && !isSelected && 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100 cursor-pointer',
+                                      pos && !isOcupada && !reservada && isSelected && 'bg-blue-500 border-blue-600 text-white cursor-pointer ring-2 ring-blue-300',
                                     )}
                                   >
                                     {pos ? etiquetaPosicionCaja(fila, col) : ''}
@@ -152,10 +183,14 @@ export function SeleccionPosicionCajaModal({
                       </tbody>
                     </table>
 
-                    <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1.5">
                         <span className="w-3 h-3 rounded bg-green-50 border border-green-300 inline-block" />
                         Libre
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded bg-orange-100 border border-orange-400 inline-block" />
+                        Reservada
                       </span>
                       <span className="flex items-center gap-1.5">
                         <span className="w-3 h-3 rounded bg-muted border border-border inline-block opacity-50" />
