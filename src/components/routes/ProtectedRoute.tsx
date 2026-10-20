@@ -6,10 +6,20 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   /** Un permiso único (compat) o array — cualquiera del array otorga acceso. */
   requiredPermiso?: string | string[];
+  /**
+   * La pantalla es del participante: hace falta tener expediente, no solo el permiso.
+   *
+   * `CUESTIONARIOS_AUTOCONTESTAR` lo tienen también ROOT y ADMINISTRADOR, y para ellos
+   * la pantalla no tiene de dónde sacar «sus» cuestionarios. Se esconde del menú, pero
+   * la dirección se puede escribir a mano y entonces hay que mandarlos a otro sitio.
+   */
+  soloParticipantes?: boolean;
 }
 
-export function ProtectedRoute({ children, requiredPermiso }: ProtectedRouteProps) {
-  const { isAuthenticated, user, isLoading, hasPermiso, mustChangePassword } = useAuthStore();
+export function ProtectedRoute({ children, requiredPermiso, soloParticipantes }: ProtectedRouteProps) {
+  const {
+    isAuthenticated, user, isLoading, hasPermiso, mustChangePassword, esParticipante,
+  } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
@@ -34,6 +44,10 @@ export function ProtectedRoute({ children, requiredPermiso }: ProtectedRouteProp
     if (!autorizado) {
       return <Navigate to="/unauthorized" replace />;
     }
+  }
+
+  if (soloParticipantes && !esParticipante) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <>{children}</>;

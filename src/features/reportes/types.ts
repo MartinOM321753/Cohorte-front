@@ -190,6 +190,12 @@ export interface EstiloTabla {
   colorBorde?: string
   mostrarEncabezado?: boolean
   columnas?: ColumnaTabla[]
+  /** Espacio horizontal entre los elementos de una fila (mm). Solo para listas. */
+  espaciadoColumnaMm?: number
+  /** Espacio vertical entre filas (mm). Solo para listas. */
+  espaciadoFilaMm?: number
+  /** Muestra la interpretación por colores (bajo/normal/alto). Por defecto true. */
+  interpretacionColor?: boolean
 }
 
 export interface ElementoDatos extends ElementoBase {

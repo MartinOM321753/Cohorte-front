@@ -39,6 +39,15 @@ interface NavItem {
   /** El item aparece si el usuario tiene ALGUNO de estos permisos ACCEDER. */
   permisos?: string[]
   modulo?: string
+  /**
+   * Solo para cuentas con expediente de participante.
+   *
+   * El permiso no alcanza para decidirlo: `CUESTIONARIOS_AUTOCONTESTAR` lo tienen
+   * tambien ROOT y ADMINISTRADOR, y a ellos la pantalla responde «esta cuenta no esta
+   * vinculada a un expediente de participante». Ofrecer en el menu algo que no lleva a
+   * ninguna parte es peor que no ofrecerlo.
+   */
+  soloParticipantes?: boolean
   group: 'Clínico' | 'Biobanco' | 'Sistema'
 }
 
@@ -52,6 +61,25 @@ const navItems: NavItem[] = [
     icon: Microscope,
     permisos: permisosFor('examenes'),
     modulo: 'EXAMENES',
+    group: 'Clínico',
+  },
+  {
+    label: 'Cuestionarios',
+    href: '/cuestionarios',
+    icon: ClipboardList,
+    permisos: permisosFor('cuestionarios'),
+    modulo: 'CUESTIONARIOS',
+    group: 'Clínico',
+  },
+  {
+    // Sin `modulo`: el aspecto que lo comprueba usa la institucion del USUARIO, y una
+    // cuenta de participante puede no tener ninguna. El servidor ya comprueba el modulo
+    // contra la sede de su expediente.
+    label: 'Mis cuestionarios',
+    href: '/mis-cuestionarios',
+    icon: ClipboardList,
+    permisos: permisosFor('misCuestionarios'),
+    soloParticipantes: true,
     group: 'Clínico',
   },
   {
@@ -167,7 +195,7 @@ export function Sidebar() {
   const isMobile = useIsMobile()
   const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebarStore()
   const location = useLocation()
-  const { user, logout, hasPermiso, modulosHabilitados, roles } = useAuthStore()
+  const { user, logout, hasPermiso, modulosHabilitados, roles, esParticipante } = useAuthStore()
 
   useEffect(() => {
     if (isMobile) setMobileOpen(false)
@@ -187,9 +215,10 @@ export function Sidebar() {
         if (!item.permisos.some((p) => hasPermiso(p))) return false
       }
       if (item.modulo && !modulosHabilitados.includes(item.modulo)) return false
+      if (item.soloParticipantes && !esParticipante) return false
       return true
     })
-  }, [modulosHabilitados, hasPermiso, user])
+  }, [modulosHabilitados, hasPermiso, user, esParticipante])
 
   const groupedNavItems = useMemo(() => {
     return filteredNavItems.reduce<Record<NavItem['group'], NavItem[]>>(

@@ -81,3 +81,21 @@ export async function descargarPlantillaMuestras(): Promise<void> {
   // Sin esto el blob se queda en memoria hasta que se recargue la pestaña.
   URL.revokeObjectURL(url)
 }
+
+/**
+ * Descarga la plantilla vacía de la carga por protocolo, con su hoja LEEME.
+ *
+ * Los encabezados que lleva son los que acepta el importador de protocolo; no son
+ * los de la carga de muestras, así que no se reutiliza la plantilla de arriba.
+ */
+export async function descargarPlantillaProtocolo(): Promise<void> {
+  const res = await axiosInstance.get(`${BASE}/protocolo/plantilla`, { responseType: 'blob' })
+  const url = URL.createObjectURL(res.data as Blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'plantilla-carga-protocolo.xlsx'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}

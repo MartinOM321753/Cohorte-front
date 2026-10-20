@@ -133,6 +133,7 @@ export interface Ubicacion3DCaja {
   tipoCaja?: string | null
   color?: string | null
   observaciones?: string | null
+  ordenLlenado?: 'FRENTE_ATRAS' | 'ATRAS_FRENTE' | null
   capacidad: number
   ocupadas: number
   libres: number

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createPaciente, updatePaciente, deletePaciente, toggleActivoPaciente, crearAccesoPaciente, cambiarInstitucionPaciente, reasignarInstitucionPacientes } from '../api/pacientes.api'
+import { createPaciente, updatePaciente, deletePaciente, toggleActivoPaciente, crearAccesoPaciente, cambiarInstitucionPaciente, reasignarInstitucionPacientes, reasignarInstitucionPorRango } from '../api/pacientes.api'
 import { PacienteRequestDTO } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -114,6 +114,20 @@ export function useReasignarInstitucion() {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message ?? 'Error al reasignar la institución')
+    },
+  })
+}
+
+/**
+ * Reasignación por rango. No invalida nada al terminar la petición: el trabajo sigue
+ * corriendo en el servidor y el resumen llega por correo.
+ */
+export function useReasignarInstitucionPorRango() {
+  return useMutation({
+    mutationFn: ({ folioDesde, folioHasta, idInstitucion }: { folioDesde: number; folioHasta: number; idInstitucion: number }) =>
+      reasignarInstitucionPorRango(folioDesde, folioHasta, idInstitucion),
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message ?? 'No se pudo iniciar la reasignación por rango')
     },
   })
 }

@@ -32,6 +32,7 @@ import type { MuestraDetalleDTO, PosicionCaja } from '@/types/api'
 
 import { useGetCajas, useGetPosicionesByCaja, useGetAlicuotasPendientes, useUbicarLoteAlicuotas } from '../hooks/useBiobanco'
 import { descripcionPosicionCaja, etiquetaPosicionCaja, letraFila } from '../lib/posicionCaja'
+import { getReservadasEnCaja, reservarPosiciones, liberarReservas } from '../api/biobanco.api'
 
 type Recorrido = 'FILA' | 'COLUMNA'
 
@@ -45,6 +46,8 @@ export function UbicarLoteModal({ open, onOpenChange, muestra }: Props) {
   const [idCaja, setIdCaja] = useState<string>('')
   const [recorrido, setRecorrido] = useState<Recorrido>('FILA')
   const [idPosicionInicial, setIdPosicionInicial] = useState<number | null>(null)
+  const [sesionId] = useState(() => crypto.randomUUID())
+  const [reservadasPorOtros, setReservadasPorOtros] = useState<Set<number>>(new Set())
 
   const { data: cajas } = useGetCajas()
   const { data: posiciones, isLoading: cargandoPosiciones } = useGetPosicionesByCaja(
@@ -56,9 +59,24 @@ export function UbicarLoteModal({ open, onOpenChange, muestra }: Props) {
   )
   const ubicarMutation = useUbicarLoteAlicuotas()
 
+  useEffect(() => {
+    if (!idCaja || !open) { setReservadasPorOtros(new Set()); return }
+    let vivo = true
+    const consultar = () =>
+      getReservadasEnCaja(parseInt(idCaja), sesionId)
+        .then((ids) => { if (vivo) setReservadasPorOtros(new Set(ids)) })
+        .catch(() => {})
+    consultar()
+    const timer = setInterval(consultar, 15_000)
+    return () => { vivo = false; clearInterval(timer) }
+  }, [idCaja, open, sesionId])
+
+  const cajaSeleccionada = cajas?.find((c) => c.id.toString() === idCaja)
+  const esAtrasFrente = cajaSeleccionada?.ordenLlenado === 'ATRAS_FRENTE'
+
   const filas = useMemo(
-    () => (posiciones ? [...new Set(posiciones.map((p) => p.fila))].sort((a, b) => a - b) : []),
-    [posiciones],
+    () => (posiciones ? [...new Set(posiciones.map((p) => p.fila))].sort((a, b) => esAtrasFrente ? b - a : a - b) : []),
+    [posiciones, esAtrasFrente],
   )
   const columnas = useMemo(
     () => (posiciones ? [...new Set(posiciones.map((p) => p.columna))].sort((a, b) => a - b) : []),
@@ -95,8 +113,8 @@ export function UbicarLoteModal({ open, onOpenChange, muestra }: Props) {
     const desde = idPosicionInicial != null
       ? ordenadas.findIndex((p) => p.id === idPosicionInicial)
       : 0
-    return ordenadas.slice(desde < 0 ? 0 : desde).filter((p) => !p.ocupada)
-  }, [posiciones, filas, columnas, posMap, recorrido, idPosicionInicial])
+    return ordenadas.slice(desde < 0 ? 0 : desde).filter((p) => !p.ocupada && !reservadasPorOtros.has(p.id))
+  }, [posiciones, filas, columnas, posMap, recorrido, idPosicionInicial, reservadasPorOtros])
 
   /** Qué alícuota cae en qué hueco. Es exactamente lo que se manda al servidor. */
   const asignaciones = useMemo(
@@ -119,13 +137,22 @@ export function UbicarLoteModal({ open, onOpenChange, muestra }: Props) {
   const volumenADescontar = asignaciones.reduce((acc, a) => acc + (a.alicuota.valor ?? 0), 0)
   const restanteEnPadre = Math.max(0, (muestra?.valor ?? 0) - volumenADescontar)
 
+  // Reservar las posiciones asignadas para que otros usuarios las vean bloqueadas
+  useEffect(() => {
+    if (!idCaja || asignaciones.length === 0) return
+    const ids = asignaciones.map(({ posicion }) => posicion.id)
+    reservarPosiciones(ids, sesionId).catch(() => {})
+  }, [asignaciones, idCaja, sesionId])
+
   useEffect(() => {
     if (!open) {
+      liberarReservas(sesionId).catch(() => {})
       setIdCaja('')
       setIdPosicionInicial(null)
       setRecorrido('FILA')
+      setReservadasPorOtros(new Set())
     }
-  }, [open])
+  }, [open, sesionId])
 
   const confirmar = async () => {
     if (!muestra || asignaciones.length === 0) return
@@ -240,25 +267,29 @@ export function UbicarLoteModal({ open, onOpenChange, muestra }: Props) {
                                 ? asignaciones.findIndex((a) => a.alicuota.id === idAlicuota) + 1
                                 : 0
                               const esInicio = pos?.id === idPosicionInicial
+                              const reservada = pos ? reservadasPorOtros.has(pos.id) : false
 
                               return (
                                 <td key={col} className="p-0.5">
                                   <button
                                     type="button"
-                                    disabled={!pos || pos.ocupada}
-                                    onClick={() => pos && !pos.ocupada && setIdPosicionInicial(pos.id)}
+                                    disabled={!pos || pos.ocupada || reservada}
+                                    onClick={() => pos && !pos.ocupada && !reservada && setIdPosicionInicial(pos.id)}
                                     title={
                                       pos
-                                        ? pos.ocupada
-                                          ? `${descripcionPosicionCaja(fila, col)} — Ocupada`
-                                          : descripcionPosicionCaja(fila, col)
+                                        ? reservada
+                                          ? `${descripcionPosicionCaja(fila, col)} — Reservada por otro usuario`
+                                          : pos.ocupada
+                                            ? `${descripcionPosicionCaja(fila, col)} — Ocupada`
+                                            : descripcionPosicionCaja(fila, col)
                                         : ''
                                     }
                                     className={cn(
                                       'h-9 w-9 rounded border text-xs font-medium transition-colors',
                                       !pos && 'cursor-default border-muted bg-muted opacity-30',
                                       pos && pos.ocupada && 'cursor-not-allowed border-border bg-muted text-muted-foreground opacity-50',
-                                      pos && !pos.ocupada && !ordinal && 'cursor-pointer border-green-300 bg-green-50 text-green-700 hover:bg-green-100',
+                                      pos && reservada && !pos.ocupada && 'cursor-not-allowed border-orange-400 bg-orange-100 text-orange-700 opacity-70',
+                                      pos && !pos.ocupada && !reservada && !ordinal && 'cursor-pointer border-green-300 bg-green-50 text-green-700 hover:bg-green-100',
                                       ordinal > 0 && 'cursor-pointer border-blue-600 bg-blue-500 text-white',
                                       esInicio && 'ring-2 ring-blue-300',
                                     )}
@@ -281,6 +312,10 @@ export function UbicarLoteModal({ open, onOpenChange, muestra }: Props) {
                       <span className="flex items-center gap-1.5">
                         <span className="inline-block h-3 w-3 rounded border border-blue-600 bg-blue-500" />
                         Alícuota del lote (en orden)
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block h-3 w-3 rounded border border-orange-400 bg-orange-100" />
+                        Reservada por otro usuario
                       </span>
                       <span className="flex items-center gap-1.5">
                         <span className="inline-block h-3 w-3 rounded border border-border bg-muted opacity-50" />

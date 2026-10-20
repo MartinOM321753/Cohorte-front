@@ -33,12 +33,24 @@ export function BoxView({
 }) {
   const orbit = useOrbit({ rotX: 56, rotZ: -30 })
 
+  const esAtrasFrente = caja.ordenLlenado === 'ATRAS_FRENTE'
   const celda = Math.min(AREA_W / Math.max(caja.columnas, 1), AREA_D / Math.max(caja.filas, 1), 26)
   const w = celda * caja.columnas
   const d = celda * caja.filas
 
   const xDe = (columna: number) => (columna - (caja.columnas + 1) / 2) * celda
   const yDe = (fila: number) => (fila - (caja.filas + 1) / 2) * celda
+  const yDeVisual = (fila: number) =>
+    yDe(esAtrasFrente ? caja.filas + 1 - fila : fila)
+
+  const posicionesOrdenadas = useMemo(() => {
+    const sorted = [...caja.posiciones].sort((a, b) => {
+      const filaA = esAtrasFrente ? -a.fila : a.fila
+      const filaB = esAtrasFrente ? -b.fila : b.fila
+      return filaA !== filaB ? filaA - filaB : a.columna - b.columna
+    })
+    return sorted
+  }, [caja.posiciones, esAtrasFrente])
 
   /** Celda resaltada: la que el usuario eligió o, si sigue una muestra, la suya. */
   const resaltada = useMemo(
@@ -80,7 +92,7 @@ export function BoxView({
               gridTemplateRows: `repeat(${caja.filas}, minmax(0, 1fr))`,
             }}
           >
-            {caja.posiciones.map((p) => {
+            {posicionesOrdenadas.map((p) => {
               const seleccionada = p.id === posicionSeleccionada
               const contenido = p.ocupada ? (p.etiquetaMuestra ?? 'ocupada') : 'libre'
               return (
@@ -121,7 +133,7 @@ export function BoxView({
       />
 
       {resaltada && (
-        <Chip x={xDe(resaltada.columna)} y={yDe(resaltada.fila)} z={PARED_H + 52}>
+        <Chip x={xDe(resaltada.columna)} y={yDeVisual(resaltada.fila)} z={PARED_H + 52}>
           {etiquetaPosicionCaja(resaltada.fila, resaltada.columna)}
         </Chip>
       )}
@@ -146,7 +158,7 @@ export function BoxView({
         <Etiqueta
           key={`f-${f}`}
           x={-w / 2 - 10}
-          y={yDe(f)}
+          y={yDeVisual(f)}
           z={PARED_H}
           tono={f === resaltada?.fila ? 'destino' : 'muted'}
         >

@@ -31,6 +31,7 @@ const cajaSchema = z.object({
   color: z.string().max(30, 'Máximo 30 caracteres').optional(),
   observaciones: z.string().max(500, 'Máximo 500 caracteres').optional(),
   idPosicionPiso: z.number().optional(),
+  ordenLlenado: z.enum(['FRENTE_ATRAS', 'ATRAS_FRENTE']),
 })
 
 type CajaFormData = z.infer<typeof cajaSchema>
@@ -49,6 +50,7 @@ const DEFAULT_VALUES: CajaFormData = {
   color: '#3b82f6',
   observaciones: '',
   idPosicionPiso: undefined,
+  ordenLlenado: 'FRENTE_ATRAS',
 }
 
 export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) {
@@ -96,6 +98,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
           color: source.color || '',
           observaciones: source.observaciones || '',
           idPosicionPiso: source.idPosicionPiso ?? undefined,
+          ordenLlenado: source.ordenLlenado ?? 'FRENTE_ATRAS',
         })
         // Populate the location label from the rich string the backend sends
         setUbicacionLabel(source.ubicacionPiso || '')
@@ -128,12 +131,13 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
     }
     setPosicionError('')
     try {
-      const { idPosicionPiso, ...rest } = data
+      const { idPosicionPiso, ordenLlenado, ...rest } = data
       const payload = {
         ...rest,
         codigoCaja: rest.codigoCaja || '',
         color: rest.color ?? '',
         observaciones: rest.observaciones ?? '',
+        ordenLlenado,
         ...(idPosicionPiso !== undefined && { idPosicionPiso }),
       }
 
@@ -524,6 +528,28 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
               </div>
             )
           })()}
+
+          <div className="space-y-2">
+            <Label>Orden de llenado</Label>
+            <Controller
+              name="ordenLlenado"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FRENTE_ATRAS">Frente → Atrás (A1, A2… B1, B2…)</SelectItem>
+                    <SelectItem value="ATRAS_FRENTE">Atrás → Frente (Z1, Z2… Y1, Y2…)</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Define el orden visual de filas en la grilla de posiciones.
+            </p>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="observaciones">Observaciones</Label>

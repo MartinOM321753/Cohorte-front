@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Plus, Edit, Trash2, ChevronDown, ChevronRight,
   ClipboardList, CheckCircle2, XCircle, TestTube, Archive, Microscope,
-  AlertCircle, ArrowRight, FlaskConical, Thermometer,
+  AlertCircle, ArrowRight, FlaskConical, Thermometer, Send,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import {
@@ -21,6 +21,7 @@ import {
   useToggleTipoMuestra,
   useDeleteTipoMuestra,
 } from '../hooks/useBiobanco'
+import { useGetInstitucionesVisibles } from '@/features/instituciones/hooks/useInstituciones'
 import { AccionTubo, Protocolo, TipoMuestra, TuboProtocolo } from '@/types/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,11 +48,13 @@ const ACCION_LABEL: Record<AccionTubo, string> = {
   GUARDAR: 'Guardar entero',
   ESTUDIO: 'Estudio',
   ALICUOTAR: 'Alicuotar',
+  TRANSFERIR: 'Transferir',
 }
 
 function AccionIcon({ accion, className }: { accion: AccionTubo; className?: string }) {
   if (accion === 'GUARDAR') return <Archive className={className} />
   if (accion === 'ESTUDIO') return <Microscope className={className} />
+  if (accion === 'TRANSFERIR') return <Send className={className} />
   return <TestTube className={className} />
 }
 
@@ -142,8 +145,11 @@ interface TuboFormData {
   nombre: string; prefijoCodigo: string; accion: AccionTubo; orden?: number
   idTipoResultante: number | null; numeroAlicuotas: number
   volumenAlicuota: number | undefined; volumenesAlicuota: number[] | undefined
+  volumenEsperado: number | undefined
   unidadVolumen: string; destinoSugerido: string
   agruparEnLote: boolean; generacionAutomatica: boolean; permiteAlicuotaParcial: boolean
+  idInstitucionDestino?: number | null
+  motivoTransferencia?: string | null
 }
 
 interface TuboFormProps {
@@ -172,19 +178,27 @@ function TuboForm({ initial, tipos, onSave, onCancel, loading }: TuboFormProps) 
     }
     return Array.from({ length: n }, () => general)
   })
+  const [volEsperado, setVolEsperado] = useState(initial?.volumenEsperado != null ? String(initial.volumenEsperado) : '')
   const [unidad, setUnidad] = useState(initial?.unidadVolumen ?? '')
   const [destino, setDestino] = useState(initial?.destinoSugerido ?? '')
   const [agrupar, setAgrupar] = useState(initial?.agruparEnLote === true)
   const [generacionAutomatica, setGeneracionAutomatica] = useState(initial?.generacionAutomatica !== false)
   const [permiteParcial, setPermiteParcial] = useState(initial?.permiteAlicuotaParcial !== false)
+  const [idInstDestino, setIdInstDestino] = useState<string>(
+    initial?.idInstitucionDestino != null ? String(initial.idInstitucionDestino) : '',
+  )
+  const [motivoTransferencia, setMotivoTransferencia] = useState(initial?.motivoTransferencia ?? '')
 
   const esAlicuotar = accion === 'ALICUOTAR'
+  const esTransferir = accion === 'TRANSFERIR'
+  const { data: instituciones = [] } = useGetInstitucionesVisibles({ enabled: esTransferir })
   const nAlicuotas = parseInt(numAlicuotas) || 0
   const faltaTipoResultante = esAlicuotar && idTipoResultante === ''
   const faltaNum = esAlicuotar && nAlicuotas <= 0
   const faltaVolumen = esAlicuotar && (volumen === '' || !(parseFloat(volumen) > 0))
   const faltaUnidad = esAlicuotar && unidad.trim() === ''
-  const invalido = faltaTipoResultante || faltaNum || faltaVolumen || faltaUnidad
+  const faltaInstDestino = esTransferir && idInstDestino === ''
+  const invalido = faltaTipoResultante || faltaNum || faltaVolumen || faltaUnidad || faltaInstDestino
 
   function cambiarNumAlicuotas(valor: string) {
     setNumAlicuotas(valor)
@@ -249,8 +263,58 @@ function TuboForm({ initial, tipos, onSave, onCancel, loading }: TuboFormProps) 
             <SelectItem value="GUARDAR">Guardar entero (custodia / traslado)</SelectItem>
             <SelectItem value="ESTUDIO">Estudio (se consume en mediciones)</SelectItem>
             <SelectItem value="ALICUOTAR">Alicuotar (produce crioviales)</SelectItem>
+            <SelectItem value="TRANSFERIR">Transferir (envío automático a otra institución)</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {esTransferir && (
+        <div className="space-y-1.5">
+          <Label>Institución destino <span className="text-destructive">*</span></Label>
+          <Select value={idInstDestino} onValueChange={setIdInstDestino}>
+            <SelectTrigger>
+              <SelectValue placeholder="¿A qué institución se envía?" />
+            </SelectTrigger>
+            <SelectContent>
+              {instituciones.map((inst) => (
+                <SelectItem key={inst.id} value={String(inst.id)}>{inst.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">
+            La transferencia se inicia automáticamente al procesar si el operador la autoriza.
+          </p>
+          <div className="mt-2 space-y-1.5">
+            <Label>Motivo de la transferencia</Label>
+            <Textarea
+              value={motivoTransferencia}
+              onChange={(e) => setMotivoTransferencia(e.target.value)}
+              placeholder="Ej: Envío de muestras para análisis genómico. Si se deja vacío se usará «Transferencia automática — protocolo …»"
+              rows={2}
+              maxLength={200}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Motivo que aparece en la transferencia. Si se deja vacío se genera uno automático.
+              El operador puede cambiarlo al procesar.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Volumen esperado del tubo</Label>
+          <Input type="number" min={0} step="0.01" value={volEsperado}
+            onChange={(e) => setVolEsperado(e.target.value)}
+            placeholder="Ej: 5" />
+          <p className="text-[11px] text-muted-foreground">
+            Volumen que se espera recolectar en este tubo primario.
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Unidad{esAlicuotar && <span className="text-destructive"> *</span>}</Label>
+          <UnidadSelect value={unidad} onChange={setUnidad} placeholder="Seleccione…" />
+        </div>
       </div>
 
       {/* Receta — solo si alicuota */}
@@ -283,11 +347,6 @@ function TuboForm({ initial, tipos, onSave, onCancel, loading }: TuboFormProps) 
               <Label>Volumen general <span className="text-destructive">*</span></Label>
               <Input type="number" min={0} step="0.01" value={volumen} onChange={(e) => setVolumen(e.target.value)} placeholder="Ej: 500" />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Unidad <span className="text-destructive">*</span></Label>
-            <UnidadSelect value={unidad} onChange={setUnidad} placeholder="Seleccione una unidad…" />
           </div>
 
           {nAlicuotas > 0 && (
@@ -359,13 +418,15 @@ function TuboForm({ initial, tipos, onSave, onCancel, loading }: TuboFormProps) 
       {invalido && (
         <p className="flex items-start gap-1.5 text-xs text-destructive">
           <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" strokeWidth={1.75} />
-          {faltaTipoResultante
-            ? 'Indique el tipo de muestra resultante del proceso.'
-            : faltaNum
-              ? 'Indique cuántas alícuotas genera el tubo.'
-              : faltaVolumen
-                ? 'Indique el volumen de cada alícuota.'
-                : 'Indique la unidad del volumen.'}
+          {faltaInstDestino
+            ? 'Indique la institución destino de la transferencia.'
+            : faltaTipoResultante
+              ? 'Indique el tipo de muestra resultante del proceso.'
+              : faltaNum
+                ? 'Indique cuántas alícuotas genera el tubo.'
+                : faltaVolumen
+                  ? 'Indique el volumen de cada alícuota.'
+                  : 'Indique la unidad del volumen.'}
         </p>
       )}
 
@@ -383,11 +444,14 @@ function TuboForm({ initial, tipos, onSave, onCancel, loading }: TuboFormProps) 
             numeroAlicuotas: esAlicuotar ? nAlicuotas : 0,
             volumenAlicuota: esAlicuotar && volumen !== '' ? parseFloat(volumen) : undefined,
             volumenesAlicuota: esAlicuotar ? volumenesPayload() : undefined,
-            unidadVolumen: esAlicuotar ? unidad.trim() : '',
+            volumenEsperado: volEsperado !== '' ? parseFloat(volEsperado) : undefined,
+            unidadVolumen: unidad.trim(),
             destinoSugerido: destino.trim(),
             agruparEnLote: esAlicuotar ? agrupar : false,
             generacionAutomatica,
             permiteAlicuotaParcial: permiteParcial,
+            idInstitucionDestino: esTransferir && idInstDestino !== '' ? Number(idInstDestino) : null,
+            motivoTransferencia: esTransferir && motivoTransferencia.trim() ? motivoTransferencia.trim() : null,
           })}
         >
           {loading ? 'Guardando…' : initial ? 'Actualizar tubo' : 'Agregar tubo'}
@@ -438,7 +502,7 @@ function TuboRow({ tubo, tipos, onDelete, deletePending, puedeEditar }: TuboRowP
                 {tubo.agruparEnLote && ' · agrupa'}
                 {tubo.destinoSugerido && ` · → ${tubo.destinoSugerido}`}
               </>
-            ) : tubo.accion === 'GUARDAR' ? 'Se guarda entero, sin alicuotar' : 'Se consume en mediciones (estudios)'}
+            ) : tubo.accion === 'TRANSFERIR' ? `Se transfiere automáticamente → ${tubo.nombreInstitucionDestino ?? '(sin destino)'}` : tubo.accion === 'GUARDAR' ? 'Se guarda entero, sin alicuotar' : 'Se consume en mediciones (estudios)'}
           </p>
         </div>
         <div className="flex gap-1 shrink-0">

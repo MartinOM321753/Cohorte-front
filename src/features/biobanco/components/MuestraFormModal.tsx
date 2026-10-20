@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { AlertCircle, ArrowRightFromLine, Check, FlaskConical, Info, Lock, MapPin, TestTube, X } from 'lucide-react'
+import { AlertCircle, ArrowRightFromLine, BatteryLow, Check, FlaskConical, Info, Lock, MapPin, TestTube, X } from 'lucide-react'
 
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import { useCreateMuestra, useUpdateMuestra, useGetMuestraById, useGetTiposMuestraActivos } from '../hooks/useBiobanco'
@@ -302,6 +302,7 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
 
   const muestraActiva = freshMuestra ?? muestra
   const isPrestada = isEditing && muestraActiva?.estadoMuestra === 'PRESTADA'
+  const isVolumenCero = isEditing && (Boolean(muestraActiva?.agotada) || (muestraActiva?.valor != null && muestraActiva.valor <= 0))
 
   return (
     <>
@@ -620,6 +621,11 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
                     </p>
                   </div>
                   <ArrowRightFromLine className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                </div>
+              ) : isVolumenCero ? (
+                <div className="flex items-center gap-2 rounded-md bg-muted/50 border border-border px-3 py-2.5">
+                  <BatteryLow className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <p className="text-xs text-muted-foreground">Sin volumen — no se puede asignar posición</p>
                 </div>
               ) : posicionLabel ? (
                 <div className="flex items-center gap-2">

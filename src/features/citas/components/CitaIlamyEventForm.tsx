@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 import { useCreateCita, useUpdateCita } from '../hooks/useCitas'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
+import { useGetInstitucionesVisibles } from '@/features/instituciones/hooks/useInstituciones'
 import { citaFormSchema, COLOR_POR_ESTADO, esColorDefault, ESTADOS_CITA, type CitaFormData } from '../schemas/cita.schema'
 import { getCitaDurationMinutes, getCitaStartDate } from '../lib/citaUtils'
 
@@ -77,6 +78,7 @@ interface CitaIlamyEventFormProps extends EventFormProps {
 function buildDefaults(args: {
   selectedEvent: CalendarEvent | null | undefined
   initialPacienteUUID?: string
+  userInstitucionUuid?: string
 }): CitaFormData {
   const cita = (args.selectedEvent?.data as any)?.cita as Cita | undefined
   const start = args.selectedEvent?.start?.toDate?.()
@@ -92,6 +94,7 @@ function buildDefaults(args: {
     colorHex: cita?.colorHex || COLOR_POR_ESTADO.PROGRAMADA,
     observaciones: cita?.observaciones ?? '',
     estadoCita: normalizeEstadoCita(cita?.estadoCita),
+    institucionDestinoUUID: cita?.institucionUuid ?? args.userInstitucionUuid ?? '',
   }
 }
 
@@ -109,15 +112,17 @@ export function CitaIlamyEventForm({
   const timezone = useMemo(() => safeTimeZone(), [])
 
   const { data: horarioActivo, isLoading: horarioLoading } = useGetConfiguracionHorarioActiva()
+  const { data: institucionesVisibles } = useGetInstitucionesVisibles()
   const createCita = useCreateCita()
   const updateCita = useUpdateCita()
 
   // isEditing se calcula antes del hook para evitar la query innecesaria al editar
   const isEditingEarly = Boolean((selectedEvent?.data as any)?.cita?.uuid)
 
+  const userInstitucionUuid = user?.institucion?.uuid ?? ''
   const defaults = useMemo(
-    () => buildDefaults({ selectedEvent, initialPacienteUUID }),
-    [selectedEvent, initialPacienteUUID],
+    () => buildDefaults({ selectedEvent, initialPacienteUUID, userInstitucionUuid }),
+    [selectedEvent, initialPacienteUUID, userInstitucionUuid],
   )
 
   const {
@@ -249,12 +254,13 @@ export function CitaIlamyEventForm({
     createCita.mutate(
       {
         pacienteUUID: data.pacienteUUID,
-        usuarioAgendaUUID: currentUserUuid,   // siempre del usuario logueado
+        usuarioAgendaUUID: currentUserUuid,
         startAtLocal: data.fechaCita,
         timezone,
         durationMinutes: data.duracionMinutos,
         colorHex: data.colorHex,
         observaciones: data.observaciones,
+        institucionDestinoUUID: data.institucionDestinoUUID || undefined,
       },
       { onSuccess: onClose },
     )
@@ -307,6 +313,34 @@ export function CitaIlamyEventForm({
                   {errors.pacienteUUID.message}
                 </p>
               ) : null}
+            </div>
+          )}
+
+          {/* ── INSTITUCIÓN DESTINO (solo en crear, y si hay más de una visible) ── */}
+          {!isEditing && institucionesVisibles && institucionesVisibles.length > 1 && (
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">Institución destino</Label>
+              <Controller
+                name="institucionDestinoUUID"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger className="h-9 text-[13px]">
+                      <SelectValue placeholder="Seleccionar institución" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {institucionesVisibles.map((inst) => (
+                        <SelectItem key={inst.uuid} value={inst.uuid} className="text-[13px]">
+                          {inst.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           )}
 

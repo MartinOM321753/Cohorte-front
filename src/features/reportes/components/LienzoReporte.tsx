@@ -36,6 +36,8 @@ interface Props {
   mostrarGuias: boolean
   /** `aditivo` llega con Ctrl o Shift: suma o quita de la selección. */
   onSeleccionar: (id: string | null, aditivo?: boolean) => void
+  /** Selecciona varios elementos a la vez (marquesina). */
+  onSeleccionarVarios?: (ids: string[]) => void
   onCambiarElemento: (banda: Banda, id: string, cambios: Partial<Elemento>) => void
   /** Mueve de una vez todo lo seleccionado. Es lo que hace que un grupo sea un grupo. */
   onMoverSeleccion: (dxMm: number, dyMm: number) => void
@@ -63,7 +65,7 @@ interface Props {
  */
 export function LienzoReporte({
   diseno, paginaIndex, seleccionados, escala, ajusteMm, mostrarGuias,
-  onSeleccionar, onCambiarElemento, onMoverSeleccion, onAbrirContenido,
+  onSeleccionar, onSeleccionarVarios, onCambiarElemento, onMoverSeleccion, onAbrirContenido,
 }: Props) {
   const { anchoMm, altoMm } = medidasDe(diseno)
   const hojaRef = useRef<HTMLDivElement>(null)
@@ -81,6 +83,11 @@ export function LienzoReporte({
     aplicadoY: number
     enGrupo: boolean
     original: { xMm: number; yMm: number; anchoMm: number; altoMm: number }
+  } | null>(null)
+
+  const marquesina = useRef<{ inicioX: number; inicioY: number } | null>(null)
+  const [rectMarquesina, setRectMarquesina] = useState<{
+    x: number; y: number; w: number; h: number
   } | null>(null)
 
   const [arrastrando, setArrastrando] = useState(false)
@@ -278,11 +285,70 @@ export function LienzoReporte({
         width: `${anchoMm * escala}px`,
         height: `${altoMm * escala}px`,
       }}
-      onPointerDown={() => onSeleccionar(null)}
-      onPointerMove={moverPuntero}
-      onPointerUp={terminarGesto}
-      onPointerCancel={terminarGesto}
+      onPointerDown={(e) => {
+        if (gesto.current) return
+        const rect = hojaRef.current?.getBoundingClientRect()
+        if (!rect) { onSeleccionar(null); return }
+        marquesina.current = { inicioX: e.clientX - rect.left, inicioY: e.clientY - rect.top }
+        setRectMarquesina(null)
+        onSeleccionar(null)
+      }}
+      onPointerMove={(e) => {
+        if (gesto.current) { moverPuntero(e); return }
+        const m = marquesina.current
+        if (!m) return
+        const rect = hojaRef.current?.getBoundingClientRect()
+        if (!rect) return
+        const curX = e.clientX - rect.left
+        const curY = e.clientY - rect.top
+        const x = Math.min(m.inicioX, curX)
+        const y = Math.min(m.inicioY, curY)
+        const w = Math.abs(curX - m.inicioX)
+        const h = Math.abs(curY - m.inicioY)
+        if (w > 3 || h > 3) setRectMarquesina({ x, y, w, h })
+      }}
+      onPointerUp={(e) => {
+        if (gesto.current) { terminarGesto(e); return }
+        const m = marquesina.current
+        const r = rectMarquesina
+        marquesina.current = null
+        setRectMarquesina(null)
+        if (!m || !r || !onSeleccionarVarios) return
+        const selMm = {
+          x: r.x / escala, y: r.y / escala,
+          w: r.w / escala, h: r.h / escala,
+        }
+        const ids = pintables
+          .filter((p) => !p.heredado && !p.elemento.oculto)
+          .filter((p) => {
+            const el = p.elemento
+            const elX = el.xMm
+            const elY = el.yMm + p.offsetYMm
+            return elX + el.anchoMm > selMm.x && elX < selMm.x + selMm.w
+              && elY + el.altoMm > selMm.y && elY < selMm.y + selMm.h
+          })
+          .map((p) => p.elemento.id)
+        if (ids.length > 0) onSeleccionarVarios(ids)
+      }}
+      onPointerCancel={(e) => {
+        if (gesto.current) { terminarGesto(e); return }
+        marquesina.current = null
+        setRectMarquesina(null)
+      }}
     >
+      {rectMarquesina && (
+        <div
+          className="pointer-events-none absolute border border-sky-400 bg-sky-400/10"
+          style={{
+            left: `${rectMarquesina.x}px`,
+            top: `${rectMarquesina.y}px`,
+            width: `${rectMarquesina.w}px`,
+            height: `${rectMarquesina.h}px`,
+            zIndex: 9999,
+          }}
+        />
+      )}
+
       {mostrarGuias && (
         <>
           <GuiaMargenes margenes={diseno.margenes} escala={escala}

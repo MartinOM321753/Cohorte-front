@@ -990,6 +990,7 @@ export function EditorPlantilla({ disenoInicial, guardando, onGuardar, onEstado 
               ajusteMm={ajusteMm}
               mostrarGuias={mostrarGuias}
               onSeleccionar={alSeleccionar}
+              onSeleccionarVarios={setSeleccionados}
               onCambiarElemento={cambiarElemento}
               onMoverSeleccion={moverSeleccion}
               onAbrirContenido={setTablaEnEdicion}
