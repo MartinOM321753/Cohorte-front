@@ -42,14 +42,24 @@ type ValorParametro = string | number | boolean | undefined
 
 // ─── ParametroField ───────────────────────────────────────────────────────────
 
+function formatRango(min?: number | null, max?: number | null, unidad?: string | null): string | null {
+  if (min == null && max == null) return null
+  const u = unidad ? ` ${unidad}` : ''
+  if (min != null && max != null) return `${min} – ${max}${u}`
+  if (min != null) return `≥ ${min}${u}`
+  return `≤ ${max}${u}`
+}
+
 function ParametroField({
   parametro,
   valor,
   onChange,
+  sexo,
 }: {
   parametro: ParametroEstudioMuestra
   valor: ValorParametro
   onChange: (val: ValorParametro) => void
+  sexo?: string
 }) {
   const label = parametro.unidad
     ? `${parametro.nombre} (${parametro.unidad})`
@@ -57,12 +67,15 @@ function ParametroField({
 
   const rangeHint = (() => {
     if (parametro.tipo !== 'NUMERICO') return null
-    const { valorMinimo: min, valorMaximo: max, unidad } = parametro
-    if (min == null && max == null) return null
-    const u = unidad ? ` ${unidad}` : ''
-    if (min != null && max != null) return `Ref: ${min} – ${max}${u}`
-    if (min != null) return `Ref: ≥ ${min}${u}`
-    return `Ref: ≤ ${max}${u}`
+    const rangoM = formatRango(parametro.valorMinMujeres, parametro.valorMaxMujeres, parametro.unidad)
+    const rangoH = formatRango(parametro.valorMinHombres, parametro.valorMaxHombres, parametro.unidad)
+    if (!rangoM && !rangoH) return null
+    if (sexo === 'F' && rangoM) return `Ref: ${rangoM}`
+    if (sexo === 'M' && rangoH) return `Ref: ${rangoH}`
+    const parts: string[] = []
+    if (rangoM) parts.push(`M: ${rangoM}`)
+    if (rangoH) parts.push(`H: ${rangoH}`)
+    return `Ref: ${parts.join(' · ')}`
   })()
 
   return (
@@ -349,6 +362,7 @@ export function LlenadoEstudioMuestraForm({ muestra, onSuccess }: Props) {
                 parametro={p}
                 valor={valores[p.id]}
                 onChange={val => setValores(prev => ({ ...prev, [p.id]: val }))}
+                sexo={muestra.paciente?.sexo}
               />
             ))}
           </div>

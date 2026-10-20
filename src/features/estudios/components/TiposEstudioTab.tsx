@@ -1,4 +1,5 @@
 import { ListaChipsEditable } from '@/components/common/ListaChipsEditable'
+import { OpcionesEditor } from '@/components/forms/OpcionesEditor'
 import { useState, useMemo } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
@@ -130,7 +131,6 @@ export function TiposEstudioTab() {
   const [paramValorMaxHombres, setParamValorMaxHombres] = useState('')
   const [paramOpciones, setParamOpciones] = useState<string[]>([])
   const [paramAlias, setParamAlias] = useState<string[]>([])
-  const [paramOpcionInput, setParamOpcionInput] = useState('')
   const [paramError, setParamError] = useState('')
   const [paramRangoError, setParamRangoError] = useState('')
   const [paramListError, setParamListError] = useState('')
@@ -203,7 +203,6 @@ export function TiposEstudioTab() {
     setParamValorMaxHombres('')
     setParamOpciones([])
     setParamAlias([])
-    setParamOpcionInput('')
   }
 
   function removePending(key: string) {
@@ -573,7 +572,7 @@ export function TiposEstudioTab() {
                 />
                 {paramError && <p className="mt-1 text-xs text-destructive">{paramError}</p>}
               </div>
-              <Select value={paramTipo} onValueChange={(v) => { setParamTipo(v as TipoParametro); setParamValorMinMujeres(''); setParamValorMaxMujeres(''); setParamValorMinHombres(''); setParamValorMaxHombres(''); setParamOpciones([]); setParamOpcionInput(''); setParamRangoError('') }}>
+              <Select value={paramTipo} onValueChange={(v) => { setParamTipo(v as TipoParametro); setParamValorMinMujeres(''); setParamValorMaxMujeres(''); setParamValorMinHombres(''); setParamValorMaxHombres(''); setParamOpciones([]); setParamRangoError('') }}>
                 <SelectTrigger className="text-sm">
                   <SelectValue />
                 </SelectTrigger>
@@ -611,44 +610,8 @@ export function TiposEstudioTab() {
               />
               {/* Opciones configurables — solo para TEXTO_OPCIONES */}
               {paramTipo === 'TEXTO_OPCIONES' && (
-                <div className="col-span-2 space-y-1.5">
-                  <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>
-                  {paramOpciones.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {paramOpciones.map((op, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs bg-muted">
-                          {op}
-                          <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setParamOpciones(prev => prev.filter((_, j) => j !== i))}>
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex gap-1">
-                    <Input
-                      placeholder="Nueva opción…"
-                      value={paramOpcionInput}
-                      onChange={(e) => setParamOpcionInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          const v = paramOpcionInput.trim()
-                          if (v && !paramOpciones.includes(v)) setParamOpciones(prev => [...prev, v])
-                          setParamOpcionInput('')
-                        }
-                      }}
-                      className="h-7 text-sm flex-1"
-                    />
-                    <Button
-                      type="button" variant="outline" size="sm" className="h-7 px-2 shrink-0"
-                      onClick={() => {
-                        const v = paramOpcionInput.trim()
-                        if (v && !paramOpciones.includes(v)) setParamOpciones(prev => [...prev, v])
-                        setParamOpcionInput('')
-                      }}
-                    ><Plus className="h-3 w-3" /></Button>
-                  </div>
+                <div className="col-span-2">
+                  <OpcionesEditor opciones={paramOpciones} onChange={setParamOpciones} />
                 </div>
               )}
             </div>
@@ -988,7 +951,6 @@ function EditableParametroRow({
   const [valMinHombres, setValMinHombres] = useState(parametro.valorMinHombres != null ? String(parametro.valorMinHombres) : '')
   const [valMaxHombres, setValMaxHombres] = useState(parametro.valorMaxHombres != null ? String(parametro.valorMaxHombres) : '')
   const [opciones, setOpciones]       = useState<string[]>(parametro.opciones ?? [])
-  const [opcionInput, setOpcionInput] = useState('')
   const [alias, setAlias]             = useState<string[]>(parametro.alias ?? [])
   const [error,  setError]            = useState('')
   const [rangoError, setRangoError]   = useState('')
@@ -1002,7 +964,6 @@ function EditableParametroRow({
     setValMinHombres(parametro.valorMinHombres != null ? String(parametro.valorMinHombres) : '')
     setValMaxHombres(parametro.valorMaxHombres != null ? String(parametro.valorMaxHombres) : '')
     setOpciones(parametro.opciones ?? [])
-    setOpcionInput('')
     setAlias(parametro.alias ?? [])
     setError('')
     setRangoError('')
@@ -1058,7 +1019,7 @@ function EditableParametroRow({
             />
             {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
           </div>
-          <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setOpcionInput(''); setRangoError('') }}>
+          <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setRangoError('') }}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -1095,44 +1056,8 @@ function EditableParametroRow({
 
           {/* Opciones — solo para TEXTO_OPCIONES */}
           {tipo === 'TEXTO_OPCIONES' && (
-            <div className="col-span-2 space-y-1.5">
-              <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>
-              {opciones.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {opciones.map((op, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs bg-muted">
-                      {op}
-                      <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setOpciones(prev => prev.filter((_, j) => j !== i))}>
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-1">
-                <Input
-                  placeholder="Nueva opción…"
-                  value={opcionInput}
-                  onChange={(e) => setOpcionInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      const v = opcionInput.trim()
-                      if (v && !opciones.includes(v)) setOpciones(prev => [...prev, v])
-                      setOpcionInput('')
-                    }
-                  }}
-                  className="h-7 text-sm flex-1"
-                />
-                <Button
-                  type="button" variant="outline" size="sm" className="h-7 px-2 shrink-0"
-                  onClick={() => {
-                    const v = opcionInput.trim()
-                    if (v && !opciones.includes(v)) setOpciones(prev => [...prev, v])
-                    setOpcionInput('')
-                  }}
-                ><Plus className="h-3 w-3" /></Button>
-              </div>
+            <div className="col-span-2">
+              <OpcionesEditor opciones={opciones} onChange={setOpciones} />
             </div>
           )}
         </div>
@@ -1272,7 +1197,6 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
   const [valMinHombres, setValMinHombres] = useState('')
   const [valMaxHombres, setValMaxHombres] = useState('')
   const [opciones, setOpciones]       = useState<string[]>([])
-  const [opcionInput, setOpcionInput] = useState('')
   const [alias, setAlias]             = useState<string[]>([])
   const [error, setError]             = useState('')
   const [rangoError, setRangoError]   = useState('')
@@ -1299,7 +1223,7 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
         opciones: tipo === 'TEXTO_OPCIONES' ? opciones : undefined,
         alias,
       },
-      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setOpcionInput(''); setAlias([]) } }
+      { onSuccess: () => { setNombre(''); setUnidad(''); setTipo('NUMERICO'); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setAlias([]) } }
     )
   }
 
@@ -1317,7 +1241,7 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
           />
           {error && <p className="mt-0.5 text-xs text-destructive">{error}</p>}
         </div>
-        <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setOpcionInput(''); setRangoError('') }}>
+        <Select value={tipo} onValueChange={(v) => { setTipo(v as TipoParametro); setValMinMujeres(''); setValMaxMujeres(''); setValMinHombres(''); setValMaxHombres(''); setOpciones([]); setRangoError('') }}>
           <SelectTrigger className="h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
@@ -1354,44 +1278,8 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
           normalizar={normalizarAlias}
         />
         {tipo === 'TEXTO_OPCIONES' && (
-          <div className="col-span-2 space-y-1.5">
-            <p className="text-[11px] text-muted-foreground font-medium">Opciones válidas</p>
-            {opciones.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {opciones.map((op, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs bg-muted">
-                    {op}
-                    <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setOpciones(prev => prev.filter((_, j) => j !== i))}>
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-1">
-              <Input
-                placeholder="Nueva opción…"
-                value={opcionInput}
-                onChange={(e) => setOpcionInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    const v = opcionInput.trim()
-                    if (v && !opciones.includes(v)) setOpciones(prev => [...prev, v])
-                    setOpcionInput('')
-                  }
-                }}
-                className="h-7 text-sm flex-1"
-              />
-              <Button
-                type="button" variant="outline" size="sm" className="h-7 px-2 shrink-0"
-                onClick={() => {
-                  const v = opcionInput.trim()
-                  if (v && !opciones.includes(v)) setOpciones(prev => [...prev, v])
-                  setOpcionInput('')
-                }}
-              ><Plus className="h-3 w-3" /></Button>
-            </div>
+          <div className="col-span-2">
+            <OpcionesEditor opciones={opciones} onChange={setOpciones} />
           </div>
         )}
       </div>

@@ -25,6 +25,7 @@ import {
 
 import { ReordenarParametros } from '@/features/estudios/components/ReordenarParametros'
 import { UnidadSelect } from '@/components/forms/UnidadSelect'
+import { OpcionesEditor } from '@/components/forms/OpcionesEditor'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -72,8 +73,10 @@ interface PendingParametro {
   nombre: string
   unidad: string
   tipo: TipoParametro
-  valorMinimo?: string
-  valorMaximo?: string
+  valorMinMujeres?: string
+  valorMaxMujeres?: string
+  valorMinHombres?: string
+  valorMaxHombres?: string
   opciones?: string[]
 }
 
@@ -81,8 +84,10 @@ interface ParametroFormState {
   nombre: string
   unidad: string
   tipo: TipoParametro
-  valorMinimo: string
-  valorMaximo: string
+  valorMinMujeres: string
+  valorMaxMujeres: string
+  valorMinHombres: string
+  valorMaxHombres: string
   opciones: string[]
   opcionInput: string
 }
@@ -91,8 +96,10 @@ const emptyParamForm = (): ParametroFormState => ({
   nombre: '',
   unidad: '',
   tipo: 'NUMERICO',
-  valorMinimo: '',
-  valorMaximo: '',
+  valorMinMujeres: '',
+  valorMaxMujeres: '',
+  valorMinHombres: '',
+  valorMaxHombres: '',
   opciones: [],
   opcionInput: '',
 })
@@ -118,12 +125,6 @@ interface ParametroFormFieldsProps {
 function ParametroFormFields({ form, onChange, error }: ParametroFormFieldsProps) {
   const set = (key: keyof ParametroFormState, value: string | string[]) =>
     onChange({ ...form, [key]: value })
-
-  const addOpcion = () => {
-    const v = form.opcionInput.trim()
-    if (!v || form.opciones.includes(v)) return
-    onChange({ ...form, opciones: [...form.opciones, v], opcionInput: '' })
-  }
 
   return (
     <div className="space-y-3">
@@ -160,26 +161,47 @@ function ParametroFormFields({ form, onChange, error }: ParametroFormFieldsProps
         </div>
       )}
 
-      {/* Rango de referencia */}
+      {/* Rangos de referencia por sexo */}
       {form.tipo === 'NUMERICO' && (
-        <div className="space-y-1">
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium text-muted-foreground">Mujeres</p>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">Mín. referencia</Label>
-              <Input type="number" step="any" value={form.valorMinimo}
-                onChange={e => set('valorMinimo', e.target.value)} placeholder="0" />
+              <Label className="text-xs">Mín.</Label>
+              <Input type="number" step="any" value={form.valorMinMujeres}
+                onChange={e => set('valorMinMujeres', e.target.value)} placeholder="0" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Máx. referencia</Label>
-              <Input type="number" step="any" value={form.valorMaximo}
-                onChange={e => set('valorMaximo', e.target.value)} placeholder="100" />
+              <Label className="text-xs">Máx.</Label>
+              <Input type="number" step="any" value={form.valorMaxMujeres}
+                onChange={e => set('valorMaxMujeres', e.target.value)} placeholder="100" />
             </div>
           </div>
-          {form.valorMinimo !== '' && form.valorMaximo !== '' &&
-            Number(form.valorMaximo) < Number(form.valorMinimo) && (
-              <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+          {form.valorMinMujeres !== '' && form.valorMaxMujeres !== '' &&
+            Number(form.valorMaxMujeres) < Number(form.valorMinMujeres) && (
+              <p className="text-xs text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                El máximo no puede ser menor que el mínimo
+                El máximo no puede ser menor que el mínimo (mujeres)
+              </p>
+            )}
+          <p className="text-[11px] font-medium text-muted-foreground">Hombres</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Mín.</Label>
+              <Input type="number" step="any" value={form.valorMinHombres}
+                onChange={e => set('valorMinHombres', e.target.value)} placeholder="0" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Máx.</Label>
+              <Input type="number" step="any" value={form.valorMaxHombres}
+                onChange={e => set('valorMaxHombres', e.target.value)} placeholder="100" />
+            </div>
+          </div>
+          {form.valorMinHombres !== '' && form.valorMaxHombres !== '' &&
+            Number(form.valorMaxHombres) < Number(form.valorMinHombres) && (
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                El máximo no puede ser menor que el mínimo (hombres)
               </p>
             )}
         </div>
@@ -187,33 +209,11 @@ function ParametroFormFields({ form, onChange, error }: ParametroFormFieldsProps
 
       {/* Opciones para TEXTO_OPCIONES */}
       {form.tipo === 'TEXTO_OPCIONES' && (
-        <div className="space-y-1">
-          <Label className="text-xs">Opciones válidas</Label>
-          <div className="flex gap-1">
-            <Input
-              value={form.opcionInput}
-              onChange={e => set('opcionInput', e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOpcion() } }}
-              placeholder="Escribir opción…"
-              className="h-7 text-xs"
-            />
-            <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={addOpcion}>
-              <Plus className="h-3 w-3" />
-            </Button>
-          </div>
-          {form.opciones.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {form.opciones.map(op => (
-                <Badge key={op} variant="secondary" className="text-xs gap-1">
-                  {op}
-                  <button onClick={() => onChange({ ...form, opciones: form.opciones.filter(o => o !== op) })}>
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
+        <OpcionesEditor
+          opciones={form.opciones}
+          onChange={opciones => onChange({ ...form, opciones })}
+          placeholder="Escribir opción…"
+        />
       )}
     </div>
   )
@@ -239,8 +239,10 @@ function ParametroRow({ parametro, idTipo, onDelete, puedeEditar }: ParametroRow
       nombre: parametro.nombre,
       unidad: parametro.unidad ?? '',
       tipo: parametro.tipo,
-      valorMinimo: parametro.valorMinimo != null ? String(parametro.valorMinimo) : '',
-      valorMaximo: parametro.valorMaximo != null ? String(parametro.valorMaximo) : '',
+      valorMinMujeres: parametro.valorMinMujeres != null ? String(parametro.valorMinMujeres) : '',
+      valorMaxMujeres: parametro.valorMaxMujeres != null ? String(parametro.valorMaxMujeres) : '',
+      valorMinHombres: parametro.valorMinHombres != null ? String(parametro.valorMinHombres) : '',
+      valorMaxHombres: parametro.valorMaxHombres != null ? String(parametro.valorMaxHombres) : '',
       opciones: parametro.opciones ?? [],
       opcionInput: '',
     })
@@ -254,9 +256,15 @@ function ParametroRow({ parametro, idTipo, onDelete, puedeEditar }: ParametroRow
     if (form.tipo === 'TEXTO_OPCIONES' && form.opciones.length === 0) {
       setError('Agregue al menos una opción'); return
     }
-    if (form.tipo === 'NUMERICO' && form.valorMinimo !== '' && form.valorMaximo !== '' &&
-        Number(form.valorMaximo) < Number(form.valorMinimo)) {
-      setError('El máximo no puede ser menor que el mínimo'); return
+    if (form.tipo === 'NUMERICO') {
+      if (form.valorMinMujeres !== '' && form.valorMaxMujeres !== '' &&
+          Number(form.valorMaxMujeres) < Number(form.valorMinMujeres)) {
+        setError('El máximo no puede ser menor que el mínimo (mujeres)'); return
+      }
+      if (form.valorMinHombres !== '' && form.valorMaxHombres !== '' &&
+          Number(form.valorMaxHombres) < Number(form.valorMinHombres)) {
+        setError('El máximo no puede ser menor que el mínimo (hombres)'); return
+      }
     }
     updateMutation.mutate({
       id: parametro.id,
@@ -265,8 +273,10 @@ function ParametroRow({ parametro, idTipo, onDelete, puedeEditar }: ParametroRow
         nombre,
         unidad: form.unidad || undefined,
         tipo: form.tipo,
-        valorMinimo: form.tipo === 'NUMERICO' && form.valorMinimo !== '' ? Number(form.valorMinimo) : null,
-        valorMaximo: form.tipo === 'NUMERICO' && form.valorMaximo !== '' ? Number(form.valorMaximo) : null,
+        valorMinMujeres: form.tipo === 'NUMERICO' && form.valorMinMujeres !== '' ? Number(form.valorMinMujeres) : null,
+        valorMaxMujeres: form.tipo === 'NUMERICO' && form.valorMaxMujeres !== '' ? Number(form.valorMaxMujeres) : null,
+        valorMinHombres: form.tipo === 'NUMERICO' && form.valorMinHombres !== '' ? Number(form.valorMinHombres) : null,
+        valorMaxHombres: form.tipo === 'NUMERICO' && form.valorMaxHombres !== '' ? Number(form.valorMaxHombres) : null,
         opciones: form.tipo === 'TEXTO_OPCIONES' ? form.opciones : [],
       },
     }, { onSuccess: () => setEditing(false) })
@@ -295,10 +305,16 @@ function ParametroRow({ parametro, idTipo, onDelete, puedeEditar }: ParametroRow
           {parametro.unidad && <span className="text-xs text-muted-foreground">({parametro.unidad})</span>}
           <TipoBadge tipo={parametro.tipo} />
         </div>
-        {parametro.tipo === 'NUMERICO' && (parametro.valorMinimo != null || parametro.valorMaximo != null) && (
-          <p className="text-xs text-muted-foreground">
-            Ref: {parametro.valorMinimo ?? '–'} – {parametro.valorMaximo ?? '–'}{parametro.unidad ? ` ${parametro.unidad}` : ''}
-          </p>
+        {parametro.tipo === 'NUMERICO' && (parametro.valorMinMujeres != null || parametro.valorMaxMujeres != null ||
+          parametro.valorMinHombres != null || parametro.valorMaxHombres != null) && (
+          <div className="text-xs text-muted-foreground space-y-0">
+            {(parametro.valorMinMujeres != null || parametro.valorMaxMujeres != null) && (
+              <p>M: {parametro.valorMinMujeres ?? '–'} – {parametro.valorMaxMujeres ?? '–'}{parametro.unidad ? ` ${parametro.unidad}` : ''}</p>
+            )}
+            {(parametro.valorMinHombres != null || parametro.valorMaxHombres != null) && (
+              <p>H: {parametro.valorMinHombres ?? '–'} – {parametro.valorMaxHombres ?? '–'}{parametro.unidad ? ` ${parametro.unidad}` : ''}</p>
+            )}
+          </div>
         )}
         {parametro.tipo === 'TEXTO_OPCIONES' && parametro.opciones && parametro.opciones.length > 0 && (
           <p className="text-xs text-muted-foreground">{parametro.opciones.join(' · ')}</p>
@@ -354,17 +370,25 @@ function TipoRow({ tipo, expanded, onToggleExpand, puedeEditar, puedeEliminar }:
     if (paramForm.tipo === 'TEXTO_OPCIONES' && paramForm.opciones.length === 0) {
       setParamError('Agregue al menos una opción'); return
     }
-    if (paramForm.tipo === 'NUMERICO' && paramForm.valorMinimo !== '' && paramForm.valorMaximo !== '' &&
-        Number(paramForm.valorMaximo) < Number(paramForm.valorMinimo)) {
-      setParamError('El máximo no puede ser menor que el mínimo'); return
+    if (paramForm.tipo === 'NUMERICO') {
+      if (paramForm.valorMinMujeres !== '' && paramForm.valorMaxMujeres !== '' &&
+          Number(paramForm.valorMaxMujeres) < Number(paramForm.valorMinMujeres)) {
+        setParamError('El máximo no puede ser menor que el mínimo (mujeres)'); return
+      }
+      if (paramForm.valorMinHombres !== '' && paramForm.valorMaxHombres !== '' &&
+          Number(paramForm.valorMaxHombres) < Number(paramForm.valorMinHombres)) {
+        setParamError('El máximo no puede ser menor que el mínimo (hombres)'); return
+      }
     }
     createParam.mutate({
       idTipoEstudioMuestra: tipo.id,
       nombre,
       unidad: paramForm.unidad || undefined,
       tipo: paramForm.tipo,
-      valorMinimo: paramForm.tipo === 'NUMERICO' && paramForm.valorMinimo !== '' ? Number(paramForm.valorMinimo) : null,
-      valorMaximo: paramForm.tipo === 'NUMERICO' && paramForm.valorMaximo !== '' ? Number(paramForm.valorMaximo) : null,
+      valorMinMujeres: paramForm.tipo === 'NUMERICO' && paramForm.valorMinMujeres !== '' ? Number(paramForm.valorMinMujeres) : null,
+      valorMaxMujeres: paramForm.tipo === 'NUMERICO' && paramForm.valorMaxMujeres !== '' ? Number(paramForm.valorMaxMujeres) : null,
+      valorMinHombres: paramForm.tipo === 'NUMERICO' && paramForm.valorMinHombres !== '' ? Number(paramForm.valorMinHombres) : null,
+      valorMaxHombres: paramForm.tipo === 'NUMERICO' && paramForm.valorMaxHombres !== '' ? Number(paramForm.valorMaxHombres) : null,
       opciones: paramForm.tipo === 'TEXTO_OPCIONES' ? paramForm.opciones : [],
     }, { onSuccess: () => { setAddingParam(false); setParamForm(emptyParamForm()) } })
   }
@@ -601,9 +625,15 @@ export function TipoEstudioMuestraAdminTab() {
     if (paramForm.tipo === 'TEXTO_OPCIONES' && paramForm.opciones.length === 0) {
       setParamError('Agregue al menos una opción'); return
     }
-    if (paramForm.tipo === 'NUMERICO' && paramForm.valorMinimo !== '' && paramForm.valorMaximo !== '' &&
-        Number(paramForm.valorMaximo) < Number(paramForm.valorMinimo)) {
-      setParamError('El máximo no puede ser menor que el mínimo'); return
+    if (paramForm.tipo === 'NUMERICO') {
+      if (paramForm.valorMinMujeres !== '' && paramForm.valorMaxMujeres !== '' &&
+          Number(paramForm.valorMaxMujeres) < Number(paramForm.valorMinMujeres)) {
+        setParamError('El máximo no puede ser menor que el mínimo (mujeres)'); return
+      }
+      if (paramForm.valorMinHombres !== '' && paramForm.valorMaxHombres !== '' &&
+          Number(paramForm.valorMaxHombres) < Number(paramForm.valorMinHombres)) {
+        setParamError('El máximo no puede ser menor que el mínimo (hombres)'); return
+      }
     }
     if (pending.some(p => p.nombre.toLowerCase() === n.toLowerCase())) {
       setParamError('Ya existe un parámetro con ese nombre'); return
@@ -613,8 +643,10 @@ export function TipoEstudioMuestraAdminTab() {
       nombre: n,
       unidad: paramForm.unidad,
       tipo: paramForm.tipo,
-      valorMinimo: paramForm.valorMinimo,
-      valorMaximo: paramForm.valorMaximo,
+      valorMinMujeres: paramForm.valorMinMujeres,
+      valorMaxMujeres: paramForm.valorMaxMujeres,
+      valorMinHombres: paramForm.valorMinHombres,
+      valorMaxHombres: paramForm.valorMaxHombres,
       opciones: paramForm.tipo === 'TEXTO_OPCIONES' ? paramForm.opciones : [],
     }])
     setParamForm(emptyParamForm())
@@ -627,8 +659,10 @@ export function TipoEstudioMuestraAdminTab() {
       nombre: p.nombre,
       unidad: p.unidad ?? '',
       tipo: p.tipo,
-      valorMinimo: p.valorMinimo ?? '',
-      valorMaximo: p.valorMaximo ?? '',
+      valorMinMujeres: p.valorMinMujeres ?? '',
+      valorMaxMujeres: p.valorMaxMujeres ?? '',
+      valorMinHombres: p.valorMinHombres ?? '',
+      valorMaxHombres: p.valorMaxHombres ?? '',
       opciones: p.opciones ?? [],
       opcionInput: '',
     })
@@ -641,9 +675,15 @@ export function TipoEstudioMuestraAdminTab() {
     if (pendingEditForm.tipo === 'TEXTO_OPCIONES' && pendingEditForm.opciones.length === 0) {
       setPendingEditError('Agregue al menos una opción'); return
     }
-    if (pendingEditForm.tipo === 'NUMERICO' && pendingEditForm.valorMinimo !== '' && pendingEditForm.valorMaximo !== '' &&
-        Number(pendingEditForm.valorMaximo) < Number(pendingEditForm.valorMinimo)) {
-      setPendingEditError('El máximo no puede ser menor que el mínimo'); return
+    if (pendingEditForm.tipo === 'NUMERICO') {
+      if (pendingEditForm.valorMinMujeres !== '' && pendingEditForm.valorMaxMujeres !== '' &&
+          Number(pendingEditForm.valorMaxMujeres) < Number(pendingEditForm.valorMinMujeres)) {
+        setPendingEditError('El máximo no puede ser menor que el mínimo (mujeres)'); return
+      }
+      if (pendingEditForm.valorMinHombres !== '' && pendingEditForm.valorMaxHombres !== '' &&
+          Number(pendingEditForm.valorMaxHombres) < Number(pendingEditForm.valorMinHombres)) {
+        setPendingEditError('El máximo no puede ser menor que el mínimo (hombres)'); return
+      }
     }
     const conflicto = pending.some(p => p.key !== pendingEditKey && p.nombre.toLowerCase() === n.toLowerCase())
     if (conflicto) { setPendingEditError('Ya existe un parámetro con ese nombre'); return }
@@ -652,8 +692,10 @@ export function TipoEstudioMuestraAdminTab() {
       nombre: n,
       unidad: pendingEditForm.unidad,
       tipo: pendingEditForm.tipo,
-      valorMinimo: pendingEditForm.valorMinimo,
-      valorMaximo: pendingEditForm.valorMaximo,
+      valorMinMujeres: pendingEditForm.valorMinMujeres,
+      valorMaxMujeres: pendingEditForm.valorMaxMujeres,
+      valorMinHombres: pendingEditForm.valorMinHombres,
+      valorMaxHombres: pendingEditForm.valorMaxHombres,
       opciones: pendingEditForm.tipo === 'TEXTO_OPCIONES' ? pendingEditForm.opciones : [],
     }))
     setPendingEditKey(null)
@@ -676,8 +718,10 @@ export function TipoEstudioMuestraAdminTab() {
           nombre: p.nombre,
           unidad: p.unidad || undefined,
           tipo: p.tipo,
-          valorMinimo: p.tipo === 'NUMERICO' && p.valorMinimo !== '' ? Number(p.valorMinimo) : null,
-          valorMaximo: p.tipo === 'NUMERICO' && p.valorMaximo !== '' ? Number(p.valorMaximo) : null,
+          valorMinMujeres: p.tipo === 'NUMERICO' && p.valorMinMujeres !== '' ? Number(p.valorMinMujeres!) : null,
+          valorMaxMujeres: p.tipo === 'NUMERICO' && p.valorMaxMujeres !== '' ? Number(p.valorMaxMujeres!) : null,
+          valorMinHombres: p.tipo === 'NUMERICO' && p.valorMinHombres !== '' ? Number(p.valorMinHombres!) : null,
+          valorMaxHombres: p.tipo === 'NUMERICO' && p.valorMaxHombres !== '' ? Number(p.valorMaxHombres!) : null,
           opciones: p.tipo === 'TEXTO_OPCIONES' ? (p.opciones ?? []) : [],
         })
       }
@@ -810,8 +854,12 @@ export function TipoEstudioMuestraAdminTab() {
                         <span className="font-medium truncate">{p.nombre}</span>
                         <TipoBadge tipo={p.tipo} />
                         {p.unidad && <span className="text-muted-foreground">({p.unidad})</span>}
-                        {p.tipo === 'NUMERICO' && p.valorMinimo !== '' && p.valorMaximo !== '' && (
-                          <span className="text-muted-foreground">ref: {p.valorMinimo}–{p.valorMaximo}</span>
+                        {p.tipo === 'NUMERICO' && (p.valorMinMujeres !== '' || p.valorMinHombres !== '') && (
+                          <span className="text-muted-foreground">
+                            {p.valorMinMujeres !== '' && `M: ${p.valorMinMujeres}–${p.valorMaxMujeres}`}
+                            {p.valorMinMujeres !== '' && p.valorMinHombres !== '' && ' · '}
+                            {p.valorMinHombres !== '' && `H: ${p.valorMinHombres}–${p.valorMaxHombres}`}
+                          </span>
                         )}
                       </div>
                       <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
