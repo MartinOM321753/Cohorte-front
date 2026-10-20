@@ -4,10 +4,10 @@ import {
   Paperclip, ArrowRightFromLine, History, FlaskConical,
   ChevronDown, ChevronUp, ChevronLeft, MapPinOff, ClipboardList, X, Printer, Tag,
   EyeOff, Eye, Ban, Boxes, ScanLine, PackageCheck, Hourglass, BatteryLow, Loader2,
-  SquareArrowOutUpRight, MapPin, CheckSquare, Square,
+  SquareArrowOutUpRight, MapPin, CheckSquare, Square, MinusSquare,
 } from 'lucide-react'
-import { useMuestrasCursor, useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta, useAlicuotarTubo, useAsignarPosicionMuestra } from '../hooks/useBiobanco'
-import type { AnclaListado, CriteriosListadoMuestras } from '../hooks/useBiobanco'
+import { useDeleteMuestra, useDarDeBajaMuestra, useGetAllTraslados, useCancelarPrestamo, useGetTiposMuestraActivos, useListarImpresoras, useImprimirEtiqueta, useImprimirAlicuotas, useImprimirLoteCompleto, useBuscarMuestraPorEtiqueta, useAlicuotarTubo, useAsignarPosicionMuestra, useResumenProcedimientos, useDetalleProcedimiento } from '../hooks/useBiobanco'
+import type { AnclaListado, CriteriosListadoMuestras, CriteriosResumen, CriteriosDetalleProcedimiento } from '../hooks/useBiobanco'
 import { EscanearEtiquetaModal } from './EscanearEtiquetaModal'
 import { useLectorCodigos } from '../hooks/useLectorCodigos'
 import { getLabelDataEtiqueta, getLabelDataAlicuotas, getLabelDataLoteCompleto, imprimirAcomodado } from '../api/biobanco.api'
@@ -64,11 +64,9 @@ import { MuestraDetalleDTO } from '@/types/api'
 import { etiquetaPosicionCaja } from '../lib/posicionCaja'
 import { MuestraDrawer } from './MuestraDrawer'
 import { SeleccionPosicionCajaModal } from './SeleccionPosicionCajaModal'
+import { AlicuotarConProtocoloDialog } from './AlicuotarConProtocoloDialog'
 
 // ── Listado ───────────────────────────────────────────────────────────────────
-
-/** Tarjetas que trae cada tramo del listado. */
-const TAMANO_PAGINA = 20
 
 /**
  * Espera a que el usuario deje de teclear antes de volver a preguntar.
@@ -163,6 +161,7 @@ interface SharedActions {
   onResultados: (m: MuestraDetalleDTO) => void
   onGenerarAlicuotas: (m: MuestraDetalleDTO) => void
   onAlicuotarTubo: (m: MuestraDetalleDTO) => void
+  onAlicuotarConProtocolo: (m: MuestraDetalleDTO) => void
   onUbicarLote: (m: MuestraDetalleDTO) => void
   onDelete: (id: number) => void
   onDarBaja: (id: number, motivo: string) => void
@@ -258,7 +257,7 @@ function MuestraFooter({
   // nada físicamente. El resto de acciones sí siguen teniendo sentido —su
   // registro es el producto—, así que la tarjeta se mantiene completa.
   const puedeEnviar = !esTrasladada && !noEnMiPosesion && actions.puedeTraslado
-    && !esBaja && !muestra.agotada
+    && !esBaja && !esVolumenCero(muestra)
   const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.puedeCancelarTraslado
   const esPadre = muestra.idMuestraPadre == null
   // Aproximacion del lado del cliente: el servidor cuenta los huecos del lote
@@ -310,6 +309,19 @@ function MuestraFooter({
         >
           <FlaskConical className="h-3 w-3 mr-1" />
           Alicuotar tubo
+        </Button>
+      )}
+
+      {esPadre && noEsMia && !noEnMiPosesion && !isPrestada && !esBaja && !muestra.agotada
+        && (muestra.valorDisponible ?? 0) > 0 && (
+        <Button
+          variant="outline" size="sm"
+          onClick={() => actions.onAlicuotarConProtocolo(muestra)}
+          className="text-teal-600 dark:text-teal-400 border-teal-500/30 hover:bg-teal-500/10"
+          title="Alicuotar con un protocolo de su institución"
+        >
+          <FlaskConical className="h-3 w-3 mr-1" />
+          Alicuotar con mi protocolo
         </Button>
       )}
 
@@ -537,6 +549,10 @@ function estaAgotada(m: MuestraDetalleDTO) {
   return Boolean(m.agotada) && m.estadoMuestra !== 'BAJA'
 }
 
+function esVolumenCero(m: MuestraDetalleDTO) {
+  return Boolean(m.agotada) || (m.valor != null && m.valor <= 0)
+}
+
 /**
  * Sello de «agotada» sobre la tarjeta de una muestra ya repartida.
  *
@@ -690,6 +706,10 @@ export function PadreCard({ muestra, numAlicuotas, alicuotasPendientes = 0, tras
                 <Badge variant="outline" className="border-green-500/40 text-green-700 dark:text-green-400 bg-green-500/10 text-xs">
                   En biobanco
                 </Badge>
+              ) : esVolumenCero(muestra) ? (
+                <Badge variant="outline" className="border-slate-500/30 text-slate-500 dark:text-slate-400 bg-slate-500/10 text-xs">
+                  Consumida
+                </Badge>
               ) : (
                 <Badge variant="outline" className="border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/10 text-xs">
                   Sin ubicación
@@ -835,7 +855,7 @@ export function AlicuotaCard({ muestra, trasladoInfo, actions, cabeceraDeLote }:
   const noEnMiPosesion = muestra.idInstitucionActual != null
     && actions.myInstitucionId != null
     && muestra.idInstitucionActual !== actions.myInstitucionId
-  const sinUbicacion = !muestra.ubicacion && !esTrasladada && !noEnMiPosesion
+  const sinUbicacion = !muestra.ubicacion && !esTrasladada && !noEnMiPosesion && !esVolumenCero(muestra)
   const esPrestada = muestra.idInstitucion != null
     && actions.myInstitucionId != null
     && muestra.idInstitucion !== actions.myInstitucionId
@@ -929,6 +949,10 @@ export function AlicuotaCard({ muestra, trasladoInfo, actions, cabeceraDeLote }:
             ) : sinUbicacion ? (
               <Badge variant="outline" className="border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/10 text-xs">
                 Sin ubicación
+              </Badge>
+            ) : esVolumenCero(muestra) && !muestra.ubicacion ? (
+              <Badge variant="outline" className="border-slate-500/30 text-slate-500 dark:text-slate-400 bg-slate-500/10 text-xs">
+                Consumida
               </Badge>
             ) : (
               <Badge variant="outline" className="border-green-400 text-green-700 bg-green-50 text-xs">
@@ -1050,6 +1074,7 @@ function tubeStatusBadge(m: MuestraDetalleDTO, trasladoInfo: TrasladoInfo | unde
   if (noEnMiPosesion && esMia) return { label: 'Fuera', cls: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30' }
   if (noEnMiPosesion && !esMia) return { label: 'Devuelta', cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30' }
   if (m.ubicacion) return { label: 'Almacenada', cls: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30' }
+  if (esVolumenCero(m)) return { label: 'Consumida', cls: 'bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/30' }
   return { label: 'Sin ubicación', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' }
 }
 
@@ -1090,12 +1115,13 @@ export function MuestrasTab() {
   const [editingMuestra, setEditingMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [docMuestraId, setDocMuestraId] = useState<number | null>(null)
   const [ubicacion3DMuestra, setUbicacion3DMuestra] = useState<MuestraDetalleDTO | null>(null)
-  const [trasladandoMuestra, setTrasladandoMuestra] = useState<MuestraDetalleDTO | null>(null)
-  const [pendingTraslado, setPendingTraslado] = useState<MuestraDetalleDTO | null>(null)
+  const [trasladandoMuestras, setTrasladandoMuestras] = useState<MuestraDetalleDTO[]>([])
+  const [pendingTraslado, setPendingTraslado] = useState<MuestraDetalleDTO[] | null>(null)
   const [historialMuestra, setHistorialMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [resultadosMuestra, setResultadosMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [generarAlicuotasMuestra, setGenerarAlicuotasMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [ubicarLoteMuestra, setUbicarLoteMuestra] = useState<MuestraDetalleDTO | null>(null)
+  const [alicuotarConProtocoloMuestra, setAlicuotarConProtocoloMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [filtros, setFiltros] = useState<FiltrosMuestra>(FILTROS_VACIOS)
   const [hideDevueltasHuerfanas, setHideDevueltasHuerfanas] = useState(true)
   const [incluirHistorico, setIncluirHistorico] = useState(false)
@@ -1109,14 +1135,25 @@ export function MuestrasTab() {
   const [errorEscaneo, setErrorEscaneo] = useState<string | null>(null)
   /** Muestra localizada por el último escaneo: se resalta hasta que se toque otra cosa. */
   const [resaltadaId, setResaltadaId] = useState<number | null>(null)
+  interface CardSel {
+    key: string
+    uuidPaciente: string
+    idToma?: number | null
+    idProtocolo?: number | null
+    folio: string
+    nombreTipo: string | null
+    nombrePaciente: string
+  }
   /** Procesamiento (participante×protocolo) abierto en detalle; null = lista. */
-  const [cardSel, setCardSel] = useState<string | null>(null)
+  const [cardSel, setCardSel] = useState<CardSel | null>(null)
   /** Muestra (tubo o alícuota) abierta en el drawer lateral derecho. */
   const [drawerMuestra, setDrawerMuestra] = useState<MuestraDetalleDTO | null>(null)
   /** Muestras seleccionadas para acciones masivas (imprimir / trasladar). */
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   /** Muestra cuya posición se está asignando de forma independiente. */
   const [ubicarMuestra, setUbicarMuestra] = useState<MuestraDetalleDTO | null>(null)
+  /** Cola de muestras pendientes de ubicar (modo masivo). */
+  const [ubicarQueue, setUbicarQueue] = useState<MuestraDetalleDTO[]>([])
 
   const detailRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
@@ -1163,24 +1200,87 @@ export function MuestrasTab() {
     folioHasta: filtros.folioHasta,
   }), [incluirHistorico, hideDevueltasHuerfanas, busquedaDiferida, filtros])
 
-  const listado = useMuestrasCursor(criterios, ancla, TAMANO_PAGINA)
-  const isLoading = listado.isLoading
+  const criteriosResumen = useMemo<CriteriosResumen>(() => ({
+    incluirHistorico,
+    busqueda: busquedaDiferida.trim(),
+    fechaDesde: filtros.fechaDesde,
+    fechaHasta: filtros.fechaHasta,
+    tipos: [...filtros.tipos].sort((a, b) => a.localeCompare(b, 'es')),
+    sexo: filtros.sexo,
+    folioDesde: filtros.folioDesde,
+    folioHasta: filtros.folioHasta,
+  }), [incluirHistorico, busquedaDiferida, filtros])
 
-  /*
-   * Las tarjetas y sus alícuotas llegan en listas separadas —para que «veinte»
-   * cuente tarjetas y no filas— y aquí se vuelven a juntar: el agrupado de más
-   * abajo las reparte igual que cuando el listado venía entero.
-   */
+  const resumenQuery = useResumenProcedimientos(criteriosResumen)
+  const resumenCards = resumenQuery.data ?? []
+
+  // Cuando la búsqueda parece una etiqueta y el resumen devuelve exactamente
+  // un resultado, entrar automáticamente al detalle de esa toma.
+  const autoEntradaHecha = useRef<string | null>(null)
+  useEffect(() => {
+    const term = busquedaDiferida.trim()
+    if (!term || !term.includes('/') || resumenCards.length !== 1 || cardSel) {
+      if (!term) autoEntradaHecha.current = null
+      return
+    }
+    if (autoEntradaHecha.current === term) return
+    autoEntradaHecha.current = term
+
+    const rc = resumenCards[0]
+    const groupKey = rc.idToma != null
+      ? `t${rc.idToma}`
+      : (rc.idProtocolo != null ? `p${rc.idProtocolo}` : 'legacy')
+    setCardSel({
+      key: `${rc.uuidPaciente}/${groupKey}`,
+      uuidPaciente: rc.uuidPaciente,
+      idToma: rc.idToma,
+      idProtocolo: rc.idProtocolo,
+      folio: rc.folioPaciente,
+      nombreTipo: rc.nombreTipo ?? null,
+      nombrePaciente: rc.nombrePaciente,
+    })
+    // Marcar para resaltar la muestra cuando cargue el detalle.
+    etiquetaPendienteDeResaltar.current = term
+  }, [busquedaDiferida, resumenCards, cardSel])
+
+  // Una vez que el detalle carga, buscar la muestra cuya etiqueta coincide,
+  // resaltarla y abrir su drawer de detalles.
+  const etiquetaPendienteDeResaltar = useRef<string | null>(null)
+
+  const criteriosDetalle = useMemo<CriteriosDetalleProcedimiento | null>(() => {
+    if (!cardSel) return null
+    return {
+      ...criterios,
+      uuidPaciente: cardSel.uuidPaciente,
+      ...(cardSel.idToma != null
+        ? { idToma: cardSel.idToma }
+        : { idProtocolo: cardSel.idProtocolo ?? undefined }),
+    }
+  }, [cardSel, criterios])
+
+  const detalleQuery = useDetalleProcedimiento(criteriosDetalle, 100)
+  const isLoading = cardSel ? detalleQuery.isLoading : resumenQuery.isLoading
+
   const muestras = useMemo(
-    () => (listado.data?.pages ?? []).flatMap((p) => [...p.muestras, ...p.alicuotas]),
-    [listado.data],
+    () => (detalleQuery.data?.pages ?? []).flatMap((p) => [...p.muestras, ...p.alicuotas]),
+    [detalleQuery.data],
   )
 
-  // Los totales son iguales en todas las páginas —salen de los mismos criterios—
-  // así que basta leerlos de una.
-  const resumen = listado.data?.pages?.[0]
-  const totalMuestras = resumen?.total ?? 0
-  const huerfanasDevueltasCount = resumen?.huerfanasDevueltas ?? 0
+  // Cuando el detalle carga tras auto-entrada por etiqueta, localizar la
+  // muestra buscada, resaltarla y programar la apertura del drawer.
+  useEffect(() => {
+    const label = etiquetaPendienteDeResaltar.current
+    if (!label || !muestras.length) return
+    const normalizado = label.toLowerCase()
+    const encontrada = muestras.find((m) => m.etiqueta.toLowerCase() === normalizado)
+    if (!encontrada) return
+    etiquetaPendienteDeResaltar.current = null
+    setResaltadaId(encontrada.id)
+    pendienteDeLocalizar.current = { id: encontrada.id, abrirEdicion: false, abrirDrawer: true }
+  }, [muestras])
+
+  const totalMuestras = resumenCards.length
+  const huerfanasDevueltasCount = 0
   const { data: traslados = [] } = useGetAllTraslados()
   const { data: tiposActivos = [] } = useGetTiposMuestraActivos()
   const alicuotarTuboMutation = useAlicuotarTubo()
@@ -1303,7 +1403,8 @@ export function MuestrasTab() {
     key: string
     uuid: string
     folio: string
-    nombreProtocolo: string | null
+    nombreTipo: string | null
+    idToma: number | null
     idProtocolo: number | null
     padres: MuestraDetalleDTO[]
     lotes: Map<number, MuestraDetalleDTO[]>
@@ -1314,13 +1415,13 @@ export function MuestrasTab() {
     const map = new Map<string, CardProcesamiento>()
     for (const m of all) {
       const uuid = m.paciente?.uuid ?? 'sin'
-      const protoKey = m.idProtocolo != null ? `p${m.idProtocolo}` : 'legacy'
-      const key = `${uuid}/${protoKey}`
+      const groupKey = m.idToma != null ? `t${m.idToma}` : (m.idProtocolo != null ? `p${m.idProtocolo}` : 'legacy')
+      const key = `${uuid}/${groupKey}`
       let card = map.get(key)
       if (!card) {
         card = {
           key, uuid, folio: m.paciente?.folio ?? '—',
-          nombreProtocolo: m.nombreProtocolo ?? null, idProtocolo: m.idProtocolo ?? null,
+          nombreTipo: m.nombreProtocolo ?? null, idToma: m.idToma ?? null, idProtocolo: m.idProtocolo ?? null,
           padres: [], lotes: new Map(), huerfanas: [],
         }
         map.set(key, card)
@@ -1417,10 +1518,10 @@ export function MuestrasTab() {
   const contenedor = useCallback(() => contenedorDesplazable(listaRef.current), [])
 
   const {
-    hasNextPage, hasPreviousPage,
-    isFetchingNextPage, isFetchingPreviousPage,
-    fetchNextPage, fetchPreviousPage,
-  } = listado
+    hasNextPage = false, hasPreviousPage = false,
+    isFetchingNextPage = false, isFetchingPreviousPage = false,
+    fetchNextPage = () => {}, fetchPreviousPage = () => {},
+  } = cardSel ? detalleQuery : ({} as any)
 
   const cargarSiguientes = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage()
@@ -1446,7 +1547,7 @@ export function MuestrasTab() {
     if (!caja) return
     const crecimiento = caja.scrollHeight - previo
     if (crecimiento > 0) caja.scrollTop += crecimiento
-  }, [listado.data, contenedor])
+  }, [detalleQuery.data, contenedor])
 
   useEffect(() => {
     const arriba = centinelaArriba.current
@@ -1509,7 +1610,7 @@ export function MuestrasTab() {
   // El salto espera a que llegue el tramo del otro extremo: desplazarse antes
   // movería la lista anterior, que sigue en pantalla mientras la nueva carga.
   useEffect(() => {
-    if (!saltoPendiente || listado.isFetching || listado.isPlaceholderData) return
+    if (!saltoPendiente || detalleQuery.isFetching || detalleQuery.isPlaceholderData) return
     const caja = contenedor()
     if (!caja) return
     caja.scrollTo({
@@ -1517,7 +1618,7 @@ export function MuestrasTab() {
       behavior: 'smooth',
     })
     setSaltoPendiente(null)
-  }, [saltoPendiente, listado.isFetching, listado.isPlaceholderData, contenedor])
+  }, [saltoPendiente, detalleQuery.isFetching, detalleQuery.isPlaceholderData, contenedor])
 
   // Cambiar de criterios es empezar otra lista: se vuelve al ancla de entrada y
   // al principio, porque el tramo donde estaba el usuario ya no significa nada.
@@ -1541,7 +1642,7 @@ export function MuestrasTab() {
    * desplegar la muestra padre. Intentar el scroll en el mismo tick no encuentra
    * nada. Este efecto reintenta cuando la lista cambia.
    */
-  const pendienteDeLocalizar = useRef<{ id: number; abrirEdicion: boolean } | null>(null)
+  const pendienteDeLocalizar = useRef<{ id: number; abrirEdicion: boolean; abrirDrawer: boolean } | null>(null)
 
   const resolverEtiqueta = useCallback(async (codigo: string) => {
     setErrorEscaneo(null)
@@ -1549,28 +1650,42 @@ export function MuestrasTab() {
       const res = await buscarPorEtiqueta.mutateAsync(codigo)
       const m = res.muestra
 
-      // La lista se deja en condiciones de mostrarla antes de buscarla.
       if (res.requiereHistorico) setIncluirHistorico(true)
-      // Una alícuota huérfana devuelta está oculta tras su propio filtro.
       setHideDevueltasHuerfanas(false)
-      // El texto de la etiqueta queda en la búsqueda: es lo que pidió el usuario
-      // —que quede indexada— y de paso deja la lista reducida a lo pertinente.
-      setSearchTerm(m.etiqueta)
-      // Si es alícuota, su fila solo existe con la muestra padre desplegada.
-      if (res.idMuestraPadre != null) {
-        setExpandedIds((prev) => new Set(prev).add(res.idMuestraPadre as number))
+      setSearchTerm('')
+
+      // Navegar al card de la toma/protocolo: usa los campos de navegación del
+      // DTO y cae a los de la propia muestra si el backend aún no los devuelve.
+      const idToma = res.idToma ?? m.idToma ?? null
+      const idProto = res.idProtocolo ?? m.idProtocolo ?? null
+      const uuid = res.uuidPaciente ?? m.paciente?.uuid
+      const folio = res.folioPaciente ?? m.paciente?.folio ?? ''
+      const nombre = res.nombrePaciente ?? m.paciente?.nombreCompleto ?? ''
+      const tipo = res.nombreTipo ?? m.nombreProtocolo ?? null
+
+      if (uuid) {
+        const groupKey = idToma != null
+          ? `t${idToma}`
+          : (idProto != null ? `p${idProto}` : 'legacy')
+        setCardSel({
+          key: `${uuid}/${groupKey}`,
+          uuidPaciente: uuid,
+          idToma,
+          idProtocolo: idProto,
+          folio,
+          nombreTipo: tipo,
+          nombrePaciente: nombre,
+        })
       }
 
       setResaltadaId(m.id)
-      pendienteDeLocalizar.current = { id: m.id, abrirEdicion: puedeEditarMuestra }
+      pendienteDeLocalizar.current = { id: m.id, abrirEdicion: false, abrirDrawer: true }
       setEscanerAbierto(false)
       toast.success(`Muestra ${m.etiqueta} localizada`)
     } catch (e: any) {
       const msg = e?.response?.data?.message
         || 'No se pudo resolver la etiqueta leída.'
       setErrorEscaneo(msg)
-      // Si el escáner está cerrado (lector físico) el error se ve como aviso;
-      // con la cámara abierta se pinta dentro del modal y no se interrumpe.
       if (!escanerAbierto) toast.error(msg)
     }
   }, [buscarPorEtiqueta, puedeEditarMuestra, escanerAbierto])
@@ -1596,12 +1711,12 @@ export function MuestrasTab() {
     pendienteDeLocalizar.current = null
     nodo.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
-    if (!pendiente.abrirEdicion) return
-    // Se deja terminar el desplazamiento antes de abrir el diálogo: si se abre
-    // encima, el usuario no llega a ver dónde estaba la muestra.
+    if (!pendiente.abrirEdicion && !pendiente.abrirDrawer) return
     temporizadorEdicion.current = setTimeout(() => {
       const encontrada = muestras?.find((m) => m.id === pendiente.id)
-      if (encontrada) handleEdit(encontrada)
+      if (!encontrada) return
+      if (pendiente.abrirDrawer) setDrawerMuestra(encontrada)
+      else handleEdit(encontrada)
     }, 550)
   })
 
@@ -1623,10 +1738,35 @@ export function MuestrasTab() {
     try {
       await asignarPosicion.mutateAsync({ id: ubicarMuestra.id, data: { idPosicionCaja } })
       toast.success(`Posición asignada a ${ubicarMuestra.etiqueta}`)
+      if (ubicarQueue.length > 0) {
+        const remaining = ubicarQueue.filter((m) => m.id !== ubicarMuestra.id)
+        setUbicarQueue(remaining)
+        if (remaining.length > 0) {
+          setUbicarMuestra(remaining[0])
+          return
+        }
+        toast.success('Todas las muestras de la selección han sido ubicadas')
+      }
       setUbicarMuestra(null)
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || 'Error al asignar posición')
     }
+  }
+
+  const handleUbicarSeleccion = () => {
+    if (selectedIds.size === 0) return
+    const allMuestras = [...padres, ...padres.flatMap((p) => alicuotasByPadre.get(p.id) ?? [])]
+    const elegibles = allMuestras.filter((m) =>
+      selectedIds.has(m.id) && !m.ubicacion && !esVolumenCero(m)
+      && m.estadoMuestra !== 'BAJA' && m.estadoMuestra !== 'PRESTADA'
+      && !trasladosActivos.has(m.id)
+    )
+    if (elegibles.length === 0) {
+      toast.info('No hay muestras elegibles para ubicar en la selección')
+      return
+    }
+    setUbicarQueue(elegibles)
+    setUbicarMuestra(elegibles[0])
   }
 
   const toggleSelect = (id: number) => {
@@ -1668,13 +1808,21 @@ export function MuestrasTab() {
   const handleTrasladarSeleccion = () => {
     if (selectedIds.size === 0) return
     const allMuestras = [...padres, ...padres.flatMap((p) => alicuotasByPadre.get(p.id) ?? [])]
-    const first = allMuestras.find((m) => selectedIds.has(m.id))
-    if (first) handleTrasladoClick(first)
+    const seleccionadas = allMuestras.filter((m) =>
+      selectedIds.has(m.id) && !esVolumenCero(m)
+      && m.estadoMuestra !== 'BAJA' && m.estadoMuestra !== 'PRESTADA'
+      && !trasladosActivos.has(m.id)
+    )
+    if (seleccionadas.length === 0) {
+      toast.info('No hay muestras elegibles para trasladar en la selección')
+      return
+    }
+    setPendingTraslado(seleccionadas)
   }
 
-  const handleTrasladoClick = (m: MuestraDetalleDTO) => setPendingTraslado(m)
+  const handleTrasladoClick = (m: MuestraDetalleDTO) => setPendingTraslado([m])
   const handleConfirmTraslado = () => {
-    if (pendingTraslado) { setTrasladandoMuestra(pendingTraslado); setPendingTraslado(null) }
+    if (pendingTraslado) { setTrasladandoMuestras(pendingTraslado); setPendingTraslado(null) }
   }
 
   const handleCancelarEnvio = async (idTraslado: number, motivo: string) => {
@@ -1814,6 +1962,7 @@ export function MuestrasTab() {
     onResultados: setResultadosMuestra,
     onGenerarAlicuotas: setGenerarAlicuotasMuestra,
     onAlicuotarTubo: (m) => alicuotarTuboMutation.mutate({ idPadre: m.id }),
+    onAlicuotarConProtocolo: setAlicuotarConProtocoloMuestra,
     onUbicarLote: setUbicarLoteMuestra,
     onDelete: handleDelete,
     onDarBaja: handleDarBaja,
@@ -1920,7 +2069,7 @@ export function MuestrasTab() {
         {/* Centinela superior: al asomarse trae las tarjetas más recientes. */}
         <div ref={centinelaArriba} aria-hidden className="h-px" />
 
-        {cards.length === 0 ? (
+        {!cardSel && resumenCards.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8">
               <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -1941,25 +2090,24 @@ export function MuestrasTab() {
             </CardContent>
           </Card>
         ) : (
-          /*
-           * Grid plano — cada padre ocupa 1 celda, sus alícuotas (si están
-           * expandidas) fluyen como celdas adicionales a continuación,
-           * naturalmente hacia la derecha y a la siguiente fila si es necesario.
-           * CSS Grid stretch por defecto iguala las alturas dentro de cada fila.
-           */
           (() => {
-            const cardDet = cardSel ? cards.find((c) => c.key === cardSel) ?? null : null
-            if (!cardDet) {
+            if (!cardSel) {
               return (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {cards.map((card) => {
-                    const todas = [...card.lotes.values()].flat().concat(card.huerfanas)
-                    const almac = [...card.padres, ...todas].filter((m) => m.ubicacion).length
-                    const sinUb = [...card.padres, ...todas].filter((m) => !m.ubicacion && m.estadoMuestra !== 'BAJA').length
+                  {resumenCards.map((rc) => {
+                    const key = `${rc.uuidPaciente}/${rc.idToma != null ? `t${rc.idToma}` : (rc.idProtocolo != null ? `p${rc.idProtocolo}` : 'legacy')}`
                     return (
                       <button
-                        key={card.key}
-                        onClick={() => setCardSel(card.key)}
+                        key={key}
+                        onClick={() => setCardSel({
+                          key,
+                          uuidPaciente: rc.uuidPaciente,
+                          idToma: rc.idToma,
+                          idProtocolo: rc.idProtocolo,
+                          folio: rc.folioPaciente,
+                          nombreTipo: rc.nombreTipo ?? null,
+                          nombrePaciente: rc.nombrePaciente,
+                        })}
                         className="text-left rounded-lg border bg-card p-4 transition-all hover:border-primary/60 hover:shadow-md group"
                       >
                         <div className="flex items-center gap-2">
@@ -1967,23 +2115,24 @@ export function MuestrasTab() {
                             <TestTube className="h-4 w-4 text-primary" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <span className="font-semibold text-sm">Folio {card.folio}</span>
-                            <Badge variant="secondary" className="ml-2 text-[10px]">{card.nombreProtocolo ?? 'Sin protocolo'}</Badge>
+                            <span className="font-semibold text-sm">Folio {rc.folioPaciente}</span>
+                            <Badge variant="secondary" className="ml-2 text-[10px]">{rc.nombreTipo ?? 'Sin protocolo'}</Badge>
                           </div>
                         </div>
+                        <p className="mt-1.5 text-xs text-muted-foreground truncate">{rc.nombrePaciente}</p>
                         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <TestTube className="h-3 w-3" /> {card.padres.length} tubo{card.padres.length !== 1 ? 's' : ''}
+                            <TestTube className="h-3 w-3" /> {rc.tubos} tubo{rc.tubos !== 1 ? 's' : ''}
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <FlaskConical className="h-3 w-3" /> {todas.length} alícuota{todas.length !== 1 ? 's' : ''}
+                            <FlaskConical className="h-3 w-3" /> {rc.alicuotas} alícuota{rc.alicuotas !== 1 ? 's' : ''}
                           </div>
                           <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                            <Boxes className="h-3 w-3" /> {almac} almacenada{almac !== 1 ? 's' : ''}
+                            <Boxes className="h-3 w-3" /> {rc.almacenadas} almacenada{rc.almacenadas !== 1 ? 's' : ''}
                           </div>
-                          {sinUb > 0 && (
+                          {rc.pendientes > 0 && (
                             <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                              <MapPinOff className="h-3 w-3" /> {sinUb} pendiente{sinUb !== 1 ? 's' : ''}
+                              <MapPinOff className="h-3 w-3" /> {rc.pendientes} pendiente{rc.pendientes !== 1 ? 's' : ''}
                             </div>
                           )}
                         </div>
@@ -1995,13 +2144,30 @@ export function MuestrasTab() {
               )
             }
 
+            const cardDet = cards[0] ?? null
+            if (!cardDet) {
+              return detalleQuery.isLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" /> Cargando desglose…
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-8">
+                  <Button variant="ghost" size="sm" onClick={() => { setCardSel(null); setSelectedIds(new Set()) }}>
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Volver al listado
+                  </Button>
+                </div>
+              )
+            }
             const alicuotasTodas = [...cardDet.lotes.values()].flat().concat(cardDet.huerfanas)
             const totalAlic = alicuotasTodas.length
             const almacenadas = [...cardDet.padres, ...alicuotasTodas].filter((m) => m.ubicacion).length
-            const sinUbicacion = [...cardDet.padres, ...alicuotasTodas].filter((m) => !m.ubicacion && m.estadoMuestra !== 'BAJA').length
+            const sinUbicacion = [...cardDet.padres, ...alicuotasTodas].filter((m) =>
+              !m.ubicacion && m.estadoMuestra !== 'BAJA' && m.estadoMuestra !== 'PRESTADA'
+              && !esVolumenCero(m) && !trasladosActivos.has(m.id)
+            ).length
             const lotesOrdenados = [...cardDet.lotes.entries()]
               .sort((a, b) => (a[1][0]?.numeroLote ?? 0) - (b[1][0]?.numeroLote ?? 0))
-            const participanteNombre = cardDet.padres[0]?.paciente?.nombreCompleto ?? '—'
+            const participanteNombre = cardSel.nombrePaciente
 
             return (
               <div className="space-y-4">
@@ -2011,7 +2177,7 @@ export function MuestrasTab() {
                   <span className="text-muted-foreground/50">›</span>
                   <button onClick={() => { setCardSel(null); setSelectedIds(new Set()) }} className="hover:text-foreground transition-colors">Muestras</button>
                   <span className="text-muted-foreground/50">›</span>
-                  <span className="text-foreground font-medium truncate">Folio {cardDet.folio}</span>
+                  <span className="text-foreground font-medium truncate">Folio {cardSel.folio}</span>
                 </nav>
 
                 {/* Header */}
@@ -2022,8 +2188,8 @@ export function MuestrasTab() {
                     </Button>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="text-xl font-bold">Folio {cardDet.folio}</h2>
-                        <Badge variant="secondary" className="text-xs">{cardDet.nombreProtocolo ?? 'Sin protocolo'}</Badge>
+                        <h2 className="text-xl font-bold">Folio {cardSel.folio}</h2>
+                        <Badge variant="secondary" className="text-xs">{cardSel.nombreTipo ?? 'Sin protocolo'}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{participanteNombre}</p>
                     </div>
@@ -2070,8 +2236,11 @@ export function MuestrasTab() {
                   <div className="h-5 w-px bg-border mx-0.5 hidden sm:block" />
                   {selectedIds.size === 0 ? (
                     <Button variant="ghost" size="sm" onClick={() => {
-                      const allIds = new Set([...cardDet.padres.map((p) => p.id), ...alicuotasTodas.map((a) => a.id)])
-                      setSelectedIds(allIds)
+                      const todas = [...cardDet.padres, ...alicuotasTodas]
+                      const elegibles = todas.filter((m) =>
+                        !esVolumenCero(m) && m.estadoMuestra !== 'BAJA' && m.estadoMuestra !== 'PRESTADA' && !trasladosActivos.has(m.id)
+                      )
+                      setSelectedIds(new Set(elegibles.map((m) => m.id)))
                     }}>
                       <CheckSquare className="h-3.5 w-3.5 mr-1.5" /> Seleccionar todo
                     </Button>
@@ -2079,8 +2248,11 @@ export function MuestrasTab() {
                     <>
                       <span className="text-xs font-medium text-primary">{selectedIds.size} seleccionadas</span>
                       <Button variant="ghost" size="sm" onClick={() => {
-                        const allIds = new Set([...cardDet.padres.map((p) => p.id), ...alicuotasTodas.map((a) => a.id)])
-                        setSelectedIds(allIds)
+                        const todas = [...cardDet.padres, ...alicuotasTodas]
+                        const elegibles = todas.filter((m) =>
+                          !esVolumenCero(m) && m.estadoMuestra !== 'BAJA' && m.estadoMuestra !== 'PRESTADA' && !trasladosActivos.has(m.id)
+                        )
+                        setSelectedIds(new Set(elegibles.map((m) => m.id)))
                       }}>
                         <CheckSquare className="h-3.5 w-3.5 mr-1.5" /> Todas
                       </Button>
@@ -2098,6 +2270,10 @@ export function MuestrasTab() {
                           <ArrowRightFromLine className="h-3.5 w-3.5 mr-1.5" /> Trasladar selección
                         </Button>
                       )}
+                      <Button variant="outline" size="sm" onClick={handleUbicarSeleccion}
+                        className="text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/10">
+                        <MapPin className="h-3.5 w-3.5 mr-1.5" /> Ubicar selección
+                      </Button>
                     </>
                   )}
                 </div>
@@ -2107,7 +2283,9 @@ export function MuestrasTab() {
                   <StatChip icon={TestTube} label="Tubos" value={cardDet.padres.length} />
                   <StatChip icon={FlaskConical} label="Alícuotas" value={totalAlic} />
                   <StatChip icon={Boxes} label="Almacenadas" value={almacenadas} accent="green" />
-                  <StatChip icon={MapPinOff} label="Sin ubicación" value={sinUbicacion} accent={sinUbicacion > 0 ? 'amber' : undefined} />
+                  {sinUbicacion > 0 && (
+                    <StatChip icon={MapPinOff} label="Sin ubicación" value={sinUbicacion} accent="amber" />
+                  )}
                 </div>
 
                 {/* Tubes section — simplified cards */}
@@ -2124,8 +2302,8 @@ export function MuestrasTab() {
                         const noEnMiPos = p.idInstitucionActual != null && myInstitucionId != null && p.idInstitucionActual !== myInstitucionId
                         const isPrest = p.estadoMuestra === 'PRESTADA'
                         const noEdit = isPrest || noEnMiPos || (p.idInstitucion != null && myInstitucionId != null && p.idInstitucion !== myInstitucionId)
-                        const puedeEnv = !tInfo && !noEnMiPos && puedeTraslado && p.estadoMuestra !== 'BAJA' && !p.agotada
-                        const sinUbic = !p.ubicacion && p.estadoMuestra !== 'BAJA' && !noEnMiPos && !isPrest
+                        const puedeEnv = !tInfo && !noEnMiPos && puedeTraslado && p.estadoMuestra !== 'BAJA' && !esVolumenCero(p)
+                        const sinUbic = !p.ubicacion && p.estadoMuestra !== 'BAJA' && !noEnMiPos && !isPrest && !esVolumenCero(p) && !tInfo
                         return (
                           <MarcoLocalizada key={p.id} id={p.id} resaltada={resaltadaId === p.id}>
                             <div
@@ -2242,7 +2420,43 @@ export function MuestrasTab() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="w-8 px-2 py-2"></th>
+                              <th className="w-8 px-2 py-2">
+                                {(() => {
+                                  const elegibles = alicuotasTodas.filter((m) =>
+                                    !esVolumenCero(m) && m.estadoMuestra !== 'BAJA' && m.estadoMuestra !== 'PRESTADA' && !trasladosActivos.has(m.id)
+                                  )
+                                  const todosSeleccionados = elegibles.length > 0 && elegibles.every((m) => selectedIds.has(m.id))
+                                  const algunoSeleccionado = !todosSeleccionados && elegibles.some((m) => selectedIds.has(m.id))
+                                  return (
+                                    <button
+                                      className="p-0.5 rounded hover:bg-muted transition-colors"
+                                      title={todosSeleccionados ? 'Deseleccionar alícuotas' : 'Seleccionar todas las alícuotas'}
+                                      onClick={() => {
+                                        if (todosSeleccionados) {
+                                          setSelectedIds((prev) => {
+                                            const next = new Set(prev)
+                                            elegibles.forEach((m) => next.delete(m.id))
+                                            return next
+                                          })
+                                        } else {
+                                          setSelectedIds((prev) => {
+                                            const next = new Set(prev)
+                                            elegibles.forEach((m) => next.add(m.id))
+                                            return next
+                                          })
+                                        }
+                                      }}
+                                    >
+                                      {todosSeleccionados
+                                        ? <CheckSquare className="h-4 w-4 text-primary" />
+                                        : algunoSeleccionado
+                                          ? <MinusSquare className="h-4 w-4 text-primary" />
+                                          : <Square className="h-4 w-4 text-muted-foreground/40 hover:text-muted-foreground" />
+                                      }
+                                    </button>
+                                  )
+                                })()}
+                              </th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Etiqueta</th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Lote</th>
                               <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Volumen</th>
@@ -2262,8 +2476,8 @@ export function MuestrasTab() {
                               const aNoEnMiPos = a.idInstitucionActual != null && myInstitucionId != null && a.idInstitucionActual !== myInstitucionId
                               const aIsPrest = a.estadoMuestra === 'PRESTADA'
                               const aNoEdit = aIsPrest || aNoEnMiPos || (a.idInstitucion != null && myInstitucionId != null && a.idInstitucion !== myInstitucionId)
-                              const aPuedeEnv = !aTInfo && !aNoEnMiPos && puedeTraslado && a.estadoMuestra !== 'BAJA' && !a.agotada
-                              const aSinUbic = !a.ubicacion && a.estadoMuestra !== 'BAJA' && !aNoEnMiPos && !aIsPrest
+                              const aPuedeEnv = !aTInfo && !aNoEnMiPos && puedeTraslado && a.estadoMuestra !== 'BAJA' && !esVolumenCero(a)
+                              const aSinUbic = !a.ubicacion && a.estadoMuestra !== 'BAJA' && !aNoEnMiPos && !aIsPrest && !esVolumenCero(a) && !aTInfo
                               return (
                                 <tr
                                   key={a.id}
@@ -2389,11 +2603,9 @@ export function MuestrasTab() {
           </div>
         )}
 
-        {!cardSel && cards.length > 0 && (
+        {!cardSel && resumenCards.length > 0 && (
           <p className="pb-2 text-center text-xs text-muted-foreground">
-            {padres.length >= totalMuestras
-              ? `${cards.length} procesamiento(s) · ${totalMuestras} ${totalMuestras === 1 ? 'tubo' : 'tubos'} en total`
-              : `${cards.length} procesamiento(s) cargados · se cargan más conforme se desplaza`}
+            {resumenCards.length} procesamiento{resumenCards.length !== 1 ? 's' : ''}
           </p>
         )}
       </div>
@@ -2406,7 +2618,7 @@ export function MuestrasTab() {
         <NavegadorListado
           onInicio={irAlInicio}
           onFinal={irAlFinal}
-          cargando={listado.isFetching}
+          cargando={detalleQuery.isFetching}
           cargadas={padres.length}
           total={totalMuestras}
         />
@@ -2437,16 +2649,36 @@ export function MuestrasTab() {
         onOpenChange={(open) => !open && setGenerarAlicuotasMuestra(null)}
         muestra={generarAlicuotasMuestra}
       />
+
+      <AlicuotarConProtocoloDialog
+        open={alicuotarConProtocoloMuestra !== null}
+        onOpenChange={(open) => !open && setAlicuotarConProtocoloMuestra(null)}
+        muestra={alicuotarConProtocoloMuestra}
+      />
       {/* Confirmación antes de abrir el modal de traslado */}
       <AlertDialog open={pendingTraslado !== null} onOpenChange={(open) => !open && setPendingTraslado(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Iniciar traslado de {pendingTraslado?.etiqueta}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {pendingTraslado?.length === 1
+                ? `¿Iniciar traslado de ${pendingTraslado[0].etiqueta}?`
+                : `¿Iniciar traslado de ${pendingTraslado?.length} muestras?`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Vas a trasladar la muestra <strong>{pendingTraslado?.etiqueta}</strong> a otra institución.
-              Al confirmar el traslado, la muestra quedará en estado <strong>En tránsito</strong> y su
-              posición actual en caja se liberará automáticamente.
-              ¿Deseas continuar?
+              {pendingTraslado?.length === 1 ? (
+                <>
+                  Vas a trasladar la muestra <strong>{pendingTraslado[0].etiqueta}</strong> a otra institución.
+                  Al confirmar, la muestra quedará en estado <strong>En tránsito</strong> y su
+                  posición actual en caja se liberará automáticamente.
+                </>
+              ) : (
+                <>
+                  Vas a trasladar <strong>{pendingTraslado?.length} muestras</strong> a otra institución.
+                  Se generará un préstamo individual por cada muestra. Las posiciones en caja se
+                  liberarán automáticamente.
+                </>
+              )}
+              {' '}¿Desea continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2455,16 +2687,16 @@ export function MuestrasTab() {
               onClick={handleConfirmTraslado}
               className="bg-amber-600 text-white hover:bg-amber-700"
             >
-              Sí, iniciar traslado
+              Sí, continuar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <TrasladarMuestraModal
-        open={trasladandoMuestra !== null}
-        onOpenChange={(open) => !open && setTrasladandoMuestra(null)}
-        muestra={trasladandoMuestra}
+        open={trasladandoMuestras.length > 0}
+        onOpenChange={(open) => !open && setTrasladandoMuestras([])}
+        muestras={trasladandoMuestras}
       />
       <HistorialTrasladosModal
         open={historialMuestra !== null}
@@ -2538,7 +2770,7 @@ export function MuestrasTab() {
 
       <SeleccionPosicionCajaModal
         open={ubicarMuestra !== null}
-        onOpenChange={(open) => { if (!open) setUbicarMuestra(null) }}
+        onOpenChange={(open) => { if (!open) { setUbicarMuestra(null); setUbicarQueue([]) } }}
         onConfirm={({ idPosicionCaja }) => handleUbicarIndependiente(idPosicionCaja)}
       />
 

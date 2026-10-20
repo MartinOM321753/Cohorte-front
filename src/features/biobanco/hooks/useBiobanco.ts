@@ -90,6 +90,8 @@ import {
   imprimirAlicuotas,
   imprimirLoteCompleto,
   buscarMuestraPorEtiqueta,
+  getResumenProcedimientos,
+  getPlanAlicuotasProtocolo,
 } from '../api/biobanco.api'
 import {
   RefrigeradorRequestDTO,
@@ -112,6 +114,7 @@ import {
   TuboProtocoloRequestDTO,
   ProcesarProtocoloRequest,
   PaginaMuestras,
+  ResumenProcedimientoDTO,
 } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -439,6 +442,61 @@ export function useMuestrasCursor(
      * de un hueco: la caja de búsqueda dispara una consulta nueva por cada
      * pausa al teclear, y vaciar la pantalla en cada una la vuelve ilegible.
      */
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+  })
+}
+
+export interface CriteriosResumen {
+  incluirHistorico: boolean
+  busqueda: string
+  fechaDesde: string
+  fechaHasta: string
+  tipos: string[]
+  sexo: string
+  folioDesde: string
+  folioHasta: string
+}
+
+export function useResumenProcedimientos(criterios: CriteriosResumen) {
+  return useQuery<ResumenProcedimientoDTO[]>({
+    queryKey: ['muestras', 'resumen', criterios],
+    queryFn: () => getResumenProcedimientos(criterios),
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+  })
+}
+
+export interface CriteriosDetalleProcedimiento extends CriteriosListadoMuestras {
+  uuidPaciente: string
+  idProtocolo?: number
+  idToma?: number
+}
+
+export function useDetalleProcedimiento(
+  criterios: CriteriosDetalleProcedimiento | null,
+  size = 100,
+) {
+  const arranque: Salto = { cursor: null, direccion: 'SIGUIENTE' }
+  return useInfiniteQuery({
+    queryKey: ['muestras', 'detalle-procedimiento', criterios, size],
+    initialPageParam: arranque,
+    queryFn: ({ pageParam }) =>
+      getPaginaMuestras({
+        ...criterios!,
+        size,
+        cursor: (pageParam as Salto).cursor,
+        direccion: (pageParam as Salto).direccion,
+      }),
+    getNextPageParam: (ultima: PaginaMuestras): Salto | undefined =>
+      ultima.haySiguientes && ultima.cursorFin
+        ? { cursor: ultima.cursorFin, direccion: 'SIGUIENTE' }
+        : undefined,
+    getPreviousPageParam: (primera: PaginaMuestras): Salto | undefined =>
+      primera.hayAnteriores && primera.cursorInicio
+        ? { cursor: primera.cursorInicio, direccion: 'ANTERIOR' }
+        : undefined,
+    enabled: criterios != null,
     placeholderData: keepPreviousData,
     staleTime: 15_000,
   })
@@ -919,6 +977,34 @@ export function usePlanAlicuotas(
   })
 }
 
+/**
+ * Previsualiza el plan de alícuotas a partir de un TuboProtocolo.
+ *
+ * Se usa en ProcesarTab para mostrar cuántas alícuotas alcanzarán
+ * con el volumen que el operador ingresó, antes de ejecutar nada.
+ */
+export function usePlanAlicuotasProtocolo(
+  params: {
+    idTuboProtocolo?: number | null
+    valor?: number | null
+  },
+  options?: { enabled?: boolean },
+) {
+  const { idTuboProtocolo, valor } = params
+  return useQuery({
+    queryKey: ['plan-alicuotas-protocolo', idTuboProtocolo, valor],
+    queryFn: () => getPlanAlicuotasProtocolo({
+      idTuboProtocolo: idTuboProtocolo as number,
+      valor: valor ?? undefined,
+    }),
+    enabled: (options?.enabled ?? true)
+      && !!idTuboProtocolo
+      && valor != null && valor > 0,
+    staleTime: 60_000,
+    retry: false,
+  })
+}
+
 export function useGetAlicuotasPendientes(idMuestraPadre: number, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['alicuotas-pendientes', idMuestraPadre],
@@ -1229,8 +1315,9 @@ export function useDeleteTuboProtocolo() {
 export function useAlicuotarTubo() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ idPadre, planVolumenes }: { idPadre: number; planVolumenes?: number[] }) =>
-      alicuotarTubo(idPadre, planVolumenes),
+    mutationFn: ({ idPadre, planVolumenes, idTuboProtocolo }: {
+      idPadre: number; planVolumenes?: number[]; idTuboProtocolo?: number
+    }) => alicuotarTubo(idPadre, planVolumenes, idTuboProtocolo),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['muestras'] })
       queryClient.invalidateQueries({ queryKey: ['carta-folio'] })

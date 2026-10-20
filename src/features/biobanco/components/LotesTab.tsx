@@ -17,6 +17,7 @@ const ACCION_LABEL: Record<AccionTubo, string> = {
   GUARDAR: 'Guardar entero',
   ESTUDIO: 'Estudio',
   ALICUOTAR: 'Alicuotar',
+  TRANSFERIR: 'Transferir',
 }
 
 function AccionIcon({ accion, className }: { accion: AccionTubo; className?: string }) {

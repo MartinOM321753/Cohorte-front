@@ -265,6 +265,7 @@ export interface CitaRequestDTO {
   durationMinutes?: number
   colorHex?: string
   observaciones?: string
+  institucionDestinoUUID?: string
 }
 
 export interface CitaUpdateRequestDTO {
@@ -644,7 +645,7 @@ export interface TipoMuestraRequestDTO {
 // ── Protocolos de procesamiento ──────────────────────────────────────────────
 
 /** Qué se le hace a un tubo primario dentro de un protocolo. */
-export type AccionTubo = 'GUARDAR' | 'ESTUDIO' | 'ALICUOTAR'
+export type AccionTubo = 'GUARDAR' | 'ESTUDIO' | 'ALICUOTAR' | 'TRANSFERIR'
 
 export interface TuboProtocolo {
   id: number
@@ -659,12 +660,18 @@ export interface TuboProtocolo {
   numeroAlicuotas: number
   volumenAlicuota?: number | null
   volumenesAlicuota?: number[] | null
+  /** Volumen esperado del tubo primario al momento de la recolección. */
+  volumenEsperado?: number | null
   unidadVolumen?: string | null
   destinoSugerido?: string | null
   /** Si sus alícuotas se juntan con las de otros tubos del mismo tipo resultante. */
   agruparEnLote?: boolean
   generacionAutomatica?: boolean
   permiteAlicuotaParcial?: boolean
+  /** Institución destino para transferencia automática (solo TRANSFERIR). */
+  idInstitucionDestino?: number | null
+  nombreInstitucionDestino?: string | null
+  motivoTransferencia?: string | null
 }
 
 export interface TuboProtocoloRequestDTO {
@@ -677,11 +684,14 @@ export interface TuboProtocoloRequestDTO {
   numeroAlicuotas?: number
   volumenAlicuota?: number
   volumenesAlicuota?: number[]
+  volumenEsperado?: number
   unidadVolumen?: string
   destinoSugerido?: string
   agruparEnLote?: boolean
   generacionAutomatica?: boolean
   permiteAlicuotaParcial?: boolean
+  idInstitucionDestino?: number | null
+  motivoTransferencia?: string | null
 }
 
 export interface Protocolo {
@@ -711,6 +721,9 @@ export interface TuboDecisionRequest {
   unidad?: string
   planVolumenes?: number[]
   observaciones?: string
+  transferirAutorizado?: boolean
+  idInstitucionDestino?: number
+  motivoTransferencia?: string
 }
 
 export interface ProcesarProtocoloRequest {
@@ -727,6 +740,9 @@ export interface PadreBreve {
   nombreTubo?: string | null
   valor?: number | null
   unidad?: string | null
+  remanente?: number | null
+  transferido?: boolean | null
+  institucionDestino?: string | null
 }
 
 export interface LoteResumen {
@@ -791,6 +807,7 @@ export interface ResultadoCargaProtocolo {
   alicuotas: number
   lotes: number
   ubicadas: number
+  transferencias: number
   errores: string[]
   avisos: string[]
 }
@@ -905,6 +922,7 @@ export interface MuestraDetalleDTO {
   numeroLote?: number | null
   tipoResultanteLote?: string | null
   numeroEnLote?: number | null
+  idToma?: number | null
   /** Protocolo y tubo (flujo nuevo) para agrupar en cards y mostrar T{orden}. */
   idProtocolo?: number | null
   nombreProtocolo?: string | null
@@ -997,8 +1015,10 @@ export interface ParametroEstudioMuestra {
   nombre: string
   unidad?: string | null
   tipo: TipoParametro
-  valorMinimo?: number | null
-  valorMaximo?: number | null
+  valorMinMujeres?: number | null
+  valorMaxMujeres?: number | null
+  valorMinHombres?: number | null
+  valorMaxHombres?: number | null
   /** Posición dentro de su tipo de estudio de muestra. La lista llega ya ordenada. */
   orden?: number
   /** Valores válidos — solo cuando tipo == TEXTO_OPCIONES */
@@ -1010,8 +1030,10 @@ export interface ParametroEstudioMuestraRequestDTO {
   nombre: string
   unidad?: string
   tipo: TipoParametro
-  valorMinimo?: number | null
-  valorMaximo?: number | null
+  valorMinMujeres?: number | null
+  valorMaxMujeres?: number | null
+  valorMinHombres?: number | null
+  valorMaxHombres?: number | null
   opciones?: string[]
 }
 
@@ -1147,6 +1169,8 @@ export interface PisosDTO {
 // ============================================
 // BIOBANCO - CAJAS
 // ============================================
+export type OrdenLlenado = 'FRENTE_ATRAS' | 'ATRAS_FRENTE'
+
 export interface Caja {
   id: number
   codigoCaja: string
@@ -1158,6 +1182,7 @@ export interface Caja {
   idPosicionPiso?: number | null
   /** String formateado devuelto por el backend, ej.: "Refrigerador: REF01 | Piso: 1 | Posición: F1-C2-A3" */
   ubicacionPiso?: string | null
+  ordenLlenado?: OrdenLlenado
   posiciones: PosicionCaja[]
   activo: boolean
 }
@@ -1170,6 +1195,7 @@ export interface CajaRequestDTO {
   color?: string
   observaciones?: string
   idPosicionPiso?: number
+  ordenLlenado?: OrdenLlenado
 }
 
 export interface PosicionCaja {
@@ -1270,6 +1296,8 @@ export interface Institucion {
   encargado?: EncargadoResumen | null
   tieneBiobanco: boolean
   activo: boolean
+  folioInicio?: number | null
+  folioFin?: number | null
 }
 
 export interface InstitucionRequestDTO {
@@ -1286,6 +1314,8 @@ export interface InstitucionRequestDTO {
   uuidEncargado?: string | null
   tieneBiobanco?: boolean
   activo?: boolean
+  folioInicio?: number | null
+  folioFin?: number | null
 }
 
 export interface InstitucionPaginadoResponse {
@@ -1302,6 +1332,7 @@ export const MODULOS_SISTEMA = [
   'BIOBANCO',
   'EXAMENES',
   'ESTUDIOS_MEDICOS',
+  'CUESTIONARIOS',
   'CITAS',
   'COBERTURA',
   'SOMATOMETRIA',
@@ -1319,6 +1350,7 @@ export const MODULO_LABELS: Record<ModuloSistema, string> = {
   BIOBANCO: 'Biobanco',
   EXAMENES: 'Exámenes',
   ESTUDIOS_MEDICOS: 'Estudios médicos',
+  CUESTIONARIOS: 'Cuestionarios',
   CITAS: 'Citas',
   COBERTURA: 'Cobertura',
   SOMATOMETRIA: 'Somatometría',
@@ -1632,6 +1664,34 @@ export interface FiltrosMuestrasQuery {
   size?: number
   incluirHistorico?: boolean
   ocultarDevueltasHuerfanas?: boolean
+  busqueda?: string
+  fechaDesde?: string
+  fechaHasta?: string
+  tipos?: string[]
+  sexo?: string
+  folioDesde?: string
+  folioHasta?: string
+  uuidPaciente?: string
+  idProtocolo?: number
+  idToma?: number
+}
+
+export interface ResumenProcedimientoDTO {
+  uuidPaciente: string
+  folioPaciente: string
+  nombrePaciente: string
+  pacienteActivo: boolean
+  idToma: number | null
+  nombreTipo: string | null
+  idProtocolo: number | null
+  tubos: number
+  alicuotas: number
+  almacenadas: number
+  pendientes: number
+}
+
+export interface FiltrosResumenQuery {
+  incluirHistorico?: boolean
   busqueda?: string
   fechaDesde?: string
   fechaHasta?: string

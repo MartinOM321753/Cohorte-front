@@ -42,6 +42,7 @@ interface DrawerActions {
   onResultados: (m: MuestraDetalleDTO) => void
   onGenerarAlicuotas: (m: MuestraDetalleDTO) => void
   onAlicuotarTubo: (m: MuestraDetalleDTO) => void
+  onAlicuotarConProtocolo: (m: MuestraDetalleDTO) => void
   onUbicarLote: (m: MuestraDetalleDTO) => void
   onDelete: (id: number) => void
   onDarBaja: (id: number, motivo: string) => void
@@ -61,6 +62,10 @@ interface MuestraDrawerProps {
   alicuotasPendientes?: number
 }
 
+function esVolumenCero(m: MuestraDetalleDTO) {
+  return Boolean(m.agotada) || (m.valor != null && m.valor <= 0)
+}
+
 function estadoBadge(m: MuestraDetalleDTO, trasladoInfo?: TrasladoInfo, myInstitucionId?: number) {
   const noEnMiPosesion = m.idInstitucionActual != null && myInstitucionId != null && m.idInstitucionActual !== myInstitucionId
   const esMia = m.idInstitucion != null && m.idInstitucion === myInstitucionId
@@ -70,6 +75,7 @@ function estadoBadge(m: MuestraDetalleDTO, trasladoInfo?: TrasladoInfo, myInstit
   if (noEnMiPosesion && esMia) return { label: 'Fuera del biobanco', cls: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30' }
   if (noEnMiPosesion && !esMia) return { label: 'Devuelta', cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30' }
   if (m.ubicacion) return { label: 'Almacenada', cls: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30' }
+  if (esVolumenCero(m)) return { label: 'Consumida', cls: 'bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/30' }
   return { label: 'Sin ubicación', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' }
 }
 
@@ -85,7 +91,7 @@ export function MuestraDrawer({ muestra, onClose, trasladoInfo, actions, numAlic
   const noEsMia = muestra.idInstitucion != null && actions.myInstitucionId != null && muestra.idInstitucion !== actions.myInstitucionId
   const noEnMiPosesion = muestra.idInstitucionActual != null && actions.myInstitucionId != null && muestra.idInstitucionActual !== actions.myInstitucionId
   const noEditable = isPrestada || noEsMia || noEnMiPosesion
-  const puedeEnviar = !trasladoInfo && !noEnMiPosesion && actions.puedeTraslado && !esBaja && !muestra.agotada
+  const puedeEnviar = !trasladoInfo && !noEnMiPosesion && actions.puedeTraslado && !esBaja && !esVolumenCero(muestra)
   const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.puedeCancelarTraslado
   const agotada = Boolean(muestra.agotada) && muestra.estadoMuestra !== 'BAJA'
   const alicuotasConfiguradas = muestra.tuboMuestra?.numeroAlicuotas ?? 0
@@ -164,12 +170,16 @@ export function MuestraDrawer({ muestra, onClose, trasladoInfo, actions, numAlic
                   </button>
                 )}
               </>
+            ) : esVolumenCero(muestra) ? (
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                <BatteryLow className="h-3.5 w-3.5 text-muted-foreground/60" /> Sin volumen — no requiere ubicación
+              </p>
             ) : (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5 text-amber-500" /> Sin posición asignada
                 </p>
-                {!noEnMiPosesion && !isPrestada && !esBaja && (
+                {!noEnMiPosesion && !isPrestada && !esBaja && !trasladoInfo && (
                   <button
                     onClick={() => { actions.onUbicar(muestra); onClose() }}
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-md px-3 py-1.5 transition-colors"
@@ -203,6 +213,13 @@ export function MuestraDrawer({ muestra, onClose, trasladoInfo, actions, numAlic
               && (muestra.valorDisponible ?? 0) > 0 && (
               <DrawerBtn icon={FlaskConical} onClick={() => { actions.onAlicuotarTubo(muestra); onClose() }}>
                 Alicuotar tubo (nuevo lote)
+              </DrawerBtn>
+            )}
+
+            {esPadre && noEsMia && !noEnMiPosesion && !isPrestada && !esBaja && !muestra.agotada
+              && (muestra.valorDisponible ?? 0) > 0 && (
+              <DrawerBtn icon={FlaskConical} onClick={() => { actions.onAlicuotarConProtocolo(muestra); onClose() }}>
+                Alicuotar con mi protocolo
               </DrawerBtn>
             )}
 

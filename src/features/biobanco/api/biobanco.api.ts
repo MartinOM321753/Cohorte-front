@@ -11,6 +11,8 @@ import {
   MuestraRequestDTO,
   PaginaMuestras,
   FiltrosMuestrasQuery,
+  ResumenProcedimientoDTO,
+  FiltrosResumenQuery,
   PosicionCaja,
   Almacen,
   AlmacenRequestDTO,
@@ -204,6 +206,9 @@ export async function getPaginaMuestras(filtros: FiltrosMuestrasQuery) {
   if (filtros.sexo) params.sexo = filtros.sexo
   if (filtros.folioDesde) params.folioDesde = filtros.folioDesde
   if (filtros.folioHasta) params.folioHasta = filtros.folioHasta
+  if (filtros.uuidPaciente) params.uuidPaciente = filtros.uuidPaciente
+  if (filtros.idToma != null) params.idToma = filtros.idToma
+  else if (filtros.idProtocolo != null) params.idProtocolo = filtros.idProtocolo
 
   const response = await api.get<ApiResponse<PaginaMuestras>>('/almacenamiento/muestras/cursor', {
     params,
@@ -212,6 +217,25 @@ export async function getPaginaMuestras(filtros: FiltrosMuestrasQuery) {
     // corchetes al nombre y el parámetro llegaría vacío.
     paramsSerializer: { indexes: null },
   })
+  return response.data.data
+}
+
+export async function getResumenProcedimientos(filtros: FiltrosResumenQuery) {
+  const params: Record<string, unknown> = {
+    incluirHistorico: filtros.incluirHistorico ?? false,
+  }
+  if (filtros.busqueda?.trim()) params.busqueda = filtros.busqueda.trim()
+  if (filtros.fechaDesde) params.fechaDesde = filtros.fechaDesde
+  if (filtros.fechaHasta) params.fechaHasta = filtros.fechaHasta
+  if (filtros.tipos?.length) params.tipos = filtros.tipos
+  if (filtros.sexo) params.sexo = filtros.sexo
+  if (filtros.folioDesde) params.folioDesde = filtros.folioDesde
+  if (filtros.folioHasta) params.folioHasta = filtros.folioHasta
+
+  const response = await api.get<ApiResponse<ResumenProcedimientoDTO[]>>(
+    '/almacenamiento/muestras/resumen',
+    { params, paramsSerializer: { indexes: null } },
+  )
   return response.data.data
 }
 
@@ -429,6 +453,39 @@ export async function getPlanAlicuotas(params: {
   return response.data.data
 }
 
+/**
+ * Previsualiza el plan de alícuotas a partir de un TuboProtocolo.
+ *
+ * Se usa en la pantalla de procesamiento para mostrar cuántas alícuotas
+ * alcanzarán con el volumen ingresado ANTES de crear nada.
+ */
+export async function getPlanAlicuotasProtocolo(params: {
+  idTuboProtocolo: number
+  valor?: number
+}) {
+  const response = await api.get<ApiResponse<PlanAlicuotas>>('/almacenamiento/muestras/plan-alicuotas-protocolo', { params })
+  return response.data.data
+}
+
+// ============================================
+// RESERVA TEMPORAL DE POSICIONES
+// ============================================
+
+export async function getReservadasEnCaja(idCaja: number, sesion: string) {
+  const response = await api.get<ApiResponse<number[]>>(`/almacenamiento/cajas/${idCaja}/posiciones/reservadas`, {
+    params: { sesion },
+  })
+  return response.data.data
+}
+
+export async function reservarPosiciones(ids: number[], sesion: string) {
+  await api.post('/almacenamiento/cajas/posiciones/reservar', { ids, sesion })
+}
+
+export async function liberarReservas(sesion: string) {
+  await api.post('/almacenamiento/cajas/posiciones/liberar', { sesion })
+}
+
 /** Alícuotas del lote que siguen sin ubicar (su volumen sigue reservado en la padre). */
 export async function getAlicuotasPendientes(idMuestraPadre: number) {
   const response = await api.get<ApiResponse<MuestraDetalleDTO[]>>(`/almacenamiento/muestras/${idMuestraPadre}/alicuotas/pendientes`)
@@ -570,10 +627,17 @@ export async function procesarProtocolo(data: ProcesarProtocoloRequest) {
   return response.data.data
 }
 
-export async function alicuotarTubo(idPadre: number, planVolumenes?: number[]) {
+export async function alicuotarTubo(
+  idPadre: number,
+  planVolumenes?: number[],
+  idTuboProtocolo?: number,
+) {
+  const body: Record<string, unknown> = {}
+  if (planVolumenes) body.planVolumenes = planVolumenes
+  if (idTuboProtocolo != null) body.idTuboProtocolo = idTuboProtocolo
   const response = await api.post<ApiResponse<ProcesarResultado>>(
     `/almacenamiento/muestras/${idPadre}/alicuotar-tubo`,
-    planVolumenes ? { planVolumenes } : {})
+    Object.keys(body).length > 0 ? body : {})
   return response.data.data
 }
 
@@ -590,25 +654,43 @@ export async function getCartaFolio(uuid: string) {
 // CARGA MASIVA POR PROTOCOLO
 // ============================================
 
-function cargaProtocoloForm(archivo: File, idProtocolo: number, fechaPorOmision?: string) {
+function cargaProtocoloForm(
+  archivo: File,
+  opts: { idProtocolo?: number; hojaProtocolo?: Record<string, number>; fechaPorOmision?: string },
+) {
   const fd = new FormData()
   fd.append('archivo', archivo)
-  fd.append('idProtocolo', String(idProtocolo))
-  if (fechaPorOmision) fd.append('fechaPorOmision', fechaPorOmision)
+  if (opts.idProtocolo != null) fd.append('idProtocolo', String(opts.idProtocolo))
+  if (opts.hojaProtocolo) fd.append('hojaProtocolo', JSON.stringify(opts.hojaProtocolo))
+  if (opts.fechaPorOmision) fd.append('fechaPorOmision', opts.fechaPorOmision)
   return fd
 }
 
-export async function previsualizarCargaProtocolo(archivo: File, idProtocolo: number, fechaPorOmision?: string) {
-  const r = await api.post<ApiResponse<ResultadoCargaProtocolo>>(
-    '/almacenamiento/muestras/carga-masiva/protocolo/previsualizar',
-    cargaProtocoloForm(archivo, idProtocolo, fechaPorOmision))
+export async function listarHojasProtocolo(archivo: File) {
+  const fd = new FormData()
+  fd.append('archivo', archivo)
+  const r = await api.post<ApiResponse<string[]>>(
+    '/almacenamiento/muestras/carga-masiva/protocolo/hojas', fd)
   return r.data.data
 }
 
-export async function confirmarCargaProtocolo(archivo: File, idProtocolo: number, fechaPorOmision?: string) {
+export async function previsualizarCargaProtocolo(
+  archivo: File,
+  opts: { idProtocolo?: number; hojaProtocolo?: Record<string, number>; fechaPorOmision?: string },
+) {
+  const r = await api.post<ApiResponse<ResultadoCargaProtocolo>>(
+    '/almacenamiento/muestras/carga-masiva/protocolo/previsualizar',
+    cargaProtocoloForm(archivo, opts))
+  return r.data.data
+}
+
+export async function confirmarCargaProtocolo(
+  archivo: File,
+  opts: { idProtocolo?: number; hojaProtocolo?: Record<string, number>; fechaPorOmision?: string },
+) {
   const r = await api.post<ApiResponse<ResultadoCargaProtocolo>>(
     '/almacenamiento/muestras/carga-masiva/protocolo/confirmar',
-    cargaProtocoloForm(archivo, idProtocolo, fechaPorOmision))
+    cargaProtocoloForm(archivo, opts))
   return r.data.data
 }
 
@@ -910,6 +992,14 @@ export interface MuestraEscaneadaDTO {
   idMuestraPadre: number | null
   /** La muestra solo aparece con la vista de histórico encendida. */
   requiereHistorico: boolean
+  /** Toma a la que pertenece (directa o vía la padre). */
+  idToma: number | null
+  /** Protocolo al que pertenece (directo o vía la padre). */
+  idProtocolo: number | null
+  nombreTipo: string | null
+  uuidPaciente: string | null
+  folioPaciente: string | null
+  nombrePaciente: string | null
 }
 
 /**
