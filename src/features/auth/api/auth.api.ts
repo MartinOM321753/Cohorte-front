@@ -72,7 +72,10 @@ export async function getGeolocation(): Promise<{
 export async function loginUser(
   credentials: LoginRequest,
   coords: { latitud: number; longitud: number; precisionM: number } | null,
-): Promise<{ user: UserData; mustChangePassword: boolean; permisos: string[]; roles: string[] }> {
+): Promise<{
+  user: UserData; mustChangePassword: boolean; permisos: string[]; roles: string[];
+  esParticipante: boolean
+}> {
   const loginPayload: LoginRequest = {
     ...credentials,
     latitud: coords?.latitud ?? null,
@@ -87,7 +90,10 @@ export async function loginUser(
 
   await axiosInstance.post('/auth/login', loginPayload)
 
-  const meResponse = await axiosInstance.get<ApiResponse<{ user: any; mustChangePassword: boolean; permisos: string[]; roles: string[] }>>('/auth/me')
+  const meResponse = await axiosInstance.get<ApiResponse<{
+    user: any; mustChangePassword: boolean; permisos: string[]; roles: string[];
+    esParticipante?: boolean
+  }>>('/auth/me')
   const data = meResponse.data?.data
   const dto = data?.user
 
@@ -123,7 +129,13 @@ export async function loginUser(
   const permisos: string[] = Array.isArray(data?.permisos) ? data.permisos : []
   const roles: string[] = Array.isArray(data?.roles) ? data.roles : []
 
-  return { user, mustChangePassword: data?.mustChangePassword === true, permisos, roles }
+  return {
+    user,
+    mustChangePassword: data?.mustChangePassword === true,
+    permisos,
+    roles,
+    esParticipante: data?.esParticipante === true,
+  }
 }
 
 // ── Recuperación de contraseña ─────────────────────────────────────────────────

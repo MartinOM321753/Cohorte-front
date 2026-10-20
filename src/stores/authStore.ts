@@ -34,8 +34,16 @@ export interface AuthState {
   /** Roles asignados al usuario (multi-rol). */
   roles: string[]
   isRoot: boolean
+  /**
+   * Si esta cuenta tiene expediente de participante.
+   *
+   * No se deduce del permiso de autocontestar: ese lo tienen tambien ROOT y
+   * ADMINISTRADOR, que no tienen expediente, y «Mis cuestionarios» no les lleva a
+   * ninguna parte. Lo dice el servidor en /auth/me.
+   */
+  esParticipante: boolean
 
-  login: (data: { user: UserData; mustChangePassword?: boolean; permisos?: string[]; roles?: string[]; isRoot?: boolean }) => Promise<boolean>
+  login: (data: { user: UserData; mustChangePassword?: boolean; permisos?: string[]; roles?: string[]; isRoot?: boolean; esParticipante?: boolean }) => Promise<boolean>
   logout: () => void
   hasRole: (role: UserRole | UserRole[]) => boolean
   /** Verifica si el usuario tiene el permiso indicado. Acepta un código o un arreglo (any). */
@@ -57,6 +65,7 @@ const initialState = {
   permisos: [] as string[],
   roles: [] as string[],
   isRoot: false,
+  esParticipante: false,
 }
 
 function parseInstitucion(raw: any): InstitucionResumen | null {
@@ -89,7 +98,7 @@ export const useAuthStore = create<AuthState>()(
   subscribeWithSelector((set, get) => ({
     ...initialState,
 
-    login: async ({ user, mustChangePassword = false, permisos = [], roles = [], isRoot = false }) => {
+    login: async ({ user, mustChangePassword = false, permisos = [], roles = [], isRoot = false, esParticipante = false }) => {
       const normalizedRole = normalizeRoleName(user.rol)
       if (!normalizedRole && roles.length === 0) {
         queryClient.clear()
@@ -106,6 +115,7 @@ export const useAuthStore = create<AuthState>()(
         permisos: [],
         roles: [],
         isRoot: false,
+        esParticipante: false,
       })
 
       const modulosHabilitados = await fetchModulosHabilitados()
@@ -120,6 +130,7 @@ export const useAuthStore = create<AuthState>()(
         permisos,
         roles,
         isRoot,
+        esParticipante,
       })
       return true
     },
@@ -195,7 +206,14 @@ export const useAuthStore = create<AuthState>()(
         const roles: string[] = Array.isArray(data?.roles) ? data.roles : []
 
         const isRoot: boolean = data?.isRoot === true
-        await get().login({ user, mustChangePassword: data?.mustChangePassword === true, permisos, roles, isRoot })
+        await get().login({
+          user,
+          mustChangePassword: data?.mustChangePassword === true,
+          permisos,
+          roles,
+          isRoot,
+          esParticipante: data?.esParticipante === true,
+        })
       } catch {
         queryClient.clear()
         set({ ...initialState, isLoading: false })

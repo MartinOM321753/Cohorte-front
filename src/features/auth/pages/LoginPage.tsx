@@ -232,7 +232,13 @@ export default function LoginPage() {
     try {
       const response = await loginUser(data, coords);
       if (!response.user) throw new Error("Respuesta de servidor inválida");
-      const ok = await login({ user: response.user, mustChangePassword: response.mustChangePassword, permisos: response.permisos, roles: response.roles });
+      const ok = await login({
+        user: response.user,
+        mustChangePassword: response.mustChangePassword,
+        permisos: response.permisos,
+        roles: response.roles,
+        esParticipante: response.esParticipante,
+      });
       if (!ok) throw new Error("Rol de usuario no reconocido");
       toast.success("Inicio de sesión exitoso");
       navigate(resolveHomeRoute(hasPermiso), { replace: true });

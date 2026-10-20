@@ -64,7 +64,15 @@ const schema = z.object({
   longitud:         z.union([z.number(), z.null()]).optional()
     .refine(v => v == null || (v >= -180 && v <= 180), 'Longitud entre -180 y 180'),
   uuidEncargado:    z.string().nullable().optional(),
-})
+  folioInicio:      z.union([z.coerce.number().int().positive(), z.null()]).optional(),
+  folioFin:         z.union([z.coerce.number().int().positive(), z.null()]).optional(),
+}).refine(
+  (d) => {
+    if (d.folioInicio != null && d.folioFin != null) return d.folioInicio <= d.folioFin
+    return d.folioInicio == null && d.folioFin == null
+  },
+  { message: 'Ambos valores son obligatorios y el inicio debe ser menor o igual al fin', path: ['folioFin'] },
+)
 
 type FormData = z.infer<typeof schema>
 
@@ -203,6 +211,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
       nombre: '', idTipoInstitucion: undefined as unknown as number, idInstitucionPadre: null,
       estado: '', ciudad: '', direccion: '', responsable: '', telefono: '',
       latitud: null, longitud: null, uuidEncargado: null,
+      folioInicio: null, folioFin: null,
     },
   })
 
@@ -258,6 +267,8 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
         latitud: institucion.latitud ?? null,
         longitud: institucion.longitud ?? null,
         uuidEncargado: institucion.encargado?.uuid ?? null,
+        folioInicio: institucion.folioInicio ?? null,
+        folioFin: institucion.folioFin ?? null,
       })
       setTieneBiobanco(!!institucion.tieneBiobanco)
       setActivo(institucion.activo)
@@ -266,6 +277,7 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
         nombre: '', idTipoInstitucion: undefined as unknown as number, idInstitucionPadre: null,
         estado: '', ciudad: '', direccion: '', responsable: '', telefono: '',
         latitud: null, longitud: null, uuidEncargado: null,
+        folioInicio: null, folioFin: null,
       })
       setTieneBiobanco(false)
       setActivo(true)
@@ -296,6 +308,8 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
       uuidEncargado: data.uuidEncargado ?? null,
       tieneBiobanco,
       activo,
+      folioInicio: data.folioInicio ?? null,
+      folioFin: data.folioFin ?? null,
     }
 
     try {
@@ -616,6 +630,42 @@ export function InstitucionFormModal({ open, onOpenChange, institucion }: Instit
                 Solo administradores activos sin institución a cargo.
               </p>
             )}
+          </div>
+
+          {/* Rango de folios ───────────────────────────────────────────── */}
+          <div className="space-y-2">
+            <Label>Rango de folios asignado</Label>
+            <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Folio inicio (ej: 1)"
+                  {...register('folioInicio', {
+                    setValueAs: (v) => (v === '' || v == null ? null : Number(v)),
+                  })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Folio fin (ej: 10000)"
+                  {...register('folioFin', {
+                    setValueAs: (v) => (v === '' || v == null ? null : Number(v)),
+                  })}
+                />
+                {errors.folioFin && (
+                  <p className="flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                    {errors.folioFin.message}
+                  </p>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Los nuevos participantes recibirán folios dentro de este rango. Deje ambos vacíos para usar la asignación global.
+            </p>
           </div>
 
           {/* Switches ────────────────────────────────────────────────── */}

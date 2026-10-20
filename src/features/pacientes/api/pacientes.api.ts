@@ -121,6 +121,22 @@ export async function cambiarInstitucionPaciente(uuid: string, idInstitucion: nu
   return response.data.data
 }
 
+/**
+ * Reasignación por rango de folios, en segundo plano. Responde de inmediato; el
+ * resumen llega por correo cuando termina.
+ */
+export async function reasignarInstitucionPorRango(
+  folioDesde: number,
+  folioHasta: number,
+  idInstitucion: number,
+): Promise<void> {
+  await axiosInstance.post('/pacientes/reasignar-institucion/rango', {
+    folioDesde,
+    folioHasta,
+    idInstitucion,
+  })
+}
+
 /** Reasignación en lote. Los que no se puedan mover vuelven en el detalle con su motivo. */
 export async function reasignarInstitucionPacientes(
   uuids: string[],
