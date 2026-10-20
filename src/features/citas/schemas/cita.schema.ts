@@ -45,6 +45,7 @@ export const citaFormSchema = z.object({
   estadoCita: z
     .enum(['PROGRAMADA', 'CONFIRMADA', 'REALIZADA', 'CANCELADA', 'NO_ASISTIO'])
     .optional(),
+  institucionDestinoUUID: z.string().optional(),
 })
 
 export type CitaFormData = z.infer<typeof citaFormSchema>
