@@ -894,6 +894,29 @@ function ColumnasDeLista({ estilo, onCambiar }: {
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
+          <Label className="text-[12px]">Espacio entre columnas (mm)</Label>
+          <Input type="number" min={0} max={20} step={0.5} className="h-9"
+                 value={estilo.espaciadoColumnaMm ?? 0}
+                 onChange={(e) => onCambiar({ ...estilo, espaciadoColumnaMm: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[12px]">Espacio entre filas (mm)</Label>
+          <Input type="number" min={0} max={20} step={0.5} className="h-9"
+                 value={estilo.espaciadoFilaMm ?? 0}
+                 onChange={(e) => onCambiar({ ...estilo, espaciadoFilaMm: Number(e.target.value) })} />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <Label className="text-[12px]">Interpretación por colores</Label>
+        <Switch
+          checked={estilo.interpretacionColor !== false}
+          onCheckedChange={(v) => onCambiar({ ...estilo, interpretacionColor: v })}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
           <Label className="text-[12px]">Letra (pt)</Label>
           <Input type="number" min={5} max={20} step={0.5} className="h-9"
                  value={estilo.tamanoPt ?? 9}

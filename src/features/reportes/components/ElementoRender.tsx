@@ -129,10 +129,14 @@ function ListaRender({ elemento, escala }: { elemento: ElementoLista; escala: nu
   const total = usadas.reduce((s, c) => s + (PESO_COLUMNA[c] ?? 10), 0)
   const px = (elemento.estilo?.tamanoPt ?? 9) * (25.4 / 72) * escala
   const borde = elemento.estilo?.colorBorde ?? '#dde5e9'
+  const gapCol = (elemento.estilo?.espaciadoColumnaMm ?? 0) * escala
+  const gapFila = (elemento.estilo?.espaciadoFilaMm ?? 0) * escala
+  const conColor = elemento.estilo?.interpretacionColor !== false
 
   return (
     <div className="h-full w-full overflow-hidden">
-      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed',
+      <table style={{ width: '100%', borderCollapse: 'separate',
+                      borderSpacing: `${gapCol}px ${gapFila}px`, tableLayout: 'fixed',
                       fontSize: `${px}px`, color: elemento.estilo?.colorTexto ?? '#111111' }}>
         <colgroup>
           {usadas.map((c) => (
@@ -149,8 +153,10 @@ function ListaRender({ elemento, escala }: { elemento: ElementoLista; escala: nu
                   verticalAlign: 'middle',
                   textAlign: c === 'valor' || c === 'estado' ? 'right' : 'left',
                   fontWeight: c === 'valor' ? 700 : 400,
-                  color: c === 'valor' || c === 'estado' ? m.color
-                       : c === 'referencia' ? '#5a6b78' : undefined,
+                  color: conColor
+                    ? (c === 'valor' || c === 'estado' ? m.color
+                       : c === 'referencia' ? '#5a6b78' : undefined)
+                    : (c === 'referencia' ? '#5a6b78' : undefined),
                   fontSize: c === 'referencia' || c === 'estado' ? `${px * 0.9}px` : undefined,
                 }}>
                   {c === 'nombre' && m.nombre}
@@ -172,7 +178,8 @@ function ListaRender({ elemento, escala }: { elemento: ElementoLista; escala: nu
                                     background: '#e6f1ea' }} />
                       <div style={{ position: 'absolute', top: `${-0.8 * escala}px`,
                                     height: `${3.8 * escala}px`, left: `${m.marca}%`,
-                                    width: `${0.8 * escala}px`, background: m.color }} />
+                                    width: `${0.8 * escala}px`,
+                                    background: conColor ? m.color : '#555555' }} />
                     </div>
                   )}
                 </td>
