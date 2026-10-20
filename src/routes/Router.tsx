@@ -14,6 +14,8 @@ const DashboardPage         = lazy(() => import('@/features/dashboard/pages/Dash
 const ExpedientePacientePage= lazy(() => import('@/features/pacientes/pages/ExpedientePacientePage'))
 const PacientesPage    = lazy(() => import('@/features/pacientes/pages/PacientesPage'))
 const EstudiosPage     = lazy(() => import('@/features/estudios/pages/EstudiosPage'))
+const CuestionariosPage = lazy(() => import('@/features/cuestionarios/pages/CuestionariosPage'))
+const MisCuestionariosPage = lazy(() => import('@/features/cuestionarios/pages/MisCuestionariosPage'))
 const ExamenesPage     = lazy(() => import('@/features/examenes/pages/ExamenesPage'))
 const BiobancoPage     = lazy(() => import('@/features/biobanco/pages/BiobancoPage'))
 const CatalogosPage    = lazy(() => import('@/features/catalogos/pages/CatalogosPage'))
@@ -148,6 +150,32 @@ export function AppRouter() {
               <ProtectedRoute requiredPermiso={permisosFor('examenes')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <ExamenesPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cuestionarios"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('cuestionarios')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CuestionariosPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          {/* La pantalla del propio participante. Ruta aparte y no un tab de la de
+              arriba: el permiso es otro y el contenido tambien — aqui no hay catalogo
+              ni cargas, solo sus cuestionarios. */}
+          <Route
+            path="/mis-cuestionarios"
+            element={
+              <ProtectedRoute
+                requiredPermiso={permisosFor('misCuestionarios')}
+                soloParticipantes
+              >
+                <Suspense fallback={<LoadingFallback />}>
+                  <MisCuestionariosPage />
                 </Suspense>
               </ProtectedRoute>
             }
