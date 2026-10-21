@@ -160,10 +160,18 @@ export function CargaMasivaMuestrasTab() {
     setCargando('confirmar')
     try {
       const r = await confirmarCargaProtocolo(archivo, buildOpts())
-      setResultado(r); setEsConfirmado(true)
-      setPaso('resultado')
-      queryClient.invalidateQueries({ queryKey: ['muestras'] })
-      toast.success(`Carga confirmada: ${r.alicuotas} alícuota(s) en ${r.lotes} lote(s)`)
+      if (r == null) {
+        setEsConfirmado(true)
+        toast.success(
+          'La carga se está procesando en segundo plano. Recibirá un correo con el resumen al finalizar.',
+          { duration: 8000 },
+        )
+      } else {
+        setResultado(r); setEsConfirmado(true)
+        setPaso('resultado')
+        queryClient.invalidateQueries({ queryKey: ['muestras'] })
+        toast.success(`Carga confirmada: ${r.alicuotas} alícuota(s) en ${r.lotes} lote(s)`)
+      }
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Error al confirmar la carga')
     } finally { setCargando(null) }
