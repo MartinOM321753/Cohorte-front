@@ -687,10 +687,11 @@ export async function previsualizarCargaProtocolo(
 export async function confirmarCargaProtocolo(
   archivo: File,
   opts: { idProtocolo?: number; hojaProtocolo?: Record<string, number>; fechaPorOmision?: string },
-) {
+): Promise<ResultadoCargaProtocolo | null> {
   const r = await api.post<ApiResponse<ResultadoCargaProtocolo>>(
     '/almacenamiento/muestras/carga-masiva/protocolo/confirmar',
     cargaProtocoloForm(archivo, opts))
+  if (r.status === 202) return null
   return r.data.data
 }
 
