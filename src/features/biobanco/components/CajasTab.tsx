@@ -117,9 +117,11 @@ export function CajasTab() {
                     {caja.activo ? 'Activa' : 'Inactiva'}
                   </Badge>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {caja.tipoCaja}
-                </div>
+                {caja.nombreTipoMuestraRecomendado && (
+                  <div className="text-sm text-muted-foreground">
+                    {caja.nombreTipoMuestraRecomendado}
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -211,7 +213,7 @@ export function CajasTab() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>¿Eliminar caja {caja.codigoCaja}?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            La caja <strong>{caja.codigoCaja}</strong> ({caja.tipoCaja}) será eliminada junto con todas
+                            La caja <strong>{caja.codigoCaja}</strong> será eliminada junto con todas
                             sus posiciones. Si contiene muestras almacenadas, la operación será rechazada.
                             Esta acción no se puede deshacer.
                           </AlertDialogDescription>

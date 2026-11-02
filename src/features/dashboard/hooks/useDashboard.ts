@@ -55,7 +55,7 @@ export interface RefrigeradorOcupacionDTO {
 export interface CajaOcupacionDTO {
   cajaId:          number
   codigo:          string
-  tipoCaja:        string | null
+  nombreTipoMuestra: string | null
   totalPosiciones: number
   ocupadas:        number
   pct:             number

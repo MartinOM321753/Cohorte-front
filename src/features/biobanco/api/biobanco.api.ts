@@ -126,8 +126,9 @@ export async function getPosicionesLibresByPiso(idPiso: number) {
 // CAJAS CRIOGÉNICAS
 // ============================================
 
-export async function getCajas() {
-  const response = await api.get<ApiResponse<Caja[]>>('/almacenamiento/cajas')
+export async function getCajas(temperatura?: number | null) {
+  const params = temperatura != null ? { temperatura } : {}
+  const response = await api.get<ApiResponse<Caja[]>>('/almacenamiento/cajas', { params })
   return response.data.data
 }
 

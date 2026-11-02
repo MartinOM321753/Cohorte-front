@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useGetCajas, useGetPosicionesByCaja } from '../hooks/useBiobanco'
-import { PosicionCaja } from '@/types/api'
+import { Caja, PosicionCaja } from '@/types/api'
 import { descripcionPosicionCaja, etiquetaPosicionCaja, letraFila } from '../lib/posicionCaja'
 import { getReservadasEnCaja, reservarPosiciones, liberarReservas } from '../api/biobanco.api'
 
@@ -20,22 +20,42 @@ interface SeleccionPosicionCajaModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: (result: { idPosicionCaja: number; cajaLabel: string }) => void
+  temperatura?: number | null
+  tipoMuestraId?: number | null
 }
 
 export function SeleccionPosicionCajaModal({
   open,
   onOpenChange,
   onConfirm,
+  temperatura,
+  tipoMuestraId,
 }: SeleccionPosicionCajaModalProps) {
   const [selectedCajaId, setSelectedCajaId] = useState<string>('')
   const [selectedPosicion, setSelectedPosicion] = useState<PosicionCaja | null>(null)
   const [sesionId] = useState(() => crypto.randomUUID())
   const [reservadasPorOtros, setReservadasPorOtros] = useState<Set<number>>(new Set())
 
-  const { data: cajas } = useGetCajas()
+  const { data: cajas } = useGetCajas(temperatura)
   const { data: posiciones, isLoading: loadingPosiciones } = useGetPosicionesByCaja(
     selectedCajaId ? parseInt(selectedCajaId) : 0
   )
+
+  const cajasOrdenadas = useMemo(() => {
+    if (!cajas) return []
+    const conEspacio = cajas.filter(c => (c.posicionesLibres ?? 0) > 0)
+    if (!tipoMuestraId) return conEspacio
+    return [...conEspacio].sort((a, b) => {
+      const aMatch = a.idTipoMuestraRecomendado === tipoMuestraId ? 0 : 1
+      const bMatch = b.idTipoMuestraRecomendado === tipoMuestraId ? 0 : 1
+      return aMatch - bMatch
+    })
+  }, [cajas, tipoMuestraId])
+
+  function esTipoRecomendado(caja: Caja): boolean {
+    if (!tipoMuestraId) return true
+    return caja.idTipoMuestraRecomendado === tipoMuestraId
+  }
 
   const cajaSeleccionada = cajas?.find((c) => c.id.toString() === selectedCajaId)
   const esAtrasFrente = cajaSeleccionada?.ordenLlenado === 'ATRAS_FRENTE'
@@ -86,6 +106,8 @@ export function SeleccionPosicionCajaModal({
     onOpenChange(false)
   }
 
+  const hayNoRecomendadas = tipoMuestraId && cajasOrdenadas.some((c) => !esTipoRecomendado(c))
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -101,16 +123,32 @@ export function SeleccionPosicionCajaModal({
             <Label>Caja criogénica</Label>
             <Select value={selectedCajaId} onValueChange={handleCajaChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Seleccione una caja…" />
+                <SelectValue placeholder="Seleccione una caja" />
               </SelectTrigger>
               <SelectContent>
-                {cajas?.map((caja) => (
-                  <SelectItem key={caja.id} value={caja.id.toString()}>
-                    {caja.codigoCaja} — {caja.tipoCaja}
-                  </SelectItem>
-                ))}
+                {cajasOrdenadas.length === 0 && (
+                  <SelectItem value="__none__" disabled>No hay cajas disponibles</SelectItem>
+                )}
+                {cajasOrdenadas.map((caja) => {
+                  const recomendada = esTipoRecomendado(caja)
+                  const temp = caja.temperaturaRefrigerador != null ? ` (${caja.temperaturaRefrigerador}°C)` : ''
+                  const tipo = caja.nombreTipoMuestraRecomendado ? ` — ${caja.nombreTipoMuestraRecomendado}` : ''
+                  return (
+                    <SelectItem key={caja.id} value={caja.id.toString()}>
+                      <span className={cn(!recomendada && 'text-muted-foreground')}>
+                        {caja.codigoCaja}{tipo}{temp}
+                        {!recomendada && ' *'}
+                      </span>
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
+            {hayNoRecomendadas && (
+              <p className="text-[11px] text-muted-foreground">
+                * Cajas compatibles por temperatura pero de tipo de muestra diferente al recomendado.
+              </p>
+            )}
           </div>
 
           {selectedCajaId && (

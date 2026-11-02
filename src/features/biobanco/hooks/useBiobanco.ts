@@ -275,10 +275,10 @@ export function useGetPosicionesLibresByPiso(idPiso: number) {
 // HOOKS PARA CAJAS
 // ============================================
 
-export function useGetCajas() {
+export function useGetCajas(temperatura?: number | null) {
   return useQuery({
-    queryKey: ['cajas'],
-    queryFn: () => getCajas(),
+    queryKey: ['cajas', temperatura ?? 'all'],
+    queryFn: () => getCajas(temperatura),
   })
 }
 

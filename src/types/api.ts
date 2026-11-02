@@ -632,6 +632,7 @@ export interface TipoMuestra {
   nombre: string
   descripcion?: string | null
   temperaturaAlmacenamiento?: string | null
+  temperatura?: number | null
   activo: boolean
   tubos: TuboMuestra[]
 }
@@ -640,6 +641,7 @@ export interface TipoMuestraRequestDTO {
   nombre: string
   descripcion?: string
   temperaturaAlmacenamiento?: string
+  temperatura?: number | null
 }
 
 // ── Protocolos de procesamiento ──────────────────────────────────────────────
@@ -825,6 +827,7 @@ export interface TipoMuestraResumen {
   id: number
   nombre: string
   temperaturaAlmacenamiento?: string | null
+  temperatura?: number | null
 }
 
 export interface TuboMuestraResumen {
@@ -1146,6 +1149,7 @@ export interface Refrigerador {
   id: number
   codigo: string
   nombre: string
+  temperatura: number | null
   marca: string
   modelo: string
   activo: boolean
@@ -1157,6 +1161,7 @@ export interface Refrigerador {
 export interface RefrigeradorRequestDTO {
   codigo: string
   nombre: string
+  temperatura: number
   marca: string
   modelo: string
 }
@@ -1176,7 +1181,6 @@ export interface Caja {
   codigoCaja: string
   filas: number
   columnas: number
-  tipoCaja: string
   color?: string
   observaciones?: string
   idPosicionPiso?: number | null
@@ -1185,17 +1189,22 @@ export interface Caja {
   ordenLlenado?: OrdenLlenado
   posiciones: PosicionCaja[]
   activo: boolean
+  temperaturaRefrigerador?: number | null
+  idTipoMuestraRecomendado?: number | null
+  nombreTipoMuestraRecomendado?: string | null
+  totalPosiciones?: number
+  posicionesLibres?: number
 }
 
 export interface CajaRequestDTO {
   codigoCaja: string
   filas: number
   columnas: number
-  tipoCaja: string
   color?: string
   observaciones?: string
   idPosicionPiso?: number
   ordenLlenado?: OrdenLlenado
+  idTipoMuestraRecomendado?: number | null
 }
 
 export interface PosicionCaja {

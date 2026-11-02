@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useCreateCaja, useUpdateCaja, useGetRefrigeradores, useGetPisosByRefrigerador, useGetCajaById } from '../hooks/useBiobanco'
+import { useCreateCaja, useUpdateCaja, useGetRefrigeradores, useGetPisosByRefrigerador, useGetCajaById, useGetTiposMuestra } from '../hooks/useBiobanco'
 import { Caja, PosicionPiso } from '@/types/api'
 import { PosicionPisoSelectorModal } from './PosicionPisoSelectorModal'
 import { AlertCircle, MapPin, X } from 'lucide-react'
@@ -27,11 +27,11 @@ const cajaSchema = z.object({
   codigoCaja: z.string().max(50, 'Máximo 50 caracteres').optional(),
   filas: z.number().min(1, 'Debe tener al menos 1 fila'),
   columnas: z.number().min(1, 'Debe tener al menos 1 columna'),
-  tipoCaja: z.string().min(1, 'El tipo de caja es obligatorio').max(50, 'Máximo 50 caracteres'),
   color: z.string().max(30, 'Máximo 30 caracteres').optional(),
   observaciones: z.string().max(500, 'Máximo 500 caracteres').optional(),
   idPosicionPiso: z.number().optional(),
   ordenLlenado: z.enum(['FRENTE_ATRAS', 'ATRAS_FRENTE']),
+  idTipoMuestraRecomendado: z.number().optional(),
 })
 
 type CajaFormData = z.infer<typeof cajaSchema>
@@ -46,11 +46,11 @@ const DEFAULT_VALUES: CajaFormData = {
   codigoCaja: '',
   filas: 1,
   columnas: 1,
-  tipoCaja: '',
   color: '#3b82f6',
   observaciones: '',
   idPosicionPiso: undefined,
   ordenLlenado: 'FRENTE_ATRAS',
+  idTipoMuestraRecomendado: undefined,
 }
 
 export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) {
@@ -85,6 +85,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
   const { data: refrigeradores } = useGetRefrigeradores({ enabled: open })
   const { data: pisos } = useGetPisosByRefrigerador(selectedRefrigerador ? parseInt(selectedRefrigerador) : 0)
   const { data: freshCaja } = useGetCajaById(open && isEditing ? caja!.id : 0)
+  const { data: tiposMuestra = [] } = useGetTiposMuestra()
 
   useEffect(() => {
     if (open) {
@@ -94,11 +95,11 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
           codigoCaja: source.codigoCaja,
           filas: source.filas,
           columnas: source.columnas,
-          tipoCaja: source.tipoCaja,
           color: source.color || '',
           observaciones: source.observaciones || '',
           idPosicionPiso: source.idPosicionPiso ?? undefined,
           ordenLlenado: source.ordenLlenado ?? 'FRENTE_ATRAS',
+          idTipoMuestraRecomendado: source.idTipoMuestraRecomendado ?? undefined,
         })
         // Populate the location label from the rich string the backend sends
         setUbicacionLabel(source.ubicacionPiso || '')
@@ -139,6 +140,7 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
         observaciones: rest.observaciones ?? '',
         ordenLlenado,
         ...(idPosicionPiso !== undefined && { idPosicionPiso }),
+        idTipoMuestraRecomendado: data.idTipoMuestraRecomendado ?? null,
       }
 
       if (isEditing && caja) {
@@ -200,19 +202,27 @@ export function CajaFormModal({ open, onOpenChange, caja }: CajaFormModalProps) 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tipoCaja">Tipo de Caja *</Label>
-              <Input
-                id="tipoCaja"
-                {...register('tipoCaja')}
-                sanitize="texto"
-                placeholder="Gradilla 81 pozos"
+              <Label>Tipo de muestra recomendado</Label>
+              <Controller
+                control={control}
+                name="idTipoMuestraRecomendado"
+                render={({ field }) => (
+                  <Select
+                    value={field.value != null ? String(field.value) : '__none__'}
+                    onValueChange={(v) => field.onChange(v === '__none__' ? undefined : Number(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sin preferencia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sin preferencia</SelectItem>
+                      {tiposMuestra.filter((t) => t.activo).map((t) => (
+                        <SelectItem key={t.id} value={String(t.id)}>{t.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               />
-              {errors.tipoCaja && (
-                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
-                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
-                  {errors.tipoCaja.message}
-                </p>
-              )}
             </div>
           </div>
 

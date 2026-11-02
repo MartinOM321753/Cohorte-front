@@ -207,7 +207,7 @@ export function UbicarLoteModal({ open, onOpenChange, muestra }: Props) {
                   <SelectContent>
                     {cajas?.map((caja) => (
                       <SelectItem key={caja.id} value={caja.id.toString()}>
-                        {caja.codigoCaja} — {caja.tipoCaja}
+                        {caja.codigoCaja}{caja.nombreTipoMuestraRecomendado ? ` — ${caja.nombreTipoMuestraRecomendado}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>

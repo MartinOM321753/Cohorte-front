@@ -21,6 +21,7 @@ import { AlertCircle } from 'lucide-react'
 const refrigeradorSchema = z.object({
   codigo: z.string().max(50, 'Máximo 50 caracteres').optional(),
   nombre: z.string().min(1, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres'),
+  temperatura: z.coerce.number({ required_error: 'La temperatura es obligatoria', invalid_type_error: 'Ingrese un número válido' }),
   marca: z.string().max(50, 'Máximo 50 caracteres').optional(),
   modelo: z.string().max(50, 'Máximo 50 caracteres').optional(),
 })
@@ -36,6 +37,7 @@ interface RefrigeradorFormModalProps {
 const DEFAULT_VALUES: RefrigeradorFormData = {
   codigo: '',
   nombre: '',
+  temperatura: '' as unknown as number,
   marca: '',
   modelo: '',
 }
@@ -65,6 +67,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
         reset({
           codigo: source.codigo,
           nombre: source.nombre,
+          temperatura: source.temperatura ?? ('' as unknown as number),
           marca: source.marca || '',
           modelo: source.modelo || '',
         })
@@ -85,6 +88,7 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
       const submitData = {
         ...data,
         codigo: data.codigo || '',
+        temperatura: data.temperatura,
         marca: data.marca || '',
         modelo: data.modelo || '',
       }
@@ -155,6 +159,23 @@ export function RefrigeradorFormModal({ open, onOpenChange, refrigerador }: Refr
                 </p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="temperatura">Temperatura de operación (°C) *</Label>
+            <Input
+              id="temperatura"
+              type="number"
+              step="any"
+              {...register('temperatura')}
+              placeholder="Ej: -80"
+            />
+            {errors.temperatura && (
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                {errors.temperatura.message}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">

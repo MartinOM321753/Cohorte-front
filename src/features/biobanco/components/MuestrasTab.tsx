@@ -2782,6 +2782,8 @@ export function MuestrasTab() {
         numAlicuotas={drawerMuestra
           ? (alicuotasByPadre.get(drawerMuestra.id) ?? []).length
           : 0}
+        temperatura={ubicarMuestra?.tipoMuestra?.temperatura}
+        tipoMuestraId={ubicarMuestra?.tipoMuestra?.id}
         alicuotasPendientes={drawerMuestra
           ? (alicuotasByPadre.get(drawerMuestra.id) ?? []).filter((a) => a.materializada === false).length
           : 0}
