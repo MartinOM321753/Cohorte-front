@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import type { ElementType } from 'react'
 import cohorteLogo from '../../assets/logo.png'
 import { Link, useLocation } from 'react-router-dom'
@@ -10,24 +10,33 @@ import { permisosFor } from '@/config/featurePermisos'
 import { ROL_LABELS } from '@/features/usuarios/types/usuario.types'
 import { Button } from '@/components/ui/button'
 import {
+  ArrowLeftRight,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleUserRound,
   ClipboardList,
   Database,
+  FlaskConical,
   Home,
   KeyRound,
   LogOut,
   Microscope,
   Network,
+  Package,
+  PackageCheck,
   PieChart,
+  ScrollText,
   Settings,
   Shield,
   Stethoscope,
   TestTube2,
+  Thermometer,
+  Upload,
+  UserCheck,
   UserRound,
   UsersRound,
-  CircleUserRound,
   X,
   FileText,
 } from 'lucide-react'
@@ -99,14 +108,6 @@ const navItems: NavItem[] = [
     group: 'Clínico',
   },
   {
-    label: 'Biobanco',
-    href: '/biobanco',
-    icon: TestTube2,
-    permisos: permisosFor('biobanco'),
-    modulo: 'BIOBANCO',
-    group: 'Biobanco',
-  },
-  {
     label: 'Usuarios',
     href: '/usuarios',
     icon: UsersRound,
@@ -173,6 +174,55 @@ const navItems: NavItem[] = [
   },
 ]
 
+/* ── Biobanco: sub-navegación expandible ──────────────────────────────── */
+
+interface BiobancoSubItem {
+  label: string
+  href: string
+  icon: ElementType
+  permiso: string
+}
+
+interface BiobancoSubGroup {
+  label: string
+  items: BiobancoSubItem[]
+}
+
+const biobancoSubGroups: BiobancoSubGroup[] = [
+  {
+    label: 'Operación',
+    items: [
+      { label: 'Muestras', href: '/biobanco/muestras', icon: TestTube2, permiso: 'MUESTRAS_VER' },
+      { label: 'Procesar', href: '/biobanco/procesar', icon: FlaskConical, permiso: 'MUESTRAS_CREAR' },
+    ],
+  },
+  {
+    label: 'Almacenamiento',
+    items: [
+      { label: 'Refrigeradores', href: '/biobanco/refrigeradores', icon: Thermometer, permiso: 'REFRIGERADORES_ACCEDER' },
+      { label: 'Cajas criogénicas', href: '/biobanco/cajas', icon: Package, permiso: 'CAJAS_ACCEDER' },
+    ],
+  },
+  {
+    label: 'Movimientos',
+    items: [
+      { label: 'Préstamos', href: '/biobanco/prestamos', icon: ArrowLeftRight, permiso: 'TRASLADOS_ACCEDER' },
+      { label: 'Entregas', href: '/biobanco/entregas', icon: PackageCheck, permiso: 'ENTREGAS_ACCEDER' },
+    ],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { label: 'Protocolos', href: '/biobanco/protocolos', icon: ScrollText, permiso: 'PROTOCOLOS_ACCEDER' },
+      { label: 'Est. Muestras', href: '/biobanco/est-muestras', icon: Microscope, permiso: 'ESTUDIOS_MUESTRA_ACCEDER' },
+      { label: 'Colaboradores', href: '/biobanco/colaboradores', icon: UserCheck, permiso: 'COLABORADORES_ACCEDER' },
+      { label: 'Carga masiva', href: '/biobanco/carga-masiva', icon: Upload, permiso: 'MUESTRAS_CARGA_MASIVA' },
+    ],
+  },
+]
+
+/* ── Componentes ──────────────────────────────────────────────────────── */
+
 function ImssShield({ size = 62 }: { size?: number }) {
   return (
     <img
@@ -197,9 +247,50 @@ export function Sidebar() {
   const location = useLocation()
   const { user, logout, hasPermiso, modulosHabilitados, roles, esParticipante } = useAuthStore()
 
+  const [biobancoOpen, setBiobancoOpen] = useState(false)
+  const [collapsedSubGroups, setCollapsedSubGroups] = useState<Set<string>>(new Set())
+
+  const isBiobancoRoute = location.pathname.startsWith('/biobanco')
+  const biobancoModuleEnabled = modulosHabilitados.includes('BIOBANCO')
+
   useEffect(() => {
     if (isMobile) setMobileOpen(false)
   }, [location.pathname, isMobile, setMobileOpen])
+
+  useEffect(() => {
+    if (isBiobancoRoute && biobancoModuleEnabled) {
+      setBiobancoOpen(true)
+      const activeGroup = biobancoSubGroups.find(g =>
+        g.items.some(item => location.pathname === item.href || location.pathname.startsWith(item.href + '/'))
+      )
+      if (activeGroup) {
+        setCollapsedSubGroups(prev => {
+          if (!prev.has(activeGroup.label)) return prev
+          const next = new Set(prev)
+          next.delete(activeGroup.label)
+          return next
+        })
+      }
+    }
+  }, [location.pathname, isBiobancoRoute, biobancoModuleEnabled])
+
+  const filteredBiobancoSubGroups = useMemo(() => {
+    if (!biobancoModuleEnabled) return []
+    return biobancoSubGroups
+      .map(g => ({ ...g, items: g.items.filter(item => hasPermiso(item.permiso)) }))
+      .filter(g => g.items.length > 0)
+  }, [biobancoModuleEnabled, hasPermiso])
+
+  const biobancoVisible = filteredBiobancoSubGroups.length > 0
+
+  const toggleSubGroup = (label: string) => {
+    setCollapsedSubGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }
 
   const userRoleLabel = useMemo(() => {
     if (roles.length > 0) return roles.map((r) => ROL_LABELS[r] || r).join(', ')
@@ -239,6 +330,101 @@ export function Sidebar() {
     : ''
 
   const effectiveCollapsed = isMobile ? false : collapsed
+
+  const renderBiobancoNav = () => {
+    if (!biobancoVisible) return null
+
+    if (effectiveCollapsed) {
+      return (
+        <div key="biobanco" className="mb-2 px-2">
+          <Link
+            to="/biobanco"
+            className="flex items-center justify-center rounded-[5px] py-2 transition-colors"
+            style={{
+              color: isBiobancoRoute ? 'var(--sidebar-fg)' : 'var(--sidebar-fg-dim)',
+              background: isBiobancoRoute ? 'var(--sidebar-active-bg)' : undefined,
+              boxShadow: isBiobancoRoute ? 'inset 2px 0 0 var(--sidebar-accent)' : undefined,
+            } as React.CSSProperties}
+            onMouseEnter={e => { if (!isBiobancoRoute) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)' }}
+            onMouseLeave={e => { if (!isBiobancoRoute) (e.currentTarget as HTMLElement).style.background = '' }}
+            title="Biobanco"
+          >
+            <TestTube2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div key="biobanco" className="mb-2">
+        <button
+          type="button"
+          onClick={() => setBiobancoOpen(prev => !prev)}
+          className="flex w-full items-center justify-between px-3 pb-1 pt-3"
+          style={{ color: 'var(--sidebar-muted)' } as React.CSSProperties}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-[0.06em]">Biobanco</span>
+          <ChevronDown
+            className={cn('h-3 w-3 transition-transform duration-200', !biobancoOpen && '-rotate-90')}
+            strokeWidth={1.75}
+          />
+        </button>
+
+        {biobancoOpen && (
+          <div className="px-2">
+            {filteredBiobancoSubGroups.map(subGroup => {
+              const isSubGroupCollapsed = collapsedSubGroups.has(subGroup.label)
+              return (
+                <div key={subGroup.label} className="mt-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleSubGroup(subGroup.label)}
+                    className="flex w-full items-center gap-1.5 rounded-[3px] px-[10px] py-1"
+                    style={{ color: 'var(--sidebar-muted)' } as React.CSSProperties}
+                  >
+                    <ChevronDown
+                      className={cn('h-2.5 w-2.5 transition-transform duration-200', isSubGroupCollapsed && '-rotate-90')}
+                      strokeWidth={2}
+                    />
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.06em]">{subGroup.label}</span>
+                  </button>
+
+                  {!isSubGroupCollapsed && (
+                    <div className="space-y-0.5">
+                      {subGroup.items.map(item => {
+                        const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/')
+                        const Icon = item.icon
+                        return (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            className="flex items-center gap-[10px] rounded-[5px] py-1.5 text-[13px] font-medium transition-colors"
+                            style={{
+                              color: isActive ? 'var(--sidebar-fg)' : 'var(--sidebar-fg-dim)',
+                              background: isActive ? 'var(--sidebar-active-bg)' : undefined,
+                              boxShadow: isActive ? 'inset 2px 0 0 var(--sidebar-accent)' : undefined,
+                              paddingLeft: 28,
+                              paddingRight: 10,
+                            } as React.CSSProperties}
+                            onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)' }}
+                            onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '' }}
+                            aria-current={isActive ? 'page' : undefined}
+                          >
+                            <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                            <span className="truncate">{item.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const sidebarContent = (
     <aside
@@ -295,8 +481,9 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto py-2 custom-scrollbar">
         {(['Clínico', 'Biobanco', 'Sistema'] as const).map((group) => {
-          const items = groupedNavItems[group]
+          if (group === 'Biobanco') return renderBiobancoNav()
 
+          const items = groupedNavItems[group]
           if (items.length === 0) return null
 
           return (

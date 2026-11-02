@@ -181,7 +181,7 @@ export function AppRouter() {
             }
           />
           <Route
-            path="/biobanco"
+            path="/biobanco/*"
             element={
               <ProtectedRoute requiredPermiso={permisosFor('biobanco')}>
                 <Suspense fallback={<LoadingFallback />}>
