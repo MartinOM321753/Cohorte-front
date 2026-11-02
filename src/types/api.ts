@@ -1476,7 +1476,7 @@ export interface TipoInstitucionRequestDTO {
 // ============================================
 // BIOBANCO - ESTADO DE MUESTRA
 // ============================================
-export type EstadoMuestra = 'SIN_POSICION' | 'EN_BIOBANCO' | 'PRESTADA' | 'BAJA'
+export type EstadoMuestra = 'SIN_POSICION' | 'EN_BIOBANCO' | 'PRESTADA' | 'ENTREGADA' | 'CONSUMIDA' | 'BAJA'
 
 export interface AsignarPosicionRequestDTO {
   idPosicionCaja: number
@@ -1547,6 +1547,107 @@ export interface TrasladoRequestDTO {
   fechaLimite?: string
 }
 
+}
+
+// ── Colaboradores (personas físicas que reciben muestras) ────────────────────
+
+export interface Colaborador {
+  id: number
+  nombre: string
+  segundoNombre?: string | null
+  apellidoPaterno: string
+  apellidoMaterno?: string | null
+  nombreCompleto: string
+  fechaNacimiento?: string | null
+  sexo?: string | null
+  telefono?: string | null
+  curp?: string | null
+  email?: string | null
+  cargo?: string | null
+  adscripcion?: string | null
+  esExterno: boolean
+  activo: boolean
+  fechaRegistro?: string | null
+}
+
+export interface ColaboradorRequestDTO {
+  nombre: string
+  segundoNombre?: string
+  apellidoPaterno: string
+  apellidoMaterno?: string
+  fechaNacimiento?: string
+  sexo?: string
+  telefono?: string
+  curp?: string
+  email?: string
+  cargo?: string
+  adscripcion?: string
+  esExterno?: boolean
+}
+
+// ── Entregas a colaboradores ─────────────────────────────────────────────────
+
+export type EstadoEntrega = 'ENTREGADA' | 'DEVUELTA' | 'CONSUMIDA' | 'CANCELADA'
+
+export interface EntregaMuestra {
+  id: number
+  muestra: {
+    id: number
+    etiqueta: string
+    unidad?: string | null
+    valor?: number | null
+    estadoMuestra?: EstadoMuestra | null
+    esAlicuota: boolean
+    posicionLabel?: string | null
+  }
+  destinatario: {
+    tipo: 'COLABORADOR' | 'USUARIO'
+    id: number
+    nombreCompleto: string
+    cargo?: string | null
+    adscripcion?: string | null
+    esExterno: boolean
+  } | null
+  entregadaPor?: { id: number; uuid: string; username: string; nombreCompleto: string } | null
+  cerradaPor?: { id: number; uuid: string; username: string; nombreCompleto: string } | null
+  estado: EstadoEntrega
+  fechaEntrega: string
+  fechaCierre?: string | null
+  fechaLimite?: string | null
+  vencido: boolean
+  motivo: string
+  observaciones?: string | null
+  grupoEntrega?: string | null
+}
+
+export interface EntregaRequestDTO {
+  idsMuestras: number[]
+  /** Exactamente uno de idColaborador / idUsuario. */
+  idColaborador?: number
+  idUsuario?: number
+  uuidEntrega: string
+  motivo: string
+  observaciones?: string
+  fechaLimite?: string
+}
+
+/** Opción del selector de destinatario: colaborador o usuario del sistema. */
+export interface DestinatarioEntrega {
+  tipo: 'COLABORADOR' | 'USUARIO'
+  id: number
+  nombreCompleto: string
+  detalle?: string | null
+  esExterno: boolean
+}
+
+export interface CerrarEntregaRequestDTO {
+  uuidCierra: string
+  observaciones?: string
+}
+
+export interface CancelarEntregaRequestDTO {
+  uuidUsuario: string
+  motivo?: string
 export interface DevolucionRequestDTO {
   uuidConfirma: string
   observaciones?: string

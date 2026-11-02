@@ -147,6 +147,7 @@ function activeBox(estado: EstadoActivo, isOrigen?: boolean) {
 
 interface SharedActions {
   puedeTraslado: boolean
+  puedeEntregar?: boolean
   puedeCancelarTraslado: boolean
   puedeEliminarDocs: boolean
   puedeDarBaja: boolean
@@ -155,6 +156,7 @@ interface SharedActions {
   myInstitucionId?: number
   onEdit: (m: MuestraDetalleDTO) => void
   onTrasladoClick: (m: MuestraDetalleDTO) => void
+  onEntregarClick?: (m: MuestraDetalleDTO) => void
   onCancelarEnvio: (idTraslado: number, motivo: string) => void
   onHistorial: (m: MuestraDetalleDTO) => void
   onDocumentos: (id: number) => void
@@ -1069,6 +1071,8 @@ function tubeStatusBadge(m: MuestraDetalleDTO, trasladoInfo: TrasladoInfo | unde
   const noEnMiPosesion = m.idInstitucionActual != null && myInstId != null && m.idInstitucionActual !== myInstId
   const esMia = m.idInstitucion != null && m.idInstitucion === myInstId
   if (m.estadoMuestra === 'BAJA') return { label: 'Baja', cls: 'bg-destructive/10 text-destructive border-destructive/30' }
+  if (m.estadoMuestra === 'ENTREGADA') return { label: 'Entregada', cls: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30' }
+  if (m.estadoMuestra === 'CONSUMIDA') return { label: 'Consumida', cls: 'bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/30' }
   if (trasladoInfo?.estado === 'ENVIADA') return { label: 'Tránsito', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' }
   if (trasladoInfo?.estado === 'EN_DEVOLUCION') return { label: 'Devolución', cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30' }
   if (noEnMiPosesion && esMia) return { label: 'Fuera', cls: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30' }
@@ -1101,6 +1105,7 @@ export function MuestrasTab() {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
   const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
   const puedeTraslado = useAuthStore((s) => s.hasPermiso('TRASLADOS_CREAR'))
+  const puedeEntregar = useAuthStore((s) => s.hasPermiso('ENTREGAS_CREAR'))
   const puedeCancelarTraslado = useAuthStore((s) => s.hasPermiso('TRASLADOS_CANCELAR'))
   const puedeEliminarDocs = useAuthStore((s) => s.hasPermiso('DOCUMENTOS_ELIMINAR'))
   const puedeDarBaja = useAuthStore((s) => s.hasPermiso('MUESTRAS_DAR_BAJA'))
@@ -1117,6 +1122,8 @@ export function MuestrasTab() {
   const [ubicacion3DMuestra, setUbicacion3DMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [trasladandoMuestras, setTrasladandoMuestras] = useState<MuestraDetalleDTO[]>([])
   const [pendingTraslado, setPendingTraslado] = useState<MuestraDetalleDTO[] | null>(null)
+  // Pestaña inicial del modal unificado (transferencia a institución o préstamo a persona).
+  const [transferModo, setTransferModo] = useState<'TRANSFERENCIA' | 'PRESTAMO'>('TRANSFERENCIA')
   const [historialMuestra, setHistorialMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [resultadosMuestra, setResultadosMuestra] = useState<MuestraDetalleDTO | null>(null)
   const [generarAlicuotasMuestra, setGenerarAlicuotasMuestra] = useState<MuestraDetalleDTO | null>(null)
@@ -1821,8 +1828,9 @@ export function MuestrasTab() {
   }
 
   const handleTrasladoClick = (m: MuestraDetalleDTO) => setPendingTraslado([m])
+  const handleEntregarClick = (m: MuestraDetalleDTO) => { setTransferModo('PRESTAMO'); setTrasladandoMuestras([m]) }
   const handleConfirmTraslado = () => {
-    if (pendingTraslado) { setTrasladandoMuestras(pendingTraslado); setPendingTraslado(null) }
+    if (pendingTraslado) { setTransferModo('TRANSFERENCIA'); setTrasladandoMuestras(pendingTraslado); setPendingTraslado(null) }
   }
 
   const handleCancelarEnvio = async (idTraslado: number, motivo: string) => {
@@ -1948,6 +1956,7 @@ export function MuestrasTab() {
 
   const actions: SharedActions = {
     puedeTraslado,
+    puedeEntregar,
     puedeCancelarTraslado,
     puedeEliminarDocs,
     puedeDarBaja,
@@ -1956,6 +1965,7 @@ export function MuestrasTab() {
     myInstitucionId,
     onEdit: handleEdit,
     onTrasladoClick: handleTrasladoClick,
+    onEntregarClick: handleEntregarClick,
     onCancelarEnvio: handleCancelarEnvio,
     onHistorial: setHistorialMuestra,
     onDocumentos: setDocMuestraId,
@@ -2697,6 +2707,7 @@ export function MuestrasTab() {
         open={trasladandoMuestras.length > 0}
         onOpenChange={(open) => !open && setTrasladandoMuestras([])}
         muestras={trasladandoMuestras}
+        defaultModo={transferModo}
       />
       <HistorialTrasladosModal
         open={historialMuestra !== null}
@@ -2771,6 +2782,8 @@ export function MuestrasTab() {
       <SeleccionPosicionCajaModal
         open={ubicarMuestra !== null}
         onOpenChange={(open) => { if (!open) { setUbicarMuestra(null); setUbicarQueue([]) } }}
+        temperatura={ubicarMuestra?.tipoMuestra?.temperatura}
+        tipoMuestraId={ubicarMuestra?.tipoMuestra?.id}
         onConfirm={({ idPosicionCaja }) => handleUbicarIndependiente(idPosicionCaja)}
       />
 
@@ -2782,8 +2795,6 @@ export function MuestrasTab() {
         numAlicuotas={drawerMuestra
           ? (alicuotasByPadre.get(drawerMuestra.id) ?? []).length
           : 0}
-        temperatura={ubicarMuestra?.tipoMuestra?.temperatura}
-        tipoMuestraId={ubicarMuestra?.tipoMuestra?.id}
         alicuotasPendientes={drawerMuestra
           ? (alicuotasByPadre.get(drawerMuestra.id) ?? []).filter((a) => a.materializada === false).length
           : 0}

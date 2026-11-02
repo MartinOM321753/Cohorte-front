@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Edit, Trash2, FlaskConical, ArrowRightFromLine, History,
   ClipboardList, Paperclip, Printer, Ban, Boxes, PackageCheck,
-  X, MapPin, BatteryLow,
+  X, MapPin, BatteryLow, HandHelping,
 } from 'lucide-react'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,7 @@ interface TrasladoInfo {
 
 interface DrawerActions {
   puedeTraslado: boolean
+  puedeEntregar?: boolean
   puedeCancelarTraslado: boolean
   puedeEliminarDocs: boolean
   puedeDarBaja: boolean
@@ -36,6 +37,7 @@ interface DrawerActions {
   myInstitucionId?: number
   onEdit: (m: MuestraDetalleDTO) => void
   onTrasladoClick: (m: MuestraDetalleDTO) => void
+  onEntregarClick?: (m: MuestraDetalleDTO) => void
   onCancelarEnvio: (idTraslado: number, motivo: string) => void
   onHistorial: (m: MuestraDetalleDTO) => void
   onDocumentos: (id: number) => void
@@ -70,6 +72,8 @@ function estadoBadge(m: MuestraDetalleDTO, trasladoInfo?: TrasladoInfo, myInstit
   const noEnMiPosesion = m.idInstitucionActual != null && myInstitucionId != null && m.idInstitucionActual !== myInstitucionId
   const esMia = m.idInstitucion != null && m.idInstitucion === myInstitucionId
   if (m.estadoMuestra === 'BAJA') return { label: 'Dada de baja', cls: 'bg-destructive/10 text-destructive border-destructive/30' }
+  if (m.estadoMuestra === 'ENTREGADA') return { label: 'Entregada a colaborador', cls: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30' }
+  if (m.estadoMuestra === 'CONSUMIDA') return { label: 'Consumida', cls: 'bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/30' }
   if (trasladoInfo?.estado === 'ENVIADA') return { label: 'En tránsito', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' }
   if (trasladoInfo?.estado === 'EN_DEVOLUCION') return { label: 'En devolución', cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30' }
   if (noEnMiPosesion && esMia) return { label: 'Fuera del biobanco', cls: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30' }
@@ -91,7 +95,12 @@ export function MuestraDrawer({ muestra, onClose, trasladoInfo, actions, numAlic
   const noEsMia = muestra.idInstitucion != null && actions.myInstitucionId != null && muestra.idInstitucion !== actions.myInstitucionId
   const noEnMiPosesion = muestra.idInstitucionActual != null && actions.myInstitucionId != null && muestra.idInstitucionActual !== actions.myInstitucionId
   const noEditable = isPrestada || noEsMia || noEnMiPosesion
-  const puedeEnviar = !trasladoInfo && !noEnMiPosesion && actions.puedeTraslado && !esBaja && !esVolumenCero(muestra)
+  const esEntregada = muestra.estadoMuestra === 'ENTREGADA'
+  const esConsumida = muestra.estadoMuestra === 'CONSUMIDA'
+  const puedeEnviar = !trasladoInfo && !noEnMiPosesion && actions.puedeTraslado && !esBaja
+    && !esEntregada && !esConsumida && !esVolumenCero(muestra)
+  const puedeEntregar = !trasladoInfo && !noEnMiPosesion && !!actions.puedeEntregar && !!actions.onEntregarClick
+    && !esBaja && !esEntregada && !esConsumida && !isPrestada && !esVolumenCero(muestra)
   const puedeCancel = trasladoInfo?.estado === 'ENVIADA' && actions.puedeCancelarTraslado
   const agotada = Boolean(muestra.agotada) && muestra.estadoMuestra !== 'BAJA'
   const alicuotasConfiguradas = muestra.tuboMuestra?.numeroAlicuotas ?? 0
@@ -232,6 +241,12 @@ export function MuestraDrawer({ muestra, onClose, trasladoInfo, actions, numAlic
             {puedeEnviar && (
               <DrawerBtn icon={ArrowRightFromLine} onClick={() => { actions.onTrasladoClick(muestra); onClose() }}>
                 Trasladar muestra
+              </DrawerBtn>
+            )}
+
+            {puedeEntregar && (
+              <DrawerBtn icon={HandHelping} onClick={() => { actions.onEntregarClick!(muestra); onClose() }}>
+                Entregar a colaborador
               </DrawerBtn>
             )}
 

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   History, ArrowLeftFromLine, CheckCircle2, Clock,
   PackageCheck, RotateCcw, Building2, ArrowRight, XCircle,
+  HandHelping, User, Users, FlaskConical,
 } from 'lucide-react'
 import {
   useGetTrasladosByMuestra,
@@ -20,7 +21,8 @@ import {
   useIniciarDevolucion,
   useConfirmarDevolucion,
 } from '../hooks/useBiobanco'
-import { MuestraDetalleDTO, TrasladoMuestra } from '@/types/api'
+import { useGetEntregasByMuestra } from '../hooks/useEntregas'
+import { MuestraDetalleDTO, TrasladoMuestra, EntregaMuestra } from '@/types/api'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDate } from '@/lib/utils'
 
@@ -67,6 +69,15 @@ function EstadoIcon({ estado }: { estado: TrasladoMuestra['estado'] }) {
   }
 }
 
+function entregaEstadoStyle(estado: EntregaMuestra['estado']) {
+  switch (estado) {
+    case 'ENTREGADA':  return { label: 'En préstamo', badge: 'border-violet-500/40 text-violet-700 dark:text-violet-400 bg-violet-500/10', bg: 'border-violet-500/30 bg-violet-500/10' }
+    case 'DEVUELTA':   return { label: 'Devuelta',    badge: 'border-green-500/40 text-green-700 dark:text-green-400 bg-green-500/10',   bg: 'border-green-500/20 bg-green-500/10' }
+    case 'CONSUMIDA':  return { label: 'Consumida',   badge: 'border-slate-500/40 text-slate-600 dark:text-slate-300 bg-slate-500/10',   bg: 'border-slate-500/20 bg-slate-500/10' }
+    case 'CANCELADA':  return { label: 'Cancelada',   badge: 'border-rose-500/40 text-rose-700 dark:text-rose-400 bg-rose-500/10',       bg: 'border-rose-500/20 bg-rose-500/10' }
+  }
+}
+
 export function HistorialTrasladosModal({ open, onOpenChange, muestra }: HistorialTrasladosModalProps) {
   const userUuid = useAuthStore((s) => s.user?.uuid) || ''
   const myInstitucionId = useAuthStore((s) => s.user?.institucion?.id)
@@ -76,9 +87,21 @@ export function HistorialTrasladosModal({ open, onOpenChange, muestra }: Histori
   const [obsText, setObsText] = useState('')
 
   const { data: historial = [], isLoading } = useGetTrasladosByMuestra(muestra?.id || 0)
+  const { data: entregas = [] } = useGetEntregasByMuestra(muestra?.id || 0, { enabled: open })
   const confirmarRecepcionMutation = useConfirmarRecepcion()
   const iniciarDevolucionMutation  = useIniciarDevolucion()
   const confirmarDevolucionMutation = useConfirmarDevolucion()
+
+  // Línea de tiempo única: transferencias entre instituciones + préstamos a
+  // personas (colaboradores/usuarios), más reciente primero. Así el historial de
+  // custodia muestra también quién tomó la muestra en un préstamo.
+  type Item =
+    | { kind: 'traslado'; fecha: string; t: TrasladoMuestra }
+    | { kind: 'entrega'; fecha: string; e: EntregaMuestra }
+  const items: Item[] = [
+    ...historial.map((t): Item => ({ kind: 'traslado', fecha: t.fechaTraslado, t })),
+    ...entregas.map((e): Item => ({ kind: 'entrega', fecha: e.fechaEntrega, e })),
+  ].sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0))
 
   const handleAction = async () => {
     if (!actionTrasladoId || !actionType) return
@@ -139,20 +162,22 @@ export function HistorialTrasladosModal({ open, onOpenChange, muestra }: Histori
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
           </div>
-        ) : historial.length === 0 ? (
+        ) : items.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
-            Esta muestra no tiene préstamos registrados.
+            Esta muestra no tiene transferencias ni préstamos registrados.
           </p>
         ) : (
           <div className="space-y-3">
-            {historial.map((traslado) => {
+            {items.map((item) => {
+              if (item.kind === 'entrega') return <EntregaCard key={`e-${item.e.id}`} e={item.e} />
+              const traslado = item.t
               const isOrigen  = traslado.institucionOrigen.id  === myInstitucionId
               const isDestino = traslado.institucionDestino.id === myInstitucionId
               const badge = estadoBadge(traslado.estado, isOrigen)
 
               return (
                 <div
-                  key={traslado.id}
+                  key={`t-${traslado.id}`}
                   className={`border rounded-lg p-4 space-y-2 ${estadoCardBg(traslado.estado)}`}
                 >
                   {/* Header ─────────────────────────────────────────── */}
@@ -275,5 +300,69 @@ export function HistorialTrasladosModal({ open, onOpenChange, muestra }: Histori
         )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** Tarjeta de un préstamo a una persona (colaborador o usuario) en la cadena de custodia. */
+function EntregaCard({ e }: { e: EntregaMuestra }) {
+  const st = entregaEstadoStyle(e.estado)
+  const esUsuario = e.destinatario?.tipo === 'USUARIO'
+  return (
+    <div className={`border rounded-lg p-4 space-y-2 ${st?.bg ?? ''}`}>
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {e.estado === 'CONSUMIDA'
+            ? <FlaskConical className="h-4 w-4 text-slate-500" />
+            : <HandHelping className="h-4 w-4 text-violet-600 dark:text-violet-400" />}
+          <div className="flex items-center gap-1.5 text-sm font-medium">
+            <span className="text-muted-foreground">Préstamo a</span>
+            {esUsuario ? <User className="h-3.5 w-3.5 text-muted-foreground" /> : <Users className="h-3.5 w-3.5 text-muted-foreground" />}
+            <span>{e.destinatario?.nombreCompleto ?? '—'}</span>
+          </div>
+          <Badge variant="outline" className={st?.badge}>{st?.label}</Badge>
+          <Badge variant="outline" className="text-[10px]">{esUsuario ? 'Usuario' : 'Colaborador'}</Badge>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+        <div>
+          <span className="font-medium text-foreground">Entregó:</span>{' '}
+          {e.entregadaPor?.nombreCompleto ?? '—'}
+        </div>
+        {e.destinatario?.cargo && (
+          <div>
+            <span className="font-medium text-foreground">Cargo:</span>{' '}
+            {e.destinatario.cargo}
+          </div>
+        )}
+        <div>
+          <span className="font-medium text-foreground">Fecha entrega:</span>{' '}
+          {formatDate(e.fechaEntrega)}
+        </div>
+        {e.fechaCierre && (
+          <div>
+            <span className="font-medium text-foreground">Cierre:</span>{' '}
+            {formatDate(e.fechaCierre)}
+          </div>
+        )}
+        {e.cerradaPor && (
+          <div>
+            <span className="font-medium text-foreground">Cerró:</span>{' '}
+            {e.cerradaPor.nombreCompleto}
+          </div>
+        )}
+      </div>
+
+      <div className="text-xs">
+        <span className="font-medium text-foreground">Motivo:</span>{' '}
+        <span className="text-muted-foreground">{e.motivo}</span>
+      </div>
+      {e.observaciones && (
+        <div className="text-xs">
+          <span className="font-medium text-foreground">Observaciones:</span>{' '}
+          <span className="text-muted-foreground">{e.observaciones}</span>
+        </div>
+      )}
+    </div>
   )
 }
