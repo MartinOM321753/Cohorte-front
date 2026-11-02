@@ -11,6 +11,7 @@ import { ROL_LABELS } from '@/features/usuarios/types/usuario.types'
 import { Button } from '@/components/ui/button'
 import {
   ArrowLeftRight,
+  BarChart3,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -105,6 +106,14 @@ const navItems: NavItem[] = [
     icon: PieChart,
     permisos: permisosFor('cobertura'),
     modulo: 'COBERTURA',
+    group: 'Clínico',
+  },
+  {
+    label: 'Análisis',
+    href: '/analisis',
+    icon: BarChart3,
+    permisos: permisosFor('analisis'),
+    modulo: 'ANALISIS',
     group: 'Clínico',
   },
   {

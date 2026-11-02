@@ -1349,6 +1349,7 @@ export const MODULOS_SISTEMA = [
   'BITACORA_ACCESOS',
   'BITACORA_ACCIONES',
   'REPORTES',
+  'ANALISIS',
 ] as const
 
 export type ModuloSistema = (typeof MODULOS_SISTEMA)[number]
@@ -1367,6 +1368,7 @@ export const MODULO_LABELS: Record<ModuloSistema, string> = {
   BITACORA_ACCESOS: 'Bitácora de accesos',
   BITACORA_ACCIONES: 'Bitácora de acciones',
   REPORTES: 'Reportes',
+  ANALISIS: 'Análisis',
 }
 
 export interface InstitucionModuloPermiso {
@@ -1547,8 +1549,6 @@ export interface TrasladoRequestDTO {
   fechaLimite?: string
 }
 
-}
-
 // ── Colaboradores (personas físicas que reciben muestras) ────────────────────
 
 export interface Colaborador {
@@ -1648,6 +1648,8 @@ export interface CerrarEntregaRequestDTO {
 export interface CancelarEntregaRequestDTO {
   uuidUsuario: string
   motivo?: string
+}
+
 export interface DevolucionRequestDTO {
   uuidConfirma: string
   observaciones?: string

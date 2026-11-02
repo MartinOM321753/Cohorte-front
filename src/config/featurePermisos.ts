@@ -30,6 +30,7 @@ export const FEATURE_PERMISOS: Record<string, string[]> = {
   configuracion:    ['CONFIGURACION_VER'],
   permisos:         ['PERMISOS_VER'],
   reportes:         ['REPORTES_ACCEDER'],
+  analisis:         ['ANALISIS_ACCEDER'],
 }
 
 export type FeatureKey = keyof typeof FEATURE_PERMISOS

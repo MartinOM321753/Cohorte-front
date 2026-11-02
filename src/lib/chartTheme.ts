@@ -37,5 +37,31 @@ export function useChartColors() {
     ink300:  v('--imss-ink-300')         || '#7d8782',
     /** Color primario del tema */
     primary: v('--primary')              || '#1e4e3a',
+    /** Fondo del tooltip (popover del tema) */
+    tooltipBg:   v('--popover')            || '#ffffff',
+    /** Texto del tooltip (legible en claro y oscuro) */
+    tooltipText: v('--popover-foreground') || '#14241d',
+    /** Borde del tooltip */
+    border:      v('--border')             || '#dbe1de',
+  }
+}
+
+/**
+ * Estilos de tooltip de Recharts anclados a los tokens del tema, para que la
+ * etiqueta y los valores siempre contrasten con el fondo (en claro el default
+ * blanco escondía el texto claro; aquí usamos --popover/--popover-foreground).
+ */
+export function tooltipTema(c: ReturnType<typeof useChartColors>) {
+  return {
+    contentStyle: {
+      backgroundColor: c.tooltipBg,
+      border: `1px solid ${c.border}`,
+      borderRadius: 8,
+      fontSize: 12,
+      boxShadow: '0 4px 12px rgba(0,0,0,.12)',
+      color: c.tooltipText,
+    } as const,
+    labelStyle: { color: c.tooltipText, fontWeight: 600, marginBottom: 2 } as const,
+    itemStyle: { color: c.tooltipText } as const,
   }
 }

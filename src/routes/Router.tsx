@@ -30,6 +30,7 @@ const CoberturaPage    = lazy(() => import('@/features/cobertura/pages/Cobertura
 const DocumentoViewPage = lazy(() => import('@/features/documentos/pages/DocumentoViewPage'))
 const PermisosPage     = lazy(() => import('@/features/permisos/pages/PermisosPage'))
 const ReportesPage     = lazy(() => import('@/features/reportes/pages/ReportesPage'))
+const AnalisisPage     = lazy(() => import('@/features/analisis/pages/AnalisisPage'))
 const DocumentosPublicosPage = lazy(() => import('@/features/documentos-publicos/pages/DocumentosPublicosPage'))
 const UnauthorizedPage = lazy(() => import('@/features/errors/pages/UnauthorizedPage'))
 const NotFoundPage     = lazy(() => import('@/features/errors/pages/NotFoundPage'))
@@ -150,6 +151,16 @@ export function AppRouter() {
               <ProtectedRoute requiredPermiso={permisosFor('examenes')}>
                 <Suspense fallback={<LoadingFallback />}>
                   <ExamenesPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analisis"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('analisis')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <AnalisisPage />
                 </Suspense>
               </ProtectedRoute>
             }
