@@ -709,6 +709,8 @@ export function MuestraFormModal({ open, onOpenChange, muestra }: MuestraFormMod
       <SeleccionPosicionCajaModal
         open={showPosicionModal}
         onOpenChange={setShowPosicionModal}
+        temperatura={selectedTipo?.temperatura}
+        tipoMuestraId={selectedTipo?.id}
         onConfirm={({ idPosicionCaja, cajaLabel }) => {
           setValue('idPosicionCaja', idPosicionCaja, { shouldValidate: true })
           setPosicionLabel(cajaLabel)

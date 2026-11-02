@@ -121,8 +121,14 @@ export function RefrigeradoresTab() {
                     {refrigerador.activo ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Código: {refrigerador.codigo}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Código: {refrigerador.codigo}</span>
+                  {refrigerador.temperatura != null && (
+                    <Badge variant="outline" className="text-xs font-normal gap-1">
+                      <Thermometer className="h-3 w-3" />
+                      {refrigerador.temperatura}°C
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">

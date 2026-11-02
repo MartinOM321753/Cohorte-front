@@ -718,7 +718,7 @@ export function BiobancoCapacity({
                 <OcupacionBar
                   key={caja.cajaId}
                   pct={caja.pct}
-                  label={`${caja.codigo}${caja.tipoCaja ? ` · ${caja.tipoCaja}` : ''}`}
+                  label={`${caja.codigo}${caja.nombreTipoMuestra ? ` · ${caja.nombreTipoMuestra}` : ''}`}
                   sublabel={`${caja.ocupadas} / ${caja.totalPosiciones} posiciones`}
                 />
               ))}

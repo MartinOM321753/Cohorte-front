@@ -85,7 +85,7 @@ export interface Ubicacion3DCajaEnPiso {
   ocupada: boolean
   idCaja?: number | null
   codigoCaja?: string | null
-  tipoCaja?: string | null
+  nombreTipoMuestra?: string | null
   color?: string | null
   capacidad?: number | null
   ocupadas?: number | null
@@ -130,7 +130,7 @@ export interface Ubicacion3DCaja {
   codigoCaja: string
   filas: number
   columnas: number
-  tipoCaja?: string | null
+  nombreTipoMuestra?: string | null
   color?: string | null
   observaciones?: string | null
   ordenLlenado?: 'FRENTE_ATRAS' | 'ATRAS_FRENTE' | null

@@ -42,6 +42,7 @@ interface TipoForm {
   nombre: string
   descripcion: string
   temperaturaAlmacenamiento: string
+  temperatura: string
 }
 
 interface TuboForm {
@@ -56,7 +57,7 @@ interface TuboForm {
   orden: number
 }
 
-const EMPTY_TIPO: TipoForm = { nombre: '', descripcion: '', temperaturaAlmacenamiento: '' }
+const EMPTY_TIPO: TipoForm = { nombre: '', descripcion: '', temperaturaAlmacenamiento: '', temperatura: '' }
 const EMPTY_TUBO: TuboForm = {
   nombre: '', prefijoCodigo: '', numeroAlicuotas: 0,
   volumenAlicuota: '', volumenesAlicuota: [], unidadVolumen: 'mL', destinoSugerido: '', orden: 0,
@@ -110,6 +111,7 @@ export function TipoMuestraAdminPanel() {
       nombre: t.nombre,
       descripcion: t.descripcion ?? '',
       temperaturaAlmacenamiento: t.temperaturaAlmacenamiento ?? '',
+      temperatura: t.temperatura != null ? String(t.temperatura) : '',
     })
     setEditingTipoId(t.id)
     setShowCreateTipo(false)
@@ -128,6 +130,7 @@ export function TipoMuestraAdminPanel() {
       nombre: trimmed,
       descripcion: tipoForm.descripcion.trim() || undefined,
       temperaturaAlmacenamiento: tipoForm.temperaturaAlmacenamiento.trim() || undefined,
+      temperatura: tipoForm.temperatura.trim() !== '' ? Number(tipoForm.temperatura) : null,
     }
     if (editingTipoId) {
       updateTipo.mutate({ id: editingTipoId, data: payload }, { onSuccess: cancelTipoForm })
@@ -463,7 +466,7 @@ export function TipoMuestraAdminPanel() {
 
 function TipoFormFields({ form, onChange }: { form: TipoForm; onChange: (f: TipoForm) => void }) {
   return (
-    <div className="grid grid-cols-1 @sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 @sm:grid-cols-2 gap-3">
       <div className="space-y-1">
         <Label className="text-xs">Nombre *</Label>
         <Input
@@ -474,15 +477,16 @@ function TipoFormFields({ form, onChange }: { form: TipoForm; onChange: (f: Tipo
         />
       </div>
       <div className="space-y-1">
-        <Label className="text-xs">Temperatura almacenamiento</Label>
+        <Label className="text-xs">Temperatura (°C)</Label>
         <Input
-          placeholder="Ej. -80°C"
-          maxLength={30}
-          value={form.temperaturaAlmacenamiento}
-          onChange={(e) => onChange({ ...form, temperaturaAlmacenamiento: e.target.value })}
+          type="number"
+          step="any"
+          placeholder="Ej. -80"
+          value={form.temperatura}
+          onChange={(e) => onChange({ ...form, temperatura: e.target.value })}
         />
       </div>
-      <div className="space-y-1 sm:col-span-1">
+      <div className="space-y-1">
         <Label className="text-xs">Descripción</Label>
         <Input
           placeholder="Descripción breve"

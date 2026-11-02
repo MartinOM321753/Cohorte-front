@@ -1,202 +1,50 @@
-import { useState, useMemo } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { PageHeader } from '@/components/layout/PageHeader'
-import {
-  BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
-} from '@/components/ui/tabs'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { AlertCircle } from 'lucide-react'
-import { RefrigeradoresTab } from '../components/RefrigeradoresTab'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
+import RefrigeradoresExplorerPage from './RefrigeradoresExplorerPage'
 import { CajasTab } from '../components/CajasTab'
 import { MuestrasTab } from '../components/MuestrasTab'
 import { CargaMasivaMuestrasTab } from '../components/CargaMasivaMuestrasTab'
 import { PrestamosTab } from '../components/PrestamosTab'
+import { ColaboradoresTab } from '../components/ColaboradoresTab'
+import { EntregasTab } from '../components/EntregasTab'
 import { ProtocolosTab } from '../components/ProtocolosTab'
 import { ProcesarTab } from '../components/ProcesarTab'
 import { TipoEstudioMuestraAdminTab } from '../components/TipoEstudioMuestraAdminTab'
-import { useGetRefrigeradores, useGetTiposMuestraActivos, useGetProtocolosActivos } from '../hooks/useBiobanco'
-import { useAuthStore } from '@/stores/authStore'
 
-interface TabDef {
-  value: string
-  label: string
-  permiso: string
-  /** Permiso adicional requerido aparte del _VER (datos prerequisito) */
-  dataDep?: { enabled: boolean; tooltip: string }
+const sectionOrder: Array<{ path: string; permiso: string }> = [
+  { path: 'muestras', permiso: 'MUESTRAS_VER' },
+  { path: 'procesar', permiso: 'MUESTRAS_CREAR' },
+  { path: 'refrigeradores', permiso: 'REFRIGERADORES_ACCEDER' },
+  { path: 'cajas', permiso: 'CAJAS_ACCEDER' },
+  { path: 'prestamos', permiso: 'TRASLADOS_ACCEDER' },
+  { path: 'entregas', permiso: 'ENTREGAS_ACCEDER' },
+  { path: 'protocolos', permiso: 'PROTOCOLOS_ACCEDER' },
+  { path: 'est-muestras', permiso: 'ESTUDIOS_MUESTRA_ACCEDER' },
+  { path: 'colaboradores', permiso: 'COLABORADORES_ACCEDER' },
+  { path: 'carga-masiva', permiso: 'MUESTRAS_CARGA_MASIVA' },
+]
+
+function BiobancoRedirect() {
+  const { hasPermiso } = useAuthStore()
+  const first = sectionOrder.find(s => hasPermiso(s.permiso))
+  return <Navigate to={first ? `/biobanco/${first.path}` : '/unauthorized'} replace />
 }
 
 export default function BiobancoPage() {
-  const hasPermiso = useAuthStore((s) => s.hasPermiso)
-
-  const puedeRefrigeradores = hasPermiso('REFRIGERADORES_ACCEDER')
-  const puedeCajas = hasPermiso('CAJAS_ACCEDER')
-  const puedeMuestras = hasPermiso('MUESTRAS_VER')
-  const puedeTiposMuestra = hasPermiso('TIPOS_MUESTRA_ACCEDER')
-  const puedeProtocolos = hasPermiso('PROTOCOLOS_ACCEDER')
-  const puedeProcesar = hasPermiso('MUESTRAS_CREAR')
-  const puedeCargaMasiva = hasPermiso('MUESTRAS_CARGA_MASIVA')
-  const puedeEstMuestras = hasPermiso('ESTUDIOS_MUESTRA_ACCEDER')
-  const puedePrestamos = hasPermiso('TRASLADOS_ACCEDER')
-
-  // Solo fetch si el usuario tiene permisos que necesitan estos datos
-  // (Cajas hace lookup implícito de refrigeradores; Muestras hace lookup de tipos.)
-  const { data: refrigeradores = [] } = useGetRefrigeradores({
-    enabled: puedeRefrigeradores || puedeCajas || hasPermiso('REFRIGERADORES_LOOKUP'),
-  })
-  const { data: tiposMuestraActivos = [] } = useGetTiposMuestraActivos({
-    enabled: puedeMuestras || puedeTiposMuestra || hasPermiso('TIPOS_MUESTRA_LOOKUP'),
-  })
-  const { data: protocolosActivos = [] } = useGetProtocolosActivos({
-    enabled: puedeProcesar || puedeProtocolos || hasPermiso('PROTOCOLOS_LOOKUP'),
-  })
-
-  const hayPisos = refrigeradores.some((r) => r.totalPisos > 0)
-  const hayTiposMuestra = tiposMuestraActivos.length > 0
-  const hayProtocolos = protocolosActivos.length > 0
-
-  const tabs = useMemo<TabDef[]>(() => {
-    const all: TabDef[] = []
-    if (puedeRefrigeradores)
-      all.push({ value: 'refrigeradores', label: 'Refrigeradores', permiso: 'REFRIGERADORES_ACCEDER' })
-    if (puedeCajas)
-      all.push({
-        value: 'cajas',
-        label: 'Cajas criogénicas',
-        permiso: 'CAJAS_ACCEDER',
-        dataDep: { enabled: hayPisos, tooltip: 'Primero crea al menos un piso en un refrigerador' },
-      })
-    if (puedeProcesar)
-      all.push({
-        value: 'procesar',
-        label: 'Procesar',
-        permiso: 'MUESTRAS_CREAR',
-        dataDep: { enabled: hayProtocolos, tooltip: 'Primero configura al menos un protocolo activo' },
-      })
-    if (puedeMuestras)
-      all.push({
-        value: 'lotes',
-        label: 'Muestras',
-        permiso: 'MUESTRAS_VER',
-        dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configura al menos un tipo de muestra activo' },
-      })
-    if (puedeProtocolos)
-      all.push({
-        value: 'protocolos',
-        label: 'Protocolos',
-        permiso: 'PROTOCOLOS_ACCEDER',
-      })
-    if (puedeEstMuestras)
-      all.push({ value: 'est-muestras', label: 'Est. Muestras', permiso: 'ESTUDIOS_MUESTRA_ACCEDER' })
-    if (puedePrestamos)
-      all.push({ value: 'prestamos', label: 'Préstamos', permiso: 'TRASLADOS_ACCEDER' })
-    // Carga masiva al final: es una acción puntual, no una vista que se consulta a diario.
-    if (puedeCargaMasiva)
-      all.push({
-        value: 'carga-masiva',
-        label: 'Carga masiva',
-        permiso: 'MUESTRAS_CARGA_MASIVA',
-        // Sin tipos de muestra no hay nada contra lo que resolver las columnas
-        // `tipoMuestra` y `tubo` del archivo: todas las filas fallarían.
-        dataDep: { enabled: hayTiposMuestra, tooltip: 'Primero configure al menos un tipo de muestra activo' },
-      })
-    return all
-  }, [hasPermiso, puedeRefrigeradores, puedeCajas, puedeMuestras, puedeProcesar, puedeTiposMuestra, puedeProtocolos, puedeEstMuestras, puedePrestamos, puedeCargaMasiva, hayPisos, hayTiposMuestra, hayProtocolos])
-
-  const defaultTab = tabs.find((t) => !t.dataDep || t.dataDep.enabled)?.value ?? tabs[0]?.value ?? 'refrigeradores'
-  const [activeTab, setActiveTab] = useState(defaultTab)
-
-  const handleTabChange = (value: string) => {
-    const tab = tabs.find((t) => t.value === value)
-    if (tab?.dataDep && !tab.dataDep.enabled) return
-    setActiveTab(value)
-  }
-
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Biobanco"
-        subtitle="Refrigeradores criogénicos · pisos · cajas · posiciones · préstamos entre instituciones."
-      />
-
-      <Alert>
-        <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
-        <AlertDescription>
-          Sistema de almacenamiento criogénico jerárquico: Refrigerador → Piso → Caja → Muestra.
-          Las muestras pertenecen a la institución que las recolecta y pueden prestarse a otras instituciones con biobanco.
-        </AlertDescription>
-      </Alert>
-
-      <TooltipProvider delayDuration={100}>
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <BarraPestanas>
-          <TabsList className={PISTA_PESTANAS}>
-            {tabs.map((tab) => {
-              const disabled = tab.dataDep && !tab.dataDep.enabled
-              if (disabled) {
-                return (
-                  <Tooltip key={tab.value}>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <TabsTrigger value={tab.value} disabled className="pointer-events-none opacity-50">
-                          {tab.label}
-                        </TabsTrigger>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>{tab.dataDep!.tooltip}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )
-              }
-              return (
-                <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
-              )
-            })}
-          </TabsList>
-          </BarraPestanas>
-
-          {puedeRefrigeradores && (
-            <TabsContent value="refrigeradores" className="space-y-4">
-              <RefrigeradoresTab />
-            </TabsContent>
-          )}
-          {puedeCajas && (
-            <TabsContent value="cajas" className="space-y-4">
-              <CajasTab />
-            </TabsContent>
-          )}
-          {puedeProcesar && (
-            <TabsContent value="procesar" className="space-y-4">
-              <ProcesarTab />
-            </TabsContent>
-          )}
-          {puedeMuestras && (
-            <TabsContent value="lotes" className="space-y-4">
-              <MuestrasTab />
-            </TabsContent>
-          )}
-          {puedeCargaMasiva && (
-            <TabsContent value="carga-masiva" className="space-y-4">
-              <CargaMasivaMuestrasTab />
-            </TabsContent>
-          )}
-          {puedeProtocolos && (
-            <TabsContent value="protocolos" className="space-y-4">
-              <ProtocolosTab />
-            </TabsContent>
-          )}
-          {puedeEstMuestras && (
-            <TabsContent value="est-muestras" className="space-y-4">
-              <TipoEstudioMuestraAdminTab />
-            </TabsContent>
-          )}
-          {puedePrestamos && (
-            <TabsContent value="prestamos" className="space-y-4">
-              <PrestamosTab />
-            </TabsContent>
-          )}
-        </Tabs>
-      </TooltipProvider>
-    </div>
+    <Routes>
+      <Route index element={<BiobancoRedirect />} />
+      <Route path="muestras" element={<MuestrasTab />} />
+      <Route path="procesar" element={<ProcesarTab />} />
+      <Route path="refrigeradores" element={<RefrigeradoresExplorerPage />} />
+      <Route path="cajas" element={<CajasTab />} />
+      <Route path="prestamos" element={<PrestamosTab />} />
+      <Route path="entregas" element={<EntregasTab />} />
+      <Route path="protocolos" element={<ProtocolosTab />} />
+      <Route path="est-muestras" element={<TipoEstudioMuestraAdminTab />} />
+      <Route path="colaboradores" element={<ColaboradoresTab />} />
+      <Route path="carga-masiva" element={<CargaMasivaMuestrasTab />} />
+      <Route path="*" element={<BiobancoRedirect />} />
+    </Routes>
   )
 }

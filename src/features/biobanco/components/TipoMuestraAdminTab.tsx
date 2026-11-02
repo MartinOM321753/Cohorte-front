@@ -61,7 +61,7 @@ function volumenVariable(tubo: TuboMuestra): boolean {
 
 interface TipoMuestraFormProps {
   initial?: TipoMuestra | null
-  onSave: (data: { nombre: string; descripcion: string; temperaturaAlmacenamiento: string }) => void
+  onSave: (data: { nombre: string; descripcion: string; temperaturaAlmacenamiento: string; temperatura?: number | null }) => void
   onCancel: () => void
   loading: boolean
 }
@@ -69,8 +69,10 @@ interface TipoMuestraFormProps {
 function TipoMuestraForm({ initial, onSave, onCancel, loading }: TipoMuestraFormProps) {
   const [nombre, setNombre] = useState(initial?.nombre ?? '')
   const [descripcion, setDescripcion] = useState(initial?.descripcion ?? '')
-  const [temperatura, setTemperatura] = useState(initial?.temperaturaAlmacenamiento ?? '')
-
+  const temperatura = initial?.temperaturaAlmacenamiento ?? ''
+  const [temperaturaNum, setTemperaturaNum] = useState<string>(
+    initial?.temperatura != null ? String(initial.temperatura) : ''
+  )
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -93,12 +95,13 @@ function TipoMuestraForm({ initial, onSave, onCancel, loading }: TipoMuestraForm
         />
       </div>
       <div className="space-y-1.5">
-        <Label>Temperatura de almacenamiento</Label>
+        <Label>Temperatura de almacenamiento (°C)</Label>
         <Input
-          value={temperatura}
-          onChange={(e) => setTemperatura(e.target.value)}
-          placeholder="Ej: -80°C, 4°C, Ambiente"
-          maxLength={30}
+          type="number"
+          step="any"
+          value={temperaturaNum}
+          onChange={(e) => setTemperaturaNum(e.target.value)}
+          placeholder="Ej: -80"
         />
       </div>
       <div className="flex gap-2 justify-end pt-1">
@@ -108,7 +111,12 @@ function TipoMuestraForm({ initial, onSave, onCancel, loading }: TipoMuestraForm
         <Button
           size="sm"
           disabled={loading || !nombre.trim()}
-          onClick={() => onSave({ nombre: nombre.trim(), descripcion: descripcion.trim(), temperaturaAlmacenamiento: temperatura.trim() })}
+          onClick={() => onSave({
+            nombre: nombre.trim(),
+            descripcion: descripcion.trim(),
+            temperaturaAlmacenamiento: temperatura.trim(),
+            temperatura: temperaturaNum.trim() !== '' ? Number(temperaturaNum) : null,
+          })}
         >
           {loading ? 'Guardando…' : initial ? 'Actualizar' : 'Crear tipo'}
         </Button>

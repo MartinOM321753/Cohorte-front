@@ -120,7 +120,7 @@ export function PanelPiso({
                   label: 'Coordenada',
                   value: `${hueco.fila}${hueco.columna} · altura ${hueco.altura}`,
                 },
-                { label: 'Tipo de caja', value: hueco.tipoCaja },
+                { label: 'Tipo de muestra', value: hueco.nombreTipoMuestra },
                 { label: 'Color', value: hueco.color },
                 { label: 'Estado', value: hueco.idCaja == null ? 'Hueco libre' : null },
               ],
@@ -159,7 +159,7 @@ export function PanelCaja({
       }}
       campos={[
         { label: 'Rejilla', value: `${caja.filas} × ${caja.columnas}` },
-        { label: 'Tipo de caja', value: caja.tipoCaja },
+        { label: 'Tipo de muestra', value: caja.nombreTipoMuestra },
         { label: 'Color', value: caja.color },
         { label: 'Posiciones libres', value: caja.libres },
         { label: 'Coordenada en el piso', value: caja.coordenadaEnPiso },

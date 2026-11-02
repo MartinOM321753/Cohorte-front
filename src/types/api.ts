@@ -632,6 +632,7 @@ export interface TipoMuestra {
   nombre: string
   descripcion?: string | null
   temperaturaAlmacenamiento?: string | null
+  temperatura?: number | null
   activo: boolean
   tubos: TuboMuestra[]
 }
@@ -640,6 +641,7 @@ export interface TipoMuestraRequestDTO {
   nombre: string
   descripcion?: string
   temperaturaAlmacenamiento?: string
+  temperatura?: number | null
 }
 
 // ── Protocolos de procesamiento ──────────────────────────────────────────────
@@ -825,6 +827,7 @@ export interface TipoMuestraResumen {
   id: number
   nombre: string
   temperaturaAlmacenamiento?: string | null
+  temperatura?: number | null
 }
 
 export interface TuboMuestraResumen {
@@ -1146,6 +1149,7 @@ export interface Refrigerador {
   id: number
   codigo: string
   nombre: string
+  temperatura: number | null
   marca: string
   modelo: string
   activo: boolean
@@ -1157,6 +1161,7 @@ export interface Refrigerador {
 export interface RefrigeradorRequestDTO {
   codigo: string
   nombre: string
+  temperatura: number
   marca: string
   modelo: string
 }
@@ -1176,7 +1181,6 @@ export interface Caja {
   codigoCaja: string
   filas: number
   columnas: number
-  tipoCaja: string
   color?: string
   observaciones?: string
   idPosicionPiso?: number | null
@@ -1185,17 +1189,22 @@ export interface Caja {
   ordenLlenado?: OrdenLlenado
   posiciones: PosicionCaja[]
   activo: boolean
+  temperaturaRefrigerador?: number | null
+  idTipoMuestraRecomendado?: number | null
+  nombreTipoMuestraRecomendado?: string | null
+  totalPosiciones?: number
+  posicionesLibres?: number
 }
 
 export interface CajaRequestDTO {
   codigoCaja: string
   filas: number
   columnas: number
-  tipoCaja: string
   color?: string
   observaciones?: string
   idPosicionPiso?: number
   ordenLlenado?: OrdenLlenado
+  idTipoMuestraRecomendado?: number | null
 }
 
 export interface PosicionCaja {
@@ -1340,6 +1349,7 @@ export const MODULOS_SISTEMA = [
   'BITACORA_ACCESOS',
   'BITACORA_ACCIONES',
   'REPORTES',
+  'ANALISIS',
 ] as const
 
 export type ModuloSistema = (typeof MODULOS_SISTEMA)[number]
@@ -1358,6 +1368,7 @@ export const MODULO_LABELS: Record<ModuloSistema, string> = {
   BITACORA_ACCESOS: 'Bitácora de accesos',
   BITACORA_ACCIONES: 'Bitácora de acciones',
   REPORTES: 'Reportes',
+  ANALISIS: 'Análisis',
 }
 
 export interface InstitucionModuloPermiso {
@@ -1467,7 +1478,7 @@ export interface TipoInstitucionRequestDTO {
 // ============================================
 // BIOBANCO - ESTADO DE MUESTRA
 // ============================================
-export type EstadoMuestra = 'SIN_POSICION' | 'EN_BIOBANCO' | 'PRESTADA' | 'BAJA'
+export type EstadoMuestra = 'SIN_POSICION' | 'EN_BIOBANCO' | 'PRESTADA' | 'ENTREGADA' | 'CONSUMIDA' | 'BAJA'
 
 export interface AsignarPosicionRequestDTO {
   idPosicionCaja: number
@@ -1536,6 +1547,107 @@ export interface TrasladoRequestDTO {
   motivo: string
   observaciones?: string
   fechaLimite?: string
+}
+
+// ── Colaboradores (personas físicas que reciben muestras) ────────────────────
+
+export interface Colaborador {
+  id: number
+  nombre: string
+  segundoNombre?: string | null
+  apellidoPaterno: string
+  apellidoMaterno?: string | null
+  nombreCompleto: string
+  fechaNacimiento?: string | null
+  sexo?: string | null
+  telefono?: string | null
+  curp?: string | null
+  email?: string | null
+  cargo?: string | null
+  adscripcion?: string | null
+  esExterno: boolean
+  activo: boolean
+  fechaRegistro?: string | null
+}
+
+export interface ColaboradorRequestDTO {
+  nombre: string
+  segundoNombre?: string
+  apellidoPaterno: string
+  apellidoMaterno?: string
+  fechaNacimiento?: string
+  sexo?: string
+  telefono?: string
+  curp?: string
+  email?: string
+  cargo?: string
+  adscripcion?: string
+  esExterno?: boolean
+}
+
+// ── Entregas a colaboradores ─────────────────────────────────────────────────
+
+export type EstadoEntrega = 'ENTREGADA' | 'DEVUELTA' | 'CONSUMIDA' | 'CANCELADA'
+
+export interface EntregaMuestra {
+  id: number
+  muestra: {
+    id: number
+    etiqueta: string
+    unidad?: string | null
+    valor?: number | null
+    estadoMuestra?: EstadoMuestra | null
+    esAlicuota: boolean
+    posicionLabel?: string | null
+  }
+  destinatario: {
+    tipo: 'COLABORADOR' | 'USUARIO'
+    id: number
+    nombreCompleto: string
+    cargo?: string | null
+    adscripcion?: string | null
+    esExterno: boolean
+  } | null
+  entregadaPor?: { id: number; uuid: string; username: string; nombreCompleto: string } | null
+  cerradaPor?: { id: number; uuid: string; username: string; nombreCompleto: string } | null
+  estado: EstadoEntrega
+  fechaEntrega: string
+  fechaCierre?: string | null
+  fechaLimite?: string | null
+  vencido: boolean
+  motivo: string
+  observaciones?: string | null
+  grupoEntrega?: string | null
+}
+
+export interface EntregaRequestDTO {
+  idsMuestras: number[]
+  /** Exactamente uno de idColaborador / idUsuario. */
+  idColaborador?: number
+  idUsuario?: number
+  uuidEntrega: string
+  motivo: string
+  observaciones?: string
+  fechaLimite?: string
+}
+
+/** Opción del selector de destinatario: colaborador o usuario del sistema. */
+export interface DestinatarioEntrega {
+  tipo: 'COLABORADOR' | 'USUARIO'
+  id: number
+  nombreCompleto: string
+  detalle?: string | null
+  esExterno: boolean
+}
+
+export interface CerrarEntregaRequestDTO {
+  uuidCierra: string
+  observaciones?: string
+}
+
+export interface CancelarEntregaRequestDTO {
+  uuidUsuario: string
+  motivo?: string
 }
 
 export interface DevolucionRequestDTO {
