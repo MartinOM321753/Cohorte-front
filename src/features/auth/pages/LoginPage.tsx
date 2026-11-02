@@ -619,16 +619,12 @@ export default function LoginPage() {
                         autoComplete="current-password"
                         placeholder="Escribe tu contraseña"
                         disabled={isLoading}
+                        {...field}
                         onKeyUp={(e) => setCapsLock(e.getModifierState("CapsLock"))}
-                        onBlur={(e) => {
+                        onBlur={() => {
                           setCapsLock(false);
                           field.onBlur();
                         }}
-                        {...field}
-                        onChange={field.onChange}
-                        value={field.value}
-                        name={field.name}
-                        ref={field.ref}
                       />
                       <button
                         type="button"
