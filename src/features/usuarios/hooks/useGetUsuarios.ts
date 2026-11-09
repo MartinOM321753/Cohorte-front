@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { getUsuarios, getUsuarioById, getUsuariosActivos, getAdministradoresDisponibles, getUsuariosPaginados } from '../api/usuarios.api'
+import { getUsuarios, getUsuarioById, getUsuariosActivos, getAdministradoresDisponibles, getUsuariosPaginados, getPersonasSeleccionables } from '../api/usuarios.api'
 import { useMemo } from 'react'
 
 export const USUARIOS_QUERY_KEY = ['usuarios'] as const
@@ -78,5 +78,14 @@ export function useGetAdministradoresDisponibles(options?: { enabled?: boolean; 
     queryFn: () => getAdministradoresDisponibles(institucionUuid ?? undefined),
     enabled,
     staleTime: 0,
+  })
+}
+
+export function useGetPersonasSeleccionables(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['usuarios', 'seleccionables'],
+    queryFn: getPersonasSeleccionables,
+    enabled: options?.enabled ?? true,
+    staleTime: 1000 * 60 * 5,
   })
 }
