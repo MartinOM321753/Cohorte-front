@@ -22,6 +22,7 @@ import {
   useGetTiposEstudio,
   useUpdateEstudio,
 } from '../hooks/useEstudios'
+import { useGetPersonasSeleccionables } from '@/features/usuarios/hooks/useGetUsuarios'
 import { PacienteSearchCombobox } from '@/features/pacientes/components/PacienteSearchCombobox'
 import { getPacienteBasicoByUUID } from '@/features/pacientes/api/pacientes.api'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
@@ -393,8 +394,7 @@ export function LlenadoEstudioTab() {
           return {
             idParametro: p.id,
             valorNumerico: p.tipo === 'NUMERICO' ? Number(val) : undefined,
-            // TEXTO_OPCIONES viaja como texto, igual que TEXTO
-            valorTexto: p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' ? String(val) : undefined,
+            valorTexto: p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' || p.tipo === 'USUARIO' ? String(val) : undefined,
             valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
           }
         })
@@ -410,8 +410,7 @@ export function LlenadoEstudioTab() {
           return {
             idParametro: p.id,
             valorNumerico: p.tipo === 'NUMERICO' ? Number(val) : undefined,
-            // TEXTO_OPCIONES viaja como texto, igual que TEXTO
-            valorTexto: p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' ? String(val) : undefined,
+            valorTexto: p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' || p.tipo === 'USUARIO' ? String(val) : undefined,
             valorBooleano: p.tipo === 'BOOLEANO' ? Boolean(val) : undefined,
             grupoCodigo: grupo.grupoCodigo,
             grupoEtiqueta: grupo.grupoEtiqueta,
@@ -1177,6 +1176,14 @@ function ParametroInput({
             )}
           />
         )
+      ) : parametro.tipo === 'USUARIO' ? (
+        <UsuarioCombobox
+          value={isStandalone ? String(standaloneValue ?? '') : undefined}
+          onChange={isStandalone ? (v) => onStandaloneChange!(v) : undefined}
+          fieldName={fieldName}
+          control={control}
+          isStandalone={isStandalone}
+        />
       ) : (
         // BOOLEANO
         <div className="flex items-center gap-2 pt-1">
@@ -1256,5 +1263,66 @@ function FormField({
         </p>
       )}
     </div>
+  )
+}
+
+function UsuarioCombobox({
+  value,
+  onChange,
+  fieldName,
+  control,
+  isStandalone,
+}: {
+  value?: string
+  onChange?: (v: string) => void
+  fieldName: string
+  control?: any
+  isStandalone: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const { data: personas = [] } = useGetPersonasSeleccionables()
+
+  const inner = (currentValue: string, onSelect: (v: string) => void) => (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal">
+          {currentValue || <span className="text-muted-foreground">Seleccione un usuario…</span>}
+          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar…" />
+          <CommandList>
+            <CommandEmpty>Sin resultados.</CommandEmpty>
+            <CommandGroup>
+              {personas.map((p) => (
+                <CommandItem
+                  key={p.nombreCompleto}
+                  value={p.nombreCompleto}
+                  onSelect={() => { onSelect(p.nombreCompleto); setOpen(false) }}
+                >
+                  <Check className={cn('mr-2 size-4', currentValue === p.nombreCompleto ? 'opacity-100' : 'opacity-0')} />
+                  <span>{p.nombreCompleto}</span>
+                  {p.origen === 'COLABORADOR' && (
+                    <Badge variant="outline" className="ml-auto text-[10px]">Colaborador</Badge>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+
+  if (isStandalone) return inner(value ?? '', onChange!)
+
+  return (
+    <Controller
+      name={fieldName}
+      control={control}
+      render={({ field }) => inner(field.value ?? '', field.onChange)}
+    />
   )
 }
