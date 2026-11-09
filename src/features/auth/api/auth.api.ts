@@ -140,8 +140,16 @@ export async function loginUser(
 
 // ── Recuperación de contraseña ─────────────────────────────────────────────────
 
-export async function forgotPassword(email: string): Promise<string> {
-  const res = await axiosInstance.post<ApiResponse<null>>('/auth/forgot-password', { email })
+export async function forgotPassword(
+  email: string,
+  coords: { latitud: number; longitud: number; precisionM: number } | null = null,
+): Promise<string> {
+  const res = await axiosInstance.post<ApiResponse<null>>('/auth/forgot-password', {
+    email,
+    latitud: coords?.latitud ?? null,
+    longitud: coords?.longitud ?? null,
+    precisionM: coords?.precisionM ?? null,
+  })
   return res.data.message
 }
 
@@ -149,10 +157,17 @@ export async function validateResetToken(token: string): Promise<void> {
   await axiosInstance.get('/auth/reset-password/validate', { params: { token } })
 }
 
-export async function resetPassword(token: string, nuevaPassword: string): Promise<string> {
+export async function resetPassword(
+  token: string,
+  nuevaPassword: string,
+  coords: { latitud: number; longitud: number; precisionM: number } | null = null,
+): Promise<string> {
   const res = await axiosInstance.post<ApiResponse<null>>('/auth/reset-password', {
     token,
     nuevaPassword,
+    latitud: coords?.latitud ?? null,
+    longitud: coords?.longitud ?? null,
+    precisionM: coords?.precisionM ?? null,
   })
   return res.data.message
 }
