@@ -75,13 +75,25 @@ export type OrigenCuestionario = 'PAPEL_REMARK' | 'APLICACION' | 'CAPTURA_MANUAL
  * `DISTINTO` es la casilla de descarte: el «Ninguna» que encabeza la 112 apaga las
  * 135 celdas de la rejilla, y eso no se puede decir con una igualdad —habria que
  * enumerar todo lo que no es «Ninguna»—.
+ *
+ * `SIN_RESPUESTA` y `CON_RESPUESTA` no comparan contra un valor: miran si la llave esta
+ * contestada o no. Existen para el salto de la 191, cuya llave es un recuadro de
+ * texto sin catalogo de opciones. No llevan valor habilitante.
  */
-export type OperadorDependencia = 'IGUAL' | 'DISTINTO' | 'EN'
+export type OperadorDependencia =
+  'IGUAL' | 'DISTINTO' | 'EN' | 'SIN_RESPUESTA' | 'CON_RESPUESTA'
 
 export const OPERADOR_ETIQUETAS: Record<OperadorDependencia, string> = {
   IGUAL: 'es igual a',
   DISTINTO: 'es distinto de',
   EN: 'es alguno de',
+  SIN_RESPUESTA: 'no tiene respuesta',
+  CON_RESPUESTA: 'tiene respuesta',
+}
+
+/** Los operadores que miran si hay respuesta y no cual es: no llevan valor. */
+export function miraSiHayRespuesta(operador: OperadorDependencia | null | undefined): boolean {
+  return operador === 'SIN_RESPUESTA' || operador === 'CON_RESPUESTA'
 }
 
 /**

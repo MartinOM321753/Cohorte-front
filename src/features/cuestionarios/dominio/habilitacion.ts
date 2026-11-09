@@ -29,7 +29,8 @@
  * los dos se ve como un aviso, nunca como un dato perdido.
  */
 
-export type OperadorDependencia = 'IGUAL' | 'DISTINTO' | 'EN'
+export type OperadorDependencia =
+  'IGUAL' | 'DISTINTO' | 'EN' | 'SIN_RESPUESTA' | 'CON_RESPUESTA'
 
 /** Lo mínimo que hace falta saber de una pregunta para resolver su condición. */
 export interface PreguntaConLlave {
@@ -77,10 +78,14 @@ export function calcularHabilitadas<P extends PreguntaConLlave>(
     const llaveCodigo = p.dependeDe?.trim()
     if (!llaveCodigo) return true
 
+    const operador = p.operadorDependencia ?? 'IGUAL'
+    // Estos dos miran si la llave tiene respuesta, no cuál es: no llevan valor.
+    const miraSiHay = operador === 'SIN_RESPUESTA' || operador === 'CON_RESPUESTA'
+
     const esperado = p.valorHabilitante?.trim()
     // Depende de algo pero no se dijo de qué valor: el catálogo está incompleto y una
     // pregunta de más que se muestra se puede dejar en blanco. Esconderla, no.
-    if (!esperado) return true
+    if (!miraSiHay && !esperado) return true
 
     const llave = porCodigo.get(llaveCodigo)
     // La llave vive en otro bloque, o el catálogo apunta a una pregunta que no existe.
@@ -97,13 +102,23 @@ export function calcularHabilitadas<P extends PreguntaConLlave>(
     if (!decide(llave, conEsta)) return false
 
     const contestado = (valores[llave.id] ?? '').trim()
+
+    // SIN_RESPUESTA / CON_RESPUESTA se resuelven ANTES de la regla de «habilita cuando
+    // no sabe» (la línea de abajo), no dentro del switch: esa regla devuelve true con la
+    // llave vacía, y la llave vacía es justo el caso que a estos dos les interesa.
+    // Metidos en el switch no se ejecutarían nunca. Es el salto de la 191, cuya llave
+    // es un recuadro de texto.
+    if (operador === 'SIN_RESPUESTA') return contestado === ''
+    if (operador === 'CON_RESPUESTA') return contestado !== ''
+
     if (contestado === '') return true
 
-    switch (p.operadorDependencia ?? 'IGUAL') {
+    // `esperado` no es vacío aquí: los dos operadores sin valor salieron arriba.
+    switch (operador) {
       case 'DISTINTO':
         return contestado !== esperado
       case 'EN':
-        return esperado.split('|').some((v) => v.trim() === contestado)
+        return (esperado ?? '').split('|').some((v) => v.trim() === contestado)
       default:
         return contestado === esperado
     }
@@ -169,6 +184,14 @@ export function renglonesConAlgoQueContestar(
  * no cuenta para el avance. Un descarte bloqueado sí es una pregunta suya, solo que
  * en este momento no la puede marcar. Mezclarlos haría que el formulario del personal
  * dejara de guardarlo.
+ *
+ * ## Por qué `SIN_RESPUESTA` no entra aquí
+ *
+ * El bloqueo simétrico sería impedir escribir en la 191 cuando ya se contestaron las 62
+ * preguntas de trabajo, y no sirve: la llave es un recuadro de texto, no una casilla que
+ * se pueda «apagar», y un texto a medias no es una decisión. Lo coherente con lo que
+ * ya hay es avisar, no borrar ni impedir: las preguntas de trabajo dejan de contar, pero
+ * su respuesta se conserva (el servidor tampoco las borra para estos operadores).
  *
  * ## Y por qué solo cuando está sin marcar
  *
