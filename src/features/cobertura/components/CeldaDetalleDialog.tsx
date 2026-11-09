@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Dialog,
@@ -8,8 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useGetResultadosByPacienteUUID } from '@/features/estudios/hooks/useExamenes'
-import { getEstudioResumen } from '../api/cobertura.api'
+import { getEstudioResumen, getExamenResumen } from '../api/cobertura.api'
 import type { CatalogoTipo, ResultadoLineaDTO } from '../types/cobertura.types'
 
 interface Props {
@@ -39,11 +37,6 @@ const valorEstudio = (r: ResultadoLineaDTO): string => {
   return r.unidad && base !== '—' ? `${base} ${r.unidad}` : base
 }
 
-/**
- * Detalle de un estudio/examen concreto de un participante. La consulta solo se
- * dispara al abrir el modal (carga perezosa): la matriz no trae los resultados,
- * únicamente marca qué celdas están cubiertas.
- */
 export function CeldaDetalleDialog({
   open, onOpenChange, catalogoTipo, uuid, tipoId, refId, tipoNombre, pacienteNombre,
 }: Props) {
@@ -57,16 +50,12 @@ export function CeldaDetalleDialog({
     enabled: activo && esEstudio && refId !== null,
   })
 
-  // ── EXAMEN: resultados del participante filtrados a ese examen
-  const { data: resultadosPac = [], isLoading: exLoad } =
-    useGetResultadosByPacienteUUID(activo && !esEstudio ? uuid : null)
-
-  const resultadosExamen = useMemo(() => {
-    if (esEstudio) return []
-    return resultadosPac
-      .filter(r => r.idExamen === tipoId)
-      .sort((a, b) => new Date(b.fechaResultado).getTime() - new Date(a.fechaResultado).getTime())
-  }, [esEstudio, resultadosPac, tipoId])
+  // ── EXAMEN: endpoint dedicado de cobertura (uuid + examenId)
+  const { data: examenResumen, isLoading: exLoad } = useQuery({
+    queryKey: ['cobertura-examen-resumen', uuid, tipoId],
+    queryFn: () => getExamenResumen(uuid as string, tipoId as number),
+    enabled: activo && !esEstudio,
+  })
 
   const cargando = esEstudio ? detLoad : exLoad
 
@@ -116,7 +105,6 @@ export function CeldaDetalleDialog({
                       </tr>
                     </thead>
                     <tbody>
-                      {/* El backend ya las devuelve ordenadas por grupo y orden */}
                       {estudio.resultados.map((r, i) => (
                         <tr key={i} className="border-t border-border">
                           <td className="px-3 py-1.5 text-foreground">
@@ -132,30 +120,35 @@ export function CeldaDetalleDialog({
               )}
             </div>
           )
-        ) : resultadosExamen.length === 0 ? (
+        ) : !examenResumen || examenResumen.resultados.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             No se encontró el resultado de este examen.
           </p>
         ) : (
-          <div className="max-h-[50vh] overflow-y-auto rounded-md border border-border">
-            <table className="w-full text-[12px]">
-              <thead className="sticky top-0 bg-muted/60">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Fecha</th>
-                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultadosExamen.map(r => (
-                  <tr key={r.id} className="border-t border-border">
-                    <td className="px-3 py-1.5 text-muted-foreground">{fmtFecha(r.fechaResultado)}</td>
-                    <td className="px-3 py-1.5 text-right font-mono text-foreground">
-                      {r.valorObtenido}{r.examen?.unidad ? ` ${r.examen.unidad}` : ''}
-                    </td>
+          <div className="space-y-3">
+            <div className="text-[12px] text-muted-foreground">
+              {examenResumen.resultados.length} resultado{examenResumen.resultados.length !== 1 ? 's' : ''} registrado{examenResumen.resultados.length !== 1 ? 's' : ''}
+            </div>
+            <div className="max-h-[50vh] overflow-y-auto rounded-md border border-border">
+              <table className="w-full text-[12px]">
+                <thead className="sticky top-0 bg-muted/60">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">Fecha</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground">Valor</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {examenResumen.resultados.map(r => (
+                    <tr key={r.id} className="border-t border-border">
+                      <td className="px-3 py-1.5 text-muted-foreground">{fmtFecha(r.fechaResultado)}</td>
+                      <td className="px-3 py-1.5 text-right font-mono text-foreground">
+                        {r.valorObtenido}{examenResumen.unidad ? ` ${examenResumen.unidad}` : ''}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </DialogContent>
