@@ -4,6 +4,7 @@ import {
   BarraPestanas, PISTA_PESTANAS, Tabs, TabsContent, TabsList, TabsTrigger,
 } from '@/components/ui/tabs'
 import { LlenadoEstudioTab } from '../components/LlenadoEstudioTab'
+import { CapturaRapidaEstudiosTab } from '../components/CapturaRapidaEstudiosTab'
 import { TiposEstudioTab } from '../components/TiposEstudioTab'
 import { CargaMasivaTab } from '../components/CargaMasivaTab'
 import { useAuthStore } from '@/stores/authStore'
@@ -17,6 +18,7 @@ export default function EstudiosPage() {
   const tabs = useMemo(() => {
     const t: Array<{ value: string; label: string }> = []
     if (puedeLlenado) t.push({ value: 'llenado', label: 'Llenado' })
+    if (puedeLlenado) t.push({ value: 'captura-rapida', label: 'Captura rápida' })
     if (puedeCatalogo) t.push({ value: 'catalogos', label: 'Cat. Estudios' })
     if (puedeCargaMasiva) t.push({ value: 'carga-masiva', label: 'Carga masiva' })
     return t
@@ -49,6 +51,12 @@ export default function EstudiosPage() {
         {puedeLlenado && (
           <TabsContent value="llenado" className="space-y-4">
             <LlenadoEstudioTab />
+          </TabsContent>
+        )}
+
+        {puedeLlenado && (
+          <TabsContent value="captura-rapida" className="space-y-4">
+            <CapturaRapidaEstudiosTab />
           </TabsContent>
         )}
 

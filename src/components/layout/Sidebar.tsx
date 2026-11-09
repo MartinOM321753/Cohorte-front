@@ -40,6 +40,7 @@ import {
   UsersRound,
   X,
   FileText,
+  ScanLine,
 } from 'lucide-react'
 
 interface NavItem {
@@ -223,6 +224,7 @@ const biobancoSubGroups: BiobancoSubGroup[] = [
     label: 'Gestión',
     items: [
       { label: 'Protocolos', href: '/biobanco/protocolos', icon: ScrollText, permiso: 'PROTOCOLOS_ACCEDER' },
+      { label: 'Captura rápida', href: '/biobanco/captura-rapida', icon: ScanLine, permiso: 'ESTUDIOS_MUESTRA_ACCEDER' },
       { label: 'Est. Muestras', href: '/biobanco/est-muestras', icon: Microscope, permiso: 'ESTUDIOS_MUESTRA_ACCEDER' },
       { label: 'Colaboradores', href: '/biobanco/colaboradores', icon: UserCheck, permiso: 'COLABORADORES_ACCEDER' },
       { label: 'Carga masiva', href: '/biobanco/carga-masiva', icon: Upload, permiso: 'MUESTRAS_CARGA_MASIVA' },
@@ -256,7 +258,7 @@ export function Sidebar() {
   const location = useLocation()
   const { user, logout, hasPermiso, modulosHabilitados, roles, esParticipante } = useAuthStore()
 
-  const [biobancoOpen, setBiobancoOpen] = useState(false)
+  const [biobancoOpen, setBiobancoOpen] = useState(true)
   const [collapsedSubGroups, setCollapsedSubGroups] = useState<Set<string>>(new Set())
 
   const isBiobancoRoute = location.pathname.startsWith('/biobanco')
