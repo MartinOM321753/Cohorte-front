@@ -6,6 +6,7 @@ import type {
   PacientePendienteDTO,
   CoberturaPacienteDTO,
   EstudioResumenDTO,
+  ExamenResumenDTO,
   CatalogoTipo,
 } from '../types/cobertura.types'
 
@@ -44,3 +45,9 @@ export const getMatriz = (catalogoTipo: CatalogoTipo, idInstitucion?: number) =>
 export const getEstudioResumen = (id: number) =>
   api.get<ApiResponse<EstudioResumenDTO>>(`/dashboard/cobertura/estudio/${id}`)
     .then(r => r.data.data)
+
+/** Resultados de un examen concreto para un participante (modal de la matriz). */
+export const getExamenResumen = (uuid: string, examenId: number) =>
+  api.get<ApiResponse<ExamenResumenDTO>>('/dashboard/cobertura/examen-resultados', {
+    params: { uuid, examenId },
+  }).then(r => r.data.data)

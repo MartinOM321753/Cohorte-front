@@ -94,6 +94,7 @@ const TIPO_LABELS: Record<TipoParametro, string> = {
   TEXTO: 'Texto libre',
   BOOLEANO: 'Sí/No',
   TEXTO_OPCIONES: 'Selección',
+  USUARIO: 'Usuario',
 }
 
 const DEFAULT_TIPO: TipoEstudioFormData = { nombre: '', descripcion: '', tipoCapturaDefecto: 'NORMAL' }
@@ -447,6 +448,7 @@ export function TiposEstudioTab() {
                               <SelectItem value="TEXTO">Texto libre</SelectItem>
                               <SelectItem value="BOOLEANO">Sí/No</SelectItem>
                               <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
+                              <SelectItem value="USUARIO">Usuario</SelectItem>
                             </SelectContent>
                           </Select>
                           <UnidadSelect value={peUnidad} onChange={setPeUnidad} placeholder="Unidad" compact />
@@ -581,6 +583,7 @@ export function TiposEstudioTab() {
                   <SelectItem value="TEXTO">Texto libre</SelectItem>
                   <SelectItem value="BOOLEANO">Sí/No</SelectItem>
                   <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
+                  <SelectItem value="USUARIO">Usuario</SelectItem>
                 </SelectContent>
               </Select>
               <UnidadSelect
@@ -1028,6 +1031,7 @@ function EditableParametroRow({
               <SelectItem value="TEXTO">Texto libre</SelectItem>
               <SelectItem value="BOOLEANO">Sí/No</SelectItem>
               <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
+              <SelectItem value="USUARIO">Usuario</SelectItem>
             </SelectContent>
           </Select>
           <UnidadSelect value={unidad} onChange={setUnidad} placeholder="Unidad" compact />
@@ -1250,6 +1254,7 @@ function AddParametroInline({ tipoId }: { tipoId: number }) {
             <SelectItem value="TEXTO">Texto libre</SelectItem>
             <SelectItem value="BOOLEANO">Sí/No</SelectItem>
             <SelectItem value="TEXTO_OPCIONES">Selección</SelectItem>
+            <SelectItem value="USUARIO">Usuario</SelectItem>
           </SelectContent>
         </Select>
         <UnidadSelect

@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   useActualizarBloque, useDependenciaDeBloque, usePreguntasDeBloque,
 } from '../hooks/useCuestionarios'
-import { OPERADOR_ETIQUETAS } from '../api/cuestionarios.types'
+import { OPERADOR_ETIQUETAS, miraSiHayRespuesta } from '../api/cuestionarios.types'
 import type {
   BloqueCuestionario, OperadorDependencia, PresentacionSeccion,
 } from '../api/cuestionarios.types'
@@ -123,7 +123,8 @@ export function DialogoBloque({ idTipo, bloque, onCerrar }: Props) {
   function aplicar() {
     dependencia.mutate({
       dependeDe: llaveActual || null,
-      valorHabilitante: llaveActual ? (valorActual || null) : null,
+      valorHabilitante: llaveActual && !miraSiHayRespuesta(operadorActual)
+        ? (valorActual || null) : null,
       operadorDependencia: operadorActual,
     }, { onSuccess: () => setTocado(false) })
   }
@@ -249,13 +250,19 @@ export function DialogoBloque({ idTipo, bloque, onCerrar }: Props) {
                       <SelectItem value="IGUAL">{OPERADOR_ETIQUETAS.IGUAL}</SelectItem>
                       <SelectItem value="DISTINTO">{OPERADOR_ETIQUETAS.DISTINTO}</SelectItem>
                       <SelectItem value="EN">{OPERADOR_ETIQUETAS.EN}</SelectItem>
+                      <SelectItem value="SIN_RESPUESTA">{OPERADOR_ETIQUETAS.SIN_RESPUESTA}</SelectItem>
+                      <SelectItem value="CON_RESPUESTA">{OPERADOR_ETIQUETAS.CON_RESPUESTA}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-1.5 @sm:col-span-2">
                   <Label htmlFor="valor" className="text-xs">Esta respuesta</Label>
-                  {operadorActual === 'EN' ? (
+                  {miraSiHayRespuesta(operadorActual) ? (
+                    // Estos dos miran si la llave esta contestada, no que contesto: la
+                    // llave suele ser un recuadro de texto (la 191) y no hay valor que elegir.
+                    <Input id="valor" value="" disabled placeholder="No lleva valor" />
+                  ) : operadorActual === 'EN' ? (
                     // Con «es alguno de» la respuesta es una lista, asi que no cabe
                     // un desplegable de una sola opcion. Se escriben los codigos
                     // separados por |, que es como viaja al servidor.

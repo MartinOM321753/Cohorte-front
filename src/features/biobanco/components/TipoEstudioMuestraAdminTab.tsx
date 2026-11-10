@@ -57,6 +57,7 @@ const TIPO_LABELS: Record<TipoParametro, string> = {
   TEXTO: 'Texto libre',
   BOOLEANO: 'Sí/No',
   TEXTO_OPCIONES: 'Selección',
+  USUARIO: 'Usuario',
 }
 
 const TIPO_COLORS: Record<TipoParametro, string> = {
@@ -64,6 +65,7 @@ const TIPO_COLORS: Record<TipoParametro, string> = {
   TEXTO: 'bg-slate-100 text-slate-700 border-slate-200',
   BOOLEANO: 'bg-green-100 text-green-700 border-green-200',
   TEXTO_OPCIONES: 'bg-purple-100 text-purple-700 border-purple-200',
+  USUARIO: 'bg-amber-100 text-amber-700 border-amber-200',
 }
 
 // ─── Local state types ────────────────────────────────────────────────────────

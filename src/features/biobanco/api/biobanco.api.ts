@@ -789,6 +789,17 @@ export async function createEstudioMuestra(idMuestra: number, data: EstudioMuest
   return response.data.data
 }
 
+export async function createEstudiosMuestraBatch(
+  idMuestra: number,
+  estudios: EstudioMuestraRequestDTO[],
+) {
+  const response = await api.post<ApiResponse<EstudioMuestraResponse[]>>(
+    `/muestras/${idMuestra}/estudios/batch`,
+    { estudios },
+  )
+  return response.data.data
+}
+
 export async function updateEstudioMuestra(id: number, data: EstudioMuestraRequestDTO) {
   const response = await api.put<ApiResponse<EstudioMuestraResponse>>(`/muestras/estudios/${id}`, data)
   return response.data.data

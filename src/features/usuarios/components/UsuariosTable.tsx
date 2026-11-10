@@ -1,5 +1,5 @@
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { Eye, MailCheck, Pencil, PowerOff, Power } from 'lucide-react'
+import { Eye, KeyRound, MailCheck, Pencil, PowerOff, Power } from 'lucide-react'
 import { DataTable } from '@/components/tables/DataTable'
 import { Button } from '@/components/ui/button'
 import { type Usuario, getNombreCompleto, getRolBadgeClass } from '../types/usuario.types'
@@ -11,9 +11,11 @@ interface UsuariosTableProps {
   onEdit?: (usuario: Usuario) => void
   onToggleActivo?: (usuario: Usuario) => void
   onReenviarInvitacion?: (usuario: Usuario) => void
+  onCambiarPassword?: (usuario: Usuario) => void
   reenviandoInvitacionUuid?: string | null
   currentInstitucionId?: number
   currentUserUuid?: string
+  isRoot?: boolean
   manualPagination?: boolean
   pagination?: PaginationState
   onPaginationChange?: (pagination: PaginationState) => void
@@ -28,9 +30,11 @@ export function UsuariosTable({
   onEdit,
   onToggleActivo,
   onReenviarInvitacion,
+  onCambiarPassword,
   reenviandoInvitacionUuid,
   currentInstitucionId,
   currentUserUuid,
+  isRoot,
   manualPagination,
   pagination,
   onPaginationChange,
@@ -76,6 +80,15 @@ export function UsuariosTable({
         </span>
       ),
     },
+    ...(isRoot ? [{
+      id: 'institucion',
+      header: 'Unidad',
+      cell: ({ row }: { row: any }) => (
+        <span className="text-[13px] text-[var(--imss-ink-500)]">
+          {row.original.institucion?.nombre || '—'}
+        </span>
+      ),
+    } as ColumnDef<Usuario>] : []),
     {
       id: 'estado',
       header: 'Estado',
@@ -105,11 +118,13 @@ export function UsuariosTable({
         const isSelf = u.uuid === currentUserUuid
         const isOtherRoot = u.rol?.nombre === 'ROOT' && !isSelf
         const isExternalPending =
+          !isRoot &&
           u.activo &&
           u.debeResetear &&
           currentInstitucionId != null &&
           u.institucion?.id != null &&
           u.institucion.id !== currentInstitucionId
+        const canEditThisUser = isRoot || (!isOtherRoot && !isExternalPending)
         return (
           <div className="flex items-center justify-end gap-1">
             <Button
@@ -127,16 +142,27 @@ export function UsuariosTable({
                 size="icon"
                 className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--imss-ink-900)]"
                 title={
-                  isOtherRoot
+                  !canEditThisUser && isOtherRoot
                     ? 'No es posible editar a otro usuario ROOT'
-                    : isExternalPending
+                    : !canEditThisUser && isExternalPending
                     ? 'Usuario pendiente de otra institucion: solo se puede reenviar invitacion'
                     : 'Editar usuario'
                 }
                 onClick={() => onEdit(u)}
-                disabled={isExternalPending || isOtherRoot}
+                disabled={!canEditThisUser}
               >
                 <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </Button>
+            )}
+            {onCambiarPassword && !isSelf && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-[var(--imss-ink-300)] hover:text-[var(--status-info-fg)]"
+                title="Cambiar contraseña"
+                onClick={() => onCambiarPassword(u)}
+              >
+                <KeyRound className="h-3.5 w-3.5" strokeWidth={1.75} />
               </Button>
             )}
             {onReenviarInvitacion && u.activo && u.debeResetear && (

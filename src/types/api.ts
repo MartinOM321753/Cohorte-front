@@ -281,7 +281,7 @@ export interface CitaUpdateRequestDTO {
 // ============================================
 // ESTUDIOS MÉDICOS
 // ============================================
-export type TipoParametro = 'NUMERICO' | 'TEXTO' | 'BOOLEANO' | 'TEXTO_OPCIONES'
+export type TipoParametro = 'NUMERICO' | 'TEXTO' | 'BOOLEANO' | 'TEXTO_OPCIONES' | 'USUARIO'
 
 export interface ParametroEstudio {
   id: number

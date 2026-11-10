@@ -3,6 +3,7 @@ import { Search, UserPlus, Users } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,10 +18,11 @@ import { useGetUsuariosPaginados } from '../hooks/useGetUsuarios'
 import { UsuariosTable } from '../components/UsuariosTable'
 import { UsuarioFormModal } from '../components/UsuarioFormModal'
 import { UsuarioDetailDrawer } from '../components/UsuarioDetailDrawer'
-import { useReenviarInvitacion, useToggleActivo } from '../hooks/useMutateUsuario'
+import { useAdminCambiarPassword, useReenviarInvitacion, useToggleActivo } from '../hooks/useMutateUsuario'
 import { useAuthStore } from '@/stores/authStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import type { Usuario } from '../types/usuario.types'
+import { getNombreCompleto } from '../types/usuario.types'
 import type { PaginationState } from '@tanstack/react-table'
 
 const PAGE_SIZE = 10
@@ -28,10 +30,12 @@ const PAGE_SIZE = 10
 export default function UsuariosPage() {
   const { user } = useAuthStore()
   const hasPermiso = useAuthStore((s) => s.hasPermiso)
+  const isRoot = useAuthStore((s) => s.roles.includes('ROOT'))
   const puedeCrear = hasPermiso('USUARIOS_CREAR')
   const puedeEditar = hasPermiso('USUARIOS_EDITAR')
   const toggleActivoMutation = useToggleActivo()
   const reenviarInvitacionMutation = useReenviarInvitacion()
+  const adminCambiarPasswordMutation = useAdminCambiarPassword()
 
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearch = useDebounce(searchTerm.trim(), 350)
@@ -62,6 +66,8 @@ export default function UsuariosPage() {
   const [usuarioToEdit, setUsuarioToEdit] = useState<Usuario | null>(null)
   const [usuarioToToggle, setUsuarioToToggle] = useState<Usuario | null>(null)
   const [reenviandoInvitacionUuid, setReenviandoInvitacionUuid] = useState<string | null>(null)
+  const [passwordTarget, setPasswordTarget] = useState<Usuario | null>(null)
+  const [newPassword, setNewPassword] = useState('')
 
   function handleView(usuario: Usuario) {
     setSelectedUsuario(usuario)
@@ -102,11 +108,24 @@ export default function UsuariosPage() {
     })
   }
 
+  function handleCambiarPassword(usuario: Usuario) {
+    setPasswordTarget(usuario)
+    setNewPassword('')
+  }
+
+  function confirmCambiarPassword() {
+    if (!passwordTarget || !newPassword.trim()) return
+    adminCambiarPasswordMutation.mutate(
+      { id: passwordTarget.id, nuevaPassword: newPassword },
+      { onSettled: () => { setPasswordTarget(null); setNewPassword('') } },
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
-        title="Gestion de usuarios"
-        subtitle="Administra las cuentas y roles de acceso al sistema"
+        title={isRoot ? 'Gestion de usuarios (todas las unidades)' : 'Gestion de usuarios'}
+        subtitle={isRoot ? 'Administra todas las cuentas, roles y contraseñas del sistema' : 'Administra las cuentas y roles de acceso al sistema'}
         actions={
           puedeCrear ? (
             <Button
@@ -148,9 +167,11 @@ export default function UsuariosPage() {
         onEdit={puedeEditar ? handleEdit : undefined}
         onToggleActivo={puedeEditar ? handleToggleActivo : undefined}
         onReenviarInvitacion={puedeEditar ? handleReenviarInvitacion : undefined}
+        onCambiarPassword={isRoot ? handleCambiarPassword : undefined}
         reenviandoInvitacionUuid={reenviandoInvitacionUuid}
         currentInstitucionId={user?.institucion?.id}
         currentUserUuid={user?.uuid}
+        isRoot={isRoot}
         manualPagination
         pagination={pagination}
         onPaginationChange={setPagination}
@@ -203,6 +224,46 @@ export default function UsuariosPage() {
                 ? 'Procesando…'
                 : usuarioToToggle?.activo ? 'Si, desactivar' : 'Si, activar'
               }
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!passwordTarget}
+        onOpenChange={(open) => { if (!open) { setPasswordTarget(null); setNewPassword('') } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cambiar contraseña</AlertDialogTitle>
+            <AlertDialogDescription>
+              Establezca una nueva contraseña para{' '}
+              <strong>{passwordTarget ? getNombreCompleto(passwordTarget.persona) : ''}</strong>{' '}
+              (@{passwordTarget?.username}).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-3">
+            <Label htmlFor="new-password" className="text-[13px]">Nueva contraseña</Label>
+            <Input
+              id="new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Minimo 8 caracteres, mayuscula, numero y especial"
+              className="mt-1.5 text-[13px]"
+              autoComplete="new-password"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={adminCambiarPasswordMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCambiarPassword}
+              disabled={adminCambiarPasswordMutation.isPending || !newPassword.trim()}
+              className="bg-[var(--imss-green-500)] hover:bg-[var(--imss-green-700)] text-white"
+            >
+              {adminCambiarPasswordMutation.isPending ? 'Guardando…' : 'Cambiar contraseña'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

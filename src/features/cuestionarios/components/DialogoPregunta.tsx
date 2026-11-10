@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useActualizarPregunta, useCrearPregunta, useEliminarPregunta } from '../hooks/useCuestionarios'
 import {
-  OPERADOR_ETIQUETAS, TIPOS_CON_OPCIONES, TIPO_VARIABLE_ETIQUETAS,
+  OPERADOR_ETIQUETAS, TIPOS_CON_OPCIONES, TIPO_VARIABLE_ETIQUETAS, miraSiHayRespuesta,
 } from '../api/cuestionarios.types'
 import type {
   BloqueCuestionario, OperadorDependencia, TipoVariable, VariableCuestionario, VariableRequest,
@@ -149,7 +149,8 @@ export function DialogoPregunta({ idTipo, pregunta, bloques, puedeEliminar, onCe
       dependeDe: textoODejar(dependeDe),
       // Sin pregunta llave no hay valor que habilite: dejarlo escrito haría creer que
       // la regla está puesta cuando no hay nada que comparar.
-      valorHabilitante: dependeDe.trim() === '' ? null : textoODejar(valorHabilitante),
+      valorHabilitante: dependeDe.trim() === '' || miraSiHayRespuesta(operador)
+        ? null : textoODejar(valorHabilitante),
       operadorDependencia: operador,
       filaMatriz: textoODejar(filaMatriz),
       columnaMatriz: textoODejar(columnaMatriz),
@@ -498,12 +499,19 @@ export function DialogoPregunta({ idTipo, pregunta, bloques, puedeEliminar, onCe
                 </SelectContent>
               </Select>
               <Input
-                placeholder={operador === 'EN' ? '1|2|3' : '1'}
-                value={valorHabilitante}
-                disabled={dependeDe.trim() === ''}
+                placeholder={miraSiHayRespuesta(operador) ? 'No lleva valor'
+                  : operador === 'EN' ? '1|2|3' : '1'}
+                value={miraSiHayRespuesta(operador) ? '' : valorHabilitante}
+                disabled={dependeDe.trim() === '' || miraSiHayRespuesta(operador)}
                 onChange={(e) => setValorHabilitante(e.target.value)}
               />
             </div>
+            {miraSiHayRespuesta(operador) && (
+              <p className="text-xs text-muted-foreground">
+                Solo mira si la pregunta llave está contestada, sin importar qué se
+                contestó. Es para las llaves de texto libre, como la 191.
+              </p>
+            )}
             {operador === 'EN' && (
               <p className="text-xs text-muted-foreground">
                 Varios valores separados por <span className="font-mono">|</span>. Es para

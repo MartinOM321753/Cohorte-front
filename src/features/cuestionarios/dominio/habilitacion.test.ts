@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   calcularBloqueadas, calcularHabilitadas, renglonesConAlgoQueContestar,
-  type PreguntaConLlave,
+  type OperadorDependencia, type PreguntaConLlave,
 } from './habilitacion'
 
 /**
@@ -30,7 +30,7 @@ function dependiente(
   codigo: string,
   llave: string,
   valor: string | null,
-  operador?: 'IGUAL' | 'DISTINTO' | 'EN',
+  operador?: OperadorDependencia,
 ): PreguntaConLlave {
   return {
     id: siguiente++,
@@ -161,6 +161,104 @@ describe('Si la pregunta se le hace al participante', () => {
     it('con la llave sin contestar, EN tambien pregunta', () => {
       const llave = suelta('P30')
       expect(seLePregunta([dependiente('P42', 'P30', '2|3', 'EN'), llave], {})).toBe(true)
+    })
+  })
+
+  /**
+   * El salto de la 191: «Si usted no trabaja, ¿a qué se dedica?». La llave es un recuadro
+   * de texto, sin catálogo, y la condición es «está vacío». Estos dos operadores son la
+   * excepción a «habilita cuando no sabe»: la llave vacía es justo lo que se evalúa.
+   * Mismos casos que `EtiquetaCuestionarioTest.Dependencias` en Java.
+   */
+  describe('los operadores que miran si hay respuesta', () => {
+    it('llave de texto vacia: la dependiente SI se pregunta (SIN_RESPUESTA)', () => {
+      const llave = suelta('P191')
+      const p192 = dependiente('P192_1', 'P191', null, 'SIN_RESPUESTA')
+      expect(seLePregunta([p192, llave], {})).toBe(true)
+      expect(seLePregunta([p192, llave], { P191: '' })).toBe(true)
+      expect(seLePregunta([p192, llave], { P191: '   ' })).toBe(true)
+    })
+
+    it('llave de texto con algo: la dependiente NO se pregunta (SIN_RESPUESTA)', () => {
+      const llave = suelta('P191')
+      const p192 = dependiente('P192_1', 'P191', null, 'SIN_RESPUESTA')
+      expect(seLePregunta([p192, llave], { P191: 'Hogar' })).toBe(false)
+    })
+
+    it('sin valor habilitante no se da por incompleto: no lo necesita', () => {
+      // Si se tratara como una dependencia incompleta, habilitaria siempre y el salto no
+      // haria nada.
+      const llave = suelta('P191')
+      const p192 = dependiente('P192_1', 'P191', null, 'SIN_RESPUESTA')
+      expect(seLePregunta([p192, llave], { P191: 'Estudiante' })).toBe(false)
+      const conBlanco = dependiente('P192_1', 'P191', '  ', 'SIN_RESPUESTA')
+      expect(seLePregunta([conBlanco, llave], { P191: 'Estudiante' })).toBe(false)
+    })
+
+    it('CON_RESPUESTA es lo contrario: solo se pregunta si la llave tiene algo', () => {
+      const llave = suelta('P49')
+      const p50 = dependiente('P50', 'P49', null, 'CON_RESPUESTA')
+      expect(seLePregunta([p50, llave], { P49: 'otro' })).toBe(true)
+      expect(seLePregunta([p50, llave], { P49: '' })).toBe(false)
+      // Con la llave vacia NO pregunta: es la excepcion a «habilita cuando no sabe».
+      expect(seLePregunta([p50, llave], {})).toBe(false)
+    })
+
+    it('llave vacia con IGUAL sigue habilitando: no se rompio la regla de siempre', () => {
+      const llave = suelta('P19')
+      expect(seLePregunta([dependiente('P20', 'P19', '1'), llave], { P19: '' })).toBe(true)
+      expect(seLePregunta(
+        [dependiente('P112_2', 'P19', '1', 'DISTINTO'), llave], {})).toBe(true)
+      expect(seLePregunta(
+        [dependiente('P42', 'P19', '2|3', 'EN'), llave], {})).toBe(true)
+    })
+
+    it('la cadena: una pregunta que depende de la 193, que depende de la 191', () => {
+      const p191 = suelta('P191')
+      const p193a = dependiente('P193_1', 'P191', null, 'SIN_RESPUESTA')
+      const p193b = dependiente('P193_2', 'P193_1', '1')
+      const todas = [p193b, p193a, p191]
+
+      // No trabaja: la 193_1 no se pregunta, luego la 193_2 tampoco, aunque su llave
+      // inmediata este vacia (que por si sola habilitaria).
+      expect(seLePregunta(todas, { P191: 'Hogar' })).toBe(false)
+      // Trabaja: la 193_1 se pregunta y manda su propia respuesta.
+      expect(seLePregunta(todas, { P193_1: '1' })).toBe(true)
+      expect(seLePregunta(todas, { P193_1: '2' })).toBe(false)
+      expect(seLePregunta(todas, {})).toBe(true)
+    })
+
+    it('el tramo entero de la 192 a la 197 sigue a la 191, y la 198 no depende de nada', () => {
+      const p191 = suelta('P191')
+      const tramo = [192, 193, 194, 195, 196, 197].map((n) =>
+        dependiente(`P${n}_1`, 'P191', null, 'SIN_RESPUESTA'))
+      const p198 = suelta('P198')
+      const todas = [...tramo, p198, p191]
+
+      const valores: Record<number, string> = {}
+      for (const p of todas) valores[p.id] = ''
+      valores[p191.id] = 'Jubilado, me dedico al hogar'
+      const habilitadas = calcularHabilitadas(todas, valores, [])
+
+      for (const p of tramo) expect(habilitadas.has(p.id)).toBe(false)
+      expect(habilitadas.has(p198.id)).toBe(true)
+
+      valores[p191.id] = ''
+      const trabaja = calcularHabilitadas(todas, valores, [])
+      for (const p of tramo) expect(trabaja.has(p.id)).toBe(true)
+    })
+
+    it('un anillo de llaves con SIN_RESPUESTA no cuelga ni esconde', () => {
+      const a = dependiente('A', 'B', null, 'SIN_RESPUESTA')
+      const b = dependiente('B', 'A', null, 'SIN_RESPUESTA')
+      expect(seLePregunta([a, b], {})).toBe(true)
+    })
+
+    it('el candado al reves no aplica: no bloquea la 191 aunque ya haya respuestas', () => {
+      const p191 = suelta('P191')
+      const p192 = dependiente('P192_1', 'P191', null, 'SIN_RESPUESTA')
+      const valores: Record<number, string> = { [p191.id]: '', [p192.id]: '3' }
+      expect(calcularBloqueadas([p192, p191], valores).size).toBe(0)
     })
   })
 

@@ -49,6 +49,17 @@ export interface EstudioResumenDTO {
   resultados:    ResultadoLineaDTO[]
 }
 
+export interface ExamenResumenDTO {
+  unidad: string | null
+  resultados: ExamenResultadoLineaDTO[]
+}
+
+export interface ExamenResultadoLineaDTO {
+  id:             number
+  fechaResultado: string
+  valorObtenido:  number
+}
+
 export interface CoberturaPacienteDTO {
   folio:      string
   uuid:       string

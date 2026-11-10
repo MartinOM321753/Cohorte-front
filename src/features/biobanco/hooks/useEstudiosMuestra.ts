@@ -14,6 +14,7 @@ import {
   reordenarParametrosEstudioMuestra,
   getEstudiosByMuestra,
   createEstudioMuestra,
+  createEstudiosMuestraBatch,
   updateEstudioMuestra,
   getHistorialMuestra,
 } from '../api/biobanco.api'
@@ -218,6 +219,23 @@ export function useCreateEstudioMuestra(idMuestra: number) {
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? 'Error al registrar estudio')
+    },
+  })
+}
+
+export function useCreateEstudiosMuestraBatch() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idMuestra, estudios }: { idMuestra: number; estudios: EstudioMuestraRequestDTO[] }) =>
+      createEstudiosMuestraBatch(idMuestra, estudios),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.byMuestra(vars.idMuestra) })
+      qc.invalidateQueries({ queryKey: estudiosMuestraKeys.historial(vars.idMuestra) })
+      qc.invalidateQueries({ queryKey: ['muestras'] })
+      qc.invalidateQueries({ queryKey: ['muestras-biobanco'] })
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message ?? 'Error al registrar estudios')
     },
   })
 }

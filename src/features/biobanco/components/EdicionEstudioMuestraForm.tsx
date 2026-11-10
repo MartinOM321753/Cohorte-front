@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Loader2, Save } from 'lucide-react'
+import { Check, ChevronsUpDown, Loader2, Save } from 'lucide-react'
 
 import type {
   MuestraDetalleDTO,
@@ -9,6 +9,7 @@ import type {
 } from '@/types/api'
 import { useUpdateEstudioMuestra } from '../hooks/useEstudiosMuestra'
 import { useAuthStore } from '@/stores/authStore'
+import { useGetPersonasSeleccionables } from '@/features/usuarios/hooks/useGetUsuarios'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { cn } from '@/lib/utils'
 
 type ValorParametro = string | number | boolean | undefined
 
@@ -78,6 +82,9 @@ function ParametroField({
           </SelectContent>
         </Select>
       )}
+      {parametro.tipo === 'USUARIO' && (
+        <UsuarioComboboxEdicion value={String(valor ?? '')} onChange={onChange} />
+      )}
       {parametro.tipo === 'BOOLEANO' && (
         <div className="flex items-center gap-2 h-9">
           <Switch checked={Boolean(valor)} onCheckedChange={v => onChange(v)} />
@@ -85,6 +92,42 @@ function ParametroField({
         </div>
       )}
     </div>
+  )
+}
+
+function UsuarioComboboxEdicion({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const { data: personas = [] } = useGetPersonasSeleccionables()
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal h-9 text-sm">
+          {value || <span className="text-muted-foreground">Seleccione un usuario…</span>}
+          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar…" />
+          <CommandList>
+            <CommandEmpty>Sin resultados.</CommandEmpty>
+            <CommandGroup>
+              {personas.map((p) => (
+                <CommandItem
+                  key={p.nombreCompleto}
+                  value={p.nombreCompleto}
+                  onSelect={() => { onChange(p.nombreCompleto); setOpen(false) }}
+                >
+                  <Check className={cn('mr-2 size-4', value === p.nombreCompleto ? 'opacity-100' : 'opacity-0')} />
+                  {p.nombreCompleto}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -117,11 +160,11 @@ export function EdicionEstudioMuestraForm({ estudio, muestra, onSuccess, onCance
       const existente = (estudio.resultados ?? []).find(r => r.idParametro === p.id)
       if (existente) {
         if (p.tipo === 'NUMERICO') init[p.id] = existente.valorNumerico != null ? String(existente.valorNumerico) : ''
-        else if (p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES') init[p.id] = existente.valorTexto ?? ''
+        else if (p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' || p.tipo === 'USUARIO') init[p.id] = existente.valorTexto ?? ''
         else init[p.id] = existente.valorBooleano ?? false
       } else {
         if (p.tipo === 'NUMERICO') init[p.id] = ''
-        else if (p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES') init[p.id] = ''
+        else if (p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' || p.tipo === 'USUARIO') init[p.id] = ''
         else init[p.id] = false
       }
     }
@@ -133,14 +176,14 @@ export function EdicionEstudioMuestraForm({ estudio, muestra, onSuccess, onCance
       .filter(p => {
         const v = valores[p.id]
         if (p.tipo === 'NUMERICO') return v !== '' && v !== undefined && v !== null
-        if (p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES') return typeof v === 'string' && v.trim() !== ''
+        if (p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' || p.tipo === 'USUARIO') return typeof v === 'string' && v.trim() !== ''
         return true
       })
       .map(p => {
         const v = valores[p.id]
         const dto: ResultadoEstudioMuestraRequestDTO = { idParametro: p.id }
         if (p.tipo === 'NUMERICO') dto.valorNumerico = Number(v)
-        else if (p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES') dto.valorTexto = String(v)
+        else if (p.tipo === 'TEXTO' || p.tipo === 'TEXTO_OPCIONES' || p.tipo === 'USUARIO') dto.valorTexto = String(v)
         else dto.valorBooleano = Boolean(v)
         return dto
       })

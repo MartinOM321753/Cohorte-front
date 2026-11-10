@@ -1,13 +1,18 @@
-import { AlertCircle } from 'lucide-react'
+import { useState } from 'react'
+import { AlertCircle, Check, ChevronsUpDown } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 import type { TipoParametro } from '@/types/api'
+import { useGetPersonasSeleccionables } from '@/features/usuarios/hooks/useGetUsuarios'
 
 /**
  * Una celda de la previsualización, con el control que corresponde a su tipo.
@@ -139,6 +144,11 @@ export function CeldaCarga({
     )
   }
 
+  // ── Usuario → combobox de personas ──────────────────────────────────────
+  if (tipo === 'USUARIO') {
+    return <UsuarioComboboxCelda value={valor} onChange={onChange} error={error} />
+  }
+
   // ── Numérico, texto y las columnas de control ────────────────────────────
   return (
     <>
@@ -155,5 +165,54 @@ export function CeldaCarga({
         <div className="px-1 pt-0.5 text-[11px] leading-tight text-destructive">{error}</div>
       )}
     </>
+  )
+}
+
+function UsuarioComboboxCelda({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
+  const [open, setOpen] = useState(false)
+  const { data: personas = [] } = useGetPersonasSeleccionables()
+
+  return (
+    <div className="min-w-[150px] space-y-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className={cn('w-full justify-between font-normal h-9 text-[12px]', error && 'border-destructive bg-destructive/5')}
+          >
+            {value || <span className="text-muted-foreground">Seleccione…</span>}
+            <ChevronsUpDown className="ml-1 size-3.5 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Buscar…" />
+            <CommandList>
+              <CommandEmpty>Sin resultados.</CommandEmpty>
+              <CommandGroup>
+                {personas.map((p) => (
+                  <CommandItem
+                    key={p.nombreCompleto}
+                    value={p.nombreCompleto}
+                    onSelect={() => { onChange(p.nombreCompleto); setOpen(false) }}
+                  >
+                    <Check className={cn('mr-2 size-3.5', value === p.nombreCompleto ? 'opacity-100' : 'opacity-0')} />
+                    {p.nombreCompleto}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {error && (
+        <p className="flex items-start gap-1 px-1 text-[11px] leading-tight text-destructive">
+          <AlertCircle className="mt-px h-3 w-3 shrink-0" />
+          <span>{error}</span>
+        </p>
+      )}
+    </div>
   )
 }

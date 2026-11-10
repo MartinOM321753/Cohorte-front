@@ -10,6 +10,7 @@ import { EntregasTab } from '../components/EntregasTab'
 import { ProtocolosTab } from '../components/ProtocolosTab'
 import { ProcesarTab } from '../components/ProcesarTab'
 import { TipoEstudioMuestraAdminTab } from '../components/TipoEstudioMuestraAdminTab'
+import { CapturaRapidaTab } from '../components/CapturaRapidaTab'
 
 const sectionOrder: Array<{ path: string; permiso: string }> = [
   { path: 'muestras', permiso: 'MUESTRAS_VER' },
@@ -19,6 +20,7 @@ const sectionOrder: Array<{ path: string; permiso: string }> = [
   { path: 'prestamos', permiso: 'TRASLADOS_ACCEDER' },
   { path: 'entregas', permiso: 'ENTREGAS_ACCEDER' },
   { path: 'protocolos', permiso: 'PROTOCOLOS_ACCEDER' },
+  { path: 'captura-rapida', permiso: 'ESTUDIOS_MUESTRA_ACCEDER' },
   { path: 'est-muestras', permiso: 'ESTUDIOS_MUESTRA_ACCEDER' },
   { path: 'colaboradores', permiso: 'COLABORADORES_ACCEDER' },
   { path: 'carga-masiva', permiso: 'MUESTRAS_CARGA_MASIVA' },
@@ -41,6 +43,7 @@ export default function BiobancoPage() {
       <Route path="prestamos" element={<PrestamosTab />} />
       <Route path="entregas" element={<EntregasTab />} />
       <Route path="protocolos" element={<ProtocolosTab />} />
+      <Route path="captura-rapida" element={<CapturaRapidaTab />} />
       <Route path="est-muestras" element={<TipoEstudioMuestraAdminTab />} />
       <Route path="colaboradores" element={<ColaboradoresTab />} />
       <Route path="carga-masiva" element={<CargaMasivaMuestrasTab />} />

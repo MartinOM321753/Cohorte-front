@@ -67,6 +67,10 @@ export const getUsuariosByRolName = async (roleName: string): Promise<Usuario[]>
   return res.data.data
 }
 
+export const adminCambiarPassword = async (id: number, nuevaPassword: string): Promise<void> => {
+  await axiosInstance.put(`/users/${id}/password`, { nuevaPassword })
+}
+
 /**
  * Administradores activos disponibles para ser asignados como encargado.
  * Si se pasa `institucionUuid`, también incluye al admin ya asignado a esa institución
@@ -75,5 +79,16 @@ export const getUsuariosByRolName = async (roleName: string): Promise<Usuario[]>
 export const getAdministradoresDisponibles = async (institucionUuid?: string): Promise<Usuario[]> => {
   const params = institucionUuid ? `?institucionUuid=${encodeURIComponent(institucionUuid)}` : ''
   const res = await axiosInstance.get<ApiResponse<Usuario[]>>(`/users/administradores-disponibles${params}`)
+  return res.data.data
+}
+
+export interface PersonaSeleccionable {
+  nombreCompleto: string
+  username: string | null
+  origen: 'USUARIO' | 'COLABORADOR'
+}
+
+export const getPersonasSeleccionables = async (): Promise<PersonaSeleccionable[]> => {
+  const res = await axiosInstance.get<ApiResponse<PersonaSeleccionable[]>>('/users/seleccionables')
   return res.data.data
 }

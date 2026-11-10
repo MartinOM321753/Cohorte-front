@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -18,19 +18,20 @@ interface Props {
 // El header se resuelve por tipoId, no por índice: las celdas llegan en orden
 // alfabético y los nombres del catálogo llegan en otro orden (por %), así que
 // indexar por posición rotulaba cada columna con el estudio equivocado.
+const PAGE_SIZE = 40
+
 export function MatrizCobertura({ data, tipoNombre, selBucket, selTipoId, tipoWord, tipo }: Props) {
-  const MAX_ROWS = 40
   const navigate = useNavigate()
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const [q, setQ] = useState('')
+  const [limit, setLimit] = useState(PAGE_SIZE)
   const [detalle, setDetalle] = useState<
     { uuid: string; tipoId: number; refId: number | null; tipoNombre: string; nombre: string } | null
   >(null)
 
-  // Construir un set de tipoIds para los tipos seleccionados
   const tipoIds = data.length > 0 ? data[0].celdas.map(c => c.tipoId) : []
 
-  // Búsqueda por nombre o folio (en cliente: la matriz ya viene acotada del backend)
   const filtrados = useMemo(() => {
     const term = q.trim().toLowerCase()
     if (!term) return data
@@ -39,7 +40,18 @@ export function MatrizCobertura({ data, tipoNombre, selBucket, selTipoId, tipoWo
     )
   }, [data, q])
 
-  const visibles = filtrados.slice(0, MAX_ROWS)
+  useEffect(() => { setLimit(PAGE_SIZE) }, [q])
+
+  const visibles = filtrados.slice(0, limit)
+  const hayMas = limit < filtrados.length
+
+  const onScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el || !hayMas) return
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) {
+      setLimit(prev => Math.min(prev + PAGE_SIZE, filtrados.length))
+    }
+  }, [hayMas, filtrados.length])
 
   return (
     <Card className="border border-border shadow-none overflow-hidden">
@@ -48,7 +60,7 @@ export function MatrizCobertura({ data, tipoNombre, selBucket, selTipoId, tipoWo
           Matriz de cobertura
         </div>
         <div className="mt-0.5 text-[13px] font-medium text-foreground">
-          Participante × {tipoWord} (mostrando {Math.min(visibles.length, MAX_ROWS)} de {filtrados.length} por menor cobertura)
+          Participante × {tipoWord} (mostrando {visibles.length} de {filtrados.length} por menor cobertura)
         </div>
         <div className="mt-1 text-[12px] text-muted-foreground">
           Doble clic en el participante abre su expediente · clic en una celda cubierta muestra el detalle
@@ -91,7 +103,7 @@ export function MatrizCobertura({ data, tipoNombre, selBucket, selTipoId, tipoWo
             Ningún participante coincide con «{q}».
           </p>
         ) : (
-          <div className="overflow-auto max-h-[420px]">
+          <div ref={scrollRef} onScroll={onScroll} className="overflow-auto max-h-[420px]">
             <table className="text-[11px] border-collapse w-max min-w-full">
               <thead>
                 <tr>
