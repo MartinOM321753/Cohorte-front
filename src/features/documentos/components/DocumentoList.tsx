@@ -58,6 +58,8 @@ function FileIcon({ mimeType }: { mimeType: string | null }) {
 
 function isViewable(mimeType: string | null): boolean {
   if (!mimeType) return false
+  // Los navegadores no renderizan TIFF: solo se puede descargar.
+  if (mimeType === 'image/tiff') return false
   return mimeType.startsWith('image/') || mimeType === 'application/pdf'
 }
 

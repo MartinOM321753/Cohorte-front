@@ -82,7 +82,8 @@ export function DocumentoViewerDialog({
   // ── Derived flags ────────────────────────────────────────────────────────
   const mime     = blobMime ?? documento?.mimeType ?? ''
   const isPdf    = mime.includes('pdf')
-  const isImage  = mime.startsWith('image/')
+  // TIFF no se puede pintar en <img>; cae en "vista previa no disponible" con descarga.
+  const isImage  = mime.startsWith('image/') && mime !== 'image/tiff'
   const canShow  = blobUrl && !loading && !loadErr
 
   return (
