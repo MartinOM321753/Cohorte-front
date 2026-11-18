@@ -1,0 +1,122 @@
+[
+  {
+    "title": "Laboratorio clínico",
+    "subtitle": "Biomarcadores en categorías clínicas",
+    "image": "assets/evaluaciones/01_Laboratorio_clinico.jpg",
+    "short": "Muestras biológicas para analizar grupos de biomarcadores y seguir cambios en la salud.",
+    "tags": [
+      "Hematología",
+      "Lípidos",
+      "Glucosa y metabolismo",
+      "Función hepática",
+      "Función renal",
+      "Salud ósea"
+    ],
+    "purpose": "Aporta información biológica para estudiar factores asociados a la salud.",
+    "description": "Los análisis de laboratorio se organizan en categorías como hematología, metabolismo de la glucosa, lípidos y funciones hepática y renal. Las mediciones disponibles pueden variar según la fase del estudio.",
+    "fullPurpose": "Las muestras biológicas permiten estudiar biomarcadores vinculados con la salud y observar su evolución. Algunas mediciones corresponden a fases o subestudios específicos."
+  },
+  {
+    "title": "Electrocardiograma",
+    "subtitle": "Ritmo y actividad eléctrica",
+    "image": "assets/evaluaciones/02_Electrocardiograma.jpg",
+    "short": "Registra señales eléctricas del corazón para describir su ritmo y conducción.",
+    "tags": [
+      "Frecuencia y ritmo",
+      "Intervalos eléctricos",
+      "Conducción cardíaca"
+    ],
+    "purpose": "Describe la actividad eléctrica cardíaca en el momento de la evaluación.",
+    "description": "El electrocardiograma registra la actividad eléctrica del corazón. Sus medidas permiten caracterizar la frecuencia, el ritmo y distintos intervalos de conducción.",
+    "fullPurpose": "Esta evaluación aporta información cardiovascular complementaria para el seguimiento de las personas participantes."
+  },
+  {
+    "title": "Espirometría",
+    "subtitle": "Volúmenes y flujos respiratorios",
+    "image": "assets/evaluaciones/cohorte-espirometria.jpg",
+    "short": "Describe la capacidad respiratoria mediante volúmenes y flujos de aire.",
+    "tags": [
+      "Capacidad vital",
+      "Volumen espiratorio",
+      "Flujo de aire"
+    ],
+    "purpose": "Caracteriza la función respiratoria a partir de maniobras de respiración.",
+    "description": "La espirometría registra cuánto aire se moviliza y con qué rapidez se expulsa. Los resultados permiten describir la función pulmonar y compararla durante el seguimiento.",
+    "fullPurpose": "Las mediciones respiratorias complementan la evaluación integral y permiten estudiar cambios en la función pulmonar."
+  },
+  {
+    "title": "Somatometría y signos vitales",
+    "subtitle": "Mediciones corporales y signos vitales",
+    "image": "assets/evaluaciones/cohorte-somatometria.jpg",
+    "short": "Reúne medidas corporales y signos vitales en una valoración integrada.",
+    "tags": [
+      "Peso y talla",
+      "Composición corporal",
+      "Circunferencias",
+      "Presión arterial",
+      "Pulso y oxigenación"
+    ],
+    "purpose": "Describe características corporales y signos vitales relevantes para el estudio.",
+    "description": "Incluye mediciones de peso, talla, composición corporal y circunferencias, junto con signos vitales como presión arterial, pulso y oxigenación.",
+    "fullPurpose": "Estas mediciones ayudan a describir el estado corporal y a contextualizar otros indicadores de salud."
+  },
+  {
+    "title": "Pruebas físicas",
+    "subtitle": "Capacidad funcional y movimiento",
+    "image": "assets/evaluaciones/cohorte-pruebas-fisicas.jpg",
+    "short": "Explora movilidad, fuerza y capacidad para realizar actividad física.",
+    "tags": [
+      "Marcha y movilidad",
+      "Resistencia",
+      "Equilibrio",
+      "Fuerza muscular"
+    ],
+    "purpose": "Observa capacidades físicas funcionales mediante pruebas estandarizadas.",
+    "description": "Las pruebas físicas permiten observar el desempeño en actividades de movimiento, resistencia y fuerza, con procedimientos definidos para cada evaluación.",
+    "fullPurpose": "La información funcional complementa las mediciones clínicas y ayuda a estudiar la capacidad física a lo largo del tiempo."
+  },
+  {
+    "title": "Estudios de imagen",
+    "subtitle": "Imagen y evaluación de tejidos",
+    "image": "assets/evaluaciones/cohorte-estudios-de-imagen.jpg",
+    "short": "Agrupa estudios de imagen para observar características óseas y abdominales.",
+    "tags": [
+      "Densidad mineral ósea",
+      "Ultrasonido",
+      "Evaluación hepática"
+    ],
+    "purpose": "Ofrece mediciones complementarias sobre tejidos y órganos seleccionados.",
+    "description": "Según la fase y el subestudio, pueden realizarse densitometría, ultrasonido y evaluación hepática por elastografía. Son herramientas complementarias a las mediciones clínicas y de laboratorio.",
+    "fullPurpose": "Los estudios de imagen permiten explorar características óseas y de tejidos seleccionados dentro de protocolos específicos."
+  },
+  {
+    "title": "Salud visual",
+    "subtitle": "Función visual",
+    "image": "assets/evaluaciones/07_Salud_visual.jpg",
+    "short": "Caracteriza la visión mediante mediciones funcionales y comparables.",
+    "tags": [
+      "Agudeza visual",
+      "Refracción",
+      "Presión intraocular"
+    ],
+    "purpose": "Describe distintos aspectos de la función visual de las personas participantes.",
+    "description": "La evaluación reúne mediciones de visión que permiten caracterizar la función visual y registrar sus resultados para el seguimiento.",
+    "fullPurpose": "La información visual forma parte de la valoración de salud y puede analizarse junto con las demás mediciones del estudio."
+  },
+  {
+    "title": "Cuestionarios",
+    "subtitle": "Cuestionarios sobre salud y vida cotidiana",
+    "image": "assets/evaluaciones/08_Cuestionarios.jpg",
+    "short": "Integra información general, salud, hábitos y contexto psicosocial.",
+    "tags": [
+      "Información general",
+      "Salud y antecedentes familiares",
+      "Estilos de vida",
+      "Factores psicosociales",
+      "Otras mediciones"
+    ],
+    "purpose": "Ayudan a comprender la salud en relación con la historia, los hábitos y el contexto de vida.",
+    "description": "Los cuestionarios incluyen información general; condiciones de salud y antecedentes familiares; estilos de vida —tabaquismo, nutrición, actividad física, alcohol y sueño—; factores psicosociales; y otras mediciones. Los módulos pueden variar según la fase del estudio.",
+    "fullPurpose": "La información autorreportada complementa las evaluaciones clínicas, físicas y biológicas para ofrecer una perspectiva más amplia de la salud."
+  }
+]

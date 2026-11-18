@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "title": "Datos agregados por fase y sexo",
+    "source": "Material proporcionado por el equipo de la Cohorte",
+    "privacy": "Resultados agregados; no contiene registros individuales.",
+    "notes": [
+      "Las cifras entre paréntesis se conservan tal como aparecen en el material fuente; la hoja no especifica su significado.",
+      "El material fuente reporta la unidad de 25-OH-D como mmol/L.",
+      "Los indicadores sin datos disponibles no se representan como cero."
+    ]
+  },
+  "waves": [
+    {"id":"2004-2006","label":"2004–2006","participants":{"men":1596,"women":4925},"cohortSharePct":{"men":24.5,"women":75.5}},
+    {"id":"2010-2013","label":"2010–2013","participants":{"men":721,"women":1738},"cohortSharePct":{"men":29.3,"women":70.7}},
+    {"id":"2017-2019","label":"2017–2019","participants":{"men":282,"women":912},"cohortSharePct":{"men":23.6,"women":76.4}}
+  ],
+  "indicators": [
+    {"id":"overweight","label":"Sobrepeso","criterion":"> 25 - <30 kg/m2","unit":"%","values":[{"men":46.1,"women":38.9},{"men":46.9,"women":38.5},{"men":42.9,"women":40.8}]},
+    {"id":"obesity","label":"Obesidad","criterion":"> 30 kg/m2","unit":"%","values":[{"men":18.9,"women":21.5},{"men":18.3,"women":22.4},{"men":24.5,"women":27.1}]},
+    {"id":"central-obesity","label":"Obesidad central","criterion":"> 102 cm para hombres; > 88 cm para mujeres","unit":"%","values":[{"men":27.4,"women":57.7},{"men":25.1,"women":57.9},{"men":31.2,"women":63.8}]},
+    {"id":"ico","label":"ICO","criterion":"> 1.25 para hombres; > 1.18 para mujeres","unit":"%","values":[{"men":71.1,"women":83.3},{"men":77.3,"women":85.6},{"men":94,"women":93.6}]},
+    {"id":"prehypertension","label":"Prehipertensión","criterion":"PAS > 120, <140 / PAD > 80, <90 mmHg","unit":"%","values":[{"men":47.1,"women":34.6},{"men":42.2,"women":29.2},{"men":35.1,"women":33.7}]},
+    {"id":"hypertension","label":"HTA","criterion":"PAS > 140 / PAD > 90 mmHg + autoreporte + consumo de medicamentos","unit":"%","values":[{"men":28.7,"women":26.3},{"men":37.4,"women":38.6},{"men":49.7,"women":40.2}]},
+    {"id":"prediabetes","label":"Prediabetes","criterion":"100–125 mg/dL","unit":"%","values":[{"men":21.6,"women":13.8},{"men":34.1,"women":25.5},{"men":32.3,"women":31.9}]},
+    {"id":"diabetes","label":"Diabetes","criterion":"> 126 mg/dL + autoreporte + consumo de medicamentos","unit":"%","values":[{"men":14.5,"women":13.1},{"men":18.7,"women":15.3},{"men":24.8,"women":19.5}]},
+    {"id":"dyslipidemia","label":"Dislipidemia","criterion":"Triglicéridos > 150 o colesterol > 200 mg/dL","unit":"%","values":[{"men":66.6,"women":55.7},{"men":69.8,"women":65.9},{"men":68.4,"women":63}]},
+    {"id":"smoking","label":"Fumador activo","criterion":null,"unit":"%","values":[{"men":24.8,"women":14.6},{"men":20.9,"women":11.2},{"men":12.8,"women":8.9}]},
+    {"id":"depressive-symptoms","label":"Sintomatología depresiva","criterion":"> 16","unit":"%","values":[{"men":18.9,"women":30.5},{"men":22,"women":30},{"men":19.1,"women":23.9}]},
+    {"id":"alt","label":"ALT","criterion":"> 40 U/L","unit":"%","values":[{"men":24.1,"women":9.9},{"men":20.5,"women":12.7},{"men":28.4,"women":17.4}]},
+    {"id":"ast","label":"AST","criterion":"> 40 U/L","unit":"%","values":[{"men":9.3,"women":5.9},{"men":12.6,"women":10.4},{"men":16.7,"women":11.8}]},
+    {"id":"spine-osteopenia","label":"Osteopenia · columna","criterion":"–1 y –2,5","unit":"%","values":[{"men":34.5,"women":30.5},{"men":18.6,"women":24.3},{"men":33,"women":40}]},
+    {"id":"spine-osteoporosis","label":"Osteoporosis · columna","criterion":"≤ –2,5","unit":"%","values":[{"men":6.2,"women":12.6},{"men":3.6,"women":9.8},{"men":8.9,"women":16.7}]},
+    {"id":"femur-osteopenia","label":"Osteopenia · fémur","criterion":"–1 y –2,5","unit":"%","values":[{"men":16.8,"women":19.7},{"men":15.7,"women":21.8},{"men":23.4,"women":31.1}]},
+    {"id":"femur-osteoporosis","label":"Osteoporosis · fémur","criterion":"≤ –2,5","unit":"%","values":[{"men":0.7,"women":2},{"men":1,"women":2.5},{"men":0.4,"women":4.3}]},
+    {"id":"hip-osteopenia","label":"Osteopenia · cadera","criterion":"–1 y –2,5","unit":"%","values":[{"men":4.8,"women":7.3},{"men":22.5,"women":34.1},{"men":31.9,"women":45.7}]},
+    {"id":"hip-osteoporosis","label":"Osteoporosis · cadera","criterion":"≤ –2,5","unit":"%","values":[{"men":0.3,"women":1.2},{"men":2.4,"women":3.7},{"men":2.5,"women":6.4}]}
+  ],
+  "measures": [
+    {"id":"physical-inactivity","label":"Inactividad física","unit":"min/día","values":[{"men":{"value":146,"parenthetical":99},"women":{"value":121,"parenthetical":90}},{"men":{"value":115,"parenthetical":83},"women":{"value":111,"parenthetical":82}},{"men":{"value":127,"parenthetical":85},"women":{"value":114,"parenthetical":81}}]},
+    {"id":"vitamin-d","label":"25-OH-D","unit":"mmol/L","values":[{"men":{"value":23.8,"parenthetical":6.2},"women":{"value":22.2,"parenthetical":6.2}},{"men":{"value":23.3,"parenthetical":7.1},"women":{"value":21.2,"parenthetical":6.6}},{"men":null,"women":null}]}
+  ]
+}
