@@ -666,38 +666,47 @@
   width: 100%;
 }
 .login-page .institution-row {
+  /* --lh: factor de altura (se reduce en pantallas bajas).
+     Cada logo define su altura visual real en --h (px); el ancho sale de su
+     proporción, sin cajas con relleno ni transform, así la separación entre
+     tinta y tinta es la misma (space-between + gap mínimo). */
+  --avail: calc(100vw - 64px);
+  --lh: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 22px;
+  gap: min(20px, calc(var(--avail) * 20 / 1180));
 }
 .login-page .institution-row img {
+  --h: 78;
+  display: block;
+  width: auto;
+  height: min(
+    calc(var(--h) * 1px * var(--lh)),
+    calc(var(--avail) * var(--h) * var(--lh) / 1180)
+  );
+  max-width: none;
   object-fit: contain;
   filter: grayscale(1) brightness(0) invert(0.85) sepia(0.15);
   opacity: 0.88;
-  width: 69px !important;
-  height: 78px;
-  max-width: none;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   transition: opacity 0.3s;
 }
-.login-page .institution-row img:nth-child(2) { width: 79.5px !important; }
-.login-page .institution-row img:nth-child(4) { width: 82.5px !important; }
-.login-page .institution-row img:nth-child(5) { width: 187px !important; }
-.login-page .institution-row img:nth-child(6) { width: 193px !important; }
-.login-page .institution-row img:nth-child(7) { width: 189px !important; }
-.login-page .institution-row img:nth-child(8) { width: 106px !important; }
-.login-page .institution-row img:nth-child(3) {
+.login-page .institution-row img:nth-child(1) { --h: 67; }  /* IMSS */
+.login-page .institution-row img:nth-child(2) { --h: 76; }  /* UNAM Medicina */
+.login-page .institution-row img:nth-child(3) { --h: 58; }  /* CIPPS */
+.login-page .institution-row img:nth-child(4) {             /* INSP */
+  --h: 78;
   filter: grayscale(1) invert(1) brightness(1.05);
   opacity: 1;
 }
+.login-page .institution-row img:nth-child(5) { --h: 78; }  /* INMEGEN */
+.login-page .institution-row img:nth-child(6) { --h: 72; }  /* Nutrición (el sello ocupa todo el alto) */
+.login-page .institution-row img:nth-child(7) { --h: 58; }  /* Psiquiatría */
+.login-page .institution-row img:nth-child(8) { --h: 58; }  /* Diabetes */
+.login-page .institution-row img:nth-child(9) { --h: 46; }  /* INR */
 .login-page .institution-row img:hover { opacity: 1; }
-.login-page .institution-row img:nth-child(n+5),
-.login-page .institution-row img:nth-child(n+5):hover {
-  transform: scale(0.75) !important;
-  transform-origin: center center;
-}
 
 /* ── Dialog (recovery) ─────────────────────────────────────────────────── */
 .login-page dialog {
@@ -934,17 +943,9 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 1250px) {
-  .login-page .institution-strip { width: min(960px, calc(100vw - 56px)); }
   .login-page .scene-caption { max-width: 170px; }
   .login-page .scene-caption p { font-size: 20px; }
 }
-@media (max-width: 1100px) and (min-width: 701px) {
-  .login-page .institution-strip { width: calc(100vw - 50px); }
-  .login-page .institution-row { gap: 16px; }
-  .login-page .institution-row img { min-width: 0; max-width: 10%; }
-  .login-page .institution-row img:nth-child(n+5) { max-width: 15%; }
-}
-
 @media (min-width: 701px) and (max-height: 800px) {
   .login-page .site-header { height: 60px; padding-block: 8px; }
   .login-page .brand img { width: 44px; height: 44px; }
@@ -1001,28 +1002,20 @@
   .login-page .institution-strip > p { margin-bottom: 10px; }
   .login-page .institution-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-items: center;
     align-items: center;
-    gap: 10px 12px;
+    gap: 14px 12px;
     padding: 0;
     width: 100%;
   }
   .login-page .institution-row img {
-    width: 38px !important;
     height: 43px;
     max-width: 100%;
     min-width: 0;
   }
-  .login-page .institution-row img:nth-child(2) { width: 44px !important; }
-  .login-page .institution-row img:nth-child(4) { width: 39px !important; }
-  .login-page .institution-row img:nth-child(n+5) {
-    width: 100% !important;
-    height: 43px;
-    max-width: 100%;
-    transform: none !important;
-  }
-  .login-page .institution-row img:nth-child(8) { width: 55px !important; }
+  .login-page .institution-row img:nth-child(8) { height: 36px; }
+  .login-page .institution-row img:nth-child(9) { height: 36px; }
   .login-page .scene-grain { display: none; }
 }
 
@@ -1056,7 +1049,7 @@
   .login-page .brand img { width: 40px; height: 40px; }
   .login-page .site-footer { padding: 5px 24px 9px; }
   .login-page .institution-strip > p { margin-bottom: 7px; font-size: 8px; }
-  .login-page .institution-row img { height: 64px; }
+  .login-page .institution-row { --lh: 0.82; }
   .login-page .access-stage { padding: 3px 20px; }
   .login-page .form-heading h1 { font-size: 27px; }
   .login-page .scene-caption { display: none; }

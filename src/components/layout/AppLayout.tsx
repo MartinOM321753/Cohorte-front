@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
@@ -11,6 +11,16 @@ export function AppLayout() {
   // Lo pide la página que lo necesita, con useAnchoCompleto, y se restablece al salir.
   const [ancho, setAncho] = useState<AnchoPagina>('normal')
   const completo = ancho === 'completo'
+
+  useEffect(() => {
+    const html = document.documentElement
+    html.style.overflow = 'hidden'
+    html.style.height = '100%'
+    return () => {
+      html.style.overflow = ''
+      html.style.height = ''
+    }
+  }, [])
 
   return (
     <ProveedorAncho value={setAncho}>

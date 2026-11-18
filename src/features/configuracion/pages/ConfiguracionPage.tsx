@@ -1,15 +1,50 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Link } from 'react-router-dom'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
-import { AlertCircle } from 'lucide-react'
-import EtiquetasConfigPanel from '../components/EtiquetasConfigPanel'
-import HorariosConfigPanel from '../components/HorariosConfigPanel'
-import EtiquetasLibresPanel from '@/features/etiquetas-libres/components/EtiquetasLibresPanel'
-import ImprimirFoliosPanel from '@/features/impresion-folios/components/ImprimirFoliosPanel'
-import DocumentosPublicosConfigPanel from '../components/DocumentosPublicosConfigPanel'
+import {
+  AlertCircle,
+  CalendarDays,
+  Tag,
+  FileSpreadsheet,
+  Hash,
+  Globe,
+  Mail,
+  ChevronRight,
+} from 'lucide-react'
 import { PermisoGuard } from '@/components/routes/PermisoGuard'
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+interface ConfigCardProps {
+  to: string
+  icon: React.ElementType
+  title: string
+  description: string
+  section: string
+}
+
+function ConfigCard({ to, icon: Icon, title, description, section }: ConfigCardProps) {
+  return (
+    <Link
+      to={to}
+      className="group flex items-start gap-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 transition-all hover:border-[var(--imss-green-300)] hover:bg-[var(--imss-green-50)] hover:shadow-sm"
+    >
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--imss-green-100)] text-[var(--imss-green-600)] transition-colors group-hover:bg-[var(--imss-green-200,var(--imss-green-100))]">
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+          {section}
+        </p>
+        <h3 className="mt-0.5 text-[14px] font-semibold text-[var(--card-foreground)] group-hover:text-[var(--imss-green-500)]">
+          {title}
+        </h3>
+        <p className="mt-1 text-[13px] leading-snug text-[var(--muted-foreground)]">
+          {description}
+        </p>
+      </div>
+      <ChevronRight className="mt-3 h-4 w-4 flex-shrink-0 text-[var(--muted-foreground)] transition-colors group-hover:text-[var(--imss-green-500)]" strokeWidth={1.75} />
+    </Link>
+  )
+}
+
 export default function ConfiguracionPage() {
   return (
     <div className="page-wrapper space-y-6">
@@ -21,110 +56,63 @@ export default function ConfiguracionPage() {
       </div>
 
       <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Acceso restringido a administradores. Los cambios aquí afectan a todo el sistema.
-          </AlertDescription>
-        </Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Acceso restringido a administradores. Los cambios aquí afectan a todo el sistema.
+        </AlertDescription>
+      </Alert>
 
-        {/* ── Configuración de horario de citas ── */}
-        <HorariosConfigPanel />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {/* ═══ Citas ═══ */}
+        <ConfigCard
+          to="/configuracion/citas"
+          icon={CalendarDays}
+          section="Citas"
+          title="Horarios y motivos"
+          description="Horarios disponibles para agendar y motivos predefinidos de cita."
+        />
 
-        <Separator />
+        {/* ═══ Impresión ═══ */}
+        <ConfigCard
+          to="/configuracion/etiquetas"
+          icon={Tag}
+          section="Impresión"
+          title="Configuración de etiquetas"
+          description="Tamaños de etiqueta y disposición de la información."
+        />
+        <ConfigCard
+          to="/configuracion/etiquetas-libres"
+          icon={FileSpreadsheet}
+          section="Impresión"
+          title="Etiquetas desde archivo"
+          description="Imprima etiquetas a partir de un archivo Excel o CSV."
+        />
+        <ConfigCard
+          to="/configuracion/folios"
+          icon={Hash}
+          section="Impresión"
+          title="Imprimir folios"
+          description="Etiquetas con folio codificado en QR, DataMatrix o Code 128."
+        />
 
-        {/* ── Configuración de etiquetas ── */}
-        <EtiquetasConfigPanel />
-
-        <Separator />
-
-        {/* ── Etiquetas con datos de un archivo externo ── */}
-        <EtiquetasLibresPanel />
-
-        <Separator />
-
-        {/* ── Impresión de folios de participantes ── */}
-        <ImprimirFoliosPanel />
-
-        <Separator />
-
-        {/* ── Documentos públicos — solo si tiene el permiso ── */}
+        {/* ═══ Sitio público ═══ */}
         <PermisoGuard permiso="DOCUMENTOS_PUBLICOS_GESTIONAR">
-          <DocumentosPublicosConfigPanel />
-          <Separator />
+          <ConfigCard
+            to="/configuracion/documentos"
+            icon={Globe}
+            section="Sitio público"
+            title="Documentos públicos"
+            description="Documentos visibles en la página pública de la cohorte."
+          />
         </PermisoGuard>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información del Sistema</CardTitle>
-              <CardDescription>Detalles de la aplicación</CardDescription>
-            </CardHeader>
-            <CardContent className="text-slate-600 text-sm space-y-2">
-              <div><strong>Aplicación:</strong> IMSS Cohorte</div>
-              <div><strong>Versión:</strong> 1.0.0</div>
-              <div><strong>Ambiente:</strong> Desarrollo</div>
-              <div><strong>Ambiente:</strong> {import.meta.env.MODE}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuración general</CardTitle>
-              <CardDescription>Parámetros globales</CardDescription>
-            </CardHeader>
-            <CardContent className="text-slate-600 text-sm">
-              ✓ Nombre de la institución<br />
-              ✓ Logo y colores<br />
-              ✓ Configuración regional<br />
-              ✓ Zona horaria
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Usuarios y Permisos</CardTitle>
-              <CardDescription>Gestión de accesos</CardDescription>
-            </CardHeader>
-            <CardContent className="text-slate-600 text-sm">
-              ✓ Crear y gestionar usuarios<br />
-              ✓ Asignar roles<br />
-              ✓ Resetear contraseñas<br />
-              ✓ Desactivar cuentas
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Respaldo y Mantenimiento</CardTitle>
-              <CardDescription>Operaciones administrativas</CardDescription>
-            </CardHeader>
-            <CardContent className="text-slate-600 text-sm">
-              ✓ Generar respaldos<br />
-              ✓ Ver logs del sistema<br />
-              ✓ Limpiar caché<br />
-              ✓ Revisar estadísticas
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>API Backend</CardTitle>
-            <CardDescription>Configuración de conexión</CardDescription>
-          </CardHeader>
-          <CardContent className="text-slate-600 text-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <strong>URL API:</strong><br/>
-                {import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}
-              </div>
-              <div>
-                <strong>Estado:</strong><br/>
-                <span className="text-green-600">✓ Conectado</span>
-              </div>
-            </div>
-          </CardContent>
-      </Card>
+        <ConfigCard
+          to="/configuracion/solicitudes"
+          icon={Mail}
+          section="Sitio público"
+          title="Correos y solicitudes"
+          description="Destinatarios de notificaciones y datos requeridos en solicitudes."
+        />
+      </div>
     </div>
   )
 }

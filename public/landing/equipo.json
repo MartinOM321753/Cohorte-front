@@ -1,0 +1,476 @@
+[
+  {
+    "name": "Alberto Hidalgo Bravo",
+    "role": "Jefe de división",
+    "institution": "Instituto Nacional de Rehabilitación Luis Guillermo Ibarra Ibarra",
+    "group": "INR",
+    "participation": "Planeación, Análisis",
+    "education": "Médico especialista en Genética Médica, Doctor en Genética",
+    "research": "Metabolismo óseo, tumores óseos, regulación de la expresión génica, biología del telómero",
+    "snii": "Nivel II",
+    "orcid": "https://orcid.org/0000-0003-2506-8784",
+    "scholar": "https://scholar.google.com/citations?user=RxGh6-gAAAAJ&hl=en",
+    "emails": [
+      "dr_genetica@yahoo.com",
+      "ahidalgo@inr.gob.mx"
+    ],
+    "image": "assets/equipo/perfil-7.jpeg",
+    "source": "Informacion colaboradores_AHB.docx"
+  },
+  {
+    "name": "Alfonso Rodriguez Cid",
+    "role": "AICM “C”",
+    "institution": "Instituto Nacional de Salud Pública",
+    "group": "INSP",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Nutrición y MSP Administración en Servicios de Salud.",
+    "research": "Cáncer Cervical y VPH",
+    "snii": "No pertenezco",
+    "orcid": "https://orcid.org/0000-0002-0410-1269",
+    "scholar": "https://scholar.google.com/citations?user=pTGItCkAAAAJ&hl=es&citsig=AHwi3ncWcdXbwWxOZgf6k_X4_jHk",
+    "emails": [
+      "acid@insp.mx"
+    ],
+    "image": "assets/equipo/perfil-1.jpeg",
+    "source": "Informacioin colaboradores (1).docx"
+  },
+  {
+    "name": "Dr. Jorge Salmerón",
+    "role": "Profesor Titular C",
+    "institution": "Centro de Investigación en Políticas, Población y Salud (CIPPS)",
+    "group": "CIPPS",
+    "education": "Médico especialista en Medicina Familiar. Maestría y Doctorado en Ciencias (Epidemiología).",
+    "research": "Enfermedades crónicas, epidemiología nutricional, VPH y prevención de cáncer cervical.",
+    "snii": "Nivel III",
+    "orcid": "https://orcid.org/0000-0002-5113-299X",
+    "scholar": "https://scholar.google.com/citations?user=rQnxZwgAAAAJ&hl=es",
+    "emails": [
+      "jorge.salmec@gmail.com",
+      "drjorgesalmeron@unam.mx"
+    ],
+    "image": "assets/equipo/jorge-salmeron.jpg",
+    "source": "Dr Jorge Salmeron.docx",
+    "participation": "Planeación, Reclutamiento, Análisis"
+  },
+  {
+    "name": "Berenice Rivera Paredez",
+    "role": "Profesora Asociada C tiempo completo",
+    "institution": "Centro de Investigación en Políticas, Población y Salud (CIPPS), Universidad Nacional Autónoma de México",
+    "group": "CIPPS",
+    "participation": "Planeación, Análisis",
+    "education": "Doctora en Ciencias en Epidemiología\nMaestra en Ciencias de la Salud, con área de concentración en Nutrición\nLicenciada en Nutrición",
+    "research": "Interacción entre estilos de vida, genética y microbiota intestinal en el riesgo y regulación de enfermedades metabólicas.\nComposición y distribución de la grasa corporal y su impacto en la salud metabólica de la población mexicana.\nInfluencia de los estilos de vida y la composición corporal en el envejecimiento saludable y la función cognitiva.\nFactores relacionados con el rezago académico en la población universitaria.",
+    "snii": "Nivel I",
+    "orcid": "https://orcid.org/0000-0002-9845-024X",
+    "scholar": "https://scholar.google.com/citations?user=vqrrVFYAAAAJ&hl=es",
+    "emails": [
+      "bereriverap@comunidad.unam.mx"
+    ],
+    "phones": [
+      "Teléfono: 55 56 23 23 00, ext. 82355"
+    ],
+    "image": "assets/equipo/berenice-rivera.png",
+    "source": "Información colaboradores.docx"
+  },
+  {
+    "name": "Martin Ortega Montes",
+    "role": "Desarrollador Full-Stack",
+    "institution": "Centro de Investigación en Políticas, Población y Salud (CIPPS), Facultad de Medicina, UNAM",
+    "group": "CIPPS",
+    "participation": "Desarrollo tecnológico",
+    "education": "Ingeniería en Desarrollo y Gestión de Software, Universidad Tecnológica Emiliano Zapata (2024–2026).\nTSU en Desarrollo de Software Multiplataforma, Universidad Tecnológica Emiliano Zapata (2022–2024).",
+    "research": "Desarrollo integral de la plataforma tecnológica de la Cohorte de Trabajadores de la Salud. Responsable del diseño, implementación y mantenimiento del sistema de gestión que soporta la operación del estudio, incluyendo captura de datos, gestión de muestras biológicas, seguimiento de participantes y reportes. Experiencia en arquitectura Full-Stack con Spring Boot, React, MySQL, Docker y despliegue en servidores institucionales.",
+    "snii": "",
+    "orcid": "",
+    "scholar": "",
+    "emails": [
+      "martinortegamontes@gmail.com"
+    ],
+    "phones": [
+      "7778822875"
+    ],
+    "image": "assets/equipo/martin-ortega.jpg",
+    "source": "CV Martin Ortega Montes"
+  },
+  {
+    "name": "Diana Ivette Aparicio Bautista",
+    "role": "Investigador en Ciencias Médicas C",
+    "institution": "Instituto Nacional de Medicina Genómica (INMEGEN)",
+    "group": "INMEGEN",
+    "participation": "Planeación, Análisis",
+    "education": "Bióloga. Maestría y Doctorado en Biología Celular",
+    "research": "\nBúsqueda de biomarcadores tempranos con enfoque proteómico para el diagnóstico de la osteoporosis en mujeres posmenopáusicas.\nEfecto de los patrones dietarios en la microbiota intestinal de individuos portadores de variantes en los genes PNPLA3, TM6SF2 y MBOAT7 y su impacto en el desarrollo de enfermedad hepática esteatósica asociada a disfunción metabólica (MASLD).\nEfecto de los campos electromagnéticos sobre la neurodegeneración en modelos in vitro e in vivo.",
+    "snii": "Nivel I",
+    "orcid": "https://orcid.org/0000-0003-0036-7227",
+    "scholar": "",
+    "emails": [
+      "daparicio@inmegen.gob.mx"
+    ],
+    "image": "assets/equipo/perfil-8.jpeg",
+    "source": "Informacion colaboradores_DIAB.docx"
+  },
+  {
+    "name": "Eduardo César Lazcano Ponce",
+    "role": "Director General del Instituto Nacional de Salud Pública",
+    "institution": "Instituto Nacional de Salud Publica",
+    "group": "INSP",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Doctorado en Ciencias de la Salud con Énfasis en Epidemiología",
+    "research": "Salud Mental, Cáncer, VPH",
+    "snii": "Nivel IIII",
+    "orcid": "https://orcid.org/0000-0003-1259-6369",
+    "scholar": "https://scholar.google.com/citations?hl=es&user=BJq2hnkAAAAJ",
+    "emails": [
+      "elazcano@insp.mx",
+      "eduardo.lazcano@insp.mx"
+    ],
+    "image": "assets/equipo/perfil-2.png",
+    "source": "Informacioin colaboradores.docx"
+  },
+  {
+    "name": "Jesús Giovanni Pérez Cortés",
+    "role": "Director Ejecutivo",
+    "institution": "Asociación Mexicana de Diabetes en Morelos, A.C.",
+    "group": "AMD Morelos",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Lic. en Nutrición y Maestría en Ciencias de la Salud con Área de concentración en Epidemiología Clínica.",
+    "research": "Factores de riesgo asociados a Diabetes y a Enfermedades metabólicas; Educación en Diabetes y promoción de la salud; Evaluación de programas de Salud Pública; Nutrición infantil.",
+    "snii": "NA",
+    "orcid": "https://orcid.org/0009-0003-6589-0374",
+    "scholar": "https://scholar.google.co.uk/citations?hl=en&user=Tvg5gsgAAAAJ",
+    "emails": [],
+    "image": "assets/equipo/perfil-10.png",
+    "source": "Perez-Cortes JG_Informacion colaboradores.docx"
+  },
+  {
+    "name": "Joacim Meneses León",
+    "role": "Análisis",
+    "institution": "Instituto Nacional de Salud Pública",
+    "group": "INSP",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Doctor en Ciencias",
+    "research": "Prevención de enfermedades crónicas y la asociación que guarda con estilos de vida en las distintas etapas de la vida, prevención de cáncer cervical, y calidad de la atención para la reducción de disparidades en salud en poblaciones desatendidas.",
+    "snii": "Candidato",
+    "orcid": "https://orcid.org/0000-0003-4217-1521",
+    "scholar": "https://scholar.google.com/citations?view_op=list_works&hl=es&user=wEY_LLwAAAAJ",
+    "emails": [
+      "ml.joacim@gmail.com"
+    ],
+    "image": "assets/equipo/joacim-meneses-leon-v2.jpeg",
+    "source": "Informacion colaboradores_jm.docx"
+  },
+  {
+    "name": "Katia Gallegos Carrillo",
+    "role": "Responsable del proyecto en el IMSS. Investigadora Titular C",
+    "institution": "Instituto Mexicano del Seguro Social/Unidad de Investigación Epidemiológica y en Servicios de Salud, Morelos.",
+    "group": "IMSS",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "\nLicenciada en Comunicación, Maestra en Ciencias en Sistemas de Salud y Doctora en Ciencias en Salud Pública por la Escuela de Salud Pública de México del Instituto Nacional de Salud Pública. Estancias posdoctorales en Medicina Preventiva en la Keck School of Medicine de la Universidad del Sur de California y en Prevención y Control de Cáncer en el Hackensack University Medical Center, Nueva Jersey, Estados Unidos.",
+    "research": "\nSu trabajo se enfoca en la epidemiología de las enfermedades crónicas y en las ciencias de implementación, con especial interés en la generación de evidencia para fortalecer la adopción, escalamiento y sostenibilidad de intervenciones efectivas en los sistemas de salud. Sus líneas de investigación incluyen los estilos de vida como factores de riesgo para enfermedades crónicas, particularmente la actividad física y el consumo de tabaco, así como el diseño, implementación y evaluación de programas de salud dirigidos a la prevención, detección oportuna y control de diabetes, hipertensión y cáncer. Su investigación busca cerrar la brecha entre la evidencia científica y la práctica, promoviendo estrategias que mejoren la calidad, cobertura e impacto de los servicios de salud.",
+    "snii": "Nivel III",
+    "orcid": "https://orcid.org/0000-0001-6056-8587",
+    "scholar": "https://scholar.google.com/citations?user=HDeIzlMAAAAJ&hl=en",
+    "emails": [
+      "katia.gallegos@imss.gob.mx",
+      "kgallegosc13@gmail.com"
+    ],
+    "image": "assets/equipo/katia-gallegos-carrillo.jpeg",
+    "source": "Informacion colaboradores KG.docx"
+  },
+  {
+    "name": "Manuel Quiterio Trenado",
+    "role": "Jefe de departamento en área médica A",
+    "institution": "Instituto Nacional de Salud Pública",
+    "group": "INSP",
+    "education": "Biólogo",
+    "research": "Virus de Papiloma Humano.",
+    "snii": "No pertenezco",
+    "orcid": "https://orcid.org/0000-0002-2575-4963",
+    "scholar": "",
+    "emails": [
+      "mquitero@insp.mx"
+    ],
+    "phones": [
+      "Institucional: 777 329 3000, ext. 3284"
+    ],
+    "image": "assets/equipo/manuel-quiterio.jpg",
+    "source": "DrManuelQuiterioTrenado.docx",
+    "participation": "Planeación, Reclutamiento, Análisis"
+  },
+  {
+    "name": "Mario Efraín Flores Aldana",
+    "role": "Jefe de Departamento en el CINyS/INSP",
+    "institution": "INSP",
+    "group": "INSP",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Médico Cirujano (Universidad de San Carlos de Guatemala), PhD en Políticas Alimentarias y Nutrición Aplicada (Tufts University, Boston)",
+    "research": "Dieta, deficiencias nutricionales, enfermedades crónicas asociadas a la nutrición, vitamina D.",
+    "snii": "Nivel II",
+    "orcid": "https://orcid.org/0000-0001-5522-6849",
+    "scholar": "https://scholar.google.com/scholar?hl=es&as_sdt=0%2C5&q=Dr.+mario+flores-aldana&oq=",
+    "emails": [
+      "mario.flores@insp.mx"
+    ],
+    "image": "assets/equipo/perfil-4.jpeg",
+    "source": "Informacion colaboradores DR. FLORES.docx"
+  },
+  {
+    "name": "Dr. Rafael Velázquez Cruz",
+    "role": "Investigador en Ciencias Médicas E. Responsable del Laboratorio de Genómica del Metabolismo Óseo",
+    "institution": "Instituto Nacional de Medicina Genómica (INMEGEN)",
+    "group": "INMEGEN",
+    "participation": "Planeación, Reclutamiento, Análisis y Financiamiento.",
+    "education": "Cursó la licenciatura en Química Farmacéutica Biológica en la Universidad Autónoma Metropolitana, Unidad Xochimilco; la Maestría en Biomedicina Molecular en el Instituto Politécnico Nacional y el Doctorado en Ciencias Biomédicas de la Facultad de Medicina en la Universidad Nacional Autónoma de México. Realizó una estancia postdoctoral en el Departamento de Genética, Microbiología y Estadística de la Facultad de Biología en la Universidad de Barcelona.",
+    "research": "1. Genómica del Metabolismo óseo.\n2) Factores de riesgo genético y nutricionales en enfermedades metabólicas asociadas a la osteoporosis.\n3) Identificación de biomarcadores asociados a la variación de la densidad mineral ósea mediante herramientas ómicas - Genómica, transcriptómica y proteómica.\n4) Impacto de factores genéticos, dietarios y ambientales en la susceptibilidad a la enfermedad hepática esteatósica asociada a disfunción metabólica (MASLD) en adultos mexicanos.\n5) Eje estrógeno-microbiota intestinal: implicaciones fisiológicas y clínicas, en la menopausia.\n6) Genómica de la vitamina D.",
+    "snii": "Nivel III",
+    "orcid": "https://orcid.org/0000-0003-4515-0777",
+    "scholar": "https://scholar.google.com/citations?user=6ekpZnYAAAAJ&hl=es",
+    "emails": [
+      "rvelazquez@inmegen.gob.mx"
+    ],
+    "phones": [
+      "Teléfono: 5350-1900 ext.1233 /1149"
+    ],
+    "image": "assets/equipo/rafael-velazquez.jpeg",
+    "source": "Información colaboradores-2026.docx"
+  },
+  {
+    "name": "Ricardo Orozco Zavala",
+    "role": "Investigador en Ciencias Médicas “D”",
+    "institution": "Instituto Nacional de Psiquiatría “Ramón de la Fuente Muñiz”",
+    "group": "INPRFM",
+    "participation": "Planeación, Análisis",
+    "education": "Lic. en Psicología (UNAM); Maestría en Ciencias (Epidemiología, INSP); Doctorado en Ciencias (Epidemiología, UNAM).",
+    "research": "Epidemiología de los trastornos mentales, de las adicciones y del suicidio. Evaluación de servicios de salud. Aplicación de métodos epidemiológicos a la investigación en salud.",
+    "snii": "Nivel II",
+    "orcid": "https://orcid.org/0000-0002-6580-585X",
+    "scholar": "https://scholar.google.com.mx/citations?hl=es&pli=1&user=70ZX6pcAAAAJ",
+    "emails": [
+      "ric_oz@inprf.gob.mx",
+      "ricardo.orozco@comunidad.unam.mx"
+    ],
+    "image": "",
+    "source": "Informacion colaboradores-ro.docx"
+  },
+  {
+    "name": "Rogelio Frank Jiménez Ortega",
+    "role": "Investigador en Ciencias Medicas “C”",
+    "institution": "Instituto Nacional de Rehabilitación Luis Guillermo Ibarra Ibarra",
+    "group": "INR",
+    "participation": "Planeación, Análisis",
+    "education": "Biología\nDoctorado en Ciencias Biomédicas",
+    "research": "\n1. Genética, genómica y epigenética de enfermedades crónico-degenerativas.\nIdentificación de variantes genéticas y biomarcadores moleculares asociados con enfermedades musculoesqueléticas y metabólicas.\n2. Microbiota intestinal, inmunometabolismo y salud musculoesquelética.\nEstudio de la interacción entre microbiota intestinal, inflamación y metabolismo óseo y muscular en el envejecimiento y las enfermedades crónico-degenerativas.",
+    "snii": "Nivel I",
+    "orcid": "https://orcid.org/0000-0002-3976-4759",
+    "scholar": "https://scholar.google.com/citations?user=puqahloAAAAJ&hl=es",
+    "emails": [
+      "rfrankjo@gmail.com",
+      "rfjimenez@inr.gob.mx"
+    ],
+    "image": "assets/equipo/perfil-3.jpeg",
+    "source": "Informacion RFJO.docx"
+  },
+  {
+    "name": "Sonia Hernández Salazar",
+    "role": "Estudiante de doctorado",
+    "institution": "Centro de Investigación en Políticas, Población y Salud (CIPPS)",
+    "group": "CIPPS",
+    "education": "Licenciatura en Nutrición. Maestría en Ciencias en Nutrición.",
+    "research": "VPH, cáncer cervical.",
+    "snii": "NA",
+    "orcid": "https://orcid.org/0000-0001-7307-4308",
+    "scholar": "https://scholar.google.com/citations?view_op=list_works&hl=es&authuser=1&user=kTpMS9cAAAAJ",
+    "emails": [
+      "sonyhernandez79@gmail.com"
+    ],
+    "image": "assets/equipo/sonia-hernandez-salazar.jpeg",
+    "source": "SoniaHernandezSalazar.docx",
+    "participation": "Planeación, Reclutamiento, Análisis"
+  },
+  {
+    "name": "Tania Georgina Sánchez Pimienta",
+    "role": "Investigador",
+    "institution": "Secretaría de Ciencia, Humanidades, Tecnología e Innovación. Instituto Nacional de Salud Pública",
+    "group": "INSP",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Licenciada en nutrición por la Universidad de Guadalajara. Maestra en Ciencias de la Salud con área de concentración en Nutrición y Doctora en Ciencias en Nutrición Poblacional de la Escuela de Salud Pública de México.",
+    "research": "Dieta y enfermedades crónicas, adecuación de nutrimentos, dietas saludables y sostenibles",
+    "snii": "Nivel I",
+    "orcid": "https://orcid.org/0000-0002-7743-0047",
+    "scholar": "https://scholar.google.com/citations?user=y1uOTy4AAAAJ&hl=es",
+    "emails": [
+      "taniagsp@hotmail.com",
+      "investigador68@insp.mx"
+    ],
+    "image": "assets/equipo/tania-georgina-sanchez-pimienta.png",
+    "source": "Información colaboradores_ts.docx"
+  },
+  {
+    "name": "Tania Valentina López Pérez",
+    "role": "Investigadora por México",
+    "institution": "Instituto Nacional de Medicina Genómica",
+    "group": "INMEGEN",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Posdoctorado en Genómica del Metabolismo Óseo. Instituto Nacional de Medicina Genómica.\nPosdoctorado en Genómica Funcional del Cáncer. Instituto Nacional de Medicina Genómica.\nPosdoctorado en Biología celular. Centro de Investigación y de Estudios Avanzados.\nVisiting Research Associate. School of Biomedical Sciences, Queen’s University Belfast.\nDoctora en Ciencias. Instituto de Investigaciones Biomédicas, Universidad Nacional Autónoma de México.\nBióloga. Facultad de Ciencias, Universidad Nacional Autónoma de México.",
+    "research": "Identificación de biomarcadores como herramientas de apoyo en el diagnóstico y pronóstico de la salud ósea\nEstudio funcional de proteínas involucradas en el metabolismo óseo.\nEstudio de variantes génicas asociadas a la densidad mineral ósea.",
+    "snii": "Nivel I",
+    "orcid": "https://orcid.org/0000-0001-6381-9046",
+    "scholar": "https://scholar.google.com/citations?user=YONB14YAAAAJ&hl=en",
+    "emails": [
+      "tperez@inmegen.edu.mx"
+    ],
+    "phones": [
+      "Laboratorio: 55 53 50 19 00 Ext. 1149  y 1122"
+    ],
+    "image": "assets/equipo/tania-lopez.jpeg",
+    "source": "Información Colaborador Vale.docx"
+  },
+  {
+    "name": "Thalía Garcés-Jurado",
+    "role": "Estudiante de doctorado",
+    "institution": "Centro de Investigación en Políticas, Población y Salud (CIPPS)",
+    "group": "CIPPS",
+    "education": "Licenciatura en Nutrición. Maestría en Ciencias.",
+    "research": "Epidemiología, epidemiología nutricional.",
+    "snii": "NA",
+    "orcid": "https://orcid.org/0009-0000-1766-846X",
+    "scholar": "https://scholar.google.com/citations?view_op=list_works&hl=es&authuser=1&user=kTpMS9cAAAAJ",
+    "emails": [
+      "thgarcesj@gmail.com"
+    ],
+    "image": "assets/equipo/thalia-garces-jurado.jpeg",
+    "source": "Thalía Garcés-Jurado.docx",
+    "participation": "Planeación, Reclutamiento, Análisis"
+  },
+  {
+    "name": "Norberto C. Chávez Tapia",
+    "role": "Jefe de Gastroenterología",
+    "institution": "Centro de Investigación en Políticas, Población y Salud (CIPPS), Universidad Nacional Autónoma de México",
+    "group": "CIPPS",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Medicina; Medicina Interna; Gastroenterología; Máster en Escritura Creativa; Doctorado en Ciencias.",
+    "research": "Cirrosis y enfermedad por hígado graso.",
+    "snii": "Nivel II",
+    "orcid": "https://orcid.org/0000-0002-7451-3306",
+    "scholar": "https://scholar.google.com/citations?user=J1QqE5EAAAAJ&hl",
+    "emails": [
+      "nchavezt@pm.me"
+    ],
+    "phones": [
+      "55 54 24 68 92"
+    ],
+    "image": "assets/equipo/norberto-chavez-tapia.jpeg",
+    "source": "Dr. Norberto Carlos Chavez Tapia.docx"
+  },
+  {
+    "name": "Yenisei Ramírez Toscano",
+    "role": "Profesora de Tiempo Completo Asociada A",
+    "institution": "Instituto Nacional de Salud Pública",
+    "group": "INSP",
+    "participation": "",
+    "education": "Doctora en Ciencias en Nutrición Poblacional.",
+    "research": "Determinantes sociales y estructurales de la alimentación, el consumo de alcohol y la salud; políticas públicas relacionadas con el entorno social y construido y la salud de la población; métodos epidemiológicos.",
+    "snii": "Candidata; Nivel I a partir de enero de 2027",
+    "orcid": "https://orcid.org/0000-0002-3440-1078",
+    "scholar": "https://scholar.google.com/citations?user=Sq4lshoAAAAJ&hl=en&oi=ao",
+    "emails": [
+      "yenisei.ramirezts@uanl.edu.mx"
+    ],
+    "image": "assets/equipo/yenisei-ramirez-toscano.jpeg",
+    "source": "Yenisei Ramirez Toscano.docx"
+  },
+  {
+    "name": "Aarón Osvaldo Rodríguez Ojeda",
+    "role": "Estudiante de doctorado",
+    "institution": "Centro de Investigación en Políticas, Población y Salud (CIPPS), Facultad de Medicina, UNAM",
+    "group": "CIPPS",
+    "participation": "Planeación y Análisis",
+    "education": "Médico Cirujano, Facultad de Medicina, UNAM.\nMaestría en Ciencias (Epidemiología), Facultad de Medicina, UNAM.\nEstudiante del Doctorado en Ciencias (Epidemiología), Facultad de Medicina, UNAM.",
+    "research": "Enfermedad hepática esteatósica asociada a disfunción metabólica (MASLD). Desarrollo y validación de Regiones de Interés (ROIs) utilizando absorciometría de rayos X de energía dual (DXA) para el análisis de composición corporal que permita la identificación y el monitoreo de esteatosis y fibrosis hepática.",
+    "snii": "",
+    "orcid": "https://orcid.org/0009-0009-0674-7694",
+    "scholar": "",
+    "emails": [
+      "dr.aaronrdgz@gmail.com"
+    ],
+    "phones": [
+      "(55) 84702885"
+    ],
+    "image": "assets/equipo/aaron-rodriguez.jpeg",
+    "source": "Aarón Osvaldo Rodríguez Ojeda.docx"
+  },
+  {
+    "name": "Isaac Acosta",
+    "role": "Investigador en Ciencias Médicas",
+    "institution": "Facultad de Medicina, UNAM",
+    "group": "UNAM",
+    "participation": "",
+    "education": "Psicólogo por la FES Zaragoza UNAM.\nMaestro y Doctor en Ciencias de la Salud – Epidemiología, UNAM.",
+    "research": "Epidemiología de la salud mental en adultos mayores. Trastornos Neurocognitivos (demencias y deterioro cognitivo leve).",
+    "snii": "Nivel I",
+    "orcid": "https://orcid.org/0000-0002-8664-9542",
+    "scholar": "",
+    "emails": [
+      "iacosta@innn.edu.mx",
+      "ixhuetzca@hotmail.com"
+    ],
+    "image": "assets/equipo/isaac-acosta.png",
+    "source": "IssacAcosta.docx"
+  },
+  {
+    "name": "Edgar Denova Gutiérrez",
+    "role": "Jefe de Departamento",
+    "institution": "Instituto Nacional de Ciencias Médicas y Nutrición Salvador Zubirán",
+    "group": "INCMNSZ",
+    "participation": "Planeación, Reclutamiento, Análisis",
+    "education": "Doctor en Nutrición Poblacional.",
+    "research": "Intervenciones en el contexto escolar, intervenciones de la vida real en el sistema de salud, enfermedades crónicas, dieta, actividad física, tabaco, alcohol, ciencias de la implementación.",
+    "snii": "Nivel III",
+    "orcid": "https://orcid.org/0000-0001-9671-9682",
+    "scholar": "https://scholar.google.com/citations?user=gSHe3igAAAAJ&hl=es&authuser=1",
+    "emails": [
+      "edgar.denovag@incmnsz.mx",
+      "edenovag@gmail.com"
+    ],
+    "image": "assets/equipo/edgar-denova.png",
+    "source": "Información colaboradores.docx"
+  },
+  {
+    "name": "Ivonne Nicole Flores Leonard",
+    "role": "Jefa de la Unidad de Investigación Epidemiológica y en Servicios de Salud, Morelos",
+    "institution": "Instituto Mexicano del Seguro Social (IMSS)",
+    "group": "IMSS",
+    "participation": "",
+    "education": "Doctorado.",
+    "research": "Control y prevención de cáncer y enfermedades crónicas. Identificación de marcadores genéticos y moleculares que faciliten la detección oportuna de enfermedades hepáticas y metabólicas. Análisis económicos y de equidad para mejorar los servicios de salud. Estudios binacionales que comparan la salud de los mexicanos en México con los mexicanos en Estados Unidos.",
+    "snii": "Nivel III",
+    "orcid": "https://orcid.org/0000-0002-0601-357X",
+    "scholar": "https://scholar.google.com/citations?user=USGVxD8AAAAJ&hl=en",
+    "emails": [
+      "Ivonne.floresle@imss.gob.mx",
+      "ynflores@ucla.edu"
+    ],
+    "image": "assets/equipo/ivonne-flores.png",
+    "source": "Yvonne Flores.docx"
+  },
+  {
+    "name": "Nancy Paulina López Olmedo",
+    "role": "Directora de Área",
+    "institution": "Instituto Nacional de Salud Pública",
+    "group": "INSP",
+    "participation": "Planeación y análisis",
+    "education": "Doctora en Epidemiología Nutricional.",
+    "research": "Epidemiología del alcohol. Cambio climático y sistemas alimentarios.",
+    "snii": "Nivel I",
+    "orcid": "https://orcid.org/0000-0002-7528-0954",
+    "scholar": "",
+    "emails": [
+      "nancy.lopez@insp.mx"
+    ],
+    "phones": [
+      "777 3 29 30 00 ext. 4113"
+    ],
+    "image": "assets/equipo/nancy-lopez.png",
+    "source": "Nancy Lopez.docx"
+  }
+]

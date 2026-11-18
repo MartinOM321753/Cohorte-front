@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { ProtectedRoute } from '@/components/routes/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -8,6 +8,8 @@ import ResetPasswordPage from '@/features/auth/pages/ResetPasswordPage'
 import CambiarContrasenaPage from '@/features/auth/pages/CambiarContrasenaPage'
 import { Spinner } from '@/components/ui/spinner'
 import { useAuthStore } from '@/stores/authStore'
+
+const LandingPage = lazy(() => import('@/features/landing/pages/LandingPage'))
 
 // Lazy load pages
 const DashboardPage         = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
@@ -20,6 +22,12 @@ const ExamenesPage     = lazy(() => import('@/features/examenes/pages/ExamenesPa
 const BiobancoPage     = lazy(() => import('@/features/biobanco/pages/BiobancoPage'))
 const CatalogosPage    = lazy(() => import('@/features/catalogos/pages/CatalogosPage'))
 const ConfiguracionPage= lazy(() => import('@/features/configuracion/pages/ConfiguracionPage'))
+const ConfiguracionCitasPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionCitasPage'))
+const ConfiguracionEtiquetasPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionEtiquetasPage'))
+const ConfiguracionEtiquetasLibresPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionEtiquetasLibresPage'))
+const ConfiguracionFoliosPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionFoliosPage'))
+const ConfiguracionDocumentosPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionDocumentosPage'))
+const ConfiguracionSolicitudesPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionSolicitudesPage'))
 const CitasPage        = lazy(() => import('@/features/citas/pages/CitasPage'))
 const UsuariosPage     = lazy(() => import('@/features/usuarios/pages/UsuariosPage'))
 const InstitucionesPage= lazy(() => import('@/features/instituciones/pages/InstitucionesPage'))
@@ -45,6 +53,15 @@ function LoadingFallback() {
   )
 }
 
+/** Strips trailing slash; if no slash to strip → 404 */
+function TrailingSlashOr404() {
+  const { pathname, search, hash } = useLocation()
+  if (pathname.length > 1 && pathname.endsWith('/')) {
+    return <Navigate to={pathname.slice(0, -1) + search + hash} replace />
+  }
+  return <Navigate to="/404" replace />
+}
+
 /** Redirects to the correct home based on permissions after successful auth */
 function PermisoBasedHome() {
   const { hasPermiso } = useAuthStore()
@@ -56,6 +73,14 @@ export function AppRouter() {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Public routes */}
+        <Route
+          path="/"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <LandingPage />
+            </Suspense>
+          }
+        />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -100,8 +125,8 @@ export function AppRouter() {
             </ProtectedRoute>
           }
         >
-          {/* Root → permission-aware redirect */}
-          <Route path="/" element={<PermisoBasedHome />} />
+          {/* Post-login → permission-aware redirect */}
+          <Route path="/home" element={<PermisoBasedHome />} />
 
           {/* ── Clinical / admin routes ── */}
           <Route
@@ -242,6 +267,66 @@ export function AppRouter() {
             }
           />
           <Route
+            path="/configuracion/citas"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('configuracion')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ConfiguracionCitasPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/configuracion/etiquetas"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('configuracion')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ConfiguracionEtiquetasPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/configuracion/etiquetas-libres"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('configuracion')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ConfiguracionEtiquetasLibresPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/configuracion/folios"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('configuracion')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ConfiguracionFoliosPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/configuracion/documentos"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('configuracion')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ConfiguracionDocumentosPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/configuracion/solicitudes"
+            element={
+              <ProtectedRoute requiredPermiso={permisosFor('configuracion')}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ConfiguracionSolicitudesPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/reportes"
             element={
               <ProtectedRoute requiredPermiso={permisosFor('reportes')}>
@@ -312,8 +397,12 @@ export function AppRouter() {
           />
         </Route>
 
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to="/404" replace />} />
+        {/* /landing* → landing is internal, redirect to root */}
+        <Route path="/landing/*" element={<Navigate to="/" replace />} />
+        <Route path="/landing" element={<Navigate to="/" replace />} />
+
+        {/* Catch all — strip trailing slash first, else 404 */}
+        <Route path="*" element={<TrailingSlashOr404 />} />
       </Routes>
     </Router>
   )

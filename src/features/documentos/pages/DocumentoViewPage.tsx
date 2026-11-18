@@ -100,7 +100,7 @@ export default function DocumentoViewPage() {
       {/* Header */}
       <header className="border-b bg-card px-4 py-3">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/')}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/home')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <FileText className="h-5 w-5 text-muted-foreground" />
@@ -228,7 +228,8 @@ function DocumentViewer({
     )
   }
 
-  if (mimeType.startsWith('image/')) {
+  // TIFF no se puede pintar en <img>; cae en "vista previa no disponible".
+  if (mimeType.startsWith('image/') && mimeType !== 'image/tiff') {
     return (
       <div className="flex justify-center rounded-lg border bg-muted/20 p-4">
         <img

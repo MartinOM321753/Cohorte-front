@@ -12,6 +12,7 @@ import { useCreateCita, useUpdateCita } from '../hooks/useCitas'
 import { useGetConfiguracionHorarioActiva } from '@/features/configuracion/hooks/useHorarios'
 import { useGetInstitucionesVisibles } from '@/features/instituciones/hooks/useInstituciones'
 import { citaFormSchema, COLOR_POR_ESTADO, esColorDefault, ESTADOS_CITA, type CitaFormData } from '../schemas/cita.schema'
+import { useMotivos } from '../constants/motivosCita'
 import { getCitaDurationMinutes, getCitaStartDate } from '../lib/citaUtils'
 
 import { Button } from '@/components/ui/button'
@@ -92,6 +93,7 @@ function buildDefaults(args: {
     fechaCita: start ? toLocalDateTimeInput(start) : toLocalDateTimeInput(new Date()),
     duracionMinutos: cita ? getCitaDurationMinutes(cita) : 150,
     colorHex: cita?.colorHex || COLOR_POR_ESTADO.PROGRAMADA,
+    motivo: cita?.motivo ?? '',
     observaciones: cita?.observaciones ?? '',
     estadoCita: normalizeEstadoCita(cita?.estadoCita),
     institucionDestinoUUID: cita?.institucionUuid ?? args.userInstitucionUuid ?? '',
@@ -113,6 +115,7 @@ export function CitaIlamyEventForm({
 
   const { data: horarioActivo, isLoading: horarioLoading } = useGetConfiguracionHorarioActiva()
   const { data: institucionesVisibles } = useGetInstitucionesVisibles()
+  const motivos = useMotivos()
   const createCita = useCreateCita()
   const updateCita = useUpdateCita()
 
@@ -232,9 +235,9 @@ export function CitaIlamyEventForm({
           uuid: cita!.uuid,
           data: isPast
             ? {
-                // Cita pasada: el backend bloquea startAtLocal/timezone/durationMinutes
                 estadoCita:   data.estadoCita,
                 colorHex:     data.colorHex,
+                motivo:       data.motivo || undefined,
                 observaciones: data.observaciones,
               }
             : {
@@ -243,6 +246,7 @@ export function CitaIlamyEventForm({
                 durationMinutes: data.duracionMinutos,
                 colorHex:        data.colorHex,
                 estadoCita:      data.estadoCita,
+                motivo:          data.motivo || undefined,
                 observaciones:   data.observaciones,
               },
         },
@@ -259,6 +263,7 @@ export function CitaIlamyEventForm({
         timezone,
         durationMinutes: data.duracionMinutos,
         colorHex: data.colorHex,
+        motivo: data.motivo || undefined,
         observaciones: data.observaciones,
         institucionDestinoUUID: data.institucionDestinoUUID || undefined,
       },
@@ -389,6 +394,37 @@ export function CitaIlamyEventForm({
               ) : null}
             </div>
           )}
+
+          {/* ── MOTIVO ── */}
+          <div className="space-y-1.5">
+            <Label className="text-[13px]">Motivo</Label>
+            <Controller
+              name="motivo"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value ?? ''}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger className="h-9 text-[13px]">
+                    <SelectValue placeholder="Seleccionar motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {motivos.map((m) => (
+                      <SelectItem key={m} value={m} className="text-[13px]">
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.motivo ? (
+              <p className="text-[11px] text-[var(--status-danger-fg)]">
+                {errors.motivo.message}
+              </p>
+            ) : null}
+          </div>
 
           {/* ── FECHA Y DURACIÓN ── */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[.9fr_auto]">
