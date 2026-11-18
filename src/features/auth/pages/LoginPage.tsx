@@ -22,17 +22,19 @@ import logoNutricion from "@/assets/instituciones/nutricion.png";
 import logoPsiquiatria from "@/assets/instituciones/psiquiatria.png";
 import logoCipps from "@/assets/instituciones/cipps.png";
 import logoDiabetes from "@/assets/instituciones/diabetes-morelos.png";
+import logoInr from "@/assets/instituciones/inr.png";
 
 // ── Institutions ─────────────────────────────────────────────────────────
 const INSTITUTIONS = [
   { src: logoImss, alt: "IMSS" },
   { src: logoUnamMedicina, alt: "Facultad de Medicina, UNAM" },
+  { src: logoCipps, alt: "CIPPS, UNAM" },
   { src: logoInsp, alt: "INSP" },
   { src: logoInmegen, alt: "INMEGEN" },
   { src: logoNutricion, alt: "Instituto Nacional de Ciencias Médicas y Nutrición Salvador Zubirán" },
   { src: logoPsiquiatria, alt: "Instituto Nacional de Psiquiatría Ramón de la Fuente Muñiz" },
-  { src: logoCipps, alt: "CIPPS, UNAM" },
   { src: logoDiabetes, alt: "Asociación Mexicana de Diabetes en Morelos" },
+  { src: logoInr, alt: "Instituto Nacional de Rehabilitación Luis Guillermo Ibarra Ibarra" },
 ];
 
 // ── Card auto-scale ──────────────────────────────────────────────────────
