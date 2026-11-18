@@ -536,6 +536,7 @@ export function CitasIlamyCalendar({ citas, isLoading, onRangeChange }: Props) {
 
           const paciente = cita.paciente?.nombreCompleto || "Sin participante";
           const usuario = cita.usuarioAgenda?.nombreCompleto;
+          const motivo = cita.motivo;
 
           const estadoKey = String(cita.estadoCita ?? "")
             .toUpperCase()
@@ -566,7 +567,7 @@ export function CitasIlamyCalendar({ citas, isLoading, onRangeChange }: Props) {
 
           return {
             id: String(cita.uuid || cita.id),
-            title: usuario ? `${paciente} · ${usuario}` : paciente,
+            title: [paciente, motivo, usuario].filter(Boolean).join(" · "),
             start: dayjs(startDate),
             end: dayjs(endDate),
             color: textColor,

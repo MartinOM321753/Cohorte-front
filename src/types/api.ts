@@ -234,6 +234,7 @@ export interface Cita {
   colorHex?: string
   // La API puede devolver el valor capitalizado ("Programada") o en mayúsculas ("PROGRAMADA")
   estadoCita: string
+  motivo?: string
   observaciones?: string
   fechaCreacion?: string
   paciente?: PacienteResumenDTO
@@ -264,6 +265,7 @@ export interface CitaRequestDTO {
   timezone?: string
   durationMinutes?: number
   colorHex?: string
+  motivo?: string
   observaciones?: string
   institucionDestinoUUID?: string
 }
@@ -275,6 +277,7 @@ export interface CitaUpdateRequestDTO {
   colorHex?: string
 
   estadoCita?: string
+  motivo?: string
   observaciones?: string
 }
 
