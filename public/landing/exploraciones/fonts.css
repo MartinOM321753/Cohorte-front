@@ -1,0 +1,44 @@
+@font-face {
+  font-family: 'Literata';
+  font-style: normal; font-display: swap;
+  font-weight: 400;
+  src: url(fonts/font-0.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Literata';
+  font-style: normal; font-display: swap;
+  font-weight: 500;
+  src: url(fonts/font-1.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal; font-display: swap;
+  font-weight: 400;
+  src: url(fonts/font-2.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal; font-display: swap;
+  font-weight: 500;
+  src: url(fonts/font-3.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal; font-display: swap;
+  font-weight: 600;
+  src: url(fonts/font-4.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal; font-display: swap;
+  font-weight: 700;
+  src: url(fonts/font-5.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal; font-display: swap;
+  font-weight: 800;
+  src: url(fonts/font-6.ttf) format('truetype');
+}
+
+
