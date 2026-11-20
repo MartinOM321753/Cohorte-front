@@ -1,0 +1,28 @@
+# Propuesta visual de El proyecto
+
+Vista independiente: http://localhost:5173/landing/proyecto-propuesta/index.html?v=3
+Rama: codex/landing-direcciones-visuales. La landing principal no se ha modificado.
+Comparación con la distribución anterior: /landing/proyecto-propuesta/anterior.html.
+
+## Comparación de referencias
+- Owkin, Data Access: https://www.owkin.com/data/data-access. Separa el propósito de investigación de las modalidades de información y usa módulos con distinto peso. Se adoptó esa separación narrativa, conservando los hechos de la Cohorte.
+- Tempus, Real-World Data: https://www.tempus.com/solutions/real-world-data/. Distingue información multimodal, conexión y seguimiento longitudinal. Se tomó la idea de hacer comprensible la integración con una representación visual. No se importaron cifras, afirmaciones ni capacidades de Tempus.
+- Linear: https://linear.app/. Se consultó la página y su estructura de producto; la captura del contenido principal quedó incompleta, por lo que no se usa como prueba de comparación visual.
+
+## Diseño
+Seis áreas en composición asimétrica con ilustraciones vectoriales conceptuales para reconocimiento, cambio de escala tipográfica y fondos de la misma familia verde. Se mantienen todas las descripciones visibles. El bloque de información integrada cambia de registro y permite resaltar cada una de las tres capas sin ocultar contenido.
+
+Las ilustraciones SVG son recursos conceptuales originales en el HTML, no gráficos de resultados o anatomía clínica. ADN y logotipo proceden de public/landing/assets, sin modificaciones. Manrope autoalojada reutiliza exploraciones/fonts.css y su licencia OFL existente.
+
+## Verificación
+- 22 títulos y textos cotejados automáticamente contra ambos bloques originales. Incluye las dos notas y el encabezado Una cohorte. Múltiples dimensiones.
+- Playwright Chromium a 390, 768, 1440: 6 áreas y 3 grupos presentes, scrollWidth igual al viewport en cada tamaño, imágenes cargadas, sin errores JS.
+- Los tres selectores cambian aria-pressed y la capa del esquema. Activación mediante teclado comprobada.
+- Reduced motion: desplazamiento auto y transición 0s.
+- Capturas: proyecto-comercial-390.png, proyecto-comercial-768.png, proyecto-comercial-1440.png.
+- Auditoría mecánica Impeccable ejecutada una vez. Ajustado texto secundario. El warning de padding en sección exterior corresponde al fondo a todo el ancho: su contenido está insetado por .container (96 px en escritorio, 20 px en móvil).
+- No se volvió a ejecutar compilación global: son archivos estáticos aislados. El bloqueo TypeScript de BiobancoPage/BioBancoPage informado previamente está fuera de este cambio.
+
+Pendiente: elección del usuario e integración en la principal solo cuando lo indique.
+## Ajustes de revisión final
+El titular usa una jerarquía continua. La selección de una dimensión muestra confirmación junto al propio control, para que en móvil no sea necesario volver al diagrama. Todos los textos originales siguen visibles. Captura adicional: proyecto-seleccion-390.png.
