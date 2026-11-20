@@ -1,0 +1,45 @@
+.dimensions{padding:64px 56px 48px;background:#e9efdf;border-top:1px solid #d4dfc9;color:#193d30}
+.dimensions-heading{display:grid;grid-template-columns:1.3fr 1fr;gap:85px;align-items:end}
+.dimensions-heading h2{margin:0;font-size:clamp(34px,3.7vw,50px);font-weight:500;line-height:1.12;letter-spacing:-.035em}
+.dimensions-heading h2>span{color:#55704a}
+.dimensions-heading>p{max-width:44ch;color:#4d6648;padding-bottom:4px;font-size:16px;line-height:1.75}
+.dimensions-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:44px}
+.dimension{padding:0 34px 8px;min-width:0}
+.dimension:first-child{padding-left:0}
+.dimension:last-child{padding-right:0}
+.dimension+.dimension{border-left:1px solid #c7d4bb}
+.dimension-art{width:min(100%,280px);height:210px;overflow:visible;margin:0 auto 22px;stroke:#53734e;stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round;fill:none}
+.dimension h3{margin:0;min-height:2.5em;font-size:25px;font-weight:500;line-height:1.25;letter-spacing:-.025em;text-wrap:balance;max-width:23ch}
+.dimension-category{font-size:14px;color:#48603e;line-height:1.5;margin-top:8px}
+.dimension-description{font-size:16px;line-height:1.8;color:#435b3e;margin-top:16px;max-width:40ch}
+.dimension-art .paper-back{fill:#c8d6b7;stroke:#9fb28b}
+.dimension-art .paper{fill:#f8fbf2;stroke:#7b9668}
+.dimension-art .clip{fill:#c3a66d;stroke:#ab8d57}
+.dimension-art .ink{stroke:#92a684}
+.dimension-art .check-box{fill:#e5edda;stroke:#96ad82}
+.dimension-art .accent-stroke{stroke:#9c7c42;stroke-width:1.8}
+.dimension-art .pencil{fill:#416242;stroke:#416242}
+.dimension-art .pencil-tip{fill:#bca16a;stroke:#9d8456}
+.dimension-art .bonds{stroke:#91a67e;stroke-width:5}
+.dimension-art .atom-soft{fill:#638458;stroke:#638458}
+.dimension-art .atom{fill:#e5edda;stroke:#638458;stroke-width:1.5}
+.dimension-art .atom-gold{fill:#ccb47e;stroke:#ac915b}
+.dimension-art .atom-small{fill:#f5f9ed;stroke:#99ad88}
+.dimension-art .atom-shine{stroke:#fff;stroke-width:2}
+.dimension-art .scanner-back{fill:#c9d6b9;stroke:#94ab7e}
+.dimension-art .scanner-face{fill:#f7faef;stroke:#789661}
+.dimension-art .scanner-opening{fill:#b3c6a1;stroke:#789661}
+.dimension-art .scanner-inner{fill:#60825a;stroke:#60825a}
+.dimension-art .scanner-table{fill:#a9be94;stroke:#789661}
+.dimension-art .scanner-table-top{fill:#e0e9d2;stroke:#789661}
+.dimension-art .scanner-leg{stroke:#789661;stroke-width:3}
+.dimension-art .scanner-light{fill:#b39b60;stroke:none}
+.dimensions-note{display:grid;grid-template-columns:1fr 2fr;gap:40px;margin-top:38px;padding-top:24px;border-top:1px solid #bdcdb0;color:#4d6648;font-size:14px;line-height:1.75}
+.dimensions-note-title{font-weight:600;color:#35542e}
+@media(max-width:1100px){.dimensions-heading{gap:40px}.dimension{padding-inline:24px}.dimension-art{height:180px}.dimension h3{font-size:23px}}
+@media(max-width:820px){.dimensions{padding-block:48px 36px}.dimensions-heading{grid-template-columns:1fr;gap:20px}.dimensions-heading>p{max-width:66ch}.dimension{padding-inline:18px}.dimension-art{height:160px}.dimension h3{font-size:21px;min-height:3.75em}.dimension-description{line-height:1.7}.dimensions-note{grid-template-columns:1fr;gap:8px}}
+@media(max-width:600px){.dimensions{padding-block:36px 30px}.dimensions-heading h2{font-size:35px}.dimensions-grid{display:block;margin-top:28px}.dimension,.dimension:first-child,.dimension:last-child{display:grid;grid-template-columns:104px minmax(0,1fr);column-gap:20px;padding:24px 0}.dimension+.dimension{border-left:0;border-top:1px solid #c7d4bb}.dimension-art{width:104px;height:110px;margin:0;grid-column:1;grid-row:1/3;align-self:center}.dimension h3{min-height:0;max-width:none;font-size:23px;grid-column:2;grid-row:1;align-self:end;text-wrap:initial}.dimension-category{grid-column:2;grid-row:2;align-self:start;margin-top:8px}.dimension-description{grid-column:1/-1;margin-top:14px;max-width:none}.dimensions-note{margin-top:10px;padding-top:22px}}
+
+.dimensions>.container{width:min(1248px,100%)}
+@media(max-width:1100px){.dimensions{padding-inline:32px}}
+@media(max-width:600px){.dimensions{padding-inline:20px}}

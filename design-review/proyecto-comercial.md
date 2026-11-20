@@ -26,3 +26,7 @@ Las ilustraciones SVG son recursos conceptuales originales en el HTML, no gráfi
 Pendiente: elección del usuario e integración en la principal solo cuando lo indique.
 ## Ajustes de revisión final
 El titular usa una jerarquía continua. La selección de una dimensión muestra confirmación junto al propio control, para que en móvil no sea necesario volver al diagrama. Todos los textos originales siguen visibles. Captura adicional: proyecto-seleccion-390.png.
+## Revisión v4 — solo información integrada
+El usuario aprobó la composición de áreas y pidió reemplazar únicamente el bloque de capas. La v4 presenta tres grupos en columnas abiertas sobre verde claro, con ilustraciones conceptuales de cuestionario, molécula y estudios de imagen. En móvil se distribuyen en filas con las imágenes junto al título. Se eliminó el selector de capas y su JavaScript, manteniendo los textos completos y la nota de disponibilidad.
+
+Se comprobó que el HTML del bloque research aprobado es idéntico, y los hashes de _content.html, theme.css y LandingPage.tsx siguen iguales. Capturas actuales del bloque: dimensiones-390.png, dimensiones-768.png, dimensiones-1440.png. Playwright: sin desbordamiento ni errores JS en los tres tamaños. Auditoría: contraste de las categorías corregido; padding explícito preserva la geometría. Las imágenes vectoriales son ilustrativas, no resultados clínicos.
