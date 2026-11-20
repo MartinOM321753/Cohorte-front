@@ -45,3 +45,5 @@
 @media(max-width:600px){.dimensions{padding-inline:20px}}
 
 .dimension-art{object-fit:contain;filter:drop-shadow(0 6px 9px #193d3014)}
+/* The information dimensions intentionally keep their visuals above the copy. */
+@media(max-width:600px){.dimension,.dimension:first-child,.dimension:last-child{display:block;padding-block:26px}.dimension-art{width:176px;height:176px;margin:0 auto 20px}.dimension h3{font-size:24px;min-height:0}.dimension-category{margin-top:8px}.dimension-description{margin-top:14px}}

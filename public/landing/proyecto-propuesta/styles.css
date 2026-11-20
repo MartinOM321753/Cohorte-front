@@ -9,3 +9,13 @@
 @media(max-width:820px){.chapter-heading{padding-block:25px}.chapter-heading nav{gap:16px;font-size:13px}.cardio .real-art,.mind .real-art{width:165px;height:150px;top:0;right:15px;transform:none}.cardio .plate-copy,.mind .plate-copy{width:100%;padding-top:145px}}
 @media(max-width:600px){.chapter-heading{align-items:flex-start;flex-direction:column;gap:14px;padding-block:22px}.chapter-heading h1{font-size:28px}.chapter-heading nav{gap:20px;font-size:13px}.research{padding-top:30px}.research-plate .real-art{width:170px!important;height:150px!important;top:4px!important;right:18px!important;transform:none!important}.research-plate .plate-copy{padding-top:130px}.genetics .plate-copy{padding-top:112px}}
 .research-plate h3{margin:0}
+/* Keep each scientific visual beside its explanatory text, in the same flow. */
+.research-plate{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.55fr);gap:20px;align-items:center;min-height:330px}
+.research-plate .plate-copy{grid-column:1;grid-row:1;width:auto;padding:0;min-width:0}
+.research-plate .organ,.research-plate .real-art,.research-plate .dna-art{grid-column:2;grid-row:1;position:static;width:100%;height:auto;max-height:290px;max-width:100%;object-fit:contain;transform:none;mix-blend-mode:normal;filter:drop-shadow(0 8px 12px #18362914)}
+.research-plate h3{font-size:26px;max-width:none}
+@media(max-width:1100px){.research-plate{grid-template-columns:minmax(0,1fr) minmax(100px,.5fr);gap:16px;padding:26px;min-height:340px}.research-plate h3{font-size:24px}}
+@media(max-width:820px){.research-plate{grid-template-columns:minmax(0,1fr) minmax(80px,.48fr);padding:24px;gap:12px;min-height:340px}.research-plate h3{font-size:22px}.research-plate .organ,.research-plate .real-art,.research-plate .dna-art{max-height:240px}}
+@media(max-width:600px){.research-plate{grid-template-columns:minmax(0,1fr) minmax(84px,.43fr);padding:22px 20px;gap:12px;min-height:0}.research-plate .plate-copy{padding:0!important;width:auto}.research-plate .organ,.research-plate .real-art,.research-plate .dna-art{position:static!important;width:100%!important;height:auto!important;max-height:240px;top:auto!important;right:auto!important;transform:none!important}.research-plate h3{font-size:23px;line-height:1.25;hyphens:auto}.research-plate p{font-size:16px;line-height:1.75}}
+@media(max-width:360px){.research-plate{grid-template-columns:minmax(0,1fr) 64px;gap:10px;padding:20px 16px}.research-plate h3{font-size:21px}}
+@media(min-width:601px) and (max-width:820px){.research-plate{grid-column:1/-1!important;grid-template-columns:minmax(0,1fr) minmax(170px,.55fr);gap:28px;min-height:270px;padding:30px}.research-plate h3{font-size:26px}}
