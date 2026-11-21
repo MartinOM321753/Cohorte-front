@@ -20,27 +20,27 @@
 #proyecto-resumen h3 { font-size: 25px; font-weight: 500; margin: 0 0 12px; line-height: 1.25; }
 #proyecto-resumen .overview-step p { font-size: 16px; line-height: 1.8; color: #526a5b; max-width: 54ch; }
 
-/* Mouse input drives the tilt directly, including when automatic motion is reduced. */
-#proyecto .research-plate, #proyecto .dimension {
-  --card-rx: 0deg; --card-ry: 0deg;
+/* Rotation, elevation and shadow share one eased progress value. */
+#proyecto .research-plate {
+  --card-rx: 0deg; --card-ry: 0deg; --card-strength: 0;
   transform-origin: center;
-  transition: transform 170ms cubic-bezier(.2,.7,.3,1), box-shadow 220ms ease, background-color 220ms ease;
+  transition: none;
+  transform: perspective(1000px) rotateX(var(--card-rx)) rotateY(var(--card-ry)) translateY(calc(-4px * var(--card-strength))) scale(calc(1 + .006 * var(--card-strength)));
+  box-shadow: var(--card-shadow-x, 0px) calc(6px + 14px * var(--card-strength)) calc(18px + 16px * var(--card-strength)) rgb(23 63 50 / calc(.06 + .12 * var(--card-strength))), 0 1px 3px #173f3208;
 }
-#proyecto .research-plate { box-shadow: 0 6px 18px #173f3210, 0 1px 3px #173f3208; }
-#proyecto .research-plate.is-tilting, #proyecto .dimension.is-tilting {
-  transform: perspective(800px) rotateX(var(--card-rx)) rotateY(var(--card-ry)) translateY(-7px) scale(1.015);
-  box-shadow: var(--card-shadow-x, 0px) 26px 42px #173f3238, 0 8px 18px #173f3220;
-  z-index: 3;
-}
-#proyecto .research-plate::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(circle at var(--card-light-x, 50%) var(--card-light-y, 50%), #ffffff38, transparent 65%); opacity: 0; transition: opacity 170ms ease; pointer-events: none; z-index: 2; }
-#proyecto .research-plate.is-tilting::after { opacity: 1; }
+#proyecto .research-plate.is-tilting { z-index: 3; }
+#proyecto .research-plate::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(circle at var(--card-light-x, 50%) var(--card-light-y, 50%), #ffffff30, transparent 65%); opacity: var(--card-strength); pointer-events: none; z-index: 2; }
 
 /* Integrated dimensions: reveal, floating scientific models and local light. */
 #proyecto .dimensions-grid { position: relative; }
-#proyecto .dimension { position: relative; isolation: isolate; border-radius: 16px; }
-#proyecto .dimension.is-tilting { background: #f5f9eb; }
-#proyecto .dimension::before { content: ''; position: absolute; width: min(90%, 250px); height: 200px; left: 50%; top: 12px; transform: translateX(-50%); z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, #a2be7359, #a2be7300 70%); pointer-events: none; }
-#proyecto .dimension-art { position: relative; z-index: 1; }
+#proyecto .dimension { position: relative; isolation: isolate; }
+#proyecto .dimension::before { content: ''; position: absolute; width: min(90%, 250px); height: 200px; left: 50%; top: 12px; transform: translateX(-50%) scale(.94); z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, #a2be7370, #a2be7300 70%); opacity: .4; transition: opacity 550ms ease, transform 700ms ease; pointer-events: none; }
+#proyecto .dimension-art { position: relative; z-index: 1; scale: 1; translate: 0 0; transition: scale 700ms cubic-bezier(.2,.7,.3,1), translate 700ms cubic-bezier(.2,.7,.3,1); }
+#proyecto .dimension h3 { position: relative; }
+#proyecto .dimension h3::after { content: ''; position: absolute; left: 0; bottom: 8px; height: 2px; width: 46px; background: #6d8d53; transform: scaleX(0); transform-origin: left; opacity: 0; transition: transform 650ms cubic-bezier(.2,.7,.3,1), opacity 350ms ease; }
+#proyecto .dimension.is-focused::before { opacity: .9; transform: translateX(-50%) scale(1.12); }
+#proyecto .dimension.is-focused .dimension-art { scale: 1.055; translate: 0 -5px; }
+#proyecto .dimension.is-focused h3::after { transform: scaleX(1); opacity: 1; }
 #proyecto .dimension-controls { display: flex; justify-content: flex-end; margin-top: 20px; }
 .experience-replay { display: inline-flex; gap: 8px; align-items: center; border: 1px solid #8aa07880; border-radius: 999px; background: transparent; color: #345732; padding: 9px 14px; font: 500 13px Manrope, Arial, sans-serif; cursor: pointer; min-height: 40px; }
 .experience-replay svg { width: 18px; height: 18px; }
@@ -70,7 +70,7 @@
 #proyecto .dimensions.is-replaying .dimension h3,
 #proyecto .dimensions.is-replaying .dimension p { animation: experience-copy-enter 650ms ease calc(180ms + var(--experience-delay)) both; }
 @media(prefers-reduced-motion: reduce) {
-  #proyecto .research-plate, #proyecto .dimension, #proyecto .research-plate::after { transition: none; }
+  #proyecto .dimension-art { transition-duration: 300ms; }
 }
 html[data-motion="reduced"] #proyecto .is-tilting { transform: none; }
 @media(max-width: 900px) {
@@ -93,4 +93,7 @@ html[data-motion="reduced"] #proyecto .is-tilting { transform: none; }
   #proyecto-resumen .overview-photo img { object-position: center 40%; }
   #proyecto-resumen .overview-step p { font-size: 15px; }
   #proyecto .dimension-controls { justify-content: center; }
+}
+@media(max-width: 600px) {
+  #proyecto .dimension h3::after { bottom: -3px; }
 }
