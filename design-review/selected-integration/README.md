@@ -36,4 +36,4 @@ Se recuperó la secuencia de trazado de líneas, puntos, etiquetas y donas al en
 
 Composición corporal y salud mental conservan la malla tridimensional gris, con el cerebro en vista superior. El corazón usa la imagen anatómica elegida y proporcionada por el usuario; el hígado es una ilustración de volumen suave en marrón rojizo oscuro, sin vesícula. Los archivos tienen fondo alfa transparente. Las ilustraciones generadas con ImageGen, sus prompts y la procedencia del corazón se registran en `public/landing/propuestas-imagenes/prompts.json`. Se comprobó su carga y colocación junto al texto a 390 y 1440 px.
 
-El ADN de la tarjeta de genética se sustituyó por una nueva ilustración molecular original con ImageGen. Las imágenes elegidas de corazón, hígado, cuerpo y cerebro se conservan.
+El ADN de la tarjeta de genética usa la imagen verde, marfil y dorada proporcionada y elegida por el usuario, conservada sin cambios. Las imágenes elegidas de corazón, hígado, cuerpo y cerebro se conservan.

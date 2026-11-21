@@ -77,6 +77,12 @@
       "id": "dna-natural-v2",
       "prompt": "Use case: scientific-educational. Original transparent 3D illustration for the genetics and intestinal microbiota card of a health research website. One complete isolated DNA double helix, upright with a slight elegant diagonal bend, two clearly intertwined sugar-phosphate backbones and regularly paired rungs, recognizable right-handed B-DNA silhouette, about two and a half turns. Refined simplified molecular ball-and-stick model, rounded spheres and clean slender bonds. More legible and deliberately composed than a densely cluttered atom model, readable at 150px. Familiar scientific elemental color convention: charcoal-gray carbon, ivory-white hydrogen, muted vivid red oxygen, blue nitrogen and small amber-orange phosphorus accents. These are educational model colors, no brand green or gold recoloring. Smooth satin surfaces, soft neutral studio illumination, restrained realistic three-dimensional depth without wet organic textures. Whole molecule centered with generous clear margins, portrait composition. Genuinely transparent alpha background. Absolutely no backdrop, colored haze, halo, particles, floor, stand, frame, text, labels or extra molecules. Clean premium educational CGI, not a flat icon, no anatomical organs.",
       "file": "../assets/selected-design/dna-natural-v2.png"
+    },
+    {
+      "id": "dna-selected",
+      "prompt": null,
+      "provenance": "Imagen proporcionada y seleccionada por el usuario; conservada sin cambios.",
+      "file": "../assets/selected-design/dna-selected.png"
     }
   ],
   "active": [
@@ -84,6 +90,6 @@
     "body-wireframe",
     "brain-wireframe",
     "liver-soft-natural-v2",
-    "dna-natural-v2"
+    "dna-selected"
   ]
 }
