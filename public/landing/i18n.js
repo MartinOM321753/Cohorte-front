@@ -218,6 +218,12 @@
     "Ilustración tridimensional simplificada del hígado sin vesícula": "Simplified three-dimensional liver illustration without a gallbladder"
   });
   Object.assign(translations, {"Reproducir animación": "Replay animation"});
+  Object.assign(translations, {
+    "Explora el proyecto": "Explore the project",
+    "Observar hoy.": "Observe today.",
+    "Comprender el mañana.": "Understand tomorrow.",
+    "Reunimos evaluaciones, muestras biológicas e información sobre estilos de vida para estudiar cómo cambia la salud de las mismas personas a lo largo del tiempo.": "We bring together assessments, biological samples, and lifestyle information to study how the same people’s health changes over time."
+  });
   const normalize = value => value.replace(/\s+/g, " ").trim();
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));
