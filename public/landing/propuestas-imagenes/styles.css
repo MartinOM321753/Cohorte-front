@@ -26,6 +26,8 @@ h2{font-size:clamp(27px,3vw,38px);font-weight:500;letter-spacing:-.03em;line-hei
 .plate img{grid-column:2;grid-row:1;width:100%;height:280px;object-fit:contain;display:block}
 .mental{background:#214f40;border-color:#214f40;color:#f3f7ed}
 .mental p{color:#d6e4d5}
+.cardio{background:#e5edd7;border-color:#e5edd7}
+.liver{background:#f0eee4;border-color:#e6e3d8}
 .preview-footer{padding-block:24px 40px;border-top:1px solid #d7e1d1;color:#526a5b;font-size:14px;display:flex;justify-content:space-between;gap:24px}
 @media(max-width:950px){.options{grid-template-columns:minmax(0,1fr)}.plate{min-height:300px;grid-template-columns:minmax(0,1fr) minmax(0,.45fr)}.plate img{height:260px}}
 @media(max-width:560px){.container{width:calc(100% - 40px)}.mast{align-items:start;font-size:12px;gap:12px}.brand img{width:34px;height:34px}.brand{gap:8px}.intro{padding-top:32px}.comparison-heading{display:block}.comparison-heading p{margin-top:12px}.plate{padding:24px 20px;grid-template-columns:minmax(0,1fr) minmax(0,.48fr);gap:12px;min-height:0}.plate h3{font-size:23px}.plate p{line-height:1.7}.plate img{height:230px}.preview-footer{flex-direction:column;gap:12px}}

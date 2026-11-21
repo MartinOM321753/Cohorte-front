@@ -209,6 +209,10 @@
     "Figura humana tridimensional con contorno de malla en tonos grises": "Three-dimensional human figure outlined with a gray wireframe mesh",
     "Cerebro en vista superior representado con una malla tridimensional": "Top-view brain represented by a three-dimensional wireframe mesh"
   });
+  Object.assign(translations, {
+    "Corazón humano representado con una malla tridimensional gris": "Human heart represented with a gray three-dimensional wireframe mesh",
+    "Hígado humano representado con una malla tridimensional gris": "Human liver represented with a gray three-dimensional wireframe mesh"
+  });
   const normalize = value => value.replace(/\s+/g, " ").trim();
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));

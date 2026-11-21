@@ -41,10 +41,22 @@
       "id": "body-wireframe",
       "prompt": "Scientific editorial asset for a health research website about body composition. Original 3D wireframe illustration of one complete neutral adult human figure, head to feet, facing forward, arms gently apart from the torso and legs slightly separated. The visual language is a technical 3D digital human model shown only as a clean polygonal quadrilateral surface mesh, with thin neutral silver-gray lines and a slightly darker slate gray contour tracing the external body shape. Subtle natural muscle volumes are expressed only by the curved mesh, with a closed external surface and no anatomical internal parts. Not an illustration of exposed flesh. Smooth simplified head with minimal facial geometry and no anatomical/genital detail. No musculature painted red, no skin colors, no organs, no dissection, no equipment, no measuring tape or clothing. Restrained soft gray shading with an almost transparent surface helps convey volume while preserving the open wireframe appearance. Medium-fine tidy mesh, not a dense black scribble, readable at small card size. Complete centered figure, generous transparent margins, soft neutral studio light, coherent with a scientific wireframe brain. NO gray background, no floor, no backdrop, no rectangular gradient, no frame, no pedestal, no glow, no text, labels or numbers. Genuine transparent alpha background.",
       "file": "../assets/selected-design/body-wireframe.png"
+    },
+    {
+      "id": "heart-wireframe",
+      "prompt": "Original scientific editorial website asset, matching a family of quiet neutral-gray 3D wireframe brain and human-body illustrations. Technical CGI visualization: a smooth polygonal quadrilateral mesh wrapping the full external surface, thin light silver and ivory grid lines over extremely subtle translucent gray surface shading. Clearly three-dimensional, not a flat outline icon. Medium-fine tidy mesh density, with a slightly darker neutral gray contour, readable at 150px. Clean complete isolated object, centered with generous transparent margin. NO gray background, no colored backdrop, no floor, rectangular gradient, shadow plane, panel, frame, pedestal, glow, particles, text, labels or numbers. Genuinely transparent alpha background around the object. No red, pink, brown, flesh colors, blood, lesions or wet biological texture. Subject: anatomically recognizable human heart, upright with its apex pointing down, three-quarter anterior view showing the rounded ventricular form, the aortic arch and a few principal vessel openings at the top. Preserve the familiar human heart silhouette, not a Valentine's heart symbol. The entire heart and vessel ends are covered by the same silver-gray surface mesh. Restrained anatomical detail, no dissection or internal cutaway. Soft neutral studio light, elegant depth, cohesive with a top-view wireframe brain.",
+      "file": "../assets/selected-design/heart-wireframe.png"
+    },
+    {
+      "id": "liver-wireframe",
+      "prompt": "Original scientific editorial website asset, matching a family of quiet neutral-gray 3D wireframe brain and human-body illustrations. Technical CGI visualization: a smooth polygonal quadrilateral mesh wrapping the full external surface, thin light silver and ivory grid lines over extremely subtle translucent gray surface shading. Clearly three-dimensional, not a flat outline icon. Medium-fine tidy mesh density, with a slightly darker neutral gray contour, readable at 150px. Clean complete isolated object, centered with generous transparent margin. NO gray background, no colored backdrop, no floor, rectangular gradient, shadow plane, panel, frame, pedestal, glow, particles, text, labels or numbers. Genuinely transparent alpha background around the object. No red, pink, brown, flesh colors, blood, lesions or wet biological texture. Subject: anatomically recognizable complete human liver in a gentle three-quarter anterior-superior view. Broad rounded larger right lobe tapering into a smaller left lobe, the subtle central lobe division and smooth curved upper surface create the familiar liver silhouette. The entire organ is covered by the same silver-gray surface mesh following its broad curved form. Closed external anatomy only, no cutaways, no exposed internal vessels, no diseased texture. No separate organs or extra gallbladder object. Soft neutral studio light and restrained elegant depth.",
+      "file": "../assets/selected-design/liver-wireframe.png"
     }
   ],
   "active": [
+    "heart-wireframe",
+    "body-wireframe",
     "brain-wireframe",
-    "body-wireframe"
+    "liver-wireframe"
   ]
 }
