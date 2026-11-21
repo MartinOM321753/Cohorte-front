@@ -18,7 +18,7 @@ const SCRIPT_FILES = [
   'motion.js',
   'analytics.js?v=68',
   'presentation.js',
-  'i18n.js?v=68',
+  'i18n.js?v=69',
 ]
 
 function rewritePaths(html: string): string {

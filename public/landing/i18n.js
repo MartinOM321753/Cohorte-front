@@ -201,6 +201,10 @@
     "Modelo tridimensional de una estructura molecular": "Three-dimensional molecular structure model",
     "Ilustración de evaluación funcional, imagen corporal y microbioma": "Illustration of functional assessment, body imaging and microbiome"
   });
+  Object.assign(translations, {
+    "Figura humana tridimensional en blanco y gris con contorno muscular suave": "Three-dimensional white and gray human figure with subtle muscle contours",
+    "Representación del cerebro en vista superior y tonos rosados": "Top-view representation of the brain in pink tones"
+  });
   const normalize = value => value.replace(/\s+/g, " ").trim();
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));

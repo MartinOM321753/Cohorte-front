@@ -21,6 +21,20 @@
       "id": "cerebro-b",
       "prompt": "Use case: scientific-educational. Asset: transparent cutout alternative for a mental health and life context website card. A refined photorealistic medical teaching sculpture of a gender-neutral adult head and short neck in side profile. The head is made of subtle translucent frosted warm-ivory material, allowing a naturally pink-beige anatomically plausible human brain to be clearly visible in its correct position inside the cranium. Clean single object, calm human facial profile, no exposed wounds, no blood, no artificial glow. Opaque enough to preserve a strong head silhouette; transparent enough around the upper skull to see the brain folds. Premium editorial studio render, soft neutral lighting, natural restrained colors, strong legibility at 150px. Entire head and neck centered with generous margin on a genuinely transparent background. No shoulders, no stand, no green tint, no text, labels, numbers, extra symbols or props.",
       "file": "images/cerebro-b.png"
+    },
+    {
+      "id": "cerebro-superior-v2",
+      "prompt": "Use case: scientific-educational. Website card asset about mental health. Premium photorealistic 3D educational rendering of a complete human cerebrum seen EXACTLY FROM ABOVE, a straight 90-degree superior dorsal view, with both cerebral hemispheres clearly visible side by side and the natural central longitudinal fissure. Top-down view only, NOT a lateral profile, not a cutaway, not a head. An appealing healthy-looking scientific illustration in soft natural rosy blush pink with subtle warm coral undertones, balanced neutral lighting and clear color; avoid pale yellow, brown, gray, green, bruised purple or sickly beige casts. Gently detailed rounded cortical folds and subtle natural asymmetry, dry satin texture rather than wet flesh. No lesions, no blood, no dramatic blood vessels, no skull, no dissection, no exposed inner anatomy. Centered whole brain with generous transparent margin, recognizable at 150px. Realistic depth and soft studio shading without any ground plane, aura, halo or background color. No labels, no text, no stand, no props. Genuine transparent background.",
+      "file": "../assets/selected-design/brain-top-pink.png"
+    },
+    {
+      "id": "cuerpo-contorno-v3",
+      "prompt": "Use the attached reference as the visual guide for a clean human body contour. Transform it into a standalone premium 3D scientific website illustration: one complete neutral adult human mannequin, front view, head to feet, arms gently separated from the torso and feet slightly apart. Frosted opaque white resin with gentle pale silver-gray shading and a slightly darker gray contour so it remains readable on a white card. Subtle external muscle volumes on shoulders, arms, abdomen and legs, with a completely closed smooth surface. Like the quiet white human figure in the reference, not exposed anatomical tissue and not a photograph of a person. Simple neutral face, no anatomical or genital details. No red, pink, flesh colors, visible muscles or organs; no measuring tape, clothing texture, machine, labels or numbers. No glass panel, frame, stand, halo, floor or props. Soft studio lighting and refined sculptural depth, uncluttered silhouette readable at small website-card size. Centered complete figure with generous margin, genuinely transparent background.",
+      "file": "../assets/selected-design/body-contour-white.png"
     }
+  ],
+  "active": [
+    "cuerpo-contorno-v3",
+    "cerebro-superior-v2"
   ]
 }
