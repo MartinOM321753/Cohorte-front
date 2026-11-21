@@ -8,6 +8,14 @@
 @font-face { font-family: 'Radio Canada'; font-weight: 500; font-style: normal; font-display: swap; src: url('./assets/selected-design/fonts/radio-1.ttf') format('truetype'); }
 @font-face { font-family: 'Radio Canada Big'; font-weight: 700; font-style: normal; font-display: swap; src: url('./assets/selected-design/fonts/radio-2.ttf') format('truetype'); }
 
+main p, .site-footer p, .site-footer .footer-bottom p {
+  text-align: justify;
+  text-justify: inter-word;
+  text-align-last: auto;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
 #proyecto.selected-project {
   --ink: #193d30;
   --muted: #526a5b;
@@ -41,7 +49,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 0 40px;
-  align-items: end;
+  align-items: center;
   max-width: none;
   margin: 0 0 48px;
   text-align: left;
@@ -78,7 +86,7 @@
 #equipo .institution-directory { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 36px; }
 #equipo .institution-team-card {
   display: grid;
-  grid-template-columns: 65px minmax(0, 1fr);
+  grid-template-columns: 104px minmax(0, 1fr);
   gap: 0 20px;
   align-items: start;
   border: 0;
@@ -92,7 +100,7 @@
   transition: transform 180ms;
 }
 #equipo .institution-team-card:hover { transform: translateY(-3px); box-shadow: none; }
-#equipo .institution-team-card img { grid-column: 1; grid-row: 1/5; width: 65px; max-width: 65px; height: 78px; object-fit: contain; margin: 0; }
+#equipo .institution-team-card img { grid-column: 1; grid-row: 1/5; align-self: center; width: 104px; max-width: 104px; height: 120px; object-fit: contain; margin: 0; }
 #equipo .institution-team-card h3 { grid-column: 2; margin: 0; color: inherit; font: 700 24px/1.2 'Radio Canada Big', Arial, sans-serif; letter-spacing: -.035em; }
 #equipo .institution-team-card p { grid-column: 2; margin: 10px 0 0; color: #536852; font-size: 16px; }
 #equipo .institution-team-card > span { grid-column: 2; margin-top: 16px; font-size: 15px; font-weight: 400; text-decoration: underline; text-underline-offset: 5px; }
@@ -100,6 +108,20 @@
 #equipo .motion-reveal { opacity: 1; transform: none; filter: none; }
 
 /* Only the plots change here: retain the existing results heading and cards. */
+#resultados .science-chart-heading:has(.chart-select-label) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 250px);
+  gap: 24px;
+  align-items: end;
+}
+#resultados .science-chart-heading > div { min-width: 0; }
+#resultados .chart-select-label {
+  justify-self: end;
+  width: 250px;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0 0 0 auto;
+}
 #resultados .data-plot {
   --color-series-men: #527e68;
   --color-series-women: #a66b22;
@@ -164,6 +186,44 @@
 #resultados .donut-stats small { font-size: inherit; font-weight: 400; color: inherit; }
 #resultados .donut-stat-dot { width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: var(--dot-color); box-shadow: none; }
 
+/* Restore the original drawing sequence without hiding reduced-motion content. */
+@media(prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .chart-line {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: chart-line-draw var(--segment-duration, 1s) ease-in-out var(--segment-delay, 0ms) both;
+  }
+  html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .chart-area {
+    opacity: 0;
+    animation: chart-area-reveal 350ms ease-in-out 2150ms both;
+  }
+  html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .marker-core {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: chart-point-pop 350ms ease-out var(--point-delay, 0ms) both;
+  }
+  html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .marker-halo {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: chart-halo-pop 420ms ease-out var(--point-delay, 0ms) both;
+  }
+  html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .chart-point-label,
+  html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .chart-label-leader {
+    opacity: 0;
+    animation: chart-label-fade 350ms ease-out var(--point-delay, 0ms) both;
+  }
+  html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .donut-segment {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: donut-draw var(--donut-duration, 1s) ease-in-out var(--donut-delay, 0ms) both;
+  }
+  html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .donut-stat {
+    opacity: 0;
+    animation: donut-label-fade 300ms ease-out var(--donut-label-delay, 0ms) both;
+  }
+}
+
 @media(max-width: 1100px) {
   #equipo .institution-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -174,11 +234,17 @@
   #equipo .section-heading p { grid-column: 1; grid-row: 3; }
   #equipo .section-heading .eyebrow { margin: 0; }
 }
+@media(max-width: 680px) {
+  #resultados .science-chart-heading:has(.chart-select-label) { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  #resultados .science-chart-heading .chart-select-label { justify-self: end; width: min(100%, 250px); margin: 0 0 0 auto; }
+}
 @media(max-width: 560px) {
   #equipo { padding-block: 56px; }
   #equipo > .wrap { width: calc(100% - 40px); }
   #equipo .institution-directory { grid-template-columns: minmax(0, 1fr); }
-  #equipo .institution-team-card { grid-template-columns: 70px minmax(0, 1fr); padding-block: 24px; }
+  #equipo .institution-team-card { grid-template-columns: 96px minmax(0, 1fr); gap: 0 16px; padding-block: 24px; }
+  #equipo .institution-team-card img { width: 96px; max-width: 96px; height: 112px; }
+  #equipo .institution-team-card h3 { font-size: 22px; overflow-wrap: anywhere; }
   #resultados .phase-donut-card { grid-template-columns: minmax(0, 128px) minmax(0, 1fr); gap: 0 12px; }
 }
 @media(prefers-reduced-motion: reduce) {

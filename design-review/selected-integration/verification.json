@@ -410,5 +410,105 @@
     "preguntas",
     "informacion"
   ],
-  "all_original_paragraphs_and_destinations_retained": true
+  "all_original_paragraphs_and_destinations_retained": true,
+  "requested_adjustments": {
+    "checks": [
+      {
+        "name": "Page fits 320",
+        "ok": true
+      },
+      {
+        "name": "Selectors aligned right 320",
+        "ok": true
+      },
+      {
+        "name": "Large vertically centered logos 320",
+        "ok": true
+      },
+      {
+        "name": "Paragraphs justified 320",
+        "ok": true
+      },
+      {
+        "name": "Reduced motion stays visible without internal scrolling 320",
+        "ok": true
+      },
+      {
+        "name": "Page fits 390",
+        "ok": true
+      },
+      {
+        "name": "Selectors aligned right 390",
+        "ok": true
+      },
+      {
+        "name": "Large vertically centered logos 390",
+        "ok": true
+      },
+      {
+        "name": "Paragraphs justified 390",
+        "ok": true
+      },
+      {
+        "name": "Reduced motion stays visible without internal scrolling 390",
+        "ok": true
+      },
+      {
+        "name": "Page fits 768",
+        "ok": true
+      },
+      {
+        "name": "Selectors aligned right 768",
+        "ok": true
+      },
+      {
+        "name": "Large vertically centered logos 768",
+        "ok": true
+      },
+      {
+        "name": "Paragraphs justified 768",
+        "ok": true
+      },
+      {
+        "name": "Reduced motion stays visible without internal scrolling 768",
+        "ok": true
+      },
+      {
+        "name": "Page fits 1440",
+        "ok": true
+      },
+      {
+        "name": "Selectors aligned right 1440",
+        "ok": true
+      },
+      {
+        "name": "Large vertically centered logos 1440",
+        "ok": true
+      },
+      {
+        "name": "Paragraphs justified 1440",
+        "ok": true
+      },
+      {
+        "name": "Reduced motion stays visible without internal scrolling 1440",
+        "ok": true
+      },
+      {
+        "name": "Line drawing animation restored",
+        "ok": true
+      },
+      {
+        "name": "Line animation finishes",
+        "ok": true
+      },
+      {
+        "name": "Donut drawing animation restored",
+        "ok": true
+      },
+      {
+        "name": "Animated participant figures remain visible",
+        "ok": true
+      }
+    ]
+  }
 }

@@ -27,3 +27,9 @@ Para iniciar este worktree: `npm run dev -- --host localhost --port 5175`.
 Las capturas `proyecto-*`, `dimensiones-*`, `instituciones-*` y `graficas-*` muestran las piezas integradas a 1440 y 390 px. La barra flotante se oculta solo al generar estas capturas de componentes para que no tape el contenido recortado; permanece en la landing.
 
 La integración queda en `develop` local. No se publicó el sitio ni se enviaron cambios al remoto.
+
+## Ajustes posteriores
+
+Los párrafos están justificados. En instituciones, el texto introductorio y los logos están centrados verticalmente; los logos miden 104 px en escritorio y 96 px en móvil. Los selectores de indicadores y mediciones se alinean a la derecha, pasando a una fila propia cuando falta espacio.
+
+Se recuperó la secuencia de trazado de líneas, puntos, etiquetas y donas al entrar en pantalla. Con movimiento reducido los datos aparecen completos sin animación. Pasaron 24 comprobaciones adicionales de estos ajustes a 320, 390, 768 y 1440 px, incluidas la ejecución y la finalización de las animaciones.
