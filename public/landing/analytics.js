@@ -28,7 +28,7 @@
     return {max,ticks};
   };
   const animateChartUpdate=(previous,next)=>{
-    if(!previous||!next||window.siteMotion?.matches||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    if(!previous||!next||window.siteMotion?.matches)return;
     const oldNodes=new Map([...previous.querySelectorAll('[data-transition-key]')].map(node=>[node.dataset.transitionKey,node]));
     const transitions=[];
     const attrs=['d','cx','cy','x','y','x1','y1','x2','y2'];

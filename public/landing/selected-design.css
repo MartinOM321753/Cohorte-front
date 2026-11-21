@@ -1,6 +1,6 @@
 /* Selected proposal components: project, institution directory and plots only. */
 @import url('./selected-project.css');
-@import url('./project-experience.css?v=4');
+@import url('./project-experience.css?v=5');
 
 @font-face { font-family: Manrope; font-weight: 400; font-style: normal; font-display: swap; src: url('./assets/selected-design/fonts/manrope-2.ttf') format('truetype'); }
 @font-face { font-family: Manrope; font-weight: 500; font-style: normal; font-display: swap; src: url('./assets/selected-design/fonts/manrope-3.ttf') format('truetype'); }
@@ -184,7 +184,7 @@
 #resultados .donut-stat-dot { width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: var(--dot-color); box-shadow: none; }
 
 /* Restore the original drawing sequence without hiding reduced-motion content. */
-@media(prefers-reduced-motion: no-preference) {
+
   html:not([data-motion="reduced"]) #resultados .science-chart.motion-visible .chart-line {
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
@@ -219,7 +219,7 @@
     opacity: 0;
     animation: donut-label-fade 300ms ease-out var(--donut-label-delay, 0ms) both;
   }
-}
+
 
 @media(max-width: 1100px) {
   #equipo .institution-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -244,9 +244,7 @@
   #equipo .institution-team-card h3 { font-size: 22px; overflow-wrap: anywhere; }
   #resultados .phase-donut-card { grid-template-columns: minmax(0, 128px) minmax(0, 1fr); gap: 0 12px; }
 }
-@media(prefers-reduced-motion: reduce) {
-  #equipo .institution-team-card { transition: none; }
-}
+
 
 #estudio-longitudinal.longitudinal-section {
   padding: 88px 40px;

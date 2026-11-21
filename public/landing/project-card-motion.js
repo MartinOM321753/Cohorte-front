@@ -5,7 +5,6 @@
   if (!root) return;
   const controller = new AbortController();
   const options = { passive: true, signal: controller.signal };
-  const timers = new Set();
   const states = new Map();
   const properties = ['--card-rx', '--card-ry', '--card-strength', '--card-light-x', '--card-light-y', '--card-shadow-x'];
   let frame = 0, lastTime = 0, active = null, focused = null, touchUntil = 0;
@@ -102,19 +101,7 @@
     entries.forEach(entry => entry.target.classList.toggle('is-in-view', entry.isIntersecting));
   }, { threshold: .15 });
   root.querySelectorAll('#proyecto-resumen, #investigacion .dimension').forEach(section => observer.observe(section));
-  root.querySelectorAll('[data-experience-replay]').forEach(button => {
-    button.addEventListener('click', () => {
-      const section = document.getElementById(button.dataset.experienceReplay);
-      if (!section) return;
-      timers.forEach(clearTimeout); timers.clear();
-      section.classList.remove('is-replaying');
-      void section.offsetWidth;
-      section.classList.add('is-replaying');
-      const timer = setTimeout(() => { section.classList.remove('is-replaying'); timers.delete(timer); }, 7000);
-      timers.add(timer);
-    }, { signal: controller.signal });
-  });
   window.cohorteExperienceCleanup = () => {
-    reset(); controller.abort(); observer.disconnect(); timers.forEach(clearTimeout);
+    reset(); controller.abort(); observer.disconnect();
   };
 })();

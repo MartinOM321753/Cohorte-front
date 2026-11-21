@@ -4,21 +4,21 @@ import { useNavigate } from 'react-router-dom'
 const LANDING_BASE = '/landing'
 
 const CSS_FILES = [
-  'theme.css',
+  'theme.css?v=68',
   'instituciones.css',
   'retroalimentacion.css',
-  'viewport.css',
-  'selected-design.css?v=9',
+  'viewport.css?v=60',
+  'selected-design.css?v=10',
 ]
 
 const SCRIPT_FILES = [
-  'motion-preferences.js',
+  'motion-preferences.js?v=43',
   'carousels.js',
   'evaluations.js',
   'motion.js',
-  'analytics.js?v=68',
+  'analytics.js?v=69',
   'presentation.js',
-  'project-card-motion.js?v=4',
+  'project-card-motion.js?v=5',
   'i18n.js?v=73',
 ]
 
