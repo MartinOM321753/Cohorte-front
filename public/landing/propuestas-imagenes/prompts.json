@@ -31,10 +31,20 @@
       "id": "cuerpo-contorno-v3",
       "prompt": "Use the attached reference as the visual guide for a clean human body contour. Transform it into a standalone premium 3D scientific website illustration: one complete neutral adult human mannequin, front view, head to feet, arms gently separated from the torso and feet slightly apart. Frosted opaque white resin with gentle pale silver-gray shading and a slightly darker gray contour so it remains readable on a white card. Subtle external muscle volumes on shoulders, arms, abdomen and legs, with a completely closed smooth surface. Like the quiet white human figure in the reference, not exposed anatomical tissue and not a photograph of a person. Simple neutral face, no anatomical or genital details. No red, pink, flesh colors, visible muscles or organs; no measuring tape, clothing texture, machine, labels or numbers. No glass panel, frame, stand, halo, floor or props. Soft studio lighting and refined sculptural depth, uncluttered silhouette readable at small website-card size. Centered complete figure with generous margin, genuinely transparent background.",
       "file": "../assets/selected-design/body-contour-white.png"
+    },
+    {
+      "id": "brain-wireframe",
+      "prompt": "Scientific editorial asset for a health research website. Original 3D wireframe illustration of a complete human brain viewed from directly above (superior dorsal view), both hemispheres side by side and the natural central fissure. The visual language is a technical 3D model shown as a smooth polygonal quadrilateral mesh: thin intersecting silver-gray and light ivory lines tracing the outer surface and following simplified but anatomically recognizable cortical folds. Clearly three-dimensional through perspective and restrained gray shading, not a flat line icon. Controlled medium-fine mesh density, readable at about 160px. Mostly open mesh, with only extremely subtle translucent gray-white surface shading for depth; no opaque solid organ, no pink, flesh, red, veins or wet tissue. Slightly brighter silver lines toward the front, quieter darker gray lines on receding surfaces, naturally showing depth. Elegant quiet scientific visualization, not neon, no glow or particles. The complete standalone brain floats centered with generous transparent margins. NO gray background, no colored backdrop, no floor, no ambient rectangular gradient, no panel, no border, no pedestal, no text or labels. A genuinely transparent alpha background including the space surrounding the fine mesh. Cohesive premium CGI illustration.",
+      "file": "../assets/selected-design/brain-wireframe.png"
+    },
+    {
+      "id": "body-wireframe",
+      "prompt": "Scientific editorial asset for a health research website about body composition. Original 3D wireframe illustration of one complete neutral adult human figure, head to feet, facing forward, arms gently apart from the torso and legs slightly separated. The visual language is a technical 3D digital human model shown only as a clean polygonal quadrilateral surface mesh, with thin neutral silver-gray lines and a slightly darker slate gray contour tracing the external body shape. Subtle natural muscle volumes are expressed only by the curved mesh, with a closed external surface and no anatomical internal parts. Not an illustration of exposed flesh. Smooth simplified head with minimal facial geometry and no anatomical/genital detail. No musculature painted red, no skin colors, no organs, no dissection, no equipment, no measuring tape or clothing. Restrained soft gray shading with an almost transparent surface helps convey volume while preserving the open wireframe appearance. Medium-fine tidy mesh, not a dense black scribble, readable at small card size. Complete centered figure, generous transparent margins, soft neutral studio light, coherent with a scientific wireframe brain. NO gray background, no floor, no backdrop, no rectangular gradient, no frame, no pedestal, no glow, no text, labels or numbers. Genuine transparent alpha background.",
+      "file": "../assets/selected-design/body-wireframe.png"
     }
   ],
   "active": [
-    "cuerpo-contorno-v3",
-    "cerebro-superior-v2"
+    "brain-wireframe",
+    "body-wireframe"
   ]
 }

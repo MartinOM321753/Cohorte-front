@@ -205,6 +205,10 @@
     "Figura humana tridimensional en blanco y gris con contorno muscular suave": "Three-dimensional white and gray human figure with subtle muscle contours",
     "Representación del cerebro en vista superior y tonos rosados": "Top-view representation of the brain in pink tones"
   });
+  Object.assign(translations, {
+    "Figura humana tridimensional con contorno de malla en tonos grises": "Three-dimensional human figure outlined with a gray wireframe mesh",
+    "Cerebro en vista superior representado con una malla tridimensional": "Top-view brain represented by a three-dimensional wireframe mesh"
+  });
   const normalize = value => value.replace(/\s+/g, " ").trim();
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));

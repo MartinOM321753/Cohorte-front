@@ -33,3 +33,5 @@ La integración queda en `develop` local. No se publicó el sitio ni se enviaron
 Los párrafos están justificados. En instituciones, el texto introductorio y los logos están centrados verticalmente; los logos miden 104 px en escritorio y 96 px en móvil. Los selectores de indicadores y mediciones se alinean a la derecha, pasando a una fila propia cuando falta espacio.
 
 Se recuperó la secuencia de trazado de líneas, puntos, etiquetas y donas al entrar en pantalla. Con movimiento reducido los datos aparecen completos sin animación. Pasaron 24 comprobaciones adicionales de estos ajustes a 320, 390, 768 y 1440 px, incluidas la ejecución y la finalización de las animaciones.
+
+Las imágenes de composición corporal y salud mental usan la dirección elegida «Contorno con profundidad»: malla tridimensional gris, cerebro en vista superior y fondo alfa transparente. Se generaron ilustraciones originales con ImageGen; los prompts y archivos activos se registran en `public/landing/propuestas-imagenes/prompts.json`. Se comprobó su carga y colocación junto al texto a 390 y 1440 px.
