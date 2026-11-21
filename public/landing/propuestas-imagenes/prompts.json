@@ -51,12 +51,33 @@
       "id": "liver-wireframe",
       "prompt": "Original scientific editorial website asset, matching a family of quiet neutral-gray 3D wireframe brain and human-body illustrations. Technical CGI visualization: a smooth polygonal quadrilateral mesh wrapping the full external surface, thin light silver and ivory grid lines over extremely subtle translucent gray surface shading. Clearly three-dimensional, not a flat outline icon. Medium-fine tidy mesh density, with a slightly darker neutral gray contour, readable at 150px. Clean complete isolated object, centered with generous transparent margin. NO gray background, no colored backdrop, no floor, rectangular gradient, shadow plane, panel, frame, pedestal, glow, particles, text, labels or numbers. Genuinely transparent alpha background around the object. No red, pink, brown, flesh colors, blood, lesions or wet biological texture. Subject: anatomically recognizable complete human liver in a gentle three-quarter anterior-superior view. Broad rounded larger right lobe tapering into a smaller left lobe, the subtle central lobe division and smooth curved upper surface create the familiar liver silhouette. The entire organ is covered by the same silver-gray surface mesh following its broad curved form. Closed external anatomy only, no cutaways, no exposed internal vessels, no diseased texture. No separate organs or extra gallbladder object. Soft neutral studio light and restrained elegant depth.",
       "file": "../assets/selected-design/liver-wireframe.png"
+    },
+    {
+      "id": "heart-soft-natural",
+      "prompt": "Scientific-educational illustration for a health research website card. Original semi-realistic 3D medical illustration: clear recognizable anatomical shape with gently simplified volumes, smooth satin-matte surfaces and broad soft studio shadows. Natural organ colors, clean refined editorial CGI rather than photorealistic tissue. No pores, fine wet texture, gore, lesions, exposed internal anatomy, mesh or wireframe. Restrained detail, readable at 150px. One complete standalone organ centered with generous transparent margins. Genuinely transparent alpha background. No gray backdrop, ground plane, halo, panel, base, text, numbers, labels or unrelated objects. Subject: a complete human heart in an upright gentle three-quarter anterior view, apex down, simplified rounded ventricular mass, aortic arch and a few recognizable principal vessel openings. Natural muted coral-red and warm brick-red with softly lighter vessel ends, no exaggerated bright neon colors or artificial brand-green tint. Suggest only two or three broad shallow coronary contours, not a dense vein network. The aortic arch and ventricular form should remain anatomically recognizable. A polished approachable educational rendering, not a dissected specimen and not a Valentine heart symbol.",
+      "file": "../assets/selected-design/heart-soft-natural.png"
+    },
+    {
+      "id": "liver-soft-natural",
+      "prompt": "Scientific-educational illustration for a health research website card. Original semi-realistic 3D medical illustration: clear recognizable anatomical shape with gently simplified volumes, smooth satin-matte surfaces and broad soft studio shadows. Natural organ colors, clean refined editorial CGI rather than photorealistic tissue. No pores, fine wet texture, gore, lesions, exposed internal anatomy, mesh or wireframe. Restrained detail, readable at 150px. One complete standalone organ centered with generous transparent margins. Genuinely transparent alpha background. No gray backdrop, ground plane, halo, panel, base, text, numbers, labels or unrelated objects. Subject: ONLY a complete human liver, in a gentle three-quarter anterior-superior view, naturally warm reddish-brown with subtle russet tones. Broad smoothly rounded larger right lobe tapering into a smaller left lobe with one understated central division. Natural recognizable liver silhouette, smooth clean closed surface, subtle depth, simplified low-detail form. Absolutely NO gallbladder: no green sac, no small attached pouch, no bile ducts, no tubes, no separate vessels or extra organs. Just the liver by itself. Elegant medically inspired CGI, calm satin finish, not glossy wet tissue.",
+      "file": "../assets/selected-design/liver-soft-natural.png"
+    },
+    {
+      "id": "heart-selected",
+      "prompt": null,
+      "provenance": "Imagen proporcionada y seleccionada por el usuario; conservada sin cambios.",
+      "file": "../assets/selected-design/heart-selected.png"
+    },
+    {
+      "id": "liver-soft-natural-v2",
+      "prompt": "Use case: precise-object-edit. Edit target: the referenced standalone liver illustration. Preserve its exact recognizable silhouette, perspective, lobe proportions and gently simplified smooth satin-matte 3D educational style. Make its natural reddish-brown color slightly darker: a deeper warm chestnut/russet-brown, approximately 15 percent darker, with restrained soft burgundy-brown shadows and soft highlights. Do not turn it black or purple; keep an inviting, clean medical illustration without photorealistic wet texture or disease. Only the liver by itself: absolutely NO gallbladder, green sac, pouch, bile ducts, tubes, vessels or other organs. Remove the soft colored haze around the silhouette. Background must be genuinely fully transparent with clean alpha edges, no glow, halo, floor, backdrop, ground shadow, text or labels. Centered whole organ with transparent margin.",
+      "file": "../assets/selected-design/liver-soft-natural-v2.png"
     }
   ],
   "active": [
-    "heart-wireframe",
+    "heart-selected",
     "body-wireframe",
     "brain-wireframe",
-    "liver-wireframe"
+    "liver-soft-natural-v2"
   ]
 }

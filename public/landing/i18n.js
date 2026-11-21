@@ -213,6 +213,10 @@
     "Corazón humano representado con una malla tridimensional gris": "Human heart represented with a gray three-dimensional wireframe mesh",
     "Hígado humano representado con una malla tridimensional gris": "Human liver represented with a gray three-dimensional wireframe mesh"
   });
+  Object.assign(translations, {
+    "Ilustración anatómica del corazón en tonos naturales": "Anatomical heart illustration in natural colors",
+    "Ilustración tridimensional simplificada del hígado sin vesícula": "Simplified three-dimensional liver illustration without a gallbladder"
+  });
   const normalize = value => value.replace(/\s+/g, " ").trim();
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));
