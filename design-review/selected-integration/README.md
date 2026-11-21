@@ -30,8 +30,10 @@ La integración queda en `develop` local. No se publicó el sitio ni se enviaron
 
 ## Ajustes posteriores
 
-Los párrafos están justificados. En instituciones, el texto introductorio y los logos están centrados verticalmente; los logos miden 104 px en escritorio y 96 px en móvil. Los selectores de indicadores y mediciones se alinean a la derecha, pasando a una fila propia cuando falta espacio.
+Solo los párrafos de las seis tarjetas de investigación están justificados; el resto de la landing conserva su alineación original. En instituciones, el texto introductorio y los logos están centrados verticalmente; los logos miden 104 px en escritorio y 96 px en móvil. Los selectores de indicadores y mediciones se alinean a la derecha, pasando a una fila propia cuando falta espacio.
 
 Se recuperó la secuencia de trazado de líneas, puntos, etiquetas y donas al entrar en pantalla. Con movimiento reducido los datos aparecen completos sin animación. Pasaron 24 comprobaciones adicionales de estos ajustes a 320, 390, 768 y 1440 px, incluidas la ejecución y la finalización de las animaciones.
 
 Composición corporal y salud mental conservan la malla tridimensional gris, con el cerebro en vista superior. El corazón usa la imagen anatómica elegida y proporcionada por el usuario; el hígado es una ilustración de volumen suave en marrón rojizo oscuro, sin vesícula. Los archivos tienen fondo alfa transparente. Las ilustraciones generadas con ImageGen, sus prompts y la procedencia del corazón se registran en `public/landing/propuestas-imagenes/prompts.json`. Se comprobó su carga y colocación junto al texto a 390 y 1440 px.
+
+El ADN de la tarjeta de genética se sustituyó por una nueva ilustración molecular original con ImageGen. Las imágenes elegidas de corazón, hígado, cuerpo y cerebro se conservan.

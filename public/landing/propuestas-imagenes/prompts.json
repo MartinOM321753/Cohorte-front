@@ -72,12 +72,18 @@
       "id": "liver-soft-natural-v2",
       "prompt": "Use case: precise-object-edit. Edit target: the referenced standalone liver illustration. Preserve its exact recognizable silhouette, perspective, lobe proportions and gently simplified smooth satin-matte 3D educational style. Make its natural reddish-brown color slightly darker: a deeper warm chestnut/russet-brown, approximately 15 percent darker, with restrained soft burgundy-brown shadows and soft highlights. Do not turn it black or purple; keep an inviting, clean medical illustration without photorealistic wet texture or disease. Only the liver by itself: absolutely NO gallbladder, green sac, pouch, bile ducts, tubes, vessels or other organs. Remove the soft colored haze around the silhouette. Background must be genuinely fully transparent with clean alpha edges, no glow, halo, floor, backdrop, ground shadow, text or labels. Centered whole organ with transparent margin.",
       "file": "../assets/selected-design/liver-soft-natural-v2.png"
+    },
+    {
+      "id": "dna-natural-v2",
+      "prompt": "Use case: scientific-educational. Original transparent 3D illustration for the genetics and intestinal microbiota card of a health research website. One complete isolated DNA double helix, upright with a slight elegant diagonal bend, two clearly intertwined sugar-phosphate backbones and regularly paired rungs, recognizable right-handed B-DNA silhouette, about two and a half turns. Refined simplified molecular ball-and-stick model, rounded spheres and clean slender bonds. More legible and deliberately composed than a densely cluttered atom model, readable at 150px. Familiar scientific elemental color convention: charcoal-gray carbon, ivory-white hydrogen, muted vivid red oxygen, blue nitrogen and small amber-orange phosphorus accents. These are educational model colors, no brand green or gold recoloring. Smooth satin surfaces, soft neutral studio illumination, restrained realistic three-dimensional depth without wet organic textures. Whole molecule centered with generous clear margins, portrait composition. Genuinely transparent alpha background. Absolutely no backdrop, colored haze, halo, particles, floor, stand, frame, text, labels or extra molecules. Clean premium educational CGI, not a flat icon, no anatomical organs.",
+      "file": "../assets/selected-design/dna-natural-v2.png"
     }
   ],
   "active": [
     "heart-selected",
     "body-wireframe",
     "brain-wireframe",
-    "liver-soft-natural-v2"
+    "liver-soft-natural-v2",
+    "dna-natural-v2"
   ]
 }
