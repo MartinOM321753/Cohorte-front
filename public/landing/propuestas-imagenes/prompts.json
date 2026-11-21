@@ -1,0 +1,26 @@
+{
+  "generator": "image_gen built-in",
+  "transparent_background": true,
+  "concepts": [
+    {
+      "id": "cuerpo-a",
+      "prompt": "Use case: scientific-educational. Asset: transparent cutout for a health research website card about body composition and metabolism. A photorealistic studio product rendering of a generic clinical bioelectrical impedance body composition analyzer: compact white platform scale with four brushed stainless-steel foot electrodes, a slim upright column, two simple hand-held electrode handles, and a small tilted dark blank display. No people, no anatomy, no body imagery, no brand, no writing, no numbers or charts on the screen. Realistic plausible medical device design, white polymer, silver metal and charcoal screen in their real natural colors. Three-quarter view, entire complete object centered, vertical composition that reads well at 150px. Soft neutral studio lighting and crisp clean edges. No room, no floor, no stand beyond the actual scale, no colored glow. Genuine transparent background.",
+      "file": "images/cuerpo-a.png"
+    },
+    {
+      "id": "cuerpo-b",
+      "prompt": "Use case: scientific-educational. Asset: transparent cutout alternative for a body composition and metabolism research card. Photorealistic premium educational anatomical model showing one thick oval transverse cross-section through the adult abdomen, viewed obliquely like a museum teaching specimen. Emphasize the clean layered relationship of beige outer skin, natural pale-yellow subcutaneous adipose tissue, warm burgundy abdominal muscle wall, and muted internal tissues; include a small ivory vertebral section at the back for orientation. Compact single oval object, clear layers, coherent natural anatomy, restrained detail, not an actual patient scan. Clinical educational sculpture, dry matte surfaces, no blood or wounds. Centered object occupies about 75 percent of square composition, transparent margin all around. Soft studio lighting, natural colors; no artificial brand green, no neon, no labels, numbers, text, arrows, extra objects or stand. Genuine transparent background.",
+      "file": "images/cuerpo-b.png"
+    },
+    {
+      "id": "cerebro-a",
+      "prompt": "Use case: scientific-educational. Asset: transparent cutout alternative for a mental health and life context research card. Create a premium photorealistic educational anatomical model of one human brain hemisphere shown in a clean medial sagittal view, substantially different from an exterior side-view brain. Show softly pink-beige cortex around the edge, ivory corpus callosum and pale inner structures, compact cerebellum and brainstem in natural muted tissue colors. Anatomically plausible medical teaching sculpture, dry matte satin materials, not wet tissue or a surgical specimen. Three-quarter oblique view gives the cutaway depth. Simplify detail enough to remain clear at 150px. Soft neutral studio lighting, centered complete model with transparent margin, no stand, no blood, no neon, no green recoloring, no labels, numbers, text or unrelated props. Genuine transparent background.",
+      "file": "images/cerebro-a.png"
+    },
+    {
+      "id": "cerebro-b",
+      "prompt": "Use case: scientific-educational. Asset: transparent cutout alternative for a mental health and life context website card. A refined photorealistic medical teaching sculpture of a gender-neutral adult head and short neck in side profile. The head is made of subtle translucent frosted warm-ivory material, allowing a naturally pink-beige anatomically plausible human brain to be clearly visible in its correct position inside the cranium. Clean single object, calm human facial profile, no exposed wounds, no blood, no artificial glow. Opaque enough to preserve a strong head silhouette; transparent enough around the upper skull to see the brain folds. Premium editorial studio render, soft neutral lighting, natural restrained colors, strong legibility at 150px. Entire head and neck centered with generous margin on a genuinely transparent background. No shoulders, no stand, no green tint, no text, labels, numbers, extra symbols or props.",
+      "file": "images/cerebro-b.png"
+    }
+  ]
+}
