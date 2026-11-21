@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  const allowed = window.matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+  const allowed = window.matchMedia('(prefers-reduced-motion: no-preference)');
   document.querySelectorAll('#proyecto .research-plate').forEach(card => {
     let frame = 0;
     let pointer = null;
@@ -24,11 +24,11 @@
         const bounds = card.getBoundingClientRect();
         const x = Math.max(0, Math.min(1, (pointer.x - bounds.left) / bounds.width));
         const y = Math.max(0, Math.min(1, (pointer.y - bounds.top) / bounds.height));
-        card.style.setProperty('--card-rx', `${((.5 - y) * 9).toFixed(2)}deg`);
-        card.style.setProperty('--card-ry', `${((x - .5) * 9).toFixed(2)}deg`);
+        card.style.setProperty('--card-rx', `${((.5 - y) * 18).toFixed(2)}deg`);
+        card.style.setProperty('--card-ry', `${((x - .5) * 18).toFixed(2)}deg`);
         card.style.setProperty('--card-light-x', `${(x * 100).toFixed(1)}%`);
         card.style.setProperty('--card-light-y', `${(y * 100).toFixed(1)}%`);
-        card.style.setProperty('--card-shadow-x', `${((.5 - x) * 16).toFixed(1)}px`);
+        card.style.setProperty('--card-shadow-x', `${((.5 - x) * 28).toFixed(1)}px`);
         card.classList.add('is-tilting');
       });
     }, { passive: true });

@@ -251,22 +251,22 @@
 #proyecto .research-plate {
   box-shadow: 0 6px 18px #173f3210, 0 1px 3px #173f3208;
 }
-@media(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+@media(prefers-reduced-motion: no-preference) {
   html:not([data-motion="reduced"]) #proyecto .research-plate {
-    transition: transform 260ms cubic-bezier(.2,.7,.3,1), box-shadow 260ms ease;
-    transform: perspective(1100px) rotateX(0deg) rotateY(0deg);
+    transition: transform 180ms cubic-bezier(.2,.7,.3,1), box-shadow 220ms ease;
+    transform: perspective(850px) rotateX(0deg) rotateY(0deg);
     transform-origin: center;
   }
   html:not([data-motion="reduced"]) #proyecto .research-plate.is-tilting {
-    transform: perspective(1100px) rotateX(var(--card-rx, 0deg)) rotateY(var(--card-ry, 0deg)) translateY(-3px);
-    box-shadow: var(--card-shadow-x, 0px) 20px 38px #173f3229, 0 5px 12px #173f3214;
+    transform: perspective(850px) rotateX(var(--card-rx, 0deg)) rotateY(var(--card-ry, 0deg)) translateY(-7px) scale(1.015);
+    box-shadow: var(--card-shadow-x, 0px) 28px 46px #173f3240, 0 8px 18px #173f3220;
   }
   html:not([data-motion="reduced"]) #proyecto .research-plate::after {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: radial-gradient(circle at var(--card-light-x, 50%) var(--card-light-y, 50%), #ffffff24, transparent 65%);
+    background: radial-gradient(circle at var(--card-light-x, 50%) var(--card-light-y, 50%), #ffffff38, transparent 65%);
     opacity: 0;
     transition: opacity 260ms ease;
     pointer-events: none;
