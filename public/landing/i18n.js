@@ -23,7 +23,7 @@
     "Observar cambios": "Observe change", "Las diferentes mediciones permiten identificar cambios importantes y contribuyen al análisis del estudio.": "Repeated measurements help identify important changes and contribute to the study’s analyses.",
     "Integrar perspectivas": "Bring perspectives together", "Para comprender enfermedades complejas se integra la información de cuestionarios, mediciones clínicas y análisis de muestras biológicas, con una visión conjunta de la salud.": "To understand complex diseases, the study combines questionnaire data, clinical measurements, and biological sample analyses to build a broader view of health.",
     "Generar conocimiento": "Generate knowledge", "La integración y el análisis de la información permiten identificar asociaciones entre estilos de vida y distintas dimensiones de salud.": "Integrating and analyzing information helps identify associations between lifestyles and different dimensions of health.",
-    "Conocimiento que se construye": "Building knowledge", "Una misma cohorte.": "One cohort.", "Muchas preguntas por responder.": "Many questions to explore.",
+    "Conocimiento que se construye": "Building knowledge", "Una misma cohorte.": "The same cohort.", "Muchas preguntas por responder.": "Many questions to explore.",
     "La información reunida a lo largo del seguimiento ha dado lugar a publicaciones en distintas áreas de la salud, por ejemplo:": "Information gathered during follow-up has supported publications across several areas of health, including:",
     "Alimentación y salud cardiometabólica": "Diet and cardiometabolic health", "Las publicaciones de la Cohorte han analizado cómo se relacionan el consumo de bebidas, los patrones alimentarios, la presión arterial y los indicadores metabólicos.": "Cohort publications have examined how beverage consumption and dietary patterns relate to blood pressure and metabolic indicators.",
     "Composición corporal y metabolismo": "Body composition and metabolism", "El seguimiento permite estudiar la relación temporal entre la adiposidad, los estilos de vida y los indicadores de resistencia a la insulina.": "Follow-up makes it possible to study how adiposity, lifestyle, and indicators of insulin resistance relate over time.",
@@ -217,6 +217,7 @@
     "Ilustración anatómica del corazón en tonos naturales": "Anatomical heart illustration in natural colors",
     "Ilustración tridimensional simplificada del hígado sin vesícula": "Simplified three-dimensional liver illustration without a gallbladder"
   });
+  Object.assign(translations, {"Reproducir animación": "Replay animation"});
   const normalize = value => value.replace(/\s+/g, " ").trim();
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));

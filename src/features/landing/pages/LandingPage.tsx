@@ -8,7 +8,7 @@ const CSS_FILES = [
   'instituciones.css',
   'retroalimentacion.css',
   'viewport.css',
-  'selected-design.css?v=5',
+  'selected-design.css?v=6',
 ]
 
 const SCRIPT_FILES = [
@@ -18,8 +18,8 @@ const SCRIPT_FILES = [
   'motion.js',
   'analytics.js?v=68',
   'presentation.js',
-  'project-card-motion.js?v=2',
-  'i18n.js?v=72',
+  'project-card-motion.js?v=3',
+  'i18n.js?v=73',
 ]
 
 function rewritePaths(html: string): string {

@@ -1,5 +1,6 @@
 /* Selected proposal components: project, institution directory and plots only. */
 @import url('./selected-project.css');
+@import url('./project-experience.css?v=1');
 
 @font-face { font-family: Manrope; font-weight: 400; font-style: normal; font-display: swap; src: url('./assets/selected-design/fonts/manrope-2.ttf') format('truetype'); }
 @font-face { font-family: Manrope; font-weight: 500; font-style: normal; font-display: swap; src: url('./assets/selected-design/fonts/manrope-3.ttf') format('truetype'); }
@@ -247,33 +248,6 @@
   #equipo .institution-team-card { transition: none; }
 }
 
-/* Longitudinal research reads as one connected process. */
-#proyecto .research-plate {
-  box-shadow: 0 6px 18px #173f3210, 0 1px 3px #173f3208;
-}
-@media(prefers-reduced-motion: no-preference) {
-  html:not([data-motion="reduced"]) #proyecto .research-plate {
-    transition: transform 180ms cubic-bezier(.2,.7,.3,1), box-shadow 220ms ease;
-    transform: perspective(850px) rotateX(0deg) rotateY(0deg);
-    transform-origin: center;
-  }
-  html:not([data-motion="reduced"]) #proyecto .research-plate.is-tilting {
-    transform: perspective(850px) rotateX(var(--card-rx, 0deg)) rotateY(var(--card-ry, 0deg)) translateY(-7px) scale(1.015);
-    box-shadow: var(--card-shadow-x, 0px) 28px 46px #173f3240, 0 8px 18px #173f3220;
-  }
-  html:not([data-motion="reduced"]) #proyecto .research-plate::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(circle at var(--card-light-x, 50%) var(--card-light-y, 50%), #ffffff38, transparent 65%);
-    opacity: 0;
-    transition: opacity 260ms ease;
-    pointer-events: none;
-    z-index: 2;
-  }
-  html:not([data-motion="reduced"]) #proyecto .research-plate.is-tilting::after { opacity: 1; }
-}
 #estudio-longitudinal.longitudinal-section {
   padding: 88px 40px;
   background: #173f32 !important;
