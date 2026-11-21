@@ -1,24 +1,31 @@
-/* Participant story: photograph and three complementary research perspectives. */
+/* Project introduction uses an editorial heading and an asymmetric mosaic. */
 #proyecto-resumen.project-overview { padding: 84px 40px 76px; background: #f7f8f2; }
 #proyecto-resumen > .wrap { max-width: 1248px; }
-#proyecto-resumen .overview-heading { display: grid; grid-template-columns: 1.1fr 1fr; gap: 72px; align-items: end; margin-bottom: 40px; }
+#proyecto-resumen .overview-heading { text-align: center; max-width: 920px; margin: 0 auto 44px; }
 #proyecto-resumen .eyebrow { color: #6b825d; margin-bottom: 22px; }
-#proyecto-resumen h2 { font-size: clamp(38px, 4.1vw, 58px); font-weight: 500; line-height: 1.08; text-wrap: balance; }
-#proyecto-resumen .overview-intro p { font-size: 17px; line-height: 1.8; color: #526a5b; max-width: 52ch; }
-#proyecto-resumen .overview-intro .experience-replay { margin-top: 18px; }
-#proyecto-resumen .overview-story { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: clamp(36px, 5vw, 76px); align-items: center; }
-#proyecto-resumen .overview-photo { margin: 0; position: relative; border-radius: 18px; height: 470px; overflow: hidden; isolation: isolate; background: #e5eadf; }
-#proyecto-resumen .overview-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 42%; }
-#proyecto-resumen .overview-photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, #143e3226, transparent 60%); pointer-events: none; }
-#proyecto-resumen .overview-photo-frame { position: absolute; z-index: 1; inset: 18px; border: 1px solid #ffffff66; border-radius: 10px; pointer-events: none; }
-#proyecto-resumen .overview-steps { padding: 0; margin: 0; list-style: none; counter-reset: overview-step; }
-#proyecto-resumen .overview-steps li { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 24px; padding-block: 28px; border-bottom: 1px solid #d7e1d1; counter-increment: overview-step; }
-#proyecto-resumen .overview-steps li:first-child { padding-top: 0; }
-#proyecto-resumen .overview-steps li:last-child { padding-bottom: 0; border-bottom: 0; }
-#proyecto-resumen .overview-symbol { width: 60px; height: 60px; display: grid; place-items: center; color: #527348; border: 1px solid #cbd8c2; border-radius: 50%; background: #e9efdf; }
-#proyecto-resumen .overview-symbol svg { width: 33px; height: 33px; }
-#proyecto-resumen h3 { font-size: 25px; font-weight: 500; margin: 0 0 12px; line-height: 1.25; }
-#proyecto-resumen .overview-step p { font-size: 16px; line-height: 1.8; color: #526a5b; max-width: 54ch; }
+#proyecto-resumen h2 { font-size: clamp(38px,4.1vw,58px); font-weight: 500; line-height: 1.08; text-wrap: balance; }
+#proyecto-resumen .overview-intro p { font-size: 17px; line-height: 1.8; color: #526a5b; max-width: 80ch; margin: 24px auto 0; }
+#proyecto-resumen .overview-intro .experience-replay { margin-top: 20px; }
+#proyecto-resumen .overview-mosaic { display: grid; grid-template-columns: repeat(12,minmax(0,1fr)); gap: 22px; align-items: stretch; }
+#proyecto-resumen .overview-photo { grid-column: span 7; margin: 0; position: relative; border-radius: 18px; min-height: 340px; overflow: hidden; isolation: isolate; background: #e5eadf; }
+#proyecto-resumen .overview-photo img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: center 20%; }
+#proyecto-resumen .overview-photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg,#143e321a,transparent 60%); pointer-events: none; }
+#proyecto-resumen .overview-photo-frame { position: absolute; z-index: 1; inset: 16px; border: 1px solid #ffffff66; border-radius: 10px; pointer-events: none; }
+#proyecto-resumen .overview-concept { padding: 34px 38px; min-width: 0; border: 1px solid #dde4d4; border-radius: 18px; display: flex; flex-direction: column; justify-content: center; }
+#proyecto-resumen .overview-concept-1 { grid-column: span 5; background: #e6edd9; border-color: #e6edd9; }
+#proyecto-resumen .overview-concept-2 { grid-column: span 5; background: #f0efe6; border-color: #e8e5d7; }
+#proyecto-resumen .overview-concept-3 { grid-column: span 7; background: #264d3b; border-color: #264d3b; color: #f4f7ee; }
+#proyecto-resumen .overview-concept-meta { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+#proyecto-resumen .overview-index { font-size: 13px; letter-spacing: .1em; color: #6e825e; font-variant-numeric: tabular-nums; }
+#proyecto-resumen .overview-symbol { width: 44px; height: 44px; display: grid; place-items: center; color: #527348; }
+#proyecto-resumen .overview-symbol svg { width: 38px; height: 38px; }
+#proyecto-resumen h3 { font-size: 31px; font-weight: 500; margin: 26px 0 14px; line-height: 1.15; letter-spacing: -.03em; max-width: 22ch; }
+#proyecto-resumen .overview-step p { font-size: 16px; line-height: 1.8; color: #526a5b; max-width: 60ch; }
+#proyecto-resumen .overview-concept-3 p { color: #d6e2d3; }
+#proyecto-resumen .overview-concept-3 .overview-symbol, #proyecto-resumen .overview-concept-3 .overview-index { color: #c6d9b4; }
+#proyecto-resumen .overview-concept:nth-of-type(1) { --experience-delay: 0ms; }
+#proyecto-resumen .overview-concept:nth-of-type(2) { --experience-delay: 160ms; }
+#proyecto-resumen .overview-concept:nth-of-type(3) { --experience-delay: 320ms; }
 
 /* Rotation, elevation and shadow share one eased progress value. */
 #proyecto .research-plate {
@@ -46,9 +53,9 @@
 .experience-replay svg { width: 18px; height: 18px; }
 .experience-replay:hover { background: #ffffff70; border-color: #64854d; }
 .experience-replay:focus-visible { outline: 3px solid #a57b31; outline-offset: 4px; }
-#proyecto .dimension:nth-child(1), #proyecto-resumen .overview-steps li:nth-child(1) { --experience-delay: 0ms; }
-#proyecto .dimension:nth-child(2), #proyecto-resumen .overview-steps li:nth-child(2) { --experience-delay: 160ms; }
-#proyecto .dimension:nth-child(3), #proyecto-resumen .overview-steps li:nth-child(3) { --experience-delay: 320ms; }
+#proyecto .dimension:nth-child(1) { --experience-delay: 0ms; }
+#proyecto .dimension:nth-child(2) { --experience-delay: 160ms; }
+#proyecto .dimension:nth-child(3) { --experience-delay: 320ms; }
 @keyframes experience-model-enter { from { opacity: 0; transform: translateY(30px) rotateY(-18deg) scale(.86); filter: blur(5px); } to { opacity: 1; transform: none; filter: blur(0); } }
 @keyframes experience-model-float { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
 @keyframes experience-copy-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
@@ -59,12 +66,12 @@
   html:not([data-motion="reduced"]) #proyecto .dimension.is-in-view h3,
   html:not([data-motion="reduced"]) #proyecto .dimension.is-in-view p { animation: experience-copy-enter 650ms ease calc(180ms + var(--experience-delay)) both; }
   html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-photo { animation: experience-photo-enter 1100ms cubic-bezier(.2,.7,.3,1) both; }
-  html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-steps li { animation: experience-copy-enter 750ms ease calc(250ms + var(--experience-delay)) both; }
+  html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-concept { animation: experience-copy-enter 750ms ease calc(250ms + var(--experience-delay)) both; }
   html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-symbol svg { stroke-dasharray: 110; animation: experience-icon-trace 1500ms ease calc(300ms + var(--experience-delay)) both; }
 }
 /* A deliberate replay request also works with a system motion preference. */
 #proyecto-resumen.is-replaying .overview-photo { animation: experience-photo-enter 1100ms cubic-bezier(.2,.7,.3,1) both; }
-#proyecto-resumen.is-replaying .overview-steps li { animation: experience-copy-enter 750ms ease calc(250ms + var(--experience-delay)) both; }
+#proyecto-resumen.is-replaying .overview-concept { animation: experience-copy-enter 750ms ease calc(250ms + var(--experience-delay)) both; }
 #proyecto-resumen.is-replaying .overview-symbol svg { stroke-dasharray: 110; animation: experience-icon-trace 1500ms ease calc(300ms + var(--experience-delay)) both; }
 #proyecto .dimensions.is-replaying .dimension-art { animation: experience-model-enter 850ms cubic-bezier(.2,.7,.3,1) var(--experience-delay) both, experience-model-float 5s ease-in-out calc(900ms + var(--experience-delay)) 1; }
 #proyecto .dimensions.is-replaying .dimension h3,
@@ -75,22 +82,22 @@
 html[data-motion="reduced"] #proyecto .is-tilting { transform: none; }
 @media(max-width: 900px) {
   #proyecto-resumen.project-overview { padding: 60px 32px; }
-  #proyecto-resumen .overview-heading { gap: 36px; }
-  #proyecto-resumen .overview-story { grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); gap: 30px; }
-  #proyecto-resumen .overview-photo { height: 520px; }
-  #proyecto-resumen .overview-steps li { grid-template-columns: 44px minmax(0,1fr); gap: 16px; padding-block: 22px; }
-  #proyecto-resumen .overview-symbol { width: 44px; height: 44px; }
-  #proyecto-resumen .overview-symbol svg { width: 26px; height: 26px; }
-  #proyecto-resumen h3 { font-size: 22px; }
+  #proyecto-resumen .overview-mosaic { gap: 18px; }
+  #proyecto-resumen .overview-concept { padding: 28px; }
+  #proyecto-resumen .overview-photo { min-height: 320px; }
+  #proyecto-resumen h3 { font-size: 28px; }
 }
 @media(max-width: 680px) {
   #proyecto-resumen.project-overview { padding: 44px 20px; }
-  #proyecto-resumen .overview-heading, #proyecto-resumen .overview-story { grid-template-columns: minmax(0,1fr); gap: 26px; }
-  #proyecto-resumen .overview-heading { margin-bottom: 26px; }
+  #proyecto-resumen .overview-heading { margin-bottom: 28px; }
   #proyecto-resumen h2 { font-size: clamp(34px,9vw,44px); }
-  #proyecto-resumen .overview-intro p { font-size: 16px; }
-  #proyecto-resumen .overview-photo { height: 300px; }
-  #proyecto-resumen .overview-photo img { object-position: center 40%; }
+  #proyecto-resumen .overview-intro p { font-size: 16px; margin-top: 22px; }
+  #proyecto-resumen .overview-mosaic { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  #proyecto-resumen .overview-mosaic > * { grid-column: auto; }
+  #proyecto-resumen .overview-photo { height: 250px; min-height: 0; }
+  #proyecto-resumen .overview-photo img { object-position: center 20%; }
+  #proyecto-resumen .overview-concept { min-height: 0; padding: 26px; }
+  #proyecto-resumen h3 { font-size: 27px; margin-top: 22px; }
   #proyecto-resumen .overview-step p { font-size: 15px; }
   #proyecto .dimension-controls { justify-content: center; }
 }

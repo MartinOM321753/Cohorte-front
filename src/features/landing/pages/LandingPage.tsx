@@ -8,7 +8,7 @@ const CSS_FILES = [
   'instituciones.css',
   'retroalimentacion.css',
   'viewport.css',
-  'selected-design.css?v=7',
+  'selected-design.css?v=8',
 ]
 
 const SCRIPT_FILES = [
