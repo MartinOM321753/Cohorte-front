@@ -1,6 +1,6 @@
 /* Selected proposal components: project, institution directory and plots only. */
 @import url('./selected-project.css');
-@import url('./project-experience.css?v=3');
+@import url('./project-experience.css?v=4');
 
 @font-face { font-family: Manrope; font-weight: 400; font-style: normal; font-display: swap; src: url('./assets/selected-design/fonts/manrope-2.ttf') format('truetype'); }
 @font-face { font-family: Manrope; font-weight: 500; font-style: normal; font-display: swap; src: url('./assets/selected-design/fonts/manrope-3.ttf') format('truetype'); }

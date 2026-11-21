@@ -1,4 +1,4 @@
-/* Project introduction uses an editorial heading and an asymmetric mosaic. */
+/* Complementary perspectives surround one participant, without a sequence. */
 #proyecto-resumen.project-overview { padding: 84px 40px 76px; background: #f7f8f2; }
 #proyecto-resumen > .wrap { max-width: 1248px; }
 #proyecto-resumen .overview-heading { text-align: center; max-width: 920px; margin: 0 auto 44px; }
@@ -6,26 +6,23 @@
 #proyecto-resumen h2 { font-size: clamp(38px,4.1vw,58px); font-weight: 500; line-height: 1.08; text-wrap: balance; }
 #proyecto-resumen .overview-intro p { font-size: 17px; line-height: 1.8; color: #526a5b; max-width: 80ch; margin: 24px auto 0; }
 #proyecto-resumen .overview-intro .experience-replay { margin-top: 20px; }
-#proyecto-resumen .overview-mosaic { display: grid; grid-template-columns: repeat(12,minmax(0,1fr)); gap: 22px; align-items: stretch; }
-#proyecto-resumen .overview-photo { grid-column: span 7; margin: 0; position: relative; border-radius: 18px; min-height: 340px; overflow: hidden; isolation: isolate; background: #e5eadf; }
-#proyecto-resumen .overview-photo img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: center 20%; }
-#proyecto-resumen .overview-photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg,#143e321a,transparent 60%); pointer-events: none; }
-#proyecto-resumen .overview-photo-frame { position: absolute; z-index: 1; inset: 16px; border: 1px solid #ffffff66; border-radius: 10px; pointer-events: none; }
-#proyecto-resumen .overview-concept { padding: 34px 38px; min-width: 0; border: 1px solid #dde4d4; border-radius: 18px; display: flex; flex-direction: column; justify-content: center; }
-#proyecto-resumen .overview-concept-1 { grid-column: span 5; background: #e6edd9; border-color: #e6edd9; }
-#proyecto-resumen .overview-concept-2 { grid-column: span 5; background: #f0efe6; border-color: #e8e5d7; }
-#proyecto-resumen .overview-concept-3 { grid-column: span 7; background: #264d3b; border-color: #264d3b; color: #f4f7ee; }
-#proyecto-resumen .overview-concept-meta { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
-#proyecto-resumen .overview-index { font-size: 13px; letter-spacing: .1em; color: #6e825e; font-variant-numeric: tabular-nums; }
-#proyecto-resumen .overview-symbol { width: 44px; height: 44px; display: grid; place-items: center; color: #527348; }
-#proyecto-resumen .overview-symbol svg { width: 38px; height: 38px; }
-#proyecto-resumen h3 { font-size: 31px; font-weight: 500; margin: 26px 0 14px; line-height: 1.15; letter-spacing: -.03em; max-width: 22ch; }
-#proyecto-resumen .overview-step p { font-size: 16px; line-height: 1.8; color: #526a5b; max-width: 60ch; }
-#proyecto-resumen .overview-concept-3 p { color: #d6e2d3; }
-#proyecto-resumen .overview-concept-3 .overview-symbol, #proyecto-resumen .overview-concept-3 .overview-index { color: #c6d9b4; }
-#proyecto-resumen .overview-concept:nth-of-type(1) { --experience-delay: 0ms; }
-#proyecto-resumen .overview-concept:nth-of-type(2) { --experience-delay: 160ms; }
-#proyecto-resumen .overview-concept:nth-of-type(3) { --experience-delay: 320ms; }
+#proyecto-resumen .overview-perspectives { display: grid; grid-template-columns: minmax(0,1fr) 260px minmax(0,1fr); column-gap: 56px; row-gap: 8px; align-items: center; max-width: 1180px; margin: 0 auto; }
+#proyecto-resumen .overview-network { grid-column: 2; grid-row: 1; width: 100%; }
+#proyecto-resumen .overview-network svg { display: block; width: 100%; height: auto; }
+#proyecto-resumen .network-orbit { transform-origin: 160px 160px; }
+#proyecto-resumen .overview-concept { min-width: 0; }
+#proyecto-resumen .overview-concept-1 { grid-column: 1; grid-row: 1; }
+#proyecto-resumen .overview-concept-2 { grid-column: 3; grid-row: 1; }
+#proyecto-resumen .overview-concept-3 { grid-column: 1/-1; grid-row: 2; text-align: center; max-width: 650px; justify-self: center; }
+#proyecto-resumen .overview-symbol { width: 38px; height: 38px; display: grid; place-items: center; color: #668653; margin-bottom: 16px; }
+#proyecto-resumen .overview-symbol svg { width: 31px; height: 31px; }
+#proyecto-resumen .overview-concept-3 .overview-symbol { margin: 0 auto 16px; }
+#proyecto-resumen h3 { font-size: 27px; font-weight: 500; margin: 0 0 14px; line-height: 1.2; letter-spacing: -.025em; }
+#proyecto-resumen .overview-step p { font-size: 16px; line-height: 1.8; color: #526a5b; }
+#proyecto-resumen .overview-concept-3 .overview-step p { max-width: 66ch; }
+#proyecto-resumen .overview-concept-1 { --experience-delay: 100ms; }
+#proyecto-resumen .overview-concept-2 { --experience-delay: 180ms; }
+#proyecto-resumen .overview-concept-3 { --experience-delay: 260ms; }
 
 /* Rotation, elevation and shadow share one eased progress value. */
 #proyecto .research-plate {
@@ -59,18 +56,20 @@
 @keyframes experience-model-enter { from { opacity: 0; transform: translateY(30px) rotateY(-18deg) scale(.86); filter: blur(5px); } to { opacity: 1; transform: none; filter: blur(0); } }
 @keyframes experience-model-float { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
 @keyframes experience-copy-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-@keyframes experience-photo-enter { from { clip-path: inset(10% 6% round 40px); opacity: .4; transform: scale(.96); } to { clip-path: inset(0 round 18px); opacity: 1; transform: none; } }
+@keyframes experience-network-enter { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes experience-orbit { to { transform: rotate(360deg); } }
 @keyframes experience-icon-trace { from { stroke-dashoffset: 110; } to { stroke-dashoffset: 0; } }
 @media(prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .network-orbit { animation: experience-orbit 28s linear infinite; }
   html:not([data-motion="reduced"]) #proyecto .dimension.is-in-view .dimension-art { animation: experience-model-enter 850ms cubic-bezier(.2,.7,.3,1) var(--experience-delay) both, experience-model-float 6s ease-in-out calc(900ms + var(--experience-delay)) infinite; }
   html:not([data-motion="reduced"]) #proyecto .dimension.is-in-view h3,
   html:not([data-motion="reduced"]) #proyecto .dimension.is-in-view p { animation: experience-copy-enter 650ms ease calc(180ms + var(--experience-delay)) both; }
-  html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-photo { animation: experience-photo-enter 1100ms cubic-bezier(.2,.7,.3,1) both; }
+  html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-network { animation: experience-network-enter 1100ms cubic-bezier(.2,.7,.3,1) both; }
   html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-concept { animation: experience-copy-enter 750ms ease calc(250ms + var(--experience-delay)) both; }
   html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-symbol svg { stroke-dasharray: 110; animation: experience-icon-trace 1500ms ease calc(300ms + var(--experience-delay)) both; }
 }
 /* A deliberate replay request also works with a system motion preference. */
-#proyecto-resumen.is-replaying .overview-photo { animation: experience-photo-enter 1100ms cubic-bezier(.2,.7,.3,1) both; }
+#proyecto-resumen.is-replaying .overview-network { animation: experience-network-enter 1100ms cubic-bezier(.2,.7,.3,1) both; }
 #proyecto-resumen.is-replaying .overview-concept { animation: experience-copy-enter 750ms ease calc(250ms + var(--experience-delay)) both; }
 #proyecto-resumen.is-replaying .overview-symbol svg { stroke-dasharray: 110; animation: experience-icon-trace 1500ms ease calc(300ms + var(--experience-delay)) both; }
 #proyecto .dimensions.is-replaying .dimension-art { animation: experience-model-enter 850ms cubic-bezier(.2,.7,.3,1) var(--experience-delay) both, experience-model-float 5s ease-in-out calc(900ms + var(--experience-delay)) 1; }
@@ -82,22 +81,21 @@
 html[data-motion="reduced"] #proyecto .is-tilting { transform: none; }
 @media(max-width: 900px) {
   #proyecto-resumen.project-overview { padding: 60px 32px; }
-  #proyecto-resumen .overview-mosaic { gap: 18px; }
-  #proyecto-resumen .overview-concept { padding: 28px; }
-  #proyecto-resumen .overview-photo { min-height: 320px; }
-  #proyecto-resumen h3 { font-size: 28px; }
+  #proyecto-resumen .overview-perspectives { grid-template-columns: minmax(0,1fr) 170px minmax(0,1fr); column-gap: 24px; }
+  #proyecto-resumen h3 { font-size: 24px; }
 }
 @media(max-width: 680px) {
   #proyecto-resumen.project-overview { padding: 44px 20px; }
   #proyecto-resumen .overview-heading { margin-bottom: 28px; }
   #proyecto-resumen h2 { font-size: clamp(34px,9vw,44px); }
   #proyecto-resumen .overview-intro p { font-size: 16px; margin-top: 22px; }
-  #proyecto-resumen .overview-mosaic { grid-template-columns: minmax(0,1fr); gap: 16px; }
-  #proyecto-resumen .overview-mosaic > * { grid-column: auto; }
-  #proyecto-resumen .overview-photo { height: 250px; min-height: 0; }
-  #proyecto-resumen .overview-photo img { object-position: center 20%; }
-  #proyecto-resumen .overview-concept { min-height: 0; padding: 26px; }
-  #proyecto-resumen h3 { font-size: 27px; margin-top: 22px; }
+  #proyecto-resumen .overview-perspectives { display: flex; flex-direction: column; gap: 0; }
+  #proyecto-resumen .overview-network { order: -1; width: 200px; margin: 0 auto 12px; }
+  #proyecto-resumen .overview-concept { width: 100%; max-width: none; text-align: left; padding: 24px 0; border-top: 1px solid #d8e2ce; }
+  #proyecto-resumen .overview-symbol { margin: 0 0 12px; }
+  #proyecto-resumen .overview-concept-3 .overview-symbol { margin: 0 0 12px; }
+  #proyecto-resumen h3 { font-size: 25px; max-width: none; }
+  #proyecto-resumen .overview-concept-3 .overview-step p { max-width: none; }
   #proyecto-resumen .overview-step p { font-size: 15px; }
   #proyecto .dimension-controls { justify-content: center; }
 }
