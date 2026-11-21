@@ -184,6 +184,23 @@
     "Continuar": "Continue",
     "Al enviar la solicitud se abrirá tu aplicación de correo con la información capturada para que puedas revisarla antes de enviarla.": "Sending the request opens your email app with the information you entered so you can review it before sending."
   });
+  Object.assign(translations, {
+    "Áreas de investigación": "Research areas",
+    "Muchas preguntas": "Many questions",
+    "por responder.": "to explore.",
+    "Contenido del proyecto": "Project contents",
+    "Explorar la información integrada": "Explore the integrated information",
+    "Conocer al equipo": "Meet the team",
+    "Representación tridimensional del corazón": "Three-dimensional representation of the heart",
+    "Modelo tridimensional de composición corporal": "Three-dimensional body composition model",
+    "Modelo tridimensional de un hueso": "Three-dimensional bone model",
+    "Representación tridimensional del cerebro": "Three-dimensional representation of the brain",
+    "Representación molecular de una doble hélice de ADN": "Molecular representation of a DNA double helix",
+    "Modelo tridimensional del hígado": "Three-dimensional liver model",
+    "Instrumentos de evaluación clínica, cuestionario y muestra biológica": "Clinical assessment instruments, questionnaire and biological sample",
+    "Modelo tridimensional de una estructura molecular": "Three-dimensional molecular structure model",
+    "Ilustración de evaluación funcional, imagen corporal y microbioma": "Illustration of functional assessment, body imaging and microbiome"
+  });
   const normalize = value => value.replace(/\s+/g, " ").trim();
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));

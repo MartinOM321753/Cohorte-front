@@ -9,7 +9,7 @@
   const t=value=>document.documentElement.lang==='en'?(translations[value]||value):value;
   const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const num=value=>new Intl.NumberFormat(document.documentElement.lang==='en'?'en-US':'es-MX',{maximumFractionDigits:1}).format(value);
-  const colors={men:'#527e68',women:'#c49a52'};
+  const theme=getComputedStyle(document.querySelector('#indicator-plot')||document.documentElement);const colors={men:theme.getPropertyValue('--color-series-men').trim()||'#527e68',women:theme.getPropertyValue('--color-series-women').trim()||'#c49a52'};
   const $=selector=>document.querySelector(selector);
   const smooth=points=>{
     if(!points.length)return '';
@@ -28,7 +28,7 @@
     return {max,ticks};
   };
   const animateChartUpdate=(previous,next)=>{
-    if(!previous||!next)return;
+    if(!previous||!next||window.siteMotion?.matches||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
     const oldNodes=new Map([...previous.querySelectorAll('[data-transition-key]')].map(node=>[node.dataset.transitionKey,node]));
     const transitions=[];
     const attrs=['d','cx','cy','x','y','x1','y1','x2','y2'];
@@ -72,7 +72,12 @@
         select.innerHTML=items.map(item=>`<option value="${esc(item.id)}">${esc(t(item.label))}</option>`).join('');
         select.value=activeId;
       }
-      function chartGrid({w,h,left=82,right=30,top=30,bottom=72,max=100,ticks=5,xLabels,yTitle,xTitle}){
+      function plotSize(plot){
+        const w=Math.max(1,Math.round(plot.getBoundingClientRect().width));
+        return {w,h:w<520?340:w<820?360:420};
+      }
+      function chartGrid({w,h,left=null,right=w<400?32:40,top=w<520?50:30,bottom=w<520?100:72,max=100,ticks=5,xLabels,yTitle,xTitle}){
+        left=left??Math.max(64,num(max).length*8+44);
         const pw=w-left-right,ph=h-top-bottom,y=value=>top+ph-(value/max)*ph;
         const horizontal=Array.from({length:ticks+1},(_,i)=>{
           const value=max*i/ticks,yy=y(value);
@@ -80,15 +85,17 @@
         }).join('');
         const labels=xLabels.map((label,i)=>{
           const x=left+i*pw/(xLabels.length-1);
-          return `<line class="chart-guide-line" x1="${x}" x2="${x}" y1="${top}" y2="${h-bottom}"/><text x="${x}" y="${h-bottom+30}" text-anchor="middle">${esc(label)}</text>`;
+          const parts=String(label).split('–');
+          const caption=w<380&&parts.length===2?`<tspan x="${x}">${esc(parts[0])}–</tspan><tspan x="${x}" dy="17">${esc(parts[1])}</tspan>`:esc(label);
+          return `<line class="chart-guide-line" x1="${x}" x2="${x}" y1="${top}" y2="${h-bottom}"/><text x="${x}" y="${h-bottom+(w<520?52:30)}" text-anchor="middle">${caption}</text>`;
         }).join('');
-        return {y,pw,ph,base:h-bottom,left,right,top,bottom,body:`<g class="science-grid">${horizontal}${labels}<text class="axis-title" x="${left+pw/2}" y="${h-8}" text-anchor="middle">${esc(xTitle)}</text><text class="axis-title" transform="translate(18 ${top+ph/2}) rotate(-90)" text-anchor="middle">${esc(yTitle)}</text></g>`};
+        return {y,pw,ph,base:h-bottom,left,right,top,bottom,body:`<g class="science-grid">${horizontal}${labels}<text class="axis-title" x="${left+pw/2}" y="${h-8}" text-anchor="middle">${esc(xTitle)}</text><text class="axis-title" transform="translate(20 ${top+ph/2}) rotate(-90)" text-anchor="middle">${esc(yTitle)}</text></g>`};
       }
       function renderIndicators({transition=false}={}){
         const item=data.indicators.find(entry=>entry.id===activeIndicator)||data.indicators[0];if(!item)return;
         const plot=$('#indicator-plot'),previous=transition?plot.querySelector('svg')?.cloneNode(true):null;
         const observedMax=Math.max(0,...data.waves.flatMap((_,i)=>['men','women'].map(sex=>item.values[i]?.[sex]).filter(value=>value!=null)));
-        const scale=axisScale(observedMax),w=1080,h=440,g=chartGrid({w,h,xLabels:data.waves.map(wave=>wave.label),xTitle:t('Fase'),yTitle:'%',max:scale.max,ticks:scale.ticks});
+        const scale=axisScale(observedMax),{w,h}=plotSize(plot),g=chartGrid({w,h,xLabels:data.waves.map(wave=>wave.label),xTitle:t('Fase'),yTitle:'%',max:scale.max,ticks:scale.ticks});
         const xs=data.waves.map((_,i)=>g.left+i*g.pw/(data.waves.length-1));
         const defs=`<defs><linearGradient id="area-men" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${colors.men}" stop-opacity=".22"/><stop offset="1" stop-color="${colors.men}" stop-opacity=".015"/></linearGradient><linearGradient id="area-women" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${colors.women}" stop-opacity=".2"/><stop offset="1" stop-color="${colors.women}" stop-opacity=".015"/></linearGradient><linearGradient id="line-men"><stop stop-color="#91b49d"/><stop offset="1" stop-color="#3d6c53"/></linearGradient><linearGradient id="line-women"><stop stop-color="#e2c987"/><stop offset="1" stop-color="#ad792f"/></linearGradient><filter id="line-glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
         const series=['men','women'].map(sex=>{
@@ -97,25 +104,22 @@
           const path=smooth(points.map(([x,y])=>[x,y]));
           const area=`${path} L${points[points.length-1][0]},${g.base} L${points[0][0]},${g.base} Z`;
           const markers=points.map(([x,y,value,wave],i)=>{
-            const waveIndex=data.waves.indexOf(wave),labelX=x+(waveIndex===0?38:waveIndex===data.waves.length-1?-38:0);
+            const waveIndex=data.waves.indexOf(wave),labelX=x+(waveIndex===0?3:waveIndex===data.waves.length-1?-3:0);
             const peer=sex==='men'?item.values[waveIndex]?.women:item.values[waveIndex]?.men;
             const peerY=peer==null?null:g.y(peer),close=peerY!=null&&Math.abs(peerY-y)<36;
-            let labelY=Math.max(g.top+18,y-20);
-            if(close){
-              const upper=Math.min(y,peerY),lower=Math.max(y,peerY);
-              if(sex==='men')labelY=Math.max(g.top+18,upper-18);
-              else labelY=lower+30<=g.base-12?lower+30:Math.max(g.top+38,upper-44);
-            }
+            const above=peer==null||value>peer||(value===peer&&sex==='men');
+            const labelY=above?Math.max(18,y-18):y+26;
+            const anchor=waveIndex===0?'start':waveIndex===data.waves.length-1?'end':'middle';
             const label=`${t(item.label)} · ${wave.label} · ${t(sex==='men'?'Hombres':'Mujeres')}: ${num(value)}%`;
             const sample=`n=${num(wave.participants[sex])}`;
             const leader=close?`<line class="chart-label-leader" data-transition-key="${sex}-leader-${i}" x1="${x}" y1="${y}" x2="${labelX}" y2="${labelY+(labelY<y?8:-13)}"/>`:'';
             const pointDelay=i*(2150/Math.max(1,points.length-1));
-            return `<g class="chart-marker chart-marker-${sex}" style="--point-delay:${pointDelay}ms">${leader}<circle class="marker-halo" data-transition-key="${sex}-halo-${i}" cx="${x}" cy="${y}" r="14"/><circle class="marker-core" data-transition-key="${sex}-core-${i}" cx="${x}" cy="${y}" r="6"><title>${esc(label)} · ${sample}</title></circle><text class="chart-point-label" data-transition-key="${sex}-label-${i}" data-main-value="${value}" data-suffix="%" x="${labelX}" y="${labelY}" text-anchor="middle">${num(value)}%</text></g>`;
+            return `<g class="chart-marker chart-marker-${sex}" style="--point-delay:${pointDelay}ms">${leader}<circle class="marker-halo" data-transition-key="${sex}-halo-${i}" cx="${x}" cy="${y}" r="14"/><circle class="marker-core" data-transition-key="${sex}-core-${i}" cx="${x}" cy="${y}" r="6"><title>${esc(label)} · ${sample}</title></circle><text class="chart-point-label" data-transition-key="${sex}-label-${i}" data-main-value="${value}" data-suffix="%" x="${labelX}" y="${labelY}" text-anchor="${anchor}">${num(value)}%</text></g>`;
           }).join('');
-          return `<g class="chart-series chart-series-${sex}"><path class="chart-area" data-transition-key="${sex}-area" d="${area}" fill="url(#area-${sex})"/><g stroke="url(#line-${sex})" filter="url(#line-glow)">${lineSegments(points,sex)}</g>${markers}</g>`;
+          return `<g class="chart-series chart-series-${sex}"><path class="chart-area" data-transition-key="${sex}-area" d="${area}" fill="url(#area-${sex})"/><g stroke="url(#line-${sex})">${lineSegments(points,sex)}</g>${markers}</g>`;
         }).join('');
         const description=document.documentElement.lang==='en'?`${t(item.label)}: men and women, percentage across phases`:`${t(item.label)}: hombres y mujeres, porcentaje por fase`;
-        plot.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(description)}">${defs}${g.body}${series}</svg>`;
+        plot.innerHTML=`<svg viewBox="0 0 ${w} ${h}" data-compact="${w<520}" role="img" aria-label="${esc(description)}">${defs}${g.body}${series}</svg>`;
         animateChartUpdate(previous,plot.querySelector('svg'));
       }
       function renderSamples(){
@@ -132,7 +136,7 @@
         const plot=$('#measure-plot'),previous=transition?plot.querySelector('svg')?.cloneNode(true):null;
         const unit=document.documentElement.lang==='en'&&item.unit==='min/día'?'min/day':item.unit;
         const all=item.values.flatMap(phase=>['men','women'].map(sex=>phase?.[sex]?.value).filter(value=>value!=null));
-        const scale=axisScale(Math.max(...all)),max=scale.max,w=1080,h=420,g=chartGrid({w,h,max,ticks:scale.ticks,xLabels:data.waves.map(wave=>wave.label),xTitle:t('Fase'),yTitle:unit,bottom:72});
+        const scale=axisScale(Math.max(...all)),max=scale.max,{w,h}=plotSize(plot),g=chartGrid({w,h,max,ticks:scale.ticks,xLabels:data.waves.map(wave=>wave.label),xTitle:t('Fase'),yTitle:unit});
         const xs=data.waves.map((_,i)=>g.left+i*g.pw/(data.waves.length-1));
         const defs=`<defs><linearGradient id="measure-area-men" x1="0" x2="0" y1="0" y2="1"><stop stop-color="${colors.men}" stop-opacity=".2"/><stop offset="1" stop-color="${colors.men}" stop-opacity=".01"/></linearGradient><linearGradient id="measure-area-women" x1="0" x2="0" y1="0" y2="1"><stop stop-color="${colors.women}" stop-opacity=".18"/><stop offset="1" stop-color="${colors.women}" stop-opacity=".01"/></linearGradient></defs>`;
         const series=['men','women'].map(sex=>{
@@ -141,24 +145,23 @@
           const path=smooth(points.map(([x,y])=>[x,y]));
           const area=`${path} L${points[points.length-1][0]},${g.base} L${points[0][0]},${g.base} Z`;
           const markers=points.map(([x,y,raw,wave],i)=>{
-            const waveIndex=data.waves.indexOf(wave),labelX=x+(waveIndex===0?42:waveIndex===data.waves.length-1?-42:0);
+            const waveIndex=data.waves.indexOf(wave),labelX=x+(waveIndex===0?3:waveIndex===data.waves.length-1?-3:0);
             const other=sex==='men'?item.values[waveIndex]?.women:item.values[waveIndex]?.men;
             const otherY=other?g.y(other.value):null,close=otherY!=null&&Math.abs(otherY-y)<38;
-            let labelY=Math.max(g.top+18,y-20);
-            if(close){
-              const upper=Math.min(y,otherY),lower=Math.max(y,otherY);
-              if(sex==='men')labelY=Math.max(g.top+18,upper-18);
-              else labelY=lower+30<=g.base-12?lower+30:Math.max(g.top+38,upper-44);
-            }
+            const above=!other||raw.value>other.value||(raw.value===other.value&&sex==='men');
+            const compact=w<520;
+            const labelY=above?Math.max(18,y-(compact?34:18)):y+26;
+            const anchor=waveIndex===0?'start':waveIndex===data.waves.length-1?'end':'middle';
+            const parenthetical=compact?`<tspan class="parenthetical-label" x="${labelX}" dy="16">(${num(raw.parenthetical)})</tspan>`:` <tspan class="parenthetical-label">(${num(raw.parenthetical)})</tspan>`;
             const label=`${t(item.label)} · ${wave.label} · ${t(sex==='men'?'Hombres':'Mujeres')}: ${num(raw.value)} (${num(raw.parenthetical)}) ${unit}`;
             const leader=close?`<line class="chart-label-leader" data-transition-key="${sex}-leader-${i}" x1="${x}" y1="${y}" x2="${labelX}" y2="${labelY+(labelY<y?8:-13)}"/>`:'';
             const pointDelay=i*(2150/Math.max(1,points.length-1));
-            return `<g class="chart-marker chart-marker-${sex}" style="--point-delay:${pointDelay}ms">${leader}<circle class="marker-halo" data-transition-key="${sex}-halo-${i}" cx="${x}" cy="${y}" r="14"/><circle class="marker-core" data-transition-key="${sex}-core-${i}" cx="${x}" cy="${y}" r="6"><title>${esc(label)}</title></circle><text class="chart-point-label" data-transition-key="${sex}-label-${i}" data-main-value="${raw.value}" data-parenthetical="${raw.parenthetical}" x="${labelX}" y="${labelY}" text-anchor="middle">${num(raw.value)} <tspan class="parenthetical-label">(${num(raw.parenthetical)})</tspan></text></g>`;
+            return `<g class="chart-marker chart-marker-${sex}" style="--point-delay:${pointDelay}ms">${leader}<circle class="marker-halo" data-transition-key="${sex}-halo-${i}" cx="${x}" cy="${y}" r="14"/><circle class="marker-core" data-transition-key="${sex}-core-${i}" cx="${x}" cy="${y}" r="6"><title>${esc(label)}</title></circle><text class="chart-point-label" data-transition-key="${sex}-label-${i}" data-main-value="${raw.value}" data-parenthetical="${raw.parenthetical}" x="${labelX}" y="${labelY}" text-anchor="${anchor}">${num(raw.value)}${parenthetical}</text></g>`;
           }).join('');
           return `<g class="chart-series chart-series-${sex}"><path class="chart-area" data-transition-key="${sex}-area" d="${area}" fill="url(#measure-area-${sex})"/><g stroke="${colors[sex]}">${lineSegments(points,sex)}</g>${markers}</g>`;
         }).join('');
         const description=document.documentElement.lang==='en'?`${t(item.label)}, ${unit} by sex and phase`:`${t(item.label)}, ${unit} por sexo y fase`;
-        plot.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(description)}">${defs}${g.body}${series}</svg>`;
+        plot.innerHTML=`<svg viewBox="0 0 ${w} ${h}" data-compact="${w<520}" role="img" aria-label="${esc(description)}">${defs}${g.body}${series}</svg>`;
         animateChartUpdate(previous,plot.querySelector('svg'));
         const missing=item.values.some(phase=>!phase?.men||!phase?.women);
         $('#measure-availability').textContent=missing?t('Sin datos disponibles')+': '+data.waves.filter((wave,i)=>!item.values[i]?.men||!item.values[i]?.women).map(wave=>wave.label).join(', '):'';
@@ -170,6 +173,15 @@
       indicatorSelect.addEventListener('change',()=>{activeIndicator=indicatorSelect.value;renderIndicators({transition:true})});
       measureSelect.addEventListener('change',()=>{activeMeasure=measureSelect.value;renderMeasures({transition:true})});
       renderAll();
+      // SVG coordinates follow the available plot width, including rotation and
+      // late-loading styles in the SPA. The source values are never rescaled.
+      let chartWidth=0, resizeFrame=0;
+      new ResizeObserver(entries=>{
+        const width=Math.round(entries[0].contentRect.width);
+        if(width===chartWidth)return;
+        chartWidth=width;cancelAnimationFrame(resizeFrame);
+        resizeFrame=requestAnimationFrame(()=>{renderIndicators();renderMeasures()});
+      }).observe($('#indicator-plot'));
       new MutationObserver(records=>{if(records.some(record=>record.attributeName==='lang'))renderAll()}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
     }catch(error){
       console.error('No se pudieron cargar los datos de resultados.',error);
