@@ -5,7 +5,7 @@
 #proyecto-resumen .eyebrow { color: #6b825d; margin-bottom: 22px; }
 #proyecto-resumen h2 { font-size: clamp(38px,4.1vw,58px); font-weight: 500; line-height: 1.08; text-wrap: balance; }
 #proyecto-resumen .overview-intro p { font-size: 17px; line-height: 1.8; color: #526a5b; max-width: 80ch; margin: 24px auto 0; }
-#proyecto-resumen .overview-perspectives { display: grid; grid-template-columns: minmax(0,1fr) 300px minmax(0,1fr); column-gap: 56px; row-gap: 8px; align-items: center; max-width: 1180px; margin: 0 auto; }
+#proyecto-resumen .overview-perspectives { display: grid; grid-template-columns: minmax(0,1fr) 340px minmax(0,1fr); column-gap: 56px; row-gap: 8px; align-items: center; max-width: 1180px; margin: 0 auto; }
 #proyecto-resumen .overview-network { grid-column: 2; grid-row: 1; width: 100%; }
 #proyecto-resumen .overview-network svg { display: block; width: 100%; height: auto; }
 #proyecto-resumen .network-orbit { transform-origin: 160px 160px; }
@@ -35,12 +35,8 @@
 #proyecto .dimensions-grid { position: relative; }
 #proyecto .dimension { position: relative; isolation: isolate; }
 #proyecto .dimension::before { content: ''; position: absolute; width: min(90%, 250px); height: 200px; left: 50%; top: 12px; transform: translateX(-50%) scale(.94); z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, #a2be7370, #a2be7300 70%); opacity: .4; transition: opacity 550ms ease, transform 700ms ease; pointer-events: none; }
-#proyecto .dimension-art { position: relative; z-index: 1; scale: 1; translate: 0 0; transition: scale 700ms cubic-bezier(.2,.7,.3,1), translate 700ms cubic-bezier(.2,.7,.3,1); }
+#proyecto .dimension-art { position: relative; z-index: 1; }
 #proyecto .dimension h3 { position: relative; }
-#proyecto .dimension h3::after { content: ''; position: absolute; left: 0; bottom: 8px; height: 2px; width: 46px; background: #6d8d53; transform: scaleX(0); transform-origin: left; opacity: 0; transition: transform 650ms cubic-bezier(.2,.7,.3,1), opacity 350ms ease; }
-#proyecto .dimension.is-focused::before { opacity: .9; transform: translateX(-50%) scale(1.12); }
-#proyecto .dimension.is-focused .dimension-art { scale: 1.055; translate: 0 -5px; }
-#proyecto .dimension.is-focused h3::after { transform: scaleX(1); opacity: 1; }
 #proyecto .dimension:nth-child(1) { --experience-delay: 0ms; }
 #proyecto .dimension:nth-child(2) { --experience-delay: 160ms; }
 #proyecto .dimension:nth-child(3) { --experience-delay: 320ms; }
@@ -71,12 +67,9 @@
   #proyecto-resumen h2 { font-size: clamp(34px,9vw,44px); }
   #proyecto-resumen .overview-intro p { font-size: 16px; margin-top: 22px; }
   #proyecto-resumen .overview-perspectives { display: flex; flex-direction: column; gap: 0; }
-  #proyecto-resumen .overview-network { order: -1; width: 200px; margin: 0 auto 12px; }
+  #proyecto-resumen .overview-network { order: -1; width: 240px; margin: 0 auto 12px; }
   #proyecto-resumen .overview-concept { width: 100%; max-width: none; text-align: left; padding: 24px 0; border-top: 1px solid #d8e2ce; }
   #proyecto-resumen h3 { font-size: 25px; max-width: none; }
   #proyecto-resumen .overview-concept-3 .overview-step p { max-width: none; }
   #proyecto-resumen .overview-step p { font-size: 15px; }
-}
-@media(max-width: 600px) {
-  #proyecto .dimension h3::after { bottom: -3px; }
 }

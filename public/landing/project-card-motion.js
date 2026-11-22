@@ -7,7 +7,7 @@
   const options = { passive: true, signal: controller.signal };
   const states = new Map();
   const properties = ['--card-rx', '--card-ry', '--card-strength', '--card-light-x', '--card-light-y', '--card-shadow-x'];
-  let frame = 0, lastTime = 0, active = null, focused = null, touchUntil = 0;
+  let frame = 0, lastTime = 0, active = null, touchUntil = 0;
   const paint = state => {
     const style = state.card.style;
     style.setProperty('--card-rx', state.x.toFixed(3) + 'deg');
@@ -41,7 +41,6 @@
   const start = () => { if (!frame) frame = requestAnimationFrame(animate); };
   const release = () => {
     if (active) { active.target = { x: 0, y: 0, strength: 0 }; active = null; start(); }
-    if (focused) { focused.classList.remove('is-focused'); focused = null; }
   };
   const reset = () => {
     cancelAnimationFrame(frame); frame = 0; lastTime = 0;
@@ -50,18 +49,10 @@
       properties.forEach(name => state.card.style.removeProperty(name));
     });
     states.clear(); active = null;
-    if (focused) focused.classList.remove('is-focused');
-    focused = null;
   };
   document.addEventListener('mousemove', event => {
     if (event.sourceCapabilities?.firesTouchEvents || performance.now() < touchUntil || document.documentElement.dataset.motion === 'reduced') { release(); return; }
     const element = event.target instanceof Element ? event.target : null;
-    const dimension = element?.closest('#proyecto .dimension');
-    if (dimension !== focused) {
-      if (focused) focused.classList.remove('is-focused');
-      focused = dimension;
-      focused?.classList.add('is-focused');
-    }
     const card = element?.closest('#proyecto .research-plate');
     if (!card) {
       if (active) { active.target = { x: 0, y: 0, strength: 0 }; active = null; start(); }
