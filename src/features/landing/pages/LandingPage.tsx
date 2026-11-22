@@ -8,7 +8,7 @@ const CSS_FILES = [
   'instituciones.css',
   'retroalimentacion.css',
   'viewport.css?v=60',
-  'selected-design.css?v=11',
+  'selected-design.css?v=12',
 ]
 
 const SCRIPT_FILES = [
@@ -19,6 +19,7 @@ const SCRIPT_FILES = [
   'analytics.js?v=69',
   'presentation.js',
   'project-card-motion.js?v=5',
+  'institutions-motion.js?v=1',
   'i18n.js?v=74',
 ]
 
