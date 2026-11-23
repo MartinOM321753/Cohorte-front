@@ -156,7 +156,7 @@
  .data-step-actions .button{flex:1}
  .data-form-heading h2{font-size:19px}
 }
-@media(prefers-reduced-motion:reduce){.data-form-section:not([hidden]),.data-progress-list li>span:first-child,.data-step-next span,.data-submit svg{animation:none!important;transition:none!important}}
+
 
 .floating-header .site-return{color:#f6f3ea;text-decoration:none;font-size:14px}
 .floating-header .site-return:hover{text-decoration:underline}

@@ -1,0 +1,95 @@
+{
+  "generator": "image_gen built-in",
+  "transparent_background": true,
+  "concepts": [
+    {
+      "id": "cuerpo-a",
+      "prompt": "Use case: scientific-educational. Asset: transparent cutout for a health research website card about body composition and metabolism. A photorealistic studio product rendering of a generic clinical bioelectrical impedance body composition analyzer: compact white platform scale with four brushed stainless-steel foot electrodes, a slim upright column, two simple hand-held electrode handles, and a small tilted dark blank display. No people, no anatomy, no body imagery, no brand, no writing, no numbers or charts on the screen. Realistic plausible medical device design, white polymer, silver metal and charcoal screen in their real natural colors. Three-quarter view, entire complete object centered, vertical composition that reads well at 150px. Soft neutral studio lighting and crisp clean edges. No room, no floor, no stand beyond the actual scale, no colored glow. Genuine transparent background.",
+      "file": "images/cuerpo-a.png"
+    },
+    {
+      "id": "cuerpo-b",
+      "prompt": "Use case: scientific-educational. Asset: transparent cutout alternative for a body composition and metabolism research card. Photorealistic premium educational anatomical model showing one thick oval transverse cross-section through the adult abdomen, viewed obliquely like a museum teaching specimen. Emphasize the clean layered relationship of beige outer skin, natural pale-yellow subcutaneous adipose tissue, warm burgundy abdominal muscle wall, and muted internal tissues; include a small ivory vertebral section at the back for orientation. Compact single oval object, clear layers, coherent natural anatomy, restrained detail, not an actual patient scan. Clinical educational sculpture, dry matte surfaces, no blood or wounds. Centered object occupies about 75 percent of square composition, transparent margin all around. Soft studio lighting, natural colors; no artificial brand green, no neon, no labels, numbers, text, arrows, extra objects or stand. Genuine transparent background.",
+      "file": "images/cuerpo-b.png"
+    },
+    {
+      "id": "cerebro-a",
+      "prompt": "Use case: scientific-educational. Asset: transparent cutout alternative for a mental health and life context research card. Create a premium photorealistic educational anatomical model of one human brain hemisphere shown in a clean medial sagittal view, substantially different from an exterior side-view brain. Show softly pink-beige cortex around the edge, ivory corpus callosum and pale inner structures, compact cerebellum and brainstem in natural muted tissue colors. Anatomically plausible medical teaching sculpture, dry matte satin materials, not wet tissue or a surgical specimen. Three-quarter oblique view gives the cutaway depth. Simplify detail enough to remain clear at 150px. Soft neutral studio lighting, centered complete model with transparent margin, no stand, no blood, no neon, no green recoloring, no labels, numbers, text or unrelated props. Genuine transparent background.",
+      "file": "images/cerebro-a.png"
+    },
+    {
+      "id": "cerebro-b",
+      "prompt": "Use case: scientific-educational. Asset: transparent cutout alternative for a mental health and life context website card. A refined photorealistic medical teaching sculpture of a gender-neutral adult head and short neck in side profile. The head is made of subtle translucent frosted warm-ivory material, allowing a naturally pink-beige anatomically plausible human brain to be clearly visible in its correct position inside the cranium. Clean single object, calm human facial profile, no exposed wounds, no blood, no artificial glow. Opaque enough to preserve a strong head silhouette; transparent enough around the upper skull to see the brain folds. Premium editorial studio render, soft neutral lighting, natural restrained colors, strong legibility at 150px. Entire head and neck centered with generous margin on a genuinely transparent background. No shoulders, no stand, no green tint, no text, labels, numbers, extra symbols or props.",
+      "file": "images/cerebro-b.png"
+    },
+    {
+      "id": "cerebro-superior-v2",
+      "prompt": "Use case: scientific-educational. Website card asset about mental health. Premium photorealistic 3D educational rendering of a complete human cerebrum seen EXACTLY FROM ABOVE, a straight 90-degree superior dorsal view, with both cerebral hemispheres clearly visible side by side and the natural central longitudinal fissure. Top-down view only, NOT a lateral profile, not a cutaway, not a head. An appealing healthy-looking scientific illustration in soft natural rosy blush pink with subtle warm coral undertones, balanced neutral lighting and clear color; avoid pale yellow, brown, gray, green, bruised purple or sickly beige casts. Gently detailed rounded cortical folds and subtle natural asymmetry, dry satin texture rather than wet flesh. No lesions, no blood, no dramatic blood vessels, no skull, no dissection, no exposed inner anatomy. Centered whole brain with generous transparent margin, recognizable at 150px. Realistic depth and soft studio shading without any ground plane, aura, halo or background color. No labels, no text, no stand, no props. Genuine transparent background.",
+      "file": "../assets/selected-design/brain-top-pink.png"
+    },
+    {
+      "id": "cuerpo-contorno-v3",
+      "prompt": "Use the attached reference as the visual guide for a clean human body contour. Transform it into a standalone premium 3D scientific website illustration: one complete neutral adult human mannequin, front view, head to feet, arms gently separated from the torso and feet slightly apart. Frosted opaque white resin with gentle pale silver-gray shading and a slightly darker gray contour so it remains readable on a white card. Subtle external muscle volumes on shoulders, arms, abdomen and legs, with a completely closed smooth surface. Like the quiet white human figure in the reference, not exposed anatomical tissue and not a photograph of a person. Simple neutral face, no anatomical or genital details. No red, pink, flesh colors, visible muscles or organs; no measuring tape, clothing texture, machine, labels or numbers. No glass panel, frame, stand, halo, floor or props. Soft studio lighting and refined sculptural depth, uncluttered silhouette readable at small website-card size. Centered complete figure with generous margin, genuinely transparent background.",
+      "file": "../assets/selected-design/body-contour-white.png"
+    },
+    {
+      "id": "brain-wireframe",
+      "prompt": "Scientific editorial asset for a health research website. Original 3D wireframe illustration of a complete human brain viewed from directly above (superior dorsal view), both hemispheres side by side and the natural central fissure. The visual language is a technical 3D model shown as a smooth polygonal quadrilateral mesh: thin intersecting silver-gray and light ivory lines tracing the outer surface and following simplified but anatomically recognizable cortical folds. Clearly three-dimensional through perspective and restrained gray shading, not a flat line icon. Controlled medium-fine mesh density, readable at about 160px. Mostly open mesh, with only extremely subtle translucent gray-white surface shading for depth; no opaque solid organ, no pink, flesh, red, veins or wet tissue. Slightly brighter silver lines toward the front, quieter darker gray lines on receding surfaces, naturally showing depth. Elegant quiet scientific visualization, not neon, no glow or particles. The complete standalone brain floats centered with generous transparent margins. NO gray background, no colored backdrop, no floor, no ambient rectangular gradient, no panel, no border, no pedestal, no text or labels. A genuinely transparent alpha background including the space surrounding the fine mesh. Cohesive premium CGI illustration.",
+      "file": "../assets/selected-design/brain-wireframe.png"
+    },
+    {
+      "id": "body-wireframe",
+      "prompt": "Scientific editorial asset for a health research website about body composition. Original 3D wireframe illustration of one complete neutral adult human figure, head to feet, facing forward, arms gently apart from the torso and legs slightly separated. The visual language is a technical 3D digital human model shown only as a clean polygonal quadrilateral surface mesh, with thin neutral silver-gray lines and a slightly darker slate gray contour tracing the external body shape. Subtle natural muscle volumes are expressed only by the curved mesh, with a closed external surface and no anatomical internal parts. Not an illustration of exposed flesh. Smooth simplified head with minimal facial geometry and no anatomical/genital detail. No musculature painted red, no skin colors, no organs, no dissection, no equipment, no measuring tape or clothing. Restrained soft gray shading with an almost transparent surface helps convey volume while preserving the open wireframe appearance. Medium-fine tidy mesh, not a dense black scribble, readable at small card size. Complete centered figure, generous transparent margins, soft neutral studio light, coherent with a scientific wireframe brain. NO gray background, no floor, no backdrop, no rectangular gradient, no frame, no pedestal, no glow, no text, labels or numbers. Genuine transparent alpha background.",
+      "file": "../assets/selected-design/body-wireframe.png"
+    },
+    {
+      "id": "heart-wireframe",
+      "prompt": "Original scientific editorial website asset, matching a family of quiet neutral-gray 3D wireframe brain and human-body illustrations. Technical CGI visualization: a smooth polygonal quadrilateral mesh wrapping the full external surface, thin light silver and ivory grid lines over extremely subtle translucent gray surface shading. Clearly three-dimensional, not a flat outline icon. Medium-fine tidy mesh density, with a slightly darker neutral gray contour, readable at 150px. Clean complete isolated object, centered with generous transparent margin. NO gray background, no colored backdrop, no floor, rectangular gradient, shadow plane, panel, frame, pedestal, glow, particles, text, labels or numbers. Genuinely transparent alpha background around the object. No red, pink, brown, flesh colors, blood, lesions or wet biological texture. Subject: anatomically recognizable human heart, upright with its apex pointing down, three-quarter anterior view showing the rounded ventricular form, the aortic arch and a few principal vessel openings at the top. Preserve the familiar human heart silhouette, not a Valentine's heart symbol. The entire heart and vessel ends are covered by the same silver-gray surface mesh. Restrained anatomical detail, no dissection or internal cutaway. Soft neutral studio light, elegant depth, cohesive with a top-view wireframe brain.",
+      "file": "../assets/selected-design/heart-wireframe.png"
+    },
+    {
+      "id": "liver-wireframe",
+      "prompt": "Original scientific editorial website asset, matching a family of quiet neutral-gray 3D wireframe brain and human-body illustrations. Technical CGI visualization: a smooth polygonal quadrilateral mesh wrapping the full external surface, thin light silver and ivory grid lines over extremely subtle translucent gray surface shading. Clearly three-dimensional, not a flat outline icon. Medium-fine tidy mesh density, with a slightly darker neutral gray contour, readable at 150px. Clean complete isolated object, centered with generous transparent margin. NO gray background, no colored backdrop, no floor, rectangular gradient, shadow plane, panel, frame, pedestal, glow, particles, text, labels or numbers. Genuinely transparent alpha background around the object. No red, pink, brown, flesh colors, blood, lesions or wet biological texture. Subject: anatomically recognizable complete human liver in a gentle three-quarter anterior-superior view. Broad rounded larger right lobe tapering into a smaller left lobe, the subtle central lobe division and smooth curved upper surface create the familiar liver silhouette. The entire organ is covered by the same silver-gray surface mesh following its broad curved form. Closed external anatomy only, no cutaways, no exposed internal vessels, no diseased texture. No separate organs or extra gallbladder object. Soft neutral studio light and restrained elegant depth.",
+      "file": "../assets/selected-design/liver-wireframe.png"
+    },
+    {
+      "id": "heart-soft-natural",
+      "prompt": "Scientific-educational illustration for a health research website card. Original semi-realistic 3D medical illustration: clear recognizable anatomical shape with gently simplified volumes, smooth satin-matte surfaces and broad soft studio shadows. Natural organ colors, clean refined editorial CGI rather than photorealistic tissue. No pores, fine wet texture, gore, lesions, exposed internal anatomy, mesh or wireframe. Restrained detail, readable at 150px. One complete standalone organ centered with generous transparent margins. Genuinely transparent alpha background. No gray backdrop, ground plane, halo, panel, base, text, numbers, labels or unrelated objects. Subject: a complete human heart in an upright gentle three-quarter anterior view, apex down, simplified rounded ventricular mass, aortic arch and a few recognizable principal vessel openings. Natural muted coral-red and warm brick-red with softly lighter vessel ends, no exaggerated bright neon colors or artificial brand-green tint. Suggest only two or three broad shallow coronary contours, not a dense vein network. The aortic arch and ventricular form should remain anatomically recognizable. A polished approachable educational rendering, not a dissected specimen and not a Valentine heart symbol.",
+      "file": "../assets/selected-design/heart-soft-natural.png"
+    },
+    {
+      "id": "liver-soft-natural",
+      "prompt": "Scientific-educational illustration for a health research website card. Original semi-realistic 3D medical illustration: clear recognizable anatomical shape with gently simplified volumes, smooth satin-matte surfaces and broad soft studio shadows. Natural organ colors, clean refined editorial CGI rather than photorealistic tissue. No pores, fine wet texture, gore, lesions, exposed internal anatomy, mesh or wireframe. Restrained detail, readable at 150px. One complete standalone organ centered with generous transparent margins. Genuinely transparent alpha background. No gray backdrop, ground plane, halo, panel, base, text, numbers, labels or unrelated objects. Subject: ONLY a complete human liver, in a gentle three-quarter anterior-superior view, naturally warm reddish-brown with subtle russet tones. Broad smoothly rounded larger right lobe tapering into a smaller left lobe with one understated central division. Natural recognizable liver silhouette, smooth clean closed surface, subtle depth, simplified low-detail form. Absolutely NO gallbladder: no green sac, no small attached pouch, no bile ducts, no tubes, no separate vessels or extra organs. Just the liver by itself. Elegant medically inspired CGI, calm satin finish, not glossy wet tissue.",
+      "file": "../assets/selected-design/liver-soft-natural.png"
+    },
+    {
+      "id": "heart-selected",
+      "prompt": null,
+      "provenance": "Imagen proporcionada y seleccionada por el usuario; conservada sin cambios.",
+      "file": "../assets/selected-design/heart-selected.png"
+    },
+    {
+      "id": "liver-soft-natural-v2",
+      "prompt": "Use case: precise-object-edit. Edit target: the referenced standalone liver illustration. Preserve its exact recognizable silhouette, perspective, lobe proportions and gently simplified smooth satin-matte 3D educational style. Make its natural reddish-brown color slightly darker: a deeper warm chestnut/russet-brown, approximately 15 percent darker, with restrained soft burgundy-brown shadows and soft highlights. Do not turn it black or purple; keep an inviting, clean medical illustration without photorealistic wet texture or disease. Only the liver by itself: absolutely NO gallbladder, green sac, pouch, bile ducts, tubes, vessels or other organs. Remove the soft colored haze around the silhouette. Background must be genuinely fully transparent with clean alpha edges, no glow, halo, floor, backdrop, ground shadow, text or labels. Centered whole organ with transparent margin.",
+      "file": "../assets/selected-design/liver-soft-natural-v2.png"
+    },
+    {
+      "id": "dna-natural-v2",
+      "prompt": "Use case: scientific-educational. Original transparent 3D illustration for the genetics and intestinal microbiota card of a health research website. One complete isolated DNA double helix, upright with a slight elegant diagonal bend, two clearly intertwined sugar-phosphate backbones and regularly paired rungs, recognizable right-handed B-DNA silhouette, about two and a half turns. Refined simplified molecular ball-and-stick model, rounded spheres and clean slender bonds. More legible and deliberately composed than a densely cluttered atom model, readable at 150px. Familiar scientific elemental color convention: charcoal-gray carbon, ivory-white hydrogen, muted vivid red oxygen, blue nitrogen and small amber-orange phosphorus accents. These are educational model colors, no brand green or gold recoloring. Smooth satin surfaces, soft neutral studio illumination, restrained realistic three-dimensional depth without wet organic textures. Whole molecule centered with generous clear margins, portrait composition. Genuinely transparent alpha background. Absolutely no backdrop, colored haze, halo, particles, floor, stand, frame, text, labels or extra molecules. Clean premium educational CGI, not a flat icon, no anatomical organs.",
+      "file": "../assets/selected-design/dna-natural-v2.png"
+    },
+    {
+      "id": "dna-selected",
+      "prompt": null,
+      "provenance": "Imagen proporcionada y seleccionada por el usuario; conservada sin cambios.",
+      "file": "../assets/selected-design/dna-selected.png"
+    }
+  ],
+  "active": [
+    "heart-selected",
+    "body-wireframe",
+    "brain-wireframe",
+    "liver-soft-natural-v2",
+    "dna-selected"
+  ]
+}

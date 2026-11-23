@@ -1,0 +1,514 @@
+{
+  "baseline": "800d4aa",
+  "target_branch": "develop",
+  "sources": {
+    "project": "e3a1ebb",
+    "institutions_and_plots": "2ae1014"
+  },
+  "charts": {
+    "cases": 105,
+    "failures": [],
+    "metrics": [
+      {
+        "width": 320,
+        "page": [
+          320,
+          320
+        ],
+        "donuts": [
+          {
+            "client": [
+              248,
+              163
+            ],
+            "scroll": [
+              248,
+              163
+            ]
+          },
+          {
+            "client": [
+              248,
+              163
+            ],
+            "scroll": [
+              248,
+              163
+            ]
+          },
+          {
+            "client": [
+              248,
+              163
+            ],
+            "scroll": [
+              248,
+              163
+            ]
+          }
+        ],
+        "hiddenStats": [],
+        "images": []
+      },
+      {
+        "width": 390,
+        "page": [
+          390,
+          390
+        ],
+        "donuts": [
+          {
+            "client": [
+              318,
+              163
+            ],
+            "scroll": [
+              318,
+              163
+            ]
+          },
+          {
+            "client": [
+              318,
+              163
+            ],
+            "scroll": [
+              318,
+              163
+            ]
+          },
+          {
+            "client": [
+              318,
+              163
+            ],
+            "scroll": [
+              318,
+              163
+            ]
+          }
+        ],
+        "hiddenStats": [],
+        "images": []
+      },
+      {
+        "width": 768,
+        "page": [
+          768,
+          768
+        ],
+        "donuts": [
+          {
+            "client": [
+              321,
+              163
+            ],
+            "scroll": [
+              321,
+              163
+            ]
+          },
+          {
+            "client": [
+              321,
+              163
+            ],
+            "scroll": [
+              321,
+              163
+            ]
+          },
+          {
+            "client": [
+              321,
+              163
+            ],
+            "scroll": [
+              321,
+              163
+            ]
+          }
+        ],
+        "hiddenStats": [],
+        "images": []
+      },
+      {
+        "width": 1024,
+        "page": [
+          1024,
+          1024
+        ],
+        "donuts": [
+          {
+            "client": [
+              279,
+              163
+            ],
+            "scroll": [
+              279,
+              163
+            ]
+          },
+          {
+            "client": [
+              279,
+              163
+            ],
+            "scroll": [
+              279,
+              163
+            ]
+          },
+          {
+            "client": [
+              279,
+              163
+            ],
+            "scroll": [
+              279,
+              163
+            ]
+          }
+        ],
+        "hiddenStats": [],
+        "images": []
+      },
+      {
+        "width": 1440,
+        "page": [
+          1440,
+          1440
+        ],
+        "donuts": [
+          {
+            "client": [
+              359,
+              163
+            ],
+            "scroll": [
+              359,
+              163
+            ]
+          },
+          {
+            "client": [
+              359,
+              163
+            ],
+            "scroll": [
+              359,
+              163
+            ]
+          },
+          {
+            "client": [
+              359,
+              163
+            ],
+            "scroll": [
+              359,
+              163
+            ]
+          }
+        ],
+        "hiddenStats": [],
+        "images": []
+      }
+    ]
+  },
+  "functional": [
+    {
+      "name": "Six approved research cards",
+      "ok": true
+    },
+    {
+      "name": "Three approved information dimensions",
+      "ok": true
+    },
+    {
+      "name": "Nine institution destinations",
+      "ok": true
+    },
+    {
+      "name": "No page overflow 320",
+      "ok": true,
+      "detail": [
+        320,
+        320
+      ]
+    },
+    {
+      "name": "Research images beside text 320",
+      "ok": true
+    },
+    {
+      "name": "Information images above text 320",
+      "ok": true
+    },
+    {
+      "name": "No page overflow 390",
+      "ok": true,
+      "detail": [
+        390,
+        390
+      ]
+    },
+    {
+      "name": "Research images beside text 390",
+      "ok": true
+    },
+    {
+      "name": "Information images above text 390",
+      "ok": true
+    },
+    {
+      "name": "No page overflow 768",
+      "ok": true,
+      "detail": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "Research images beside text 768",
+      "ok": true
+    },
+    {
+      "name": "Information images above text 768",
+      "ok": true
+    },
+    {
+      "name": "No page overflow 1440",
+      "ok": true,
+      "detail": [
+        1440,
+        1440
+      ]
+    },
+    {
+      "name": "Research images beside text 1440",
+      "ok": true
+    },
+    {
+      "name": "Information images above text 1440",
+      "ok": true
+    },
+    {
+      "name": "Mobile menu opens",
+      "ok": true
+    },
+    {
+      "name": "Mobile menu closes",
+      "ok": true
+    },
+    {
+      "name": "Project internal navigation",
+      "ok": true
+    },
+    {
+      "name": "English language enabled",
+      "ok": true
+    },
+    {
+      "name": "New project navigation translated",
+      "ok": true
+    },
+    {
+      "name": "Split project heading translated",
+      "ok": true
+    },
+    {
+      "name": "Approved research translated",
+      "ok": true
+    },
+    {
+      "name": "Information heading translated",
+      "ok": true
+    },
+    {
+      "name": "Institution heading translated",
+      "ok": true
+    },
+    {
+      "name": "Chart translation retained",
+      "ok": true
+    },
+    {
+      "name": "Spanish restored",
+      "ok": true
+    },
+    {
+      "name": "Social and contact URLs retained",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-imss.html",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-unam.html",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-cipps.html",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-insp.html",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-inmegen.html",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-nutricion.html",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-psiquiatria.html",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-diabetes-morelos.html",
+      "ok": true
+    },
+    {
+      "name": "Institution route institucion-inr.html",
+      "ok": true
+    },
+    {
+      "name": "Existing evaluation modal",
+      "ok": true
+    },
+    {
+      "name": "Existing form destination",
+      "ok": true
+    },
+    {
+      "name": "Existing required form validation",
+      "ok": true
+    },
+    {
+      "name": "Existing login redirection",
+      "ok": true
+    }
+  ],
+  "unchanged_data_and_form_files": [
+    "public/landing/results-data.json",
+    "public/landing/evaluations-data.json",
+    "public/landing/solicitud-datos.html",
+    "public/landing/solicitud-datos.js"
+  ],
+  "unchanged_sections": [
+    "inicio",
+    "colaboracion",
+    "evolucion",
+    "evaluaciones",
+    "campo",
+    "resultados",
+    "preguntas",
+    "informacion"
+  ],
+  "all_original_paragraphs_and_destinations_retained": true,
+  "requested_adjustments": {
+    "checks": [
+      {
+        "name": "Page fits 320",
+        "ok": true
+      },
+      {
+        "name": "Selectors aligned right 320",
+        "ok": true
+      },
+      {
+        "name": "Large vertically centered logos 320",
+        "ok": true
+      },
+      {
+        "name": "Paragraphs justified 320",
+        "ok": true
+      },
+      {
+        "name": "Reduced motion stays visible without internal scrolling 320",
+        "ok": true
+      },
+      {
+        "name": "Page fits 390",
+        "ok": true
+      },
+      {
+        "name": "Selectors aligned right 390",
+        "ok": true
+      },
+      {
+        "name": "Large vertically centered logos 390",
+        "ok": true
+      },
+      {
+        "name": "Paragraphs justified 390",
+        "ok": true
+      },
+      {
+        "name": "Reduced motion stays visible without internal scrolling 390",
+        "ok": true
+      },
+      {
+        "name": "Page fits 768",
+        "ok": true
+      },
+      {
+        "name": "Selectors aligned right 768",
+        "ok": true
+      },
+      {
+        "name": "Large vertically centered logos 768",
+        "ok": true
+      },
+      {
+        "name": "Paragraphs justified 768",
+        "ok": true
+      },
+      {
+        "name": "Reduced motion stays visible without internal scrolling 768",
+        "ok": true
+      },
+      {
+        "name": "Page fits 1440",
+        "ok": true
+      },
+      {
+        "name": "Selectors aligned right 1440",
+        "ok": true
+      },
+      {
+        "name": "Large vertically centered logos 1440",
+        "ok": true
+      },
+      {
+        "name": "Paragraphs justified 1440",
+        "ok": true
+      },
+      {
+        "name": "Reduced motion stays visible without internal scrolling 1440",
+        "ok": true
+      },
+      {
+        "name": "Line drawing animation restored",
+        "ok": true
+      },
+      {
+        "name": "Line animation finishes",
+        "ok": true
+      },
+      {
+        "name": "Donut drawing animation restored",
+        "ok": true
+      },
+      {
+        "name": "Animated participant figures remain visible",
+        "ok": true
+      }
+    ]
+  }
+}
