@@ -67,7 +67,8 @@ async page => {
   await page.locator('#captcha-test-pass').click();captchaPassed=true;
   await page.evaluate(()=>Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:(_,failure)=>failure({code:1})}}));
   await page.locator('.data-submit').click();
-  await page.waitForFunction(()=>document.querySelector('#data-submit-status').dataset.message==='denied');
+  await page.locator('dialog[data-result=error]').waitFor({state:'visible'});
+  assert(await page.locator('#data-submit-status').textContent()==='', 'Duplicate error below form');
   assert(submissions.length===0,'Submitted with denied geolocation');
   await page.locator('.request-result-close').click();
   await page.evaluate(()=>delete navigator.geolocation);
@@ -78,7 +79,9 @@ async page => {
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Horizontal overflow at '+width);
   }
   await page.locator('.data-submit').click();
-  await page.waitForFunction(()=>document.querySelector('#data-submit-status').dataset.message==='success');
+  await page.locator('dialog[data-result=success]').waitFor({state:'visible'});
+  assert(await page.locator('#data-submit-status').textContent()==='', 'Duplicate success below form');
+  assert(await page.locator('.data-step-footer-note').count()===0, 'Footer notice still present');
   assert(submissions.length===1,'Duplicate/missing submission');
   const sent=submissions[0];
   assert(sent.phone==='5512345678'&&sent.purpose==='academic'&&sent.emailVerificationToken===token,'Missing normalized/security fields');

@@ -75,7 +75,6 @@
    steps.forEach((step,index)=>{if(index===activeStep)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current');step.classList.toggle('is-complete',index<activeStep);});
    currentLabel.textContent=tr('Paso '+(activeStep+1)+' de 3 · '+['Datos personales','Proyecto','Producto académico'][activeStep],'Step '+(activeStep+1)+' of 3 · '+['Applicant details','Project','Academic product'][activeStep]);
    back.hidden=activeStep===0;next.hidden=activeStep===2;submit.hidden=activeStep!==2;
-   form.querySelectorAll('.data-step-footer-note').forEach(note=>note.hidden=activeStep!==2);
  };
  const goToStep=index=>{
    activeStep=Math.max(0,Math.min(2,index));updateProgress();
@@ -210,6 +209,7 @@
      if(error.code==='EMAIL_VERIFICATION_INVALID'){invalidateEmail();goToStep(0);message(emailStatus,'expired',true);}
    }finally{
      if(status.textContent)window.requestFeedback?.show(status.classList.contains('data-submit-success'),status.textContent);
+     status.textContent='';delete status.dataset.message;status.className='data-submit-status';
      if(posted)window.requestCaptcha?.reset();submitting=false;submit.disabled=false;refreshButtons();
    }
  });
