@@ -144,20 +144,30 @@
     if (!consent.checked) { message(locationStatus, 'consent', true); reject(new Error('consent')); return; }
     if (!window.isSecureContext || !navigator.geolocation) { message(locationStatus, 'locationUnavailable', true); reject(new Error('unsupported')); return; }
     message(locationStatus, 'locating');
-    const attempt = retry => navigator.geolocation.getCurrentPosition(
+    // Keep transient failures and unusable fixes within one user action.
+    const retryLocation = index => {
+      if (index >= 3 || !consent.checked || generation !== locationGeneration) return false;
+      locationStatus.textContent = tr('Afinando la ubicación. Reintentando automáticamente…', 'Refining location. Retrying automatically…');
+      setTimeout(() => {
+        if (!consent.checked || generation !== locationGeneration) { reject(new Error('consent')); return; }
+        attempt(index + 1);
+      }, 500);
+      return true;
+    };
+    const attempt = index => navigator.geolocation.getCurrentPosition(
       pos => {
         if (!consent.checked || generation !== locationGeneration) { reject(new Error('consent')); return; }
         const { latitude, longitude, accuracy } = pos.coords;
-        if (![latitude, longitude, accuracy, pos.timestamp].every(Number.isFinite) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || accuracy <= 0 || accuracy > 100000 || Date.now() - pos.timestamp > 240000 || Date.now() - pos.timestamp < -60000) { message(locationStatus, 'locationUnavailable', true); reject(new Error('invalid')); return; }
+        if (![latitude, longitude, accuracy, pos.timestamp].every(Number.isFinite) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || accuracy <= 0 || accuracy > 100000 || Date.now() - pos.timestamp > 240000 || Date.now() - pos.timestamp < -60000) {
+          if (retryLocation(index)) return;
+          location = null; message(locationStatus, 'locationUnavailable', true); reject(new Error('invalid')); return;
+        }
         location = { latitude, longitude, locationAccuracy: accuracy, locationCapturedAt: pos.timestamp };
         message(locationStatus, 'locationReady');
         resolve(location);
       },
       error => {
-        if (error.code !== 1 && !retry && consent.checked && generation === locationGeneration) {
-          locationStatus.textContent = tr('La ubicación está tardando. Reintentando automáticamente…', 'Location is taking longer. Retrying automatically…');
-          attempt(true); return;
-        }
+        if (error.code !== 1 && retryLocation(index)) return;
         location = null;
         locationStatus.textContent = error.code === 1 ? tr('Permite la ubicación en el navegador y en tu dispositivo.', 'Allow location in your browser and device.') : error.code === 3 ? tr('La ubicación tardó demasiado. Comprueba tu conexión y que la ubicación esté activada.', 'Location timed out. Check your connection and location settings.') : tr('El dispositivo no pudo determinar tu ubicación. Comprueba tu conexión y el servicio de ubicación.', 'Your device could not determine its location. Check your connection and location service.');
         if(error.code===1)locationStatus.textContent += tr(' Revisa el permiso de ubicación de este sitio.',' Check this site’s location permission.');
@@ -165,9 +175,9 @@
         locationStatus.dataset.message = error.code === 1 ? 'denied' : 'locationUnavailable';
         locationStatus.classList.add('is-error'); reject(new Error('location'));
       },
-      { enableHighAccuracy: !retry, maximumAge: retry ? 60000 : 0, timeout: retry ? 4000 : 8000 }
+      { enableHighAccuracy: index !== 1, maximumAge: index === 1 ? 60000 : 0, timeout: index === 1 ? 4000 : 8000 }
     );
-    attempt(false);
+    attempt(0);
     });
   };
 
