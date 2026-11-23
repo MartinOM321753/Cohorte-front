@@ -29,7 +29,7 @@
    confirming:['Verificando código…','Checking code…'],
    consent:['Autoriza el uso de tu ubicación antes de compartirla.','Authorize the use of your location before sharing it.'],
    locating:['Obteniendo ubicación…','Getting location…'],
-   locationReady:['Ubicación obtenida. Se actualizará al enviar la solicitud.','Location obtained. It will be refreshed when submitting.'],
+   locationReady:['Ubicación obtenida. Se usará al enviar mientras siga vigente.','Location obtained. It will be used while still current.'],
    denied:['No se pudo acceder a tu ubicación. Activa el permiso del navegador para enviar.','Location access failed. Enable browser permission to submit.'],
    locationUnavailable:['No se pudo obtener una ubicación válida. Comprueba tu ubicación e intenta de nuevo.','A valid location could not be obtained. Check your location and try again.'],
    unsupported:['Este navegador no permite obtener la ubicación. Abre el sitio con HTTPS en un navegador compatible.','This browser cannot get your location. Open the HTTPS site in a supported browser.'],
@@ -124,28 +124,56 @@
    }catch(error){message(emailStatus,error.key||'invalidCode',true);}
    finally{emailBusy=false;refreshButtons();}
  });
- const acquireLocation=()=>new Promise((resolve,reject)=>{
-   if(!consent.checked){message(locationStatus,'consent',true);reject(new Error('location'));return;}
-   if(!window.isSecureContext||!navigator.geolocation){message(locationStatus,'unsupported',true);reject(new Error('location'));return;}
-   locationBusy=true;refreshButtons();message(locationStatus,'locating');
-   navigator.geolocation.getCurrentPosition(position=>{
-     locationBusy=false;
-     if(!consent.checked){location=null;message(locationStatus,'consent',true);refreshButtons();reject(new Error('location'));return;}
-     const {latitude,longitude,accuracy}=position.coords;
-     if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||!Number.isFinite(accuracy)||Math.abs(latitude)>90||Math.abs(longitude)>180||accuracy<=0||accuracy>100000||!Number.isFinite(position.timestamp)||Date.now()-position.timestamp>300000||Date.now()-position.timestamp< -60000){
-       location=null;message(locationStatus,'locationUnavailable',true);refreshButtons();reject(new Error('location'));return;
-     }
-     location={latitude,longitude,locationAccuracy:accuracy,locationCapturedAt:position.timestamp};
-     message(locationStatus,'locationReady');refreshButtons();resolve(location);
-   },error=>{
-     location=null;locationBusy=false;message(locationStatus,error.code===1?'denied':'locationUnavailable',true);refreshButtons();reject(new Error('location'));
-   },{enableHighAccuracy:true,maximumAge:0,timeout:15000});
- });
- shareLocation.addEventListener('click',()=>acquireLocation().catch(()=>{}));
- consent.addEventListener('change',()=>{if(!consent.checked){location=null;locationStatus.textContent='';delete locationStatus.dataset.message;refreshButtons();}});
- if(navigator.permissions?.query)navigator.permissions.query({name:'geolocation'}).then(permission=>{
-   locationPermission=permission;permission.addEventListener('change',()=>{if(permission.state==='denied'){location=null;message(locationStatus,'denied',true);refreshButtons();}});
- }).catch(()=>{});
+  let locationPending = null;
+  let locationGeneration = 0;
+  const acquireLocation = () => {
+    if (locationPending) return locationPending;
+    locationPending = obtainLocation().finally(() => { locationPending = null; shareLocation.disabled = false; });
+    return locationPending;
+  };
+  const obtainLocation = async () => {
+    if (!consent.checked) { message(locationStatus, 'consent', true); throw new Error('consent'); }
+    let permission;
+    try { permission = await navigator.permissions?.query({ name: 'geolocation' }); } catch {}
+    locationPermission = permission || null;
+    if (permission?.state === 'denied') { location = null; message(locationStatus, 'denied', true); throw new Error('location'); }
+    if (location && permission?.state === 'granted' && Date.now() - location.locationCapturedAt >= 0 && Date.now() - location.locationCapturedAt < 240000) return location;
+    shareLocation.disabled = true;
+    const generation = locationGeneration;
+    return new Promise((resolve, reject) => {
+    if (!consent.checked) { message(locationStatus, 'consent', true); reject(new Error('consent')); return; }
+    if (!window.isSecureContext || !navigator.geolocation) { message(locationStatus, 'locationUnavailable', true); reject(new Error('unsupported')); return; }
+    message(locationStatus, 'locating');
+    const attempt = retry => navigator.geolocation.getCurrentPosition(
+      pos => {
+        if (!consent.checked || generation !== locationGeneration) { reject(new Error('consent')); return; }
+        const { latitude, longitude, accuracy } = pos.coords;
+        if (![latitude, longitude, accuracy, pos.timestamp].every(Number.isFinite) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || accuracy <= 0 || accuracy > 100000 || Date.now() - pos.timestamp > 240000 || Date.now() - pos.timestamp < -60000) { message(locationStatus, 'locationUnavailable', true); reject(new Error('invalid')); return; }
+        location = { latitude, longitude, locationAccuracy: accuracy, locationCapturedAt: pos.timestamp };
+        message(locationStatus, 'locationReady');
+        resolve(location);
+      },
+      error => {
+        if (error.code !== 1 && !retry && consent.checked && generation === locationGeneration) {
+          locationStatus.textContent = tr('La ubicación está tardando. Reintentando automáticamente…', 'Location is taking longer. Retrying automatically…');
+          attempt(true); return;
+        }
+        location = null;
+        locationStatus.textContent = error.code === 1 ? tr('Permite la ubicación en el navegador y en tu dispositivo.', 'Allow location in your browser and device.') : error.code === 3 ? tr('La ubicación tardó demasiado. Comprueba tu conexión y que la ubicación esté activada.', 'Location timed out. Check your connection and location settings.') : tr('El dispositivo no pudo determinar tu ubicación. Comprueba tu conexión y el servicio de ubicación.', 'Your device could not determine its location. Check your connection and location service.');
+        locationStatus.dataset.message = error.code === 1 ? 'denied' : 'locationUnavailable';
+        locationStatus.classList.add('is-error'); reject(new Error('location'));
+      },
+      { enableHighAccuracy: retry, maximumAge: 60000, timeout: retry ? 20000 : 10000 }
+    );
+    attempt(false);
+    });
+  };
+
+  shareLocation.addEventListener('click', () => acquireLocation().catch(() => {}));
+  consent.addEventListener('change', () => {
+    if (!consent.checked) { locationGeneration++; location = null; locationStatus.textContent = ''; }
+  });
+
  purpose.addEventListener('change',syncPurpose);otherProduct.addEventListener('change',syncOtherProduct);
  back.addEventListener('click',()=>goToStep(activeStep-1));
  next.addEventListener('click',()=>{if(validateSection(activeStep))goToStep(activeStep+1);});
