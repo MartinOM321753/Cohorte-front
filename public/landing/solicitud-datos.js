@@ -191,16 +191,19 @@
    let posted=false;
    submitting=true;submit.disabled=true;refreshButtons();status.className='data-submit-status';message(status,'checking');
    try{
-     if(locationPermission?.state==='denied'){message(locationStatus,'denied',true);throw new Error('location');}
      const currentLocation=await acquireLocation();
      if(!consent.checked||locationPermission?.state==='denied'){message(locationStatus,'consent',true);throw new Error('location');}
      if(!verified()){goToStep(0);message(emailStatus,'expired',true);throw new Error('verification');}
      const values=new FormData(form);
+     if(!window.requestCaptcha?.getToken()){window.requestCaptcha?.require();throw Object.assign(new Error('captcha'),{key:'captcha'});}
      posted=true;
      await request('',{fullName:values.get('fullName'),organization:values.get('organization'),email:canonicalEmail(),phone:values.get('phone'),purpose:purpose.value,purposeOther:purpose.value==='other'?values.get('purposeOther'):null,project:values.get('project'),requestedInformation:values.get('requestedInformation'),products:products.map(input=>input.value),productOther:otherProduct.checked?values.get('productOther'):null,website:values.get('website')||'',emailVerificationToken:verificationToken,captchaToken,locationConsent:true,...currentLocation});
      form.reset();invalidateEmail();location=null;locationStatus.textContent='';delete locationStatus.dataset.message;emailStatus.textContent='';delete emailStatus.dataset.message;syncPurpose();syncOtherProduct();activeStep=0;updateProgress();status.className='data-submit-status data-submit-success';message(status,'success');
    }catch(error){
-     status.className='data-submit-status data-submit-error';message(status,error.message==='location'?(locationStatus.dataset.message||'locationUnavailable'):error.key||'failure',true);
+     status.className='data-submit-status data-submit-error';
+     if(['location','consent','unsupported','invalid'].includes(error.message)){
+       status.dataset.message=locationStatus.dataset.message||'locationUnavailable';status.textContent=locationStatus.textContent;status.classList.add('is-error');
+     }else message(status,error.key||'failure',true);
      if(error.code==='EMAIL_VERIFICATION_INVALID'){invalidateEmail();goToStep(0);message(emailStatus,'expired',true);}
    }finally{if(posted)window.requestCaptcha?.reset();submitting=false;submit.disabled=false;refreshButtons();}
  });

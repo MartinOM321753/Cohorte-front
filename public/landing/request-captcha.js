@@ -22,7 +22,8 @@
       widget=window.turnstile.render(container,{sitekey:body.data.siteKey,action:'data_request',language:document.documentElement.lang==='en'?'en':'es',theme:'light',size:'flexible','response-field':false,
         callback:value=>{token=value;receivedAt=Date.now();tell(body.data.testMode?'CAPTCHA de prueba completado.':'Verificación antispam completada.',body.data.testMode?'Test CAPTCHA completed.':'Anti-spam verification completed.');},
         'expired-callback':()=>{clear();tell('La verificación venció. Complétala de nuevo.','Verification expired. Complete it again.',true);},
-        'error-callback':()=>{clear();retry.hidden=false;tell('No se pudo completar la verificación. Reintenta.','Verification failed. Please retry.',true);}
+        'error-callback':code=>{clear();retry.hidden=false;const detail=/^\d{6}$/.test(String(code))?' ('+code+')':'';tell('El CAPTCHA no pudo completarse'+detail+'. Pulsa Reintentar verificación.','CAPTCHA could not complete'+detail+'. Select Retry verification.',true);},
+        'timeout-callback':()=>{clear();retry.hidden=false;tell('El CAPTCHA agotó su tiempo. Pulsa Reintentar verificación.','CAPTCHA timed out. Select Retry verification.',true);}
       });
       tell(body.data.testMode?'CAPTCHA en modo de pruebas local.':'Completa la verificación para enviar.',body.data.testMode?'CAPTCHA in local testing mode.':'Complete verification to submit.');
     }catch{
