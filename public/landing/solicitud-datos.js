@@ -134,9 +134,10 @@
   const obtainLocation = async () => {
     if (!consent.checked) { message(locationStatus, 'consent', true); throw new Error('consent'); }
     let permission;
-    try { permission = await navigator.permissions?.query({ name: 'geolocation' }); } catch {}
-    locationPermission = permission || null;
-    if (permission?.state === 'denied') { location = null; message(locationStatus, 'denied', true); throw new Error('location'); }
+    // Query permission only to reuse a previous fix. For a new acquisition,
+    // getCurrentPosition is authoritative, as it is in the login flow.
+    if (location) try { permission = await navigator.permissions?.query({ name: 'geolocation' }); } catch {}
+    locationPermission = null;
     if (location && permission?.state === 'granted' && Date.now() - location.locationCapturedAt >= 0 && Date.now() - location.locationCapturedAt < 240000) return location;
     shareLocation.disabled = true;
     const generation = locationGeneration;
@@ -160,12 +161,12 @@
         }
         location = null;
         locationStatus.textContent = error.code === 1 ? tr('Permite la ubicación en el navegador y en tu dispositivo.', 'Allow location in your browser and device.') : error.code === 3 ? tr('La ubicación tardó demasiado. Comprueba tu conexión y que la ubicación esté activada.', 'Location timed out. Check your connection and location settings.') : tr('El dispositivo no pudo determinar tu ubicación. Comprueba tu conexión y el servicio de ubicación.', 'Your device could not determine its location. Check your connection and location service.');
-        locationStatus.textContent += tr(' En Windows: Configuración → Privacidad y seguridad → Ubicación → activa Servicios de ubicación y el acceso para aplicaciones de escritorio.',' On Windows: Settings → Privacy & security → Location → enable Location services and desktop app access.');
+        if(error.code===1)locationStatus.textContent += tr(' Revisa el permiso de ubicación de este sitio.',' Check this site’s location permission.');
         locationStatus.textContent += ' (' + (error.code === 1 ? 'GEO_PERMISSION_DENIED' : error.code === 3 ? 'GEO_TIMEOUT' : 'GEO_POSITION_UNAVAILABLE') + ')';
         locationStatus.dataset.message = error.code === 1 ? 'denied' : 'locationUnavailable';
         locationStatus.classList.add('is-error'); reject(new Error('location'));
       },
-      { enableHighAccuracy: retry, maximumAge: 60000, timeout: retry ? 20000 : 10000 }
+      { enableHighAccuracy: !retry, maximumAge: retry ? 60000 : 0, timeout: retry ? 4000 : 8000 }
     );
     attempt(false);
     });
