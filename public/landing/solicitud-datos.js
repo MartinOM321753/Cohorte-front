@@ -207,7 +207,10 @@
        status.dataset.message=locationStatus.dataset.message||'locationUnavailable';status.textContent=locationStatus.textContent;status.classList.add('is-error');
      }else message(status,error.key||'failure',true);
      if(error.code==='EMAIL_VERIFICATION_INVALID'){invalidateEmail();goToStep(0);message(emailStatus,'expired',true);}
-   }finally{if(posted)window.requestCaptcha?.reset();submitting=false;submit.disabled=false;refreshButtons();}
+   }finally{
+     if(status.textContent)window.requestFeedback?.show(status.classList.contains('data-submit-success'),status.textContent);
+     if(posted)window.requestCaptcha?.reset();submitting=false;submit.disabled=false;refreshButtons();
+   }
  });
  new MutationObserver(()=>{updateProgress();refreshButtons();[emailStatus,locationStatus,status].forEach(refreshMessage);}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
  const cooldownTimer=setInterval(refreshButtons,1000);

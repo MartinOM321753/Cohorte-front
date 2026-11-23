@@ -69,6 +69,7 @@ async page => {
   await page.locator('.data-submit').click();
   await page.waitForFunction(()=>document.querySelector('#data-submit-status').dataset.message==='denied');
   assert(submissions.length===0,'Submitted with denied geolocation');
+  await page.locator('.request-result-close').click();
   await page.evaluate(()=>delete navigator.geolocation);
   await page.locator('#location-share').click();
   await page.waitForFunction(()=>document.querySelector('#location-status').dataset.message==='locationReady');
@@ -84,6 +85,8 @@ async page => {
   assert(sent.locationConsent===true&&sent.latitude===19.4326&&sent.longitude===-99.1332&&sent.locationAccuracy===25,'Missing location proof');
   assert(captchaPassed&&sent.captchaToken==='mock-captcha-token','Missing CAPTCHA proof');
   assert(!await page.locator('.data-submit').isDisabled(),'Submit stayed disabled after reset');
+  assert(await page.locator('dialog[data-result=success]').isVisible(),'Success alert lost after reset');
+  await page.locator('.request-result-close').click();
   await page.goto(url);
   await page.setViewportSize({width:1440,height:1100});
   await page.locator('[name=email]').fill('changed@example.org');
