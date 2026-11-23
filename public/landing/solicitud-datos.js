@@ -160,6 +160,8 @@
         }
         location = null;
         locationStatus.textContent = error.code === 1 ? tr('Permite la ubicación en el navegador y en tu dispositivo.', 'Allow location in your browser and device.') : error.code === 3 ? tr('La ubicación tardó demasiado. Comprueba tu conexión y que la ubicación esté activada.', 'Location timed out. Check your connection and location settings.') : tr('El dispositivo no pudo determinar tu ubicación. Comprueba tu conexión y el servicio de ubicación.', 'Your device could not determine its location. Check your connection and location service.');
+        locationStatus.textContent += tr(' En Windows: Configuración → Privacidad y seguridad → Ubicación → activa Servicios de ubicación y el acceso para aplicaciones de escritorio.',' On Windows: Settings → Privacy & security → Location → enable Location services and desktop app access.');
+        locationStatus.textContent += ' (' + (error.code === 1 ? 'GEO_PERMISSION_DENIED' : error.code === 3 ? 'GEO_TIMEOUT' : 'GEO_POSITION_UNAVAILABLE') + ')';
         locationStatus.dataset.message = error.code === 1 ? 'denied' : 'locationUnavailable';
         locationStatus.classList.add('is-error'); reject(new Error('location'));
       },
