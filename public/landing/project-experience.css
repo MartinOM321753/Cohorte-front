@@ -1,0 +1,75 @@
+/* Complementary perspectives surround one participant, without a sequence. */
+#proyecto-resumen.project-overview { padding: 84px 40px 76px; background: #f7f8f2; }
+#proyecto-resumen > .wrap { max-width: 1248px; }
+#proyecto-resumen .overview-heading { text-align: center; max-width: 920px; margin: 0 auto 44px; }
+#proyecto-resumen .eyebrow { color: #6b825d; margin-bottom: 22px; }
+#proyecto-resumen h2 { font-size: clamp(38px,4.1vw,58px); font-weight: 500; line-height: 1.08; text-wrap: balance; }
+#proyecto-resumen .overview-intro p { font-size: 17px; line-height: 1.8; color: #526a5b; max-width: 80ch; margin: 24px auto 0; }
+#proyecto-resumen .overview-perspectives { display: grid; grid-template-columns: minmax(0,1fr) 340px minmax(0,1fr); column-gap: 56px; row-gap: 8px; align-items: center; max-width: 1180px; margin: 0 auto; }
+#proyecto-resumen .overview-network { grid-column: 2; grid-row: 1; width: 100%; }
+#proyecto-resumen .overview-network svg { display: block; width: 100%; height: auto; }
+#proyecto-resumen .network-orbit { transform-origin: 160px 160px; }
+#proyecto-resumen .overview-concept { min-width: 0; }
+#proyecto-resumen .overview-concept-1 { grid-column: 1; grid-row: 1; }
+#proyecto-resumen .overview-concept-2 { grid-column: 3; grid-row: 1; }
+#proyecto-resumen .overview-concept-3 { grid-column: 1/-1; grid-row: 2; text-align: center; max-width: 650px; justify-self: center; }
+#proyecto-resumen h3 { font-size: 27px; font-weight: 500; margin: 0 0 14px; line-height: 1.2; letter-spacing: -.025em; }
+#proyecto-resumen .overview-step p { font-size: 16px; line-height: 1.8; color: #526a5b; }
+#proyecto-resumen .overview-concept-3 .overview-step p { max-width: 66ch; }
+#proyecto-resumen .overview-concept-1 { --experience-delay: 100ms; }
+#proyecto-resumen .overview-concept-2 { --experience-delay: 180ms; }
+#proyecto-resumen .overview-concept-3 { --experience-delay: 260ms; }
+
+/* Rotation, elevation and shadow share one eased progress value. */
+#proyecto .research-plate {
+  --card-rx: 0deg; --card-ry: 0deg; --card-strength: 0;
+  transform-origin: center;
+  transition: none;
+  transform: perspective(1000px) rotateX(var(--card-rx)) rotateY(var(--card-ry)) translateY(calc(-4px * var(--card-strength))) scale(calc(1 + .006 * var(--card-strength)));
+  box-shadow: var(--card-shadow-x, 0px) calc(6px + 14px * var(--card-strength)) calc(18px + 16px * var(--card-strength)) rgb(23 63 50 / calc(.06 + .12 * var(--card-strength))), 0 1px 3px #173f3208;
+}
+#proyecto .research-plate.is-tilting { z-index: 3; }
+#proyecto .research-plate::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(circle at var(--card-light-x, 50%) var(--card-light-y, 50%), #ffffff30, transparent 65%); opacity: var(--card-strength); pointer-events: none; z-index: 2; }
+
+/* Integrated dimensions: reveal, floating scientific models and local light. */
+#proyecto .dimensions-grid { position: relative; }
+#proyecto .dimension { position: relative; isolation: isolate; }
+#proyecto .dimension::before { content: ''; position: absolute; width: min(90%, 250px); height: 200px; left: 50%; top: 12px; transform: translateX(-50%) scale(.94); z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, #a2be7370, #a2be7300 70%); opacity: .4; transition: opacity 550ms ease, transform 700ms ease; pointer-events: none; }
+#proyecto .dimension-art { position: relative; z-index: 1; }
+#proyecto .dimension h3 { position: relative; }
+#proyecto .dimension:nth-child(1) { --experience-delay: 0ms; }
+#proyecto .dimension:nth-child(2) { --experience-delay: 160ms; }
+#proyecto .dimension:nth-child(3) { --experience-delay: 320ms; }
+@keyframes experience-model-enter { from { opacity: 0; transform: translateY(30px) rotateY(-18deg) scale(.86); filter: blur(5px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes experience-model-float { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
+@keyframes experience-copy-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes experience-network-enter { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes experience-orbit { to { transform: rotate(360deg); } }
+@keyframes experience-icon-trace { from { stroke-dashoffset: 110; } to { stroke-dashoffset: 0; } }
+
+  html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .network-orbit { animation: experience-orbit 28s linear infinite; }
+  html:not([data-motion="reduced"]) #proyecto .dimension.is-in-view .dimension-art { animation: experience-model-enter 850ms cubic-bezier(.2,.7,.3,1) var(--experience-delay) both, experience-model-float 6s ease-in-out calc(900ms + var(--experience-delay)) infinite; }
+  html:not([data-motion="reduced"]) #proyecto .dimension.is-in-view h3,
+  html:not([data-motion="reduced"]) #proyecto .dimension.is-in-view p { animation: experience-copy-enter 650ms ease calc(180ms + var(--experience-delay)) both; }
+  html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-network { animation: experience-network-enter 1100ms cubic-bezier(.2,.7,.3,1) both; }
+  html:not([data-motion="reduced"]) #proyecto-resumen.is-in-view .overview-concept { animation: experience-copy-enter 750ms ease calc(250ms + var(--experience-delay)) both; }
+
+
+#proyecto-resumen.is-in-view .network-marker > g { stroke-dasharray: 110; animation: experience-icon-trace 1500ms ease 300ms both; }
+@media(max-width: 900px) {
+  #proyecto-resumen.project-overview { padding: 60px 32px; }
+  #proyecto-resumen .overview-perspectives { grid-template-columns: minmax(0,1fr) 170px minmax(0,1fr); column-gap: 24px; }
+  #proyecto-resumen h3 { font-size: 24px; }
+}
+@media(max-width: 680px) {
+  #proyecto-resumen.project-overview { padding: 44px 20px; }
+  #proyecto-resumen .overview-heading { margin-bottom: 28px; }
+  #proyecto-resumen h2 { font-size: clamp(34px,9vw,44px); }
+  #proyecto-resumen .overview-intro p { font-size: 16px; margin-top: 22px; }
+  #proyecto-resumen .overview-perspectives { display: flex; flex-direction: column; gap: 0; }
+  #proyecto-resumen .overview-network { order: -1; width: 240px; margin: 0 auto 12px; }
+  #proyecto-resumen .overview-concept { width: 100%; max-width: none; text-align: left; padding: 24px 0; border-top: 1px solid #d8e2ce; }
+  #proyecto-resumen h3 { font-size: 25px; max-width: none; }
+  #proyecto-resumen .overview-concept-3 .overview-step p { max-width: none; }
+  #proyecto-resumen .overview-step p { font-size: 15px; }
+}

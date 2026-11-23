@@ -23,7 +23,7 @@
     "Observar cambios": "Observe change", "Las diferentes mediciones permiten identificar cambios importantes y contribuyen al análisis del estudio.": "Repeated measurements help identify important changes and contribute to the study’s analyses.",
     "Integrar perspectivas": "Bring perspectives together", "Para comprender enfermedades complejas se integra la información de cuestionarios, mediciones clínicas y análisis de muestras biológicas, con una visión conjunta de la salud.": "To understand complex diseases, the study combines questionnaire data, clinical measurements, and biological sample analyses to build a broader view of health.",
     "Generar conocimiento": "Generate knowledge", "La integración y el análisis de la información permiten identificar asociaciones entre estilos de vida y distintas dimensiones de salud.": "Integrating and analyzing information helps identify associations between lifestyles and different dimensions of health.",
-    "Conocimiento que se construye": "Building knowledge", "Una misma cohorte.": "One cohort.", "Muchas preguntas por responder.": "Many questions to explore.",
+    "Conocimiento que se construye": "Building knowledge", "Una misma cohorte.": "The same cohort.", "Muchas preguntas por responder.": "Many questions to explore.",
     "La información reunida a lo largo del seguimiento ha dado lugar a publicaciones en distintas áreas de la salud, por ejemplo:": "Information gathered during follow-up has supported publications across several areas of health, including:",
     "Alimentación y salud cardiometabólica": "Diet and cardiometabolic health", "Las publicaciones de la Cohorte han analizado cómo se relacionan el consumo de bebidas, los patrones alimentarios, la presión arterial y los indicadores metabólicos.": "Cohort publications have examined how beverage consumption and dietary patterns relate to blood pressure and metabolic indicators.",
     "Composición corporal y metabolismo": "Body composition and metabolism", "El seguimiento permite estudiar la relación temporal entre la adiposidad, los estilos de vida y los indicadores de resistencia a la insulina.": "Follow-up makes it possible to study how adiposity, lifestyle, and indicators of insulin resistance relate over time.",
@@ -184,7 +184,70 @@
     "Continuar": "Continue",
     "Al enviar la solicitud se abrirá tu aplicación de correo con la información capturada para que puedas revisarla antes de enviarla.": "Sending the request opens your email app with the information you entered so you can review it before sending."
   });
+  Object.assign(translations, {
+    "Áreas de investigación": "Research areas",
+    "Muchas preguntas": "Many questions",
+    "por responder.": "to explore.",
+    "Contenido del proyecto": "Project contents",
+    "Explorar la información integrada": "Explore the integrated information",
+    "Conocer al equipo": "Meet the team",
+    "Representación tridimensional del corazón": "Three-dimensional representation of the heart",
+    "Modelo tridimensional de composición corporal": "Three-dimensional body composition model",
+    "Modelo tridimensional de un hueso": "Three-dimensional bone model",
+    "Representación tridimensional del cerebro": "Three-dimensional representation of the brain",
+    "Representación molecular de una doble hélice de ADN": "Molecular representation of a DNA double helix",
+    "Modelo tridimensional del hígado": "Three-dimensional liver model",
+    "Instrumentos de evaluación clínica, cuestionario y muestra biológica": "Clinical assessment instruments, questionnaire and biological sample",
+    "Modelo tridimensional de una estructura molecular": "Three-dimensional molecular structure model",
+    "Ilustración de evaluación funcional, imagen corporal y microbioma": "Illustration of functional assessment, body imaging and microbiome"
+  });
+  Object.assign(translations, {
+    "Figura humana tridimensional en blanco y gris con contorno muscular suave": "Three-dimensional white and gray human figure with subtle muscle contours",
+    "Representación del cerebro en vista superior y tonos rosados": "Top-view representation of the brain in pink tones"
+  });
+  Object.assign(translations, {
+    "Figura humana tridimensional con contorno de malla en tonos grises": "Three-dimensional human figure outlined with a gray wireframe mesh",
+    "Cerebro en vista superior representado con una malla tridimensional": "Top-view brain represented by a three-dimensional wireframe mesh"
+  });
+  Object.assign(translations, {
+    "Corazón humano representado con una malla tridimensional gris": "Human heart represented with a gray three-dimensional wireframe mesh",
+    "Hígado humano representado con una malla tridimensional gris": "Human liver represented with a gray three-dimensional wireframe mesh"
+  });
+  Object.assign(translations, {
+    "Ilustración anatómica del corazón en tonos naturales": "Anatomical heart illustration in natural colors",
+    "Ilustración tridimensional simplificada del hígado sin vesícula": "Simplified three-dimensional liver illustration without a gallbladder"
+  });
+  Object.assign(translations, {"Reproducir animación": "Replay animation"});
+  Object.assign(translations, {
+    "Explora el proyecto": "Explore the project",
+    "Observar hoy.": "Observe today.",
+    "Comprender el mañana.": "Understand tomorrow.",
+    "Reunimos evaluaciones, muestras biológicas e información sobre estilos de vida para estudiar cómo cambia la salud de las mismas personas a lo largo del tiempo.": "We bring together assessments, biological samples, and lifestyle information to study how the same people’s health changes over time."
+  });
   const normalize = value => value.replace(/\s+/g, " ").trim();
+  Object.assign(translations, {
+    "Teléfono de contacto": "Contact phone number",
+    "Solo letras, espacios, acentos, guiones y apóstrofos; sin números.": "Letters, spaces, accents, hyphens and apostrophes only; no numbers.",
+    "Solicita el código e ingrésalo aquí cuando lo recibas.": "Request a code and enter it here when you receive it.",
+    "Verificación antispam": "Anti-spam verification",
+    "Completa esta verificación antes de enviar tu solicitud.": "Complete this verification before submitting your request.",
+    "Reintentar verificación": "Retry verification",
+    "a la base de datos": "to the database",
+    "de la Cohorte": "of the Cohort",
+    "10 dígitos": "10 digits",
+    "6 dígitos": "6 digits",
+    "Escribe 10 dígitos, sin espacios ni código de país.": "Enter 10 digits, without spaces or country code.",
+    "Verifica tu correo": "Verify your email",
+    "Te enviaremos un código de 6 dígitos para confirmar que puedes recibir mensajes.": "We will send a 6-digit code to confirm you can receive messages.",
+    "Enviar código": "Send code",
+    "Código de verificación": "Verification code",
+    "Verificar código": "Verify code",
+    "Ubicación de contacto": "Contact location",
+    "Necesitamos tu ubicación para registrar desde dónde nos contactas. Puede ser aproximada y se enviará junto con la solicitud.": "We need your location to record where you are contacting us from. It may be approximate and will be submitted with the request.",
+    "Autorizo el uso de mi ubicación para gestionar esta solicitud.": "I authorize the use of my location to manage this request.",
+    "Compartir ubicación": "Share location",
+    "Actualizar ubicación": "Refresh location"
+  });
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));
   const currentLanguage = () => localStorage.getItem("cohorte-language") === "en" ? "en" : "es";

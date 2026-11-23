@@ -4,20 +4,23 @@ import { useNavigate } from 'react-router-dom'
 const LANDING_BASE = '/landing'
 
 const CSS_FILES = [
-  'theme.css',
+  'theme.css?v=68',
   'instituciones.css',
   'retroalimentacion.css',
-  'viewport.css',
+  'viewport.css?v=60',
+  'selected-design.css?v=13',
 ]
 
 const SCRIPT_FILES = [
-  'motion-preferences.js',
+  'motion-preferences.js?v=43',
   'carousels.js',
   'evaluations.js',
   'motion.js',
-  'analytics.js',
+  'analytics.js?v=69',
   'presentation.js',
-  'i18n.js',
+  'project-card-motion.js?v=6',
+  'institutions-motion.js?v=1',
+  'i18n.js?v=74',
 ]
 
 function rewritePaths(html: string): string {

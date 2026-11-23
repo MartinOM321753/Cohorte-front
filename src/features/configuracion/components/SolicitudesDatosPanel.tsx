@@ -52,6 +52,12 @@ const PRODUCTO_LABEL: Record<string, string> = {
   undefined: 'Aún no definido',
 }
 
+const PROPOSITO_LABEL: Record<string, string> = {
+  academic: 'Investigación académica', thesis: 'Desarrollo de tesis o trabajo de grado',
+  teaching: 'Docencia o formación', policy: 'Análisis o evaluación de políticas públicas',
+  journalism: 'Periodismo o divulgación científica',
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-MX', {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -162,6 +168,10 @@ export default function SolicitudesDatosPanel() {
                     <dd>{detalle.organizacion}</dd>
                     <dt className="text-muted-foreground">Correo</dt>
                     <dd className="font-mono">{detalle.email}</dd>
+                    <dt className="text-muted-foreground">Teléfono</dt>
+                    <dd>{detalle.telefono || '—'}</dd>
+                    <dt className="text-muted-foreground">Correo verificado</dt>
+                    <dd>{detalle.correoVerificadoEn ? formatDate(detalle.correoVerificadoEn) : 'Sin registro previo'}</dd>
                   </dl>
                 </section>
 
@@ -169,7 +179,7 @@ export default function SolicitudesDatosPanel() {
                   <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Propósito de la solicitud</h4>
                   <dl className="grid grid-cols-[140px_1fr] gap-y-1.5 text-sm">
                     <dt className="text-muted-foreground">Propósito</dt>
-                    <dd>{detalle.proposito === 'other' ? detalle.propositoOtro : detalle.proposito}</dd>
+                    <dd>{detalle.proposito === 'other' ? detalle.propositoOtro : PROPOSITO_LABEL[detalle.proposito] || detalle.proposito}</dd>
                     <dt className="text-muted-foreground">Proyecto</dt>
                     <dd className="whitespace-pre-wrap">{detalle.proyecto}</dd>
                     <dt className="text-muted-foreground">Información solicitada</dt>
@@ -189,7 +199,18 @@ export default function SolicitudesDatosPanel() {
                   )}
                 </section>
 
-                <p className="text-xs text-muted-foreground">IP: {detalle.ipSolicitante}</p>
+                <section>
+                  <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Origen del contacto</h4>
+                  <dl className="grid grid-cols-[140px_1fr] gap-y-1.5 text-sm">
+                    <dt className="text-muted-foreground">IP de conexión</dt><dd>{detalle.ipSolicitante}</dd>
+                    <dt className="text-muted-foreground">País de conexión</dt><dd>{detalle.conexionPais || '—'}</dd>
+                    <dt className="text-muted-foreground">Revisión de red</dt><dd>{detalle.conexionProveedor || 'Sin registro previo'}</dd>
+                    <dt className="text-muted-foreground">Ubicación del navegador</dt>
+                    <dd>{detalle.ubicacionLatitud != null && detalle.ubicacionLongitud != null ? `${detalle.ubicacionLatitud.toFixed(5)}, ${detalle.ubicacionLongitud.toFixed(5)}` : '—'}</dd>
+                    <dt className="text-muted-foreground">Precisión aproximada</dt><dd>{detalle.ubicacionPrecision != null ? `${Math.round(detalle.ubicacionPrecision)} m` : '—'}</dd>
+                    <dt className="text-muted-foreground">Fecha de ubicación</dt><dd>{detalle.ubicacionCapturadaEn ? formatDate(detalle.ubicacionCapturadaEn) : '—'}</dd>
+                  </dl>
+                </section>
               </div>
             </>
           )}

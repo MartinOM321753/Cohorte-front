@@ -82,7 +82,7 @@
 .data-request-intro{max-width:850px;margin:0 auto 30px;text-align:center}
 .data-request-intro .eyebrow{color:#a58955;font-size:12px;letter-spacing:.2em;text-transform:uppercase}
 .data-request-intro h1{margin:14px 0 20px;color:#173b2e;font-size:clamp(34px,5vw,58px);font-weight:500;line-height:1.12;letter-spacing:-.04em}
-.data-request-intro h1 span{color:#5e9275}
+.data-request-intro h1 span{color:#3d7a5a}
 .data-request-intro p{max-width:760px;margin:12px auto;color:#536558;font-size:17px;line-height:1.7}
 .data-review-note{display:grid;grid-template-columns:38px 1fr;gap:16px;align-items:start;margin:28px 0;padding:24px 28px;border:1px solid #d9dccd;border-left:4px solid #c7ac76;border-radius:16px;background:#f9f7ef}
 .data-note-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#eee8d7;color:#8a7042;font-family:Georgia,serif;font-size:19px;font-weight:700}
@@ -92,7 +92,7 @@
 .data-form-section{padding:clamp(24px,4vw,38px);border-bottom:1px solid #e5e6dc}
 .data-form-section[hidden],.data-step-actions [hidden],.data-step-footer-note[hidden]{display:none!important}
 .data-form-progress{padding:26px clamp(24px,4vw,38px) 20px;border-bottom:1px solid #e5e6dc;background:linear-gradient(115deg,#f4f3e9,#fbfaf5)}
-.data-progress-current{margin:0 0 17px;color:#718071;font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}
+.data-progress-current{margin:0 0 17px;color:#586b58;font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}
 .data-progress-list{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0;padding:0;list-style:none}
 .data-progress-list:before{position:absolute;top:17px;left:9%;right:9%;height:1px;background:#d9decf;content:""}
 .data-progress-list li{position:relative;z-index:1;display:grid;justify-items:center;gap:8px;color:#7d887b;font-size:12px;text-align:center}
@@ -137,6 +137,9 @@
 .data-submit:hover svg{transform:translate(2px,-2px) rotate(-7deg)}
 .data-submit-status{margin:0;color:#35664d;font-size:14px;line-height:1.5}.data-submit-success{color:#166534;font-weight:600}.data-submit-error{color:#991b1b;font-weight:600}
 .data-form-footer>small{justify-self:center;max-width:740px;margin-top:-9px;text-align:center;color:#718071;font-size:12px;line-height:1.55}
+.data-submit:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+.data-request-form [hidden],.data-alert-overlay[hidden]{display:none!important}
+
 @media(max-width:700px){
  .data-access-cta{align-items:flex-start;flex-direction:column}
  .data-access-cta .button{white-space:normal}
@@ -151,12 +154,12 @@
  .data-form-progress{padding:22px 18px 17px}
  .data-progress-list{gap:5px}
  .data-progress-list li{font-size:11px}
- .data-progress-list:before{left:14%;right:14%}
+ .data-progress-list:before{left:10%;right:10%}
  .data-step-actions{width:100%}
  .data-step-actions .button{flex:1}
  .data-form-heading h2{font-size:19px}
 }
-@media(prefers-reduced-motion:reduce){.data-form-section:not([hidden]),.data-progress-list li>span:first-child,.data-step-next span,.data-submit svg{animation:none!important;transition:none!important}}
+
 
 .floating-header .site-return{color:#f6f3ea;text-decoration:none;font-size:14px}
 .floating-header .site-return:hover{text-decoration:underline}
