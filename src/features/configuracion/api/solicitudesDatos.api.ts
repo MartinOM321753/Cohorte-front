@@ -14,6 +14,15 @@ export interface SolicitudAccesoDatosResponse {
   productoOtro: string | null
   estado: 'PENDIENTE' | 'REVISADA' | 'APROBADA' | 'RECHAZADA'
   ipSolicitante: string
+  telefono?: string | null
+  correoVerificadoEn?: string | null
+  ubicacionLatitud?: number | null
+  ubicacionLongitud?: number | null
+  ubicacionPrecision?: number | null
+  ubicacionCapturadaEn?: string | null
+  conexionPais?: string | null
+  conexionProveedor?: string | null
+  conexionRevisadaEn?: string | null
   fechaSolicitud: string
   fechaActualizacion: string
 }

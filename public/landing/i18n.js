@@ -225,6 +225,29 @@
     "Reunimos evaluaciones, muestras biológicas e información sobre estilos de vida para estudiar cómo cambia la salud de las mismas personas a lo largo del tiempo.": "We bring together assessments, biological samples, and lifestyle information to study how the same people’s health changes over time."
   });
   const normalize = value => value.replace(/\s+/g, " ").trim();
+  Object.assign(translations, {
+    "Teléfono de contacto": "Contact phone number",
+    "Solo letras, espacios, acentos, guiones y apóstrofos; sin números.": "Letters, spaces, accents, hyphens and apostrophes only; no numbers.",
+    "Solicita el código e ingrésalo aquí cuando lo recibas.": "Request a code and enter it here when you receive it.",
+    "Verificación antispam": "Anti-spam verification",
+    "Completa esta verificación antes de enviar tu solicitud.": "Complete this verification before submitting your request.",
+    "Reintentar verificación": "Retry verification",
+    "a la base de datos": "to the database",
+    "de la Cohorte": "of the Cohort",
+    "10 dígitos": "10 digits",
+    "6 dígitos": "6 digits",
+    "Escribe 10 dígitos, sin espacios ni código de país.": "Enter 10 digits, without spaces or country code.",
+    "Verifica tu correo": "Verify your email",
+    "Te enviaremos un código de 6 dígitos para confirmar que puedes recibir mensajes.": "We will send a 6-digit code to confirm you can receive messages.",
+    "Enviar código": "Send code",
+    "Código de verificación": "Verification code",
+    "Verificar código": "Verify code",
+    "Ubicación de contacto": "Contact location",
+    "Necesitamos tu ubicación para registrar desde dónde nos contactas. Puede ser aproximada y se enviará junto con la solicitud.": "We need your location to record where you are contacting us from. It may be approximate and will be submitted with the request.",
+    "Autorizo el uso de mi ubicación para gestionar esta solicitud.": "I authorize the use of my location to manage this request.",
+    "Compartir ubicación": "Share location",
+    "Actualizar ubicación": "Refresh location"
+  });
   const normalizedTranslations = Object.fromEntries(Object.entries(translations).map(([es, en]) => [normalize(es), en]));
   const reverse = Object.fromEntries(Object.entries(normalizedTranslations).map(([es, en]) => [en, es]));
   const currentLanguage = () => localStorage.getItem("cohorte-language") === "en" ? "en" : "es";
